@@ -76,7 +76,7 @@ class ReportCoach:
         """Analyze all reports for a model. Returns findings."""
         reports = list(
             Report.objects.filter(
-                model_name=model_name,
+                target_model=model_name,
                 is_active=True,
                 ).order_by('sort_order', 'name')
         )
@@ -195,7 +195,7 @@ class ReportCoach:
                 'type': 'IDENTICAL',
                 'report_ids': [r1.id, r2.id],
                 'report_names': [r1.name, r2.name],
-                'model_name': r1.model_name,
+                'model_name': r1.target_model,
                 'reason': 'Same pdfme template JSON — these produce the same PDF',
                 'recommendation': f'Deactivate one. Keep "{r1.name}" (#{r1.id}) or "{r2.name}" (#{r2.id})',
             }
@@ -209,7 +209,7 @@ class ReportCoach:
                     'type': 'IDENTICAL',
                     'report_ids': [r1.id, r2.id],
                     'report_names': [r1.name, r2.name],
-                    'model_name': r1.model_name,
+                    'model_name': r1.target_model,
                     'reason': f'Same template key "{tmpl1}" and same fields',
                     'recommendation': f'Deactivate one',
                 }
@@ -219,7 +219,7 @@ class ReportCoach:
                     'type': 'SIMILAR',
                     'report_ids': [r1.id, r2.id],
                     'report_names': [r1.name, r2.name],
-                    'model_name': r1.model_name,
+                    'model_name': r1.target_model,
                     'reason': f'Same template key "{tmpl1}" but different fields: {diff}',
                     'recommendation': f'Update descriptions to explain the field difference',
                 }
@@ -237,7 +237,7 @@ class ReportCoach:
                     'type': 'LIKELY_DUPLICATE',
                     'report_ids': [r1.id, r2.id],
                     'report_names': [r1.name, r2.name],
-                    'model_name': r1.model_name,
+                    'model_name': r1.target_model,
                     'reason': 'Same name or description, no config on either — likely duplicates from WC2 migration',
                     'recommendation': 'Review both. If identical, deactivate one. If different, add config and distinct descriptions.',
                 }
@@ -253,7 +253,7 @@ class ReportCoach:
                     'type': 'DISTINCT_BUT_UNDESCRIBED',
                     'report_ids': [r1.id, r2.id],
                     'report_names': [r1.name, r2.name],
-                    'model_name': r1.model_name,
+                    'model_name': r1.target_model,
                     'reason': f'Different templates ("{tmpl1}" vs "{tmpl2}") but descriptions don\'t explain the difference',
                     'recommendation': f'Add descriptions. Suggested: "{r1.name}": "{known1}". "{r2.name}": "{known2}".',
                 }
@@ -275,21 +275,21 @@ class ReportCoach:
         cat = (r.category or '').lower()
 
         if output == 'email':
-            return f'Email {r.model_name or "document"} to recipient — sends formatted HTML email'
+            return f'Email {r.target_model or "document"} to recipient — sends formatted HTML email'
         if output == 'export':
-            return f'Export {r.model_name or "records"} to CSV/spreadsheet for external analysis'
+            return f'Export {r.target_model or "records"} to CSV/spreadsheet for external analysis'
         if output == 'json':
-            return f'Return {r.model_name or "record"} data as structured JSON for API integration'
+            return f'Return {r.target_model or "record"} data as structured JSON for API integration'
         if output == 'api':
-            return f'POST {r.model_name or "record"} data to external system endpoint'
+            return f'POST {r.target_model or "record"} data to external system endpoint'
         if output == 'merge':
-            return f'Merge {r.model_name or "record"} data into Word/document template'
+            return f'Merge {r.target_model or "record"} data into Word/document template'
         if cat == 'label':
-            return f'Print labels for {r.model_name or "records"} — shipping or identification labels'
+            return f'Print labels for {r.target_model or "records"} — shipping or identification labels'
         if cat == 'summary':
-            return f'Summary view of {r.model_name or "records"} — aggregated totals and counts'
+            return f'Summary view of {r.target_model or "records"} — aggregated totals and counts'
         if 'checklist' in name:
-            return f'Preparation checklist for {r.model_name or "record"} — steps to verify before finalizing'
+            return f'Preparation checklist for {r.target_model or "record"} — steps to verify before finalizing'
 
         # Has pdfme template → describe from schema
         if cfg.get('pdfme_template'):

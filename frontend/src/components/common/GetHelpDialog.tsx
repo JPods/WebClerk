@@ -265,7 +265,7 @@ export default function GetHelpDialog({ open, onClose, trainingMode }: GetHelpDi
     try {
       const { getRecords } = await import('@/api/wcapi');
       const obsRes = await getRecords('alice_observation', {
-        model_name: parsed.wcModel || '',
+        target_model: parsed.wcModel || '',
         resolved: false,
         limit: 5,
       }) as any;

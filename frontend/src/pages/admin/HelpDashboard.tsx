@@ -289,8 +289,8 @@ export default function HelpDashboard() {
               className="px-3 py-1.5 text-xs rounded border border-gray-300 text-gray-500 hover:bg-gray-100">Cancel</button>
             <button disabled={!newBookmark.title.trim() || !newBookmark.url.trim()} onClick={async () => {
               try {
-                // Document.model_name ('system') cannot be sent — the door refuses model_name.
                 const doc = await createRecord('document', {
+                  target_model: 'system',
                   name: newBookmark.title,
                   slug: `bookmark-${Date.now()}`,
                   description: newBookmark.url,

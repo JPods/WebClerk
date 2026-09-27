@@ -970,7 +970,7 @@ def _log_upstream_exchange(connection, question, answer, tier_used, pii_count):
                 f"pii_scrubbed: {pii_count}\n"
                 f"tier_used: {tier_used}"
             ),
-            model_name='Connection',
+            target_model='Connection',
             record_id=connection.pk,
         )
     except Exception as e:

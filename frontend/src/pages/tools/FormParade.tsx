@@ -23,7 +23,7 @@ interface ReportFeedback {
 interface ParadeReport {
   id: number;
   name: string;
-  model_name: string;
+  target_model: string;
   category: string;
   has_sample_data: boolean;
   /** What the report can draw: a form layout, letter text, an operation, or nothing yet. */
@@ -278,7 +278,7 @@ const FormParade: React.FC = () => {
                         )}
                       </div>
                       <div className="flex gap-2 mt-0.5 ml-4">
-                        <span className="text-xs text-gray-500">{report.model_name}</span>
+                        <span className="text-xs text-gray-500">{report.target_model}</span>
                         <span className="text-xs text-gray-400">{report.category}</span>
                       </div>
                     </button>

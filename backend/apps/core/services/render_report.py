@@ -1349,14 +1349,14 @@ def render_report(
         )
     if model_name:
         report_qs = report_qs.filter(
-            Q(model_name=model_name) | Q(model_name="system") | Q(model_name="")
+            Q(target_model=model_name) | Q(target_model="system") | Q(target_model="")
         )
     report_def = report_qs.first()
 
     if not report_def:
         raise ValueError(f"Report '{report_name}' not found for model '{model_name}'")
 
-    effective_model = report_def.model_name or model_name
+    effective_model = report_def.target_model or model_name
     report_data = report_def.config or {}
     category = report_def.category or "report"
     company = _get_company_info()
@@ -1504,14 +1504,14 @@ def get_available_reports(model_name: Optional[str] = None) -> List[Dict[str, An
     Report = django_apps.get_model("core", "Report")
     qs = Report.objects.filter(is_active=True)
     if model_name:
-        qs = qs.filter(Q(model_name=model_name) | Q(model_name="system") | Q(model_name=""))
-    qs = qs.order_by("model_name", "sort_order", "name")
+        qs = qs.filter(Q(target_model=model_name) | Q(target_model="system") | Q(target_model=""))
+    qs = qs.order_by("target_model", "sort_order", "name")
 
     return [
         {
             "id": r.id,
             "name": r.name,
-            "model_name": r.model_name or "",
+            "model_name": r.target_model or "",
             "category": r.category or "",
             "description": r.description or r.purpose or "",
             "output_type": r.output_type or "print",

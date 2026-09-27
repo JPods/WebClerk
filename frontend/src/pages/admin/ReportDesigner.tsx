@@ -27,7 +27,7 @@ interface ReportRecord {
   id: number;
   name: string;
   description: string;
-  model_name: string;
+  target_model: string;
   output_type: string;
   category: string;
   sort_order: number;
@@ -78,7 +78,7 @@ export default function ReportDesigner() {
       setLoading(true);
       const res = (await getRecords('report', {
         limit: 200,
-        ordering: 'model_name,sort_order',
+        ordering: 'target_model,sort_order',
       })) as any;
       setReports((res?.results || []) as ReportRecord[]);
     } catch (err) {
@@ -257,7 +257,7 @@ export default function ReportDesigner() {
                   >
                     <div className="font-medium truncate">{r.name}</div>
                     <div className="text-[10px] text-gray-400 mt-0.5 truncate">
-                      {r.model_name} &middot; {r.output_type} &middot; {r.category}
+                      {r.target_model} &middot; {r.output_type} &middot; {r.category}
                     </div>
                     {(r.config?.pdfme_template || r.config?.template) && (
                       <span className="inline-block mt-0.5 px-1.5 py-0.5 text-[9px] rounded bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400">
@@ -279,7 +279,7 @@ export default function ReportDesigner() {
           <div className="text-xs text-gray-600 dark:text-gray-400">
             {selectedReport ? (
               <>
-                Editing: <strong>{selectedReport.name}</strong> ({selectedReport.model_name})
+                Editing: <strong>{selectedReport.name}</strong> ({selectedReport.target_model})
               </>
             ) : (
               'Select a report from the sidebar'

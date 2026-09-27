@@ -1623,7 +1623,7 @@ const KanbanBoardPage: React.FC = () => {
 
       const scoreDocForAction = (doc: Record<string, unknown>): number => {
         let score = 0;
-        const modelName = typeof doc.model_name === "string" ? doc.model_name.toLowerCase() : "";
+        const modelName = typeof doc.target_model === "string" ? doc.target_model.toLowerCase() : "";
         if (modelName === "action") {
           score += 3;
         }
@@ -1726,7 +1726,7 @@ const KanbanBoardPage: React.FC = () => {
         }
 
         for (const doc of pageRecords) {
-          const modelName = typeof doc.model_name === "string" ? doc.model_name.toLowerCase() : "";
+          const modelName = typeof doc.target_model === "string" ? doc.target_model.toLowerCase() : "";
           if (modelName && modelName !== "action") {
             continue;
           }

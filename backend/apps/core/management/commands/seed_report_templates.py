@@ -1,7 +1,7 @@
 """Seed Report model records for the 28 standard report templates.
 
 Each Report record carries:
-  - name, description, category, model_name
+  - name, description, category, target_model
   - config.template: pdfme template JSON (stub — designer fills in layout)
   - config.data_source: which service/endpoint provides the data
   - config.fields: data fields available for template binding
@@ -18,7 +18,7 @@ REPORTS = [
         'name': 'Invoice',
         'description': 'Customer invoice with line items, totals, and terms',
         'category': 'customer_facing',
-        'model_name': 'invoice',
+        'target_model': 'invoice',
         'config': {
             'data_source': 'invoice_detail',
             'fields': ['ida', 'dt_created', 'customer.company', 'customer.address', 'bill_to', 'ship_to',
@@ -32,7 +32,7 @@ REPORTS = [
         'name': 'Quote / Quote',
         'description': 'Customer quote with line items — no AR impact',
         'category': 'customer_facing',
-        'model_name': 'quote',
+        'target_model': 'quote',
         'config': {
             'data_source': 'quote_detail',
             'fields': ['ida', 'dt_created', 'customer.company', 'customer.address',
@@ -46,7 +46,7 @@ REPORTS = [
         'name': 'Order Confirmation',
         'description': 'Customer order confirmation with expected ship date',
         'category': 'customer_facing',
-        'model_name': 'order',
+        'target_model': 'order',
         'config': {
             'data_source': 'order_detail',
             'fields': ['ida', 'dt_created', 'customer.company', 'customer.address',
@@ -59,7 +59,7 @@ REPORTS = [
         'name': 'Statement',
         'description': 'Customer statement — open invoices, cash, aging, balance',
         'category': 'customer_facing',
-        'model_name': 'contact',
+        'target_model': 'contact',
         'config': {
             'data_source': 'customer_statement',
             'fields': ['customer.company', 'customer.address', 'customer.phone',
@@ -73,7 +73,7 @@ REPORTS = [
         'name': 'Credit Memo',
         'description': 'Credit note / reversal document with reason',
         'category': 'customer_facing',
-        'model_name': 'invoice',
+        'target_model': 'invoice',
         'config': {
             'data_source': 'invoice_detail',
             'filter': {'invoice_type': 'credit_note'},
@@ -87,7 +87,7 @@ REPORTS = [
         'name': 'Packing Slip',
         'description': 'Shipment packing list — items and quantities, no prices',
         'category': 'customer_facing',
-        'model_name': 'invoice',
+        'target_model': 'invoice',
         'config': {
             'data_source': 'invoice_detail',
             'hide_prices': True,
@@ -101,7 +101,7 @@ REPORTS = [
         'name': 'Return Receipt',
         'description': 'RMA / return receipt — what was received back',
         'category': 'customer_facing',
-        'model_name': 'receipt',
+        'target_model': 'receipt',
         'config': {
             'data_source': 'receipt_detail',
             'fields': ['ida', 'dt_created', 'customer.company',
@@ -116,7 +116,7 @@ REPORTS = [
         'name': 'Pick List',
         'description': 'Warehouse pick list for order fulfillment',
         'category': 'operations',
-        'model_name': 'order',
+        'target_model': 'order',
         'config': {
             'data_source': 'order_pick_list',
             'fields': ['ida', 'customer.company', 'ship_date',
@@ -129,7 +129,7 @@ REPORTS = [
         'name': 'Purchase Order',
         'description': 'PO sent to vendor — items, quantities, costs',
         'category': 'operations',
-        'model_name': 'purchase',
+        'target_model': 'purchase',
         'config': {
             'data_source': 'purchase_detail',
             'fields': ['ida', 'dt_created', 'vendor.company', 'vendor.address',
@@ -143,7 +143,7 @@ REPORTS = [
         'name': 'Work Order',
         'description': 'Work order / job ticket for production or service',
         'category': 'operations',
-        'model_name': 'workorder',
+        'target_model': 'workorder',
         'config': {
             'data_source': 'workorder_detail',
             'fields': ['ida', 'dt_created', 'customer.company', 'status',
@@ -157,7 +157,7 @@ REPORTS = [
         'name': 'BOM Expansion',
         'description': 'Bill of Materials tree — indented components with costs',
         'category': 'operations',
-        'model_name': 'item',
+        'target_model': 'item',
         'config': {
             'data_source': 'bom_expand_tree',
             'fields': ['parent.ida', 'parent.name', 'build_qty',
@@ -172,7 +172,7 @@ REPORTS = [
         'name': 'Inventory Count Sheet',
         'description': 'Physical count sheet — blind (no expected qty) or with expected',
         'category': 'operations',
-        'model_name': 'inventory_layer',
+        'target_model': 'inventory_layer',
         'config': {
             'data_source': 'inventory_count_sheet',
             'fields': ['warehouse', 'rows[].item_ida', 'rows[].item_name', 'rows[].lot',
@@ -185,7 +185,7 @@ REPORTS = [
         'name': 'Serial History',
         'description': 'Serial number lifecycle — all state changes',
         'category': 'operations',
-        'model_name': 'serial',
+        'target_model': 'serial',
         'config': {
             'data_source': 'serial_history',
             'fields': ['serial_ida', 'item_ida', 'item.name', 'status',
@@ -198,7 +198,7 @@ REPORTS = [
         'name': 'Receiving Report',
         'description': 'Goods received — PO match and variance',
         'category': 'operations',
-        'model_name': 'receipt',
+        'target_model': 'receipt',
         'config': {
             'data_source': 'receipt_detail',
             'fields': ['ida', 'dt_created', 'vendor.company', 'po_ida',
@@ -212,7 +212,7 @@ REPORTS = [
         'name': 'Requisition',
         'description': 'Internal purchase request — before PO approval',
         'category': 'operations',
-        'model_name': 'requisition',
+        'target_model': 'requisition',
         'config': {
             'data_source': 'requisition_detail',
             'fields': ['ida', 'dt_created', 'requested_by', 'approved_by',
@@ -227,7 +227,7 @@ REPORTS = [
         'name': 'GL Summary',
         'description': '$ by account code for a period — the retype screen',
         'category': 'accounting',
-        'model_name': 'gl_journal',
+        'target_model': 'gl_journal',
         'config': {
             'data_source': 'account_summary_by_period',
             'fields': ['period', 'rows[].account', 'rows[].account_name',
@@ -240,7 +240,7 @@ REPORTS = [
         'name': 'Tax Report',
         'description': 'Sales tax collected by jurisdiction for filing',
         'category': 'accounting',
-        'model_name': 'tax_jurisdiction',
+        'target_model': 'tax_jurisdiction',
         'config': {
             'data_source': 'tax_summary_by_period',
             'fields': ['period_label', 'rows[].jurisdiction', 'rows[].tax_collected',
@@ -253,7 +253,7 @@ REPORTS = [
         'name': 'AR Aging',
         'description': 'Accounts receivable aging by customer',
         'category': 'accounting',
-        'model_name': 'contact',
+        'target_model': 'contact',
         'config': {
             'data_source': 'ar_aging_by_customer',
             'fields': ['rows[].customer.company', 'rows[].customer.ida',
@@ -267,7 +267,7 @@ REPORTS = [
         'name': 'AP Aging',
         'description': 'Accounts payable aging by vendor',
         'category': 'accounting',
-        'model_name': 'contact',
+        'target_model': 'contact',
         'config': {
             'data_source': 'ap_aging_by_vendor',
             'fields': ['rows[].vendor.company', 'rows[].vendor.ida',
@@ -280,7 +280,7 @@ REPORTS = [
         'name': 'Cash Receipts Journal',
         'description': 'Cash received for a period',
         'category': 'accounting',
-        'model_name': 'cash',
+        'target_model': 'cash',
         'config': {
             'data_source': 'cash_receipts_journal',
             'fields': ['period', 'rows[].date', 'rows[].customer', 'rows[].invoice_ida',
@@ -293,7 +293,7 @@ REPORTS = [
         'name': 'Sales Journal',
         'description': 'Revenue posted by period',
         'category': 'accounting',
-        'model_name': 'gl_journal',
+        'target_model': 'gl_journal',
         'config': {
             'data_source': 'sales_journal_detail',
             'fields': ['period', 'rows[].date', 'rows[].invoice_ida', 'rows[].customer',
@@ -306,7 +306,7 @@ REPORTS = [
         'name': 'Purchase Journal',
         'description': 'AP posted by period',
         'category': 'accounting',
-        'model_name': 'gl_journal',
+        'target_model': 'gl_journal',
         'config': {
             'data_source': 'purchase_journal_detail',
             'fields': ['period', 'rows[].date', 'rows[].po_ida', 'rows[].vendor',
@@ -321,7 +321,7 @@ REPORTS = [
         'name': 'Sales by Customer',
         'description': 'Revenue, margin, and order count by customer for a period',
         'category': 'sales_analysis',
-        'model_name': 'contact',
+        'target_model': 'contact',
         'config': {
             'data_source': 'sales_by_customer',
             'fields': ['period', 'rows[].customer.company', 'rows[].customer.ida',
@@ -334,7 +334,7 @@ REPORTS = [
         'name': 'Sales by Item',
         'description': 'Qty sold, revenue, margin, and velocity by item',
         'category': 'sales_analysis',
-        'model_name': 'item',
+        'target_model': 'item',
         'config': {
             'data_source': 'sales_by_item',
             'fields': ['period', 'rows[].item_ida', 'rows[].name',
@@ -347,7 +347,7 @@ REPORTS = [
         'name': 'Sales by Salesperson',
         'description': 'Revenue, margin, and commission by salesperson/rep',
         'category': 'sales_analysis',
-        'model_name': 'contact',
+        'target_model': 'contact',
         'config': {
             'data_source': 'sales_by_salesperson',
             'fields': ['period', 'rows[].salesperson', 'rows[].revenue', 'rows[].cost',
@@ -359,7 +359,7 @@ REPORTS = [
         'name': 'Margin Velocity',
         'description': 'Stars, dead capital, and volume drivers — the velocity report',
         'category': 'sales_analysis',
-        'model_name': 'item',
+        'target_model': 'item',
         'config': {
             'data_source': 'velocity_report',
             'fields': ['rows[].item_ida', 'rows[].name', 'rows[].margin_velocity',
@@ -372,7 +372,7 @@ REPORTS = [
         'name': 'Campaign ROI',
         'description': 'Campaign spend vs attributed contacts, orders, and revenue',
         'category': 'sales_analysis',
-        'model_name': 'campaign',
+        'target_model': 'campaign',
         'config': {
             'data_source': 'campaign_roi',
             'fields': ['campaign.name', 'campaign.source_type', 'campaign.region',
@@ -385,7 +385,7 @@ REPORTS = [
         'name': 'Customer Profitability',
         'description': 'Revenue, COGS, margin, and days-to-pay by customer',
         'category': 'sales_analysis',
-        'model_name': 'contact',
+        'target_model': 'contact',
         'config': {
             'data_source': 'customer_profitability',
             'fields': ['rows[].customer.company', 'rows[].revenue', 'rows[].cogs',
@@ -410,7 +410,7 @@ class Command(BaseCommand):
                 defaults={
                     'name': spec['name'],
                     'description': spec['description'],
-                    'model_name': spec.get('model_name', ''),
+                    'target_model': spec.get('target_model', ''),
                     'category': spec.get('category', ''),
                     'config': spec.get('config', {}),
                 },

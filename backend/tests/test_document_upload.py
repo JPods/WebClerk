@@ -206,7 +206,7 @@ class DocumentUploadAPITests:
             {
                 'file': file_obj,
                 'purpose': 'document',
-                'model_name': 'test',
+                'target_model': 'test',
             }
         )
 
@@ -226,7 +226,7 @@ class DocumentUploadAPITests:
             {
                 'file': file_obj,
                 'purpose': 'document',
-                'model_name': 'test',
+                'target_model': 'test',
             }
         )
 
@@ -245,7 +245,7 @@ class DocumentUploadAPITests:
             {
                 'file': file1,
                 'purpose': 'document',
-                'model_name': 'test',
+                'target_model': 'test',
             }
         )
 
@@ -256,7 +256,7 @@ class DocumentUploadAPITests:
             {
                 'file': file2,
                 'purpose': 'document',
-                'model_name': 'test',
+                'target_model': 'test',
             }
         )
 
@@ -279,7 +279,7 @@ class DocumentUploadAPITests:
             {
                 'file': file_obj,
                 'purpose': 'document',
-                'model_name': 'test',
+                'target_model': 'test',
                 'address_city': 'San Francisco',
                 'address_state': 'CA',
                 'address_country': 'USA',
@@ -298,7 +298,7 @@ class DocumentUploadAPITests:
             {
                 'file': file_obj,
                 'purpose': 'document',
-                'model_name': 'test',
+                'target_model': 'test',
                 'geo_lat': '37.7749',
                 'geo_lng': '-122.4194',
                 'geo_accuracy': '10',

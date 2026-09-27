@@ -65,7 +65,7 @@ def _relocate(key, obj, env, changes):
         return
     if key == 'document':
         for ck, field in (('purpose', 'purpose'), ('doc_system', 'purpose'), ('role', 'purpose'),
-                          ('parent_model', 'model_name'), ('mime_type', 'mime_type'),
+                          ('parent_model', 'target_model'), ('mime_type', 'mime_type'),
                           ('size_bytes', 'size_bytes'), ('path', 'path')):
             if ck in config:
                 _set_if_empty(obj, field, config.pop(ck), changes, f'config.{ck}')
@@ -154,7 +154,7 @@ class Command(BaseCommand):
         for key in keys:
             classes = schema_classes(key)
             Model = MODEL_REGISTRY[key].import_model()
-            scalar_fields = {'purpose', 'model_name', 'record_id', 'mime_type', 'size_bytes',
+            scalar_fields = {'purpose', 'target_model', 'record_id', 'mime_type', 'size_bytes',
                              'path', 'status', 'editor_type', 'description'}
             changes = collections.Counter()
             touched = 0

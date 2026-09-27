@@ -231,7 +231,7 @@ class Command(BaseCommand):
         if target_id:
             qs = qs.filter(id=target_id)
 
-        reports = qs.order_by('model_name', 'name')
+        reports = qs.order_by('target_model', 'name')
         created = 0
         skipped = 0
 
@@ -246,7 +246,7 @@ class Command(BaseCommand):
 
             # Check if pdfme copy already exists
             existing = Report.objects.filter(
-                model_name=report.model_name,
+                target_model=report.target_model,
                 name=f'{report.name} (pdfme)',
                 ).exists()
             if existing:
@@ -273,7 +273,7 @@ class Command(BaseCommand):
             new_report = Report.objects.create(
                 name=f'{report.name} (pdfme)',
                 description=f'pdfme version of {report.name}. Customize in PDF Designer.',
-                model_name=report.model_name,
+                target_model=report.target_model,
                 output_type='print',
                 category=report.category,
                 role_required=report.role_required,

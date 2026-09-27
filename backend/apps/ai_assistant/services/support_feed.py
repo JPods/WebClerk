@@ -258,7 +258,7 @@ def detect_help_patterns(since_days: int = 30) -> dict:
                 f"Sample questions:\n"
                 + '\n'.join(f"  - {q}" for q in sample_qs)
             ),
-            model_name='Document',
+            target_model='Document',
             dedup_key=dedup_key,
         )
         observations_created += 1
@@ -441,7 +441,7 @@ def submit_coaching_feedback(feedback_items: list) -> dict:
                 priority=0,
                 message=f"Coaching feedback: {coaching_ida}{tip_detail} rated not helpful",
                 detail=item.get('comment', ''),
-                model_name='Setting',
+                target_model='Setting',
                 dedup_key=f"cf-{coaching_ida}-{item.get('tip_index', '')}-{item.get('field', '')}",
             )
 

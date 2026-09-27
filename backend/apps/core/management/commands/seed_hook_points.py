@@ -107,7 +107,7 @@ class Command(BaseCommand):
             name='Log every invoice save',
             category='function',
             output_type='json',   # a hook is not a printed form — keep it out of the parade
-            model_name='invoice',
+            target_model='invoice',
             description='Appends one line to logs/hooks/record_saves.jsonl on each invoice save.',
             explanation=(
                 'The simplest possible hook: it records, it changes nothing. Submit it to '

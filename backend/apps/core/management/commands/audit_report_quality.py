@@ -5,10 +5,10 @@ she creates Action records to force the user to review and improve them.
 
 Checks:
   1. Missing or vague descriptions (< 30 chars)
-  2. Duplicate names within the same model_name
+  2. Duplicate names within the same target_model
   3. Generic numbered names ("Quote 1", "Invoice 2") with no distinction
-  4. Missing model_name (orphan reports)
-  5. Duplicate entries (same name + same model_name)
+  4. Missing target_model (orphan reports)
+  5. Duplicate entries (same name + same target_model)
 
 Usage:
     python manage.py audit_report_quality              # audit and report
@@ -41,7 +41,7 @@ class Command(BaseCommand):
         parser.add_argument('--coach', action='store_true',
                             help='Alice compares forms, finds duplicates, generates descriptions')
         parser.add_argument('--model', type=str, default=None,
-                            help='Audit only this model_name (e.g. quote)')
+                            help='Audit only this target_model (e.g. quote)')
 
     def handle(self, *args, **options):
         do_fix = options['fix']
@@ -50,8 +50,8 @@ class Command(BaseCommand):
 
         reports = Report.objects.filter(is_active=True)
         if model_filter:
-            reports = reports.filter(model_name=model_filter)
-        reports = reports.order_by('model_name', 'name')
+            reports = reports.filter(target_model=model_filter)
+        reports = reports.order_by('target_model', 'name')
 
         issues = []
 
@@ -62,7 +62,7 @@ class Command(BaseCommand):
                 issues.append({
                     'report_id': r.id,
                     'name': r.name,
-                    'model_name': r.model_name,
+                    'target_model': r.target_model,
                     'issue': 'NO_DESCRIPTION',
                     'detail': 'Report has no description — user cannot distinguish it from others',
                     'severity': 'high',
@@ -73,7 +73,7 @@ class Command(BaseCommand):
                     issues.append({
                         'report_id': r.id,
                         'name': r.name,
-                        'model_name': r.model_name,
+                        'target_model': r.target_model,
                         'issue': 'VAGUE_DESCRIPTION',
                         'detail': f'Description "{desc}" does not distinguish this report from its siblings',
                         'severity': 'medium',
@@ -82,7 +82,7 @@ class Command(BaseCommand):
         # ── Check 2: Duplicate names within same model ──────────────────
         name_groups = {}
         for r in reports:
-            key = (r.model_name or '', r.name or '')
+            key = (r.target_model or '', r.name or '')
             if key not in name_groups:
                 name_groups[key] = []
             name_groups[key].append(r)
@@ -93,7 +93,7 @@ class Command(BaseCommand):
                 issues.append({
                     'report_id': ids[0],
                     'name': name,
-                    'model_name': model,
+                    'target_model': model,
                     'issue': 'DUPLICATE_NAME',
                     'detail': f'"{name}" appears {len(group)} times for model "{model}" (ids: {ids})',
                     'severity': 'high',
@@ -111,21 +111,21 @@ class Command(BaseCommand):
                     issues.append({
                         'report_id': r.id,
                         'name': r.name,
-                        'model_name': r.model_name,
+                        'target_model': r.target_model,
                         'issue': 'GENERIC_NUMBERED_NAME',
                         'detail': f'"{name}" is a WC2 legacy name — rename to describe what makes this format different',
                         'severity': 'medium',
                     })
 
-        # ── Check 4: Missing model_name ─────────────────────────────────
+        # ── Check 4: Missing target_model ─────────────────────────────────
         for r in reports:
-            if not r.model_name:
+            if not r.target_model:
                 issues.append({
                     'report_id': r.id,
                     'name': r.name,
-                    'model_name': None,
+                    'target_model': None,
                     'issue': 'NO_MODEL_NAME',
-                    'detail': f'Report "{r.name}" has no model_name — will not appear in any model\'s report list',
+                    'detail': f'Report "{r.name}" has no target_model — will not appear in any model\'s report list',
                     'severity': 'high',
                 })
 
@@ -136,7 +136,7 @@ class Command(BaseCommand):
             coach = ReportCoach()
 
             # Get unique model_names
-            model_names = set(r.model_name for r in reports if r.model_name)
+            target_models = set(r.target_model for r in reports if r.target_model)
             all_findings = []
 
             for mn in sorted(model_names):
@@ -227,7 +227,7 @@ class Command(BaseCommand):
         for issue in issues:
             severity_icon = {'high': '🔴', 'medium': '🟠', 'low': '🟡'}.get(issue['severity'], '⚪')
             self.stdout.write(
-                f"  {severity_icon} [{issue['issue']}] {issue['model_name']}/{issue['name']} "
+                f"  {severity_icon} [{issue['issue']}] {issue['target_model']}/{issue['name']} "
                 f"(#{issue['report_id']}): {issue['detail']}"
             )
 
@@ -254,10 +254,10 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.WARNING("Action model not available — skipping"))
                 return
 
-            # Group issues by model_name for one Action per model
+            # Group issues by target_model for one Action per model
             by_model = {}
             for issue in issues:
-                model = issue['model_name'] or 'system'
+                model = issue['target_model'] or 'system'
                 if model not in by_model:
                     by_model[model] = []
                 by_model[model].append(issue)
@@ -291,7 +291,7 @@ class Command(BaseCommand):
                     f"- VAGUE: Open the report record and write a description that explains "
                     f"WHAT MAKES THIS FORMAT DIFFERENT from the others.\n"
                     f"- DUPLICATE: Decide which to keep, deactivate the other.\n"
-                    f"- NO_MODEL_NAME: Assign the correct model_name so it appears in the right list.\n"
+                    f"- NO_MODEL_NAME: Assign the correct target_model so it appears in the right list.\n"
                     f"- GENERIC_NUMBERED: Rename from 'Quote 2' to something like "
                     f"'Quote - Wholesale with Discount Grid'."
                 )

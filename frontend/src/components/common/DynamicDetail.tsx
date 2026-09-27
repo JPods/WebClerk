@@ -478,7 +478,7 @@ function DynamicDetail({
     }
     import("../../api/wcapi").then(({ getRecords }) => {
       getRecords("report", {
-        model_name: modelName,
+        target_model: modelName,
         output_type: "screen",
         category: "form",
         is_active: true,

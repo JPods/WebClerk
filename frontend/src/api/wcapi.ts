@@ -928,7 +928,7 @@ export async function uploadDocument(
 ): Promise<DocumentUploadResponse> {
   const formData = new FormData();
   formData.append("file", file);
-  if (modelName) formData.append("model_name", modelName);
+  if (modelName) formData.append("target_model", modelName);
   if (parentId) formData.append("parent_id", parentId.toString());
   formData.append("purpose", purpose);
   if (description) formData.append("description", description);
@@ -969,7 +969,7 @@ export interface FormLibraryEntry {
   uuid: string;
   ida: string;
   name: string;
-  model_name: string;
+  target_model: string;
   description: string;
   category: string;
   row_count: number;

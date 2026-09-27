@@ -2,7 +2,7 @@
 /**
  * DetailToolbar — universal action bar for any record detail page.
  *
- * Print templates come from Report records (model_name + output_type='print').
+ * Print templates come from Report records (target_model + output_type='print').
  * Report.config.layout holds a PrintLayout JSON that UniversalPrint renders.
  */
 import React, { useState } from 'react';

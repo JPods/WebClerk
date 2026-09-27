@@ -424,7 +424,7 @@ class Command(BaseCommand):
 
         reports = Report.objects.filter(
             is_active=True
-        ).order_by("model_name", "sort_order", "name")
+        ).order_by("target_model", "sort_order", "name")
 
         stats = {"generated": 0, "skipped_has_template": 0,
                  "needs_review": 0, "export_configured": 0,
@@ -435,7 +435,7 @@ class Command(BaseCommand):
         for r in reports:
             stats["total"] += 1
             cfg = r.config if isinstance(r.config, dict) else {}
-            model = (r.model_name or "").lower()
+            model = (r.target_model or "").lower()
             name = r.name or ""
             output = (r.output_type or "print").lower()
             category = (r.category or "").lower()

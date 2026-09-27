@@ -57,7 +57,7 @@ def observe_unknown_filter(model_key: str, fields: List[str], hints: List[str],
                 AliceObservation.objects.create(
                     category=category, source='alice', priority=priority,
                     message=message[:500], detail=detail[:2000],
-                    model_name=model_key[:50], times_used=1,
+                    target_model=model_key[:50], times_used=1,
                     contact_id=contact_id, dedup_key=dedup_key,
                 )
     except Exception:  # an observation must never break the request it describes

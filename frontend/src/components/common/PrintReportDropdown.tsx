@@ -3,7 +3,7 @@
  * PrintReportDropdown — dropdown listing available print reports for a model.
  *
  * Source of truth: Report records with output_type='print' and
- * model_name matching the model key. Each Report's config may hold
+ * target_model matching the model key. Each Report's config may hold
  * a document_type for pdfme PDF generation.
  *
  * Reports have UUIDs — WC_HQ can push updates to fix defective templates.
@@ -20,7 +20,7 @@ export interface ReportRecord {
   uuid?: string;
   name: string;
   description?: string;
-  model_name: string;
+  target_model: string;
   output_type: string;
   category: string;
   sort_order: number;
@@ -80,7 +80,7 @@ const PrintReportDropdown: React.FC<PrintReportDropdownProps> = ({
   useEffect(() => {
     if (!open || loaded) return;
     getRecords('report', {
-      model_name_filter: modelKey,
+      target_model: modelKey,
       is_active: true,
       limit: 200,
     }).then((result: any) => {

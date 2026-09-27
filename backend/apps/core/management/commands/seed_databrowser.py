@@ -63,8 +63,8 @@ LAYOUTS = {
     'contact':      {'list': ['id', 'email', 'name_first', 'name_last', 'company', 'title', 'role', 'phone'], 'detail': ['id', 'ida', 'email', 'name_first', 'name_last', 'name_prefix', 'name_suffix', 'company', 'title', 'department', 'role', 'phone', 'domain', 'address_full', 'comment', 'is_staff', 'is_superuser', 'dt_created', 'dt_modified']},
     'action':       {'list': ['id', 'ida', 'status', 'kanban_column', 'priority', 'percent_complete', 'project_name', 'dt_deadline'], 'detail': ['id', 'ida', 'action', 'description', 'status', 'kanban_column', 'priority', 'difficulty', 'percent_complete', 'project_name', 'project_ida', 'assigned_to', 'sequence', 'dt_start', 'dt_deadline', 'dt_expected', 'dt_completed', 'duration', 'dt_created', 'dt_modified']},
     'setting':      {'list': ['id', 'name', 'purpose', 'parent_model', 'role', 'is_active'], 'detail': ['id', 'name', 'purpose', 'parent_model', 'role', 'is_active', 'data', 'dt_created', 'dt_modified']},
-    'report':       {'list': ['id', 'name', 'model_name', 'output_type', 'category', 'purpose'], 'detail': ['id', 'name', 'description', 'purpose', 'model_name', 'record_id', 'output_type', 'category', 'dt_created', 'dt_modified']},
-    'notification': {'list': ['id', 'name', 'purpose', 'model_name', 'record_id', 'dt_created'], 'detail': ['id', 'name', 'purpose', 'model_name', 'record_id', 'data', 'dt_created', 'dt_modified']},
+    'report':       {'list': ['id', 'name', 'target_model', 'output_type', 'category', 'purpose'], 'detail': ['id', 'name', 'description', 'purpose', 'target_model', 'record_id', 'output_type', 'category', 'dt_created', 'dt_modified']},
+    'notification': {'list': ['id', 'name', 'purpose', 'target_model', 'record_id', 'dt_created'], 'detail': ['id', 'name', 'purpose', 'target_model', 'record_id', 'data', 'dt_created', 'dt_modified']},
 
     # --- Accounts ---
     'gl_account':       {'list': ['id', 'ida', 'name', 'type', 'category', 'division', 'used_for'], 'detail': ['id', 'ida', 'name', 'type', 'category', 'division', 'used_for', 'type_id', 'account_credit', 'account_debit', 'comment', 'is_active', 'dt_created', 'dt_modified']},
@@ -82,8 +82,8 @@ LAYOUTS = {
     'domain':   {'list': ['id', 'path', 'type', 'status', 'sequence', 'count_accessed'], 'detail': ['id', 'path', 'type', 'status', 'comment', 'sequence', 'count_accessed', 'contact_id', 'dt_created', 'dt_modified']},
 
     # --- Docs ---
-    'document':        {'list': ['id', 'name', 'status', 'model_name', 'confidential', 'mime_type', 'count_accessed'], 'detail': ['id', 'name', 'slug', 'status', 'description', 'model_name', 'record_id', 'confidential', 'mime_type', 'size_bytes', 'checksum', 'path', 'retention_period', 'sequence', 'count_accessed', 'dt_created', 'dt_modified']},
-    'tag':             {'list': ['id', 'name', 'purpose', 'status', 'model_name', 'sequence', 'count_accessed'], 'detail': ['id', 'name', 'purpose', 'status', 'model_name', 'record_id', 'data', 'sequence', 'count_accessed', 'dt_created', 'dt_modified']},
+    'document':        {'list': ['id', 'name', 'status', 'target_model', 'confidential', 'mime_type', 'count_accessed'], 'detail': ['id', 'name', 'slug', 'status', 'description', 'target_model', 'record_id', 'confidential', 'mime_type', 'size_bytes', 'checksum', 'path', 'retention_period', 'sequence', 'count_accessed', 'dt_created', 'dt_modified']},
+    'tag':             {'list': ['id', 'name', 'purpose', 'status', 'target_model', 'sequence', 'count_accessed'], 'detail': ['id', 'name', 'purpose', 'status', 'target_model', 'record_id', 'data', 'sequence', 'count_accessed', 'dt_created', 'dt_modified']},
     'linkage':         {'list': ['id', 'name', 'model_name', 'record_id', 'group_id', 'purpose', 'role'], 'detail': ['id', 'name', 'model_name', 'record_id', 'group_id', 'purpose', 'role', 'note', 'sequence', 'dt_created', 'dt_modified']},
     'question_answer': {'list': ['id', 'question', 'answer', 'parent_model', 'status', 'sequence'], 'detail': ['id', 'question', 'answer', 'parent_model', 'parent_id', 'status', 'sequence', 'answered_by', 'count_accessed', 'dt_created', 'dt_modified']},
 

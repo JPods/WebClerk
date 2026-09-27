@@ -285,13 +285,13 @@ def export_report_bundle() -> dict[str, Any]:
     from apps.core.models import Report
 
     records = []
-    for r in Report.objects.filter(is_active=True).order_by('category', 'model_name'):
+    for r in Report.objects.filter(is_active=True).order_by('category', 'target_model'):
         records.append({
             'uuid': str(r.uuid) if r.uuid else None,
             'ida': r.ida or '',
             'name': r.name or '',
             'description': r.description or '',
-            'model_name': r.model_name or '',
+            'target_model': r.target_model or '',
             'category': r.category or '',
             'output_type': r.output_type or '',
             'role_required': r.role_required or '',

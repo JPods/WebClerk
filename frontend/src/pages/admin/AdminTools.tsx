@@ -1,7 +1,7 @@
 /**
  * AdminTools — run admin utility tools from Report records.
  *
- * Each tool is a Report record with category='utility', model_name='setting'.
+ * Each tool is a Report record with category='utility', target_model='setting'.
  * The Report.config holds the management command name, default args, and
  * parameter definitions. Tools run via /wcapi/_manage/ action=run_admin_tool.
  *
@@ -56,7 +56,7 @@ export default function AdminTools() {
     (async () => {
       try {
         const res = await getRecords('report', {
-          model_name: 'setting',
+          target_model: 'setting',
           category: 'utility',
           is_active: true,
           order_by: 'sort_order',

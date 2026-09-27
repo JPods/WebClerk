@@ -501,7 +501,7 @@ def record_pii_correction(
             priority=0,
             message=f'PII {action}: "{candidate.get("text", "")}" as {pii_type}',
             detail=f'Original context: ...{original_text[max(0, candidate.get("start", 0) - 30):candidate.get("end", 0) + 30]}...',
-            model_name='pii_scrub',
+            target_model='pii_scrub',
             config={
                 'action': action,
                 'text': candidate.get('text', ''),

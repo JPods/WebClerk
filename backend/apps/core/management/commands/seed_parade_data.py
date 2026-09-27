@@ -635,7 +635,7 @@ class Command(BaseCommand):
     help = "Seed Report.config.sample_data for parade-of-reports onboarding"
 
     def add_arguments(self, parser):
-        parser.add_argument("--model", type=str, help="Only seed reports for this model_name")
+        parser.add_argument("--model", type=str, help="Only seed reports for this target_model")
         parser.add_argument("--dry-run", action="store_true", help="Show what would be seeded")
         parser.add_argument("--force", action="store_true", help="Overwrite existing sample_data")
 
@@ -644,15 +644,15 @@ class Command(BaseCommand):
 
         qs = Report.objects.filter(is_active=True, output_type="print")
         if options["model"]:
-            qs = qs.filter(model_name=options["model"])
-        qs = qs.order_by("model_name", "sort_order", "name")
+            qs = qs.filter(target_model=options["model"])
+        qs = qs.order_by("target_model", "sort_order", "name")
 
         seeded = 0
         skipped = 0
         no_base = 0
 
         for report in qs:
-            model = report.model_name or ""
+            model = report.target_model or ""
             config = report.config or {}
 
             # Skip if already has sample_data and not forcing

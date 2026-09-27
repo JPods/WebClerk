@@ -100,7 +100,7 @@ def _serialize_document(doc: Document) -> Dict[str, Any]:
         "size_bytes": doc.size_bytes,
         "path": doc.path,
         "checksum": doc.checksum,
-        "model_name": doc.model_name or "",
+        "target_model": doc.target_model or "",
         "dt_created": doc.dt_created,
     }
 
@@ -115,7 +115,7 @@ class DocumentUploadView(APIView):
         if not upload:
             return Response({"detail": "file required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        model_name = request.data.get("model_name") or ""
+        target_model = request.data.get("target_model") or ""
         parent_id = request.data.get("parent_id")
         purpose = request.data.get("purpose") or "attachment"
         description = request.data.get("description") or ""
@@ -202,7 +202,7 @@ class DocumentUploadView(APIView):
             path={"storage": "local", "key": storage["key"], "url": "", "full": storage["full"]},
             checksum=checksum,
             purpose=purpose,
-            model_name=model_name,
+            target_model=target_model,
             record_id=int(parent_id) if parent_id else None,
             config=config_data,
             metadata=metadata,

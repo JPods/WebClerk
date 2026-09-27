@@ -110,7 +110,7 @@ export interface DocumentRecord {
     url?: string;         // public/presigned URL
   };
   checksum?: string;
-  model_name?: string;    // parent model type (e.g., 'order')
+  target_model?: string;  // parent model type (e.g., 'order')
   created_by?: number;
   dt_created?: number;
   metadata?: DocumentMetadata;
@@ -197,7 +197,7 @@ export async function uploadDocument(
   // Single-step: Upload file and create Document record
   const formData = new FormData();
   formData.append('file', file);
-  formData.append('model_name', parent_model);
+  formData.append('target_model', parent_model);
   formData.append('parent_id', String(parentId));
   formData.append('purpose', purpose);
   if (description) formData.append('description', description);
@@ -271,7 +271,7 @@ export async function uploadDocument(
       url,
     },
     checksum,
-    model_name: parent_model,
+    target_model: parent_model,
     metadata: {
       original_name: file.name,
       upload_source: 'web',

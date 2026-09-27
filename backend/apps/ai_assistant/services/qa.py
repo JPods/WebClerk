@@ -360,7 +360,7 @@ def _escalate_to_bill(question: str, topic: str, norm_key: str,
                     f"Question log ID: {question_id}\n\n"
                     f"When answered, add the answer to Alice's vector store so "
                     f"she can handle this question type going forward."),
-            model_name=topic,
+            target_model=topic,
             dedup_key=dedup,
         )
     except Exception as e:

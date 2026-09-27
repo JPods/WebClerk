@@ -65,7 +65,7 @@ def _serialize_report(report) -> dict | None:
         'ida': report.ida or '',
         'name': report.name or '',
         'description': report.description or '',
-        'model_name': report.model_name or '',
+        'target_model': report.target_model or '',
         'purpose': report.purpose or '',
         'record_id': report.record_id or '',
         'output_type': report.output_type or '',
@@ -112,7 +112,7 @@ def pack_reports() -> dict:
         Report = dj_apps.get_model('core', 'Report')
     except LookupError:
         return {'reports': []}
-    rows = Report.objects.filter(is_active=True).order_by('model_name', 'category', 'name')
+    rows = Report.objects.filter(is_active=True).order_by('target_model', 'category', 'name')
     return {'reports': [r for r in (_serialize_report(x) for x in rows) if r]}
 
 

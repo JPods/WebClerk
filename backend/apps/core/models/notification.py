@@ -4,7 +4,7 @@ from common.models import BaseModel
 
 class Notification(BaseModel):
     name = models.CharField(max_length=255, blank=True, null=True)
-    model_name = models.CharField(max_length=255, blank=True, null=True)
+    target_model = models.CharField(max_length=255, blank=True, null=True)
     record_id = models.CharField(max_length=255, blank=True, null=True, db_index=True)
     config = models.JSONField(default=dict)
 

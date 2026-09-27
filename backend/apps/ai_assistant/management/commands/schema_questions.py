@@ -24,16 +24,16 @@ class Command(BaseCommand):
         qs = AliceObservation.objects.filter(category='schema', acknowledged=False)
 
         if options["model"]:
-            qs = qs.filter(model_name=options["model"])
+            qs = qs.filter(target_model=options["model"])
 
         if options["stats"]:
             from django.db.models import Count
-            stats = (qs.values('model_name')
+            stats = (qs.values('target_model')
                      .annotate(count=Count('id'))
                      .order_by('-count'))
             total = 0
             for row in stats:
-                self.stdout.write(f"  {row['model_name']:40s} {row['count']}")
+                self.stdout.write(f"  {row['target_model']:40s} {row['count']}")
                 total += row['count']
             self.stdout.write(f"\n  Total open schema questions: {total}")
             return
@@ -45,15 +45,15 @@ class Command(BaseCommand):
             return
 
         # List open questions
-        questions = qs.order_by('model_name', 'dt_created')
+        questions = qs.order_by('target_model', 'dt_created')
         if not questions.exists():
             self.stdout.write("No open schema questions.")
             return
 
         current_model = None
         for q in questions:
-            if q.model_name != current_model:
-                current_model = q.model_name
+            if q.target_model != current_model:
+                current_model = q.target_model
                 self.stdout.write(f"\n  [{current_model}]")
             cfg = q.config or {}
             field = cfg.get('field', '')

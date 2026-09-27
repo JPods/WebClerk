@@ -16,7 +16,7 @@ import { getRecords } from '@/api/wcapi';
 interface ReportRecord {
   id: number;
   name: string;
-  model_name?: string;
+  target_model?: string;
   category?: string;
   output_type?: string;
   sort_order?: number;
@@ -54,7 +54,7 @@ export function useReportShortcuts({
     getRecords('report', { limit: 500 }).then((result: any) => {
       const rows = result?.results || result?.records || result?.data?.results || result?.data?.records || [];
       const filtered = rows.filter((r: any) => {
-        const rm = (r.model_name || '').toLowerCase();
+        const rm = (r.target_model || '').toLowerCase();
         return rm === model.toLowerCase();
       });
       filtered.sort((a: ReportRecord, b: ReportRecord) => {

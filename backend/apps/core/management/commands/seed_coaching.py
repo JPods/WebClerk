@@ -612,7 +612,7 @@ Use the GL Journal Export to send financial data to your accounting program (Qui
 All operations go through wcapi — one gate, one security model, one audit trail.
 ''',
         'status': 'published',
-        'model_name': 'system',
+        'target_model': 'system',
         'confidential': 'public',
     },
     {
@@ -650,7 +650,7 @@ Shift-click any model in the sidebar to open it in the DataBrowser instead of it
 - Escape — close model picker
 ''',
         'status': 'published',
-        'model_name': 'system',
+        'target_model': 'system',
         'confidential': 'public',
     },
     {
@@ -701,7 +701,7 @@ Get field metadata for a model.
 Every request requires JWT auth. Role-based query scoping restricts external users to their own data. Field filtering strips unauthorized fields from responses. See readmes/wcapi-query-scoping.md.
 ''',
         'status': 'published',
-        'model_name': 'system',
+        'target_model': 'system',
         'confidential': 'internal',
     },
     {
@@ -739,7 +739,7 @@ If the resolved price falls below the margin floor (default 15%), `below_margin_
 Full readme: readmes/topics/transactions/pricing-architecture.md
 ''',
         'status': 'published',
-        'model_name': 'system',
+        'target_model': 'system',
         'confidential': 'public',
     },
     {
@@ -774,7 +774,7 @@ Fixed buckets: Future, Current, Past 30, Past 60, Past 90+. Plus avgDaysPaid, hi
 Full readme: readmes/topics/transactions/cash-application.md
 ''',
         'status': 'published',
-        'model_name': 'system',
+        'target_model': 'system',
         'confidential': 'public',
     },
     {
@@ -827,7 +827,7 @@ program's job. Clean boundary, clean handoff.
 Full readme: readmes/transactions/journal-formatter.md
 ''',
         'status': 'published',
-        'model_name': 'gl_journal',
+        'target_model': 'gl_journal',
         'confidential': 'public',
     },
 ]
@@ -925,7 +925,7 @@ class Command(BaseCommand):
             if exists:
                 Document.objects.filter(slug=doc['slug']).update(
                     name=doc['name'], description=doc['description'], body=doc['body'],
-                    status=doc['status'], model_name=doc.get('model_name', ''),
+                    status=doc['status'], target_model=doc.get('target_model', ''),
                     dt_modified=now,
                 )
                 d_created += 1  # count as refreshed
@@ -933,7 +933,7 @@ class Command(BaseCommand):
                 Document.objects.create(
                     name=doc['name'], slug=doc['slug'], description=doc['description'],
                     body=doc['body'], status=doc['status'],
-                    model_name=doc.get('model_name', ''),
+                    target_model=doc.get('target_model', ''),
                     confidential=doc.get('confidential', 'internal'),
                     dt_created=now, dt_modified=now,
                 )

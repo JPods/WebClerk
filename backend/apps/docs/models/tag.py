@@ -19,7 +19,7 @@ class Tag(BaseModel):
     name = models.CharField(max_length=255, blank=True, null=True, db_index=True)
     # status inherited from BaseModel
     # canonical identifier for attached model (replaces legacy table_!name)
-    model_name = models.CharField(max_length=255, blank=True, null=True, db_index=True, help_text="Source model this tag decorates")  #chaned from t_n
+    target_model = models.CharField(max_length=255, blank=True, null=True, db_index=True, help_text="Source model this tag decorates")  #chaned from t_n
     record_id = models.IntegerField(blank=True, null=True, db_index=True, help_text="ID in source table")
     config = models.JSONField(blank=True, null=True, help_text="Arbitrary structured tag payload")
     count_accessed = models.IntegerField(default=0)
@@ -30,7 +30,7 @@ class Tag(BaseModel):
         indexes = [
             models.Index(fields=['purpose'], name='tag_purpose_idx'),
             models.Index(fields=['status'], name='tag_status_idx'),
-            models.Index(fields=['model_name'], name='tag_model_name_idx'),
+            models.Index(fields=['target_model'], name='tag_model_name_idx'),
         ]
 
 

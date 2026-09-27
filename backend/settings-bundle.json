@@ -12368,7 +12368,7 @@
                 "priority",
                 "message",
                 "detail",
-                "model_name",
+                "target_model",
                 "record_id",
                 "contact",
                 "acknowledged",
@@ -12400,7 +12400,7 @@
                 "priority",
                 "message",
                 "detail",
-                "model_name",
+                "target_model",
                 "record_id",
                 "contact",
                 "acknowledged",
@@ -12426,7 +12426,7 @@
                 "priority",
                 "message",
                 "detail",
-                "model_name",
+                "target_model",
                 "record_id",
                 "contact",
                 "acknowledged",
@@ -12465,7 +12465,7 @@
                 "priority",
                 "message",
                 "detail",
-                "model_name",
+                "target_model",
                 "record_id",
                 "contact",
                 "acknowledged",
@@ -12502,7 +12502,7 @@
                 "priority",
                 "message",
                 "detail",
-                "model_name",
+                "target_model",
                 "record_id",
                 "contact",
                 "acknowledged",
@@ -12560,7 +12560,7 @@
                 "priority",
                 "message",
                 "detail",
-                "model_name",
+                "target_model",
                 "record_id",
                 "contact",
                 "acknowledged",
@@ -12652,8 +12652,8 @@
                   "label": "message"
                 },
                 {
-                  "field": "model_name",
-                  "label": "model_name"
+                  "field": "target_model",
+                  "label": "target_model"
                 },
                 {
                   "type": "select",
@@ -12888,7 +12888,7 @@
                 "priority",
                 "message",
                 "detail",
-                "model_name",
+                "target_model",
                 "record_id",
                 "contact",
                 "acknowledged",
@@ -13079,9 +13079,9 @@
             "type": "readonly",
             "label": "is deleted"
           },
-          "model_name": {
+          "target_model": {
             "type": "text",
-            "label": "model name"
+            "label": "target model"
           },
           "resolution": {
             "type": "textarea",
@@ -13216,7 +13216,7 @@
               "category",
               "message",
               "detail",
-              "model_name",
+              "target_model",
               "record_id",
               "contact",
               "acknowledged",
@@ -13441,7 +13441,7 @@
                 "source",
                 "name",
                 "description",
-                "model_name",
+                "target_model",
                 "use_count",
                 "dt_last_used",
                 "created_by"
@@ -13466,7 +13466,7 @@
                 "source",
                 "name",
                 "description",
-                "model_name",
+                "target_model",
                 "use_count",
                 "dt_last_used",
                 "created_by"
@@ -13486,7 +13486,7 @@
                 "preset_type",
                 "name",
                 "description",
-                "model_name",
+                "target_model",
                 "use_count",
                 "dt_last_used",
                 "created_by"
@@ -13518,7 +13518,7 @@
                 "source",
                 "name",
                 "description",
-                "model_name",
+                "target_model",
                 "use_count",
                 "dt_last_used",
                 "created_by"
@@ -13550,7 +13550,7 @@
                 "preset_type",
                 "name",
                 "description",
-                "model_name",
+                "target_model",
                 "use_count",
                 "dt_last_used",
                 "created_by"
@@ -13605,7 +13605,7 @@
                 "source",
                 "name",
                 "description",
-                "model_name",
+                "target_model",
                 "use_count",
                 "dt_last_used",
                 "created_by"
@@ -13661,8 +13661,8 @@
                   "label": "health_rating"
                 },
                 {
-                  "field": "model_name",
-                  "label": "model_name"
+                  "field": "target_model",
+                  "label": "target_model"
                 },
                 {
                   "type": "select",
@@ -13869,7 +13869,7 @@
               "width": 80
             },
             {
-              "field": "model_name",
+              "field": "target_model",
               "width": 100
             }
           ],
@@ -13897,7 +13897,7 @@
                 "status",
                 "preset_type",
                 "name",
-                "model_name",
+                "target_model",
                 "use_count",
                 "config",
                 "metadata",
@@ -14044,9 +14044,9 @@
             "type": "readonly",
             "label": "is deleted"
           },
-          "model_name": {
+          "target_model": {
             "type": "text",
-            "label": "model name"
+            "label": "target model"
           },
           "times_used": {
             "type": "readonly",
@@ -14153,7 +14153,7 @@
               "preset_type",
               "name",
               "description",
-              "model_name",
+              "target_model",
               "use_count"
             ]
           },
@@ -24975,7 +24975,7 @@
                 "actions",
                 "comments",
                 "health_rating",
-                "model_name",
+                "target_model",
                 "record_id",
                 "name",
                 "slug",
@@ -25009,7 +25009,7 @@
                 "prefs",
                 "actions",
                 "comments",
-                "model_name",
+                "target_model",
                 "record_id",
                 "name",
                 "slug",
@@ -25038,7 +25038,7 @@
                 "dt_last_used",
                 "purpose",
                 "status",
-                "model_name",
+                "target_model",
                 "record_id",
                 "name",
                 "slug",
@@ -25076,7 +25076,7 @@
                 "actions",
                 "comments",
                 "health_rating",
-                "model_name",
+                "target_model",
                 "record_id",
                 "name",
                 "slug",
@@ -25118,7 +25118,7 @@
                 "dt_last_used",
                 "purpose",
                 "status",
-                "model_name",
+                "target_model",
                 "record_id",
                 "name",
                 "slug",
@@ -25179,7 +25179,7 @@
                 "actions",
                 "comments",
                 "health_rating",
-                "model_name",
+                "target_model",
                 "record_id",
                 "name",
                 "slug",
@@ -25276,8 +25276,8 @@
                   "label": "mime_type"
                 },
                 {
-                  "field": "model_name",
-                  "label": "model_name"
+                  "field": "target_model",
+                  "label": "target_model"
                 },
                 {
                   "field": "path",
@@ -25784,9 +25784,9 @@
             "type": "readonly",
             "label": "is deleted"
           },
-          "model_name": {
+          "target_model": {
             "type": "text",
-            "label": "model name"
+            "label": "target model"
           },
           "size_bytes": {
             "type": "number",
@@ -25926,7 +25926,7 @@
               "ida",
               "times_used",
               "purpose",
-              "model_name",
+              "target_model",
               "record_id",
               "name",
               "slug",
@@ -47856,7 +47856,7 @@
                 "comments",
                 "health_rating",
                 "name",
-                "model_name",
+                "target_model",
                 "record_id",
                 "config"
               ],
@@ -47877,7 +47877,7 @@
                 "actions",
                 "comments",
                 "name",
-                "model_name",
+                "target_model",
                 "record_id",
                 "config"
               ],
@@ -47894,7 +47894,7 @@
                 "purpose",
                 "status",
                 "name",
-                "model_name",
+                "target_model",
                 "record_id",
                 "config"
               ],
@@ -47922,7 +47922,7 @@
                 "comments",
                 "health_rating",
                 "name",
-                "model_name",
+                "target_model",
                 "record_id",
                 "config"
               ],
@@ -47950,7 +47950,7 @@
                 "purpose",
                 "status",
                 "name",
-                "model_name",
+                "target_model",
                 "record_id",
                 "config"
               ],
@@ -47999,7 +47999,7 @@
                 "comments",
                 "health_rating",
                 "name",
-                "model_name",
+                "target_model",
                 "record_id",
                 "config"
               ],
@@ -48048,8 +48048,8 @@
                   "label": "health_rating"
                 },
                 {
-                  "field": "model_name",
-                  "label": "model_name"
+                  "field": "target_model",
+                  "label": "target_model"
                 },
                 {
                   "field": "record_id",
@@ -48226,7 +48226,7 @@
               "width": 180
             },
             {
-              "field": "model_name",
+              "field": "target_model",
               "width": 80
             }
           ],
@@ -48253,7 +48253,7 @@
                 "purpose",
                 "status",
                 "name",
-                "model_name",
+                "target_model",
                 "record_id",
                 "metadata",
                 "refs",
@@ -48387,9 +48387,9 @@
             "type": "readonly",
             "label": "is deleted"
           },
-          "model_name": {
+          "target_model": {
             "type": "text",
-            "label": "model name"
+            "label": "target model"
           },
           "times_used": {
             "type": "readonly",
@@ -48486,7 +48486,7 @@
               "times_used",
               "purpose",
               "name",
-              "model_name",
+              "target_model",
               "record_id"
             ]
           },
@@ -69711,7 +69711,7 @@
                 "health_rating",
                 "name",
                 "description",
-                "model_name",
+                "target_model",
                 "record_id",
                 "output_type",
                 "category",
@@ -69744,7 +69744,7 @@
                 "comments",
                 "name",
                 "description",
-                "model_name",
+                "target_model",
                 "record_id",
                 "output_type",
                 "category",
@@ -69773,7 +69773,7 @@
                 "status",
                 "name",
                 "description",
-                "model_name",
+                "target_model",
                 "record_id",
                 "output_type",
                 "role_required",
@@ -69812,7 +69812,7 @@
                 "health_rating",
                 "name",
                 "description",
-                "model_name",
+                "target_model",
                 "record_id",
                 "output_type",
                 "category",
@@ -69853,7 +69853,7 @@
                 "status",
                 "name",
                 "description",
-                "model_name",
+                "target_model",
                 "record_id",
                 "output_type",
                 "category",
@@ -69916,7 +69916,7 @@
                 "health_rating",
                 "name",
                 "description",
-                "model_name",
+                "target_model",
                 "record_id",
                 "output_type",
                 "category",
@@ -70015,8 +70015,8 @@
                   "label": "health_rating"
                 },
                 {
-                  "field": "model_name",
-                  "label": "model_name"
+                  "field": "target_model",
+                  "label": "target_model"
                 },
                 {
                   "type": "select",
@@ -70267,7 +70267,7 @@
                 "purpose",
                 "status",
                 "name",
-                "model_name",
+                "target_model",
                 "record_id",
                 "output_type",
                 "category",
@@ -70452,9 +70452,9 @@
             "type": "readonly",
             "label": "is deleted"
           },
-          "model_name": {
+          "target_model": {
             "type": "text",
-            "label": "model name"
+            "label": "target model"
           },
           "sort_order": {
             "type": "number",
@@ -70696,7 +70696,7 @@
               "purpose",
               "name",
               "description",
-              "model_name",
+              "target_model",
               "record_id",
               "output_type",
               "category",
@@ -77902,7 +77902,7 @@
                 "comments",
                 "health_rating",
                 "name",
-                "model_name",
+                "target_model",
                 "record_id",
                 "config",
                 "count_accessed",
@@ -77925,7 +77925,7 @@
                 "actions",
                 "comments",
                 "name",
-                "model_name",
+                "target_model",
                 "record_id",
                 "config",
                 "count_accessed",
@@ -77944,7 +77944,7 @@
                 "purpose",
                 "status",
                 "name",
-                "model_name",
+                "target_model",
                 "record_id",
                 "config",
                 "count_accessed",
@@ -77974,7 +77974,7 @@
                 "comments",
                 "health_rating",
                 "name",
-                "model_name",
+                "target_model",
                 "record_id",
                 "config",
                 "count_accessed",
@@ -78004,7 +78004,7 @@
                 "purpose",
                 "status",
                 "name",
-                "model_name",
+                "target_model",
                 "record_id",
                 "config",
                 "count_accessed",
@@ -78055,7 +78055,7 @@
                 "comments",
                 "health_rating",
                 "name",
-                "model_name",
+                "target_model",
                 "record_id",
                 "config",
                 "count_accessed",
@@ -78110,8 +78110,8 @@
                   "label": "health_rating"
                 },
                 {
-                  "field": "model_name",
-                  "label": "model_name"
+                  "field": "target_model",
+                  "label": "target_model"
                 },
                 {
                   "field": "record_id",
@@ -78286,7 +78286,7 @@
               "width": 150
             },
             {
-              "field": "model_name",
+              "field": "target_model",
               "width": 100
             }
           ],
@@ -78313,7 +78313,7 @@
                 "purpose",
                 "status",
                 "name",
-                "model_name",
+                "target_model",
                 "record_id",
                 "count_accessed",
                 "sequence",
@@ -78453,9 +78453,9 @@
             "type": "readonly",
             "label": "is deleted"
           },
-          "model_name": {
+          "target_model": {
             "type": "text",
-            "label": "model name"
+            "label": "target model"
           },
           "times_used": {
             "type": "readonly",
@@ -78556,7 +78556,7 @@
               "times_used",
               "purpose",
               "name",
-              "model_name",
+              "target_model",
               "record_id",
               "count_accessed",
               "sequence"

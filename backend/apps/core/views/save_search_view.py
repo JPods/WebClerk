@@ -2,7 +2,7 @@
 
     purpose = 'search_stored'      what makes it a search and not a print form
     config                          the search spec (keyword, filters, ordering...)
-    model_name                      what it searches
+    target_model                    what it searches
     config.owner_user_id            set = personal to that user; absent = shared
     role_required                   which role a shared search is visible to
 
@@ -13,7 +13,7 @@ user's prefs blob could do none of that.
 POST /wcapi/save-search/
 {
     "name": "Active customers in my territory",
-    "model_name": "customer",
+    "target_model": "customer",
     "keyword": "active",
     "filters": {"status": "active", "rep_id": 5},
     "ordering": "-dt_created",
@@ -40,14 +40,14 @@ class SaveSearchView(APIView):
 
         data = request.data or {}
         name = (data.get("name") or "").strip()
-        model_name = (data.get("model_name") or "").strip()
+        target_model = (data.get("target_model") or "").strip()
         scope = (data.get("scope") or "personal").strip().lower()
 
-        if not name or not model_name:
+        if not name or not target_model:
             return api_response(
                 success=False,
                 status_code=status.HTTP_400_BAD_REQUEST,
-                message="name and model_name are required",
+                message="name and target_model are required",
             )
 
         search_spec = {
@@ -79,7 +79,7 @@ class SaveSearchView(APIView):
         # records; ownership is part of the identity.
         lookup = {
             "name": name,
-            "model_name": model_name,
+            "target_model": target_model,
             "purpose": REPORT_PURPOSE_SEARCH,
         }
         existing = Report.objects.filter(**lookup)
@@ -109,7 +109,7 @@ class SaveSearchView(APIView):
             data={
                 "id": report.id,
                 "name": report.name,
-                "model_name": report.model_name,
+                "target_model": report.target_model,
                 "scope": "personal" if owner_id is not None else "shared",
                 "created": created,
             },

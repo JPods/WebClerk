@@ -221,9 +221,9 @@ def merge_template(
         raise ValueError(f"Template #{template_id} not found")
 
     # Verify it is a template
-    if template.model_name not in ("template", "letter", "email_template"):
+    if template.target_model not in ("template", "letter", "email_template"):
         raise ValueError(
-            f"Document #{template_id} is not a template (model_name={template.model_name})"
+            f"Document #{template_id} is not a template (model_name={template.target_model})"
         )
 
     record = _load_record(record_model, record_id)
@@ -283,7 +283,7 @@ def get_available_templates(
     """
     Document = dj_apps.get_model("docs", "Document")
     qs = Document.objects.filter(
-        model_name__in=["template", "letter", "email_template"]
+        target_model__in=["template", "letter", "email_template"]
     ).order_by("name")
 
     templates = []
@@ -299,7 +299,7 @@ def get_available_templates(
             "id": doc.pk,
             "ida": getattr(doc, "ida", ""),
             "name": doc.name or "",
-            "model_name": doc.model_name or "",
+            "model_name": doc.target_model or "",
             "description": doc.description or "",
         })
 

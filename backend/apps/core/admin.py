@@ -345,20 +345,20 @@ class PendingAdmin(ScalarFirstFieldsetMixin, SchemaLabelsAdminMixin, admin.Model
 @admin.register(Notification)
 class NotificationAdmin(ScalarFirstFieldsetMixin, SchemaLabelsAdminMixin, admin.ModelAdmin):
     """Admin interface for Notification model."""
-    # Scalar fields: dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, is_locked, model_name, name, purpose, record_id, security_level, uuid, version
-    list_display = ("ida", "name", "health_rating", "is_locked", "model_name", "purpose", "is_active", "dt_created")
-    list_filter = ('purpose', 'model_name', 'is_active')
-    search_fields = ('name', 'purpose', 'model_name', 'record_id')
+    # Scalar fields: dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, is_locked, target_model, name, purpose, record_id, security_level, uuid, version
+    list_display = ("ida", "name", "health_rating", "is_locked", "target_model", "purpose", "is_active", "dt_created")
+    list_filter = ('purpose', 'target_model', 'is_active')
+    search_fields = ('name', 'purpose', 'target_model', 'record_id')
     readonly_fields = ('uuid', 'dt_created', 'dt_modified')
 
 
 @admin.register(Report)
 class ReportAdmin(ScalarFirstFieldsetMixin, SchemaLabelsAdminMixin, admin.ModelAdmin):
     """Admin interface for Report model."""
-    # Scalar fields: category, description, dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, is_locked, model_name, name, output_type, purpose, record_id, role_required, security_level, sort_order, uuid, version
+    # Scalar fields: category, description, dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, is_locked, target_model, name, output_type, purpose, record_id, role_required, security_level, sort_order, uuid, version
     list_display = ("ida", "name", "description", "category", "health_rating", "is_locked", "is_active", "dt_created")
-    list_filter = ('purpose', 'model_name', 'is_active')
-    search_fields = ('name', 'purpose', 'model_name', 'record_id')
+    list_filter = ('purpose', 'target_model', 'is_active')
+    search_fields = ('name', 'purpose', 'target_model', 'record_id')
     readonly_fields = ('uuid', 'dt_created', 'dt_modified')
 
 

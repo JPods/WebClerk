@@ -69,10 +69,10 @@ class FormLibraryCatalogView(APIView):
 
         qs = Report.objects.filter(is_active=True, category='form')
         if model_filter:
-            qs = qs.filter(model_name=model_filter)
+            qs = qs.filter(target_model=model_filter)
 
         catalog = []
-        for r in qs.order_by('model_name', 'name'):
+        for r in qs.order_by('target_model', 'name'):
             cfg = r.config or {}
             # Form data may be in config.form (PrintLayout) or directly in config (rows/fields)
             form = cfg.get('form', {})
@@ -87,7 +87,7 @@ class FormLibraryCatalogView(APIView):
                 'uuid': str(r.uuid),
                 'ida': r.ida,
                 'name': r.name,
-                'model_name': r.model_name,
+                'target_model': r.target_model,
                 'description': r.description,
                 'category': r.category,
                 'row_count': len(rows),
@@ -190,7 +190,7 @@ class FormLibraryCheckoutView(APIView):
                 uuid=uuid_str,
                 ida=form_data.get('ida', ''),
                 name=form_data.get('name', ''),
-                model_name=form_data.get('model_name', ''),
+                target_model=form_data.get('target_model', ''),
                 description=form_data.get('description', ''),
                 category=form_data.get('category', 'form'),
                 output_type=form_data.get('output_type', 'screen'),
@@ -256,7 +256,7 @@ class FormLibrarySubmitView(APIView):
             'uuid': str(report.uuid),
             'ida': report.ida,
             'name': report.name,
-            'model_name': report.model_name,
+            'target_model': report.target_model,
             'description': report.description,
             'category': report.category,
             'config': report.config,

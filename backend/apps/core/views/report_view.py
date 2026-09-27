@@ -89,7 +89,7 @@ class ReportDownloadView(APIView):
             # Primary: config.sample_data on the Report record itself
             from apps.core.models import Report as ReportModel
             report_obj = ReportModel.objects.filter(
-                name=report_name, model_name=model_name,
+                name=report_name, target_model=model_name,
                 is_active=True, ).first()
             if report_obj and isinstance(report_obj.config, dict):
                 sample_data = report_obj.config.get("sample_data")
@@ -166,7 +166,7 @@ class ReportDownloadView(APIView):
             from apps.core.models import Report
             report = Report.objects.filter(
                 name=report_name,
-                model_name=model_name,
+                target_model=model_name,
                 is_active=True,
                 ).first()
             if not report:

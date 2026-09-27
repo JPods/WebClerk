@@ -253,7 +253,7 @@ class Command(BaseCommand):
                     {'title': 'Report', 'fields': [
                         {'field': 'name', 'label': 'Name', 'type': 'search'},
                         {'field': 'description', 'label': 'Description'},
-                        {'field': 'model_name', 'label': 'Model', 'type': 'select', 'help': 'Which model this report applies to'},
+                        {'field': 'target_model', 'label': 'Model', 'type': 'select', 'help': 'Which model this report applies to'},
                         {'field': 'output_type', 'label': 'Output', 'type': 'select', 'options': ['print', 'email', 'label', 'export', 'json', 'api', 'merge', 'script', 'action']},
                         {'field': 'category', 'label': 'Category', 'type': 'select', 'options': ['report', 'statement', 'list', 'summary', 'letter', 'label', 'export', 'utility', 'customer_facing', 'vendor_facing', 'operations', 'warehouse', 'accounting', 'sales_analysis', 'tool']},
                     ]},

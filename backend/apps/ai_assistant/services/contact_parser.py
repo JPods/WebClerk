@@ -447,7 +447,7 @@ def _load_learned_corrections() -> dict[str, str]:
         from apps.ai_assistant.models.alice import AliceObservation
         corrections = AliceObservation.objects.filter(
             category='pii_correction',
-            model_name='contact_parser',
+            target_model='contact_parser',
             resolved=False,
         ).values_list('config', flat=True).iterator()
 
@@ -1596,7 +1596,7 @@ def log_import_episode(result: dict[str, Any], source_label: str = '') -> None:
             priority=0,
             message=f'Import: {total_rows} contacts, {mode}, {len(mapped_fields)} mapped',
             detail=narrative,
-            model_name='contact_import',
+            target_model='contact_import',
             config={
                 'episode_type': 'import_batch',
                 'mode': mode,
@@ -1636,7 +1636,7 @@ def recall_import_pattern(header_fingerprint: str = '', delimiter: str = '',
         if header_fingerprint:
             episode = AliceObservation.objects.filter(
                 category='pattern',
-                model_name='contact_import',
+                target_model='contact_import',
                 config__header_fingerprint=header_fingerprint,
             ).order_by('-dt_created').first()
             if episode:
@@ -1647,7 +1647,7 @@ def recall_import_pattern(header_fingerprint: str = '', delimiter: str = '',
             # Search for episodes that mapped similar headers
             candidates = AliceObservation.objects.filter(
                 category='pattern',
-                model_name='contact_import',
+                target_model='contact_import',
             ).order_by('-dt_created')[:20]
 
             best_match = None
@@ -1685,7 +1685,7 @@ def record_field_correction(
 
         AliceObservation.objects.update_or_create(
             category='pii_correction',
-            model_name='contact_parser',
+            target_model='contact_parser',
             dedup_key=f'cp-{text.lower()}-{corrected_field}',
             defaults={
                 'source': 'alice',

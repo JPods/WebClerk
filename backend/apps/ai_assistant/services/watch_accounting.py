@@ -300,7 +300,7 @@ def _create_observation(category, model_name, message, detail='',
             priority=priority,
             message=message,
             detail=detail,
-            model_name=model_name,
+            target_model=model_name,
             record_id=record_id,
             dedup_key=dedup_key,
         )

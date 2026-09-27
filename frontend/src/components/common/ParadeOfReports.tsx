@@ -24,7 +24,7 @@ import './ParadeOfReports.css';
 interface ParadeReport {
   id: number;
   name: string;
-  model_name: string;
+  target_model: string;
   category: string;
   description: string;
   has_sample_data: boolean;
@@ -321,7 +321,7 @@ export function ParadeOfReports({ open, onClose, fontSize }: Props) {
                   {currentReport.name}
                 </div>
                 <div className="por-feedback-meta">
-                  {currentReport.model_name} &middot; {currentReport.category}
+                  {currentReport.target_model} &middot; {currentReport.category}
                 </div>
 
                 {['Keep', 'Modify', "Don't Need"].map(opt => (

@@ -90,7 +90,7 @@ class GlExportView(APIView):
         try:
             from apps.core.models import Report
             report = Report.objects.filter(
-                name=report_name, model_name='gl_journal',
+                name=report_name, target_model='gl_journal',
                 is_active=True, ).first()
             if not report:
                 return

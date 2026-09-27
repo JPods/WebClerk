@@ -80,7 +80,7 @@ def observe(category: str, message: str, detail: str = '', priority: int = PRIOR
             AliceObservation.objects.create(
                 category=category, source='alice', priority=priority,
                 message=message[:500], detail=detail[:2000],
-                model_name='report' if report is not None else '',
+                target_model='report' if report is not None else '',
                 record_id=str(getattr(report, 'pk', '') or ''),
                 dedup_key=f'hook_review:{getattr(report, "ida", "")}:{message[:60]}',
             )

@@ -107,7 +107,7 @@ def request_field_change(
             priority=1,
             message=desc,
             detail=json.dumps(request_detail),
-            model_name=model,
+            target_model=model,
             contact_id=contact_id,
             dedup_key=f'field_change:{model}:{field}:{change_type}',
         )

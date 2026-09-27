@@ -124,7 +124,7 @@ export default function AliceDashboard() {
         setActions(aRes?.results || []);
 
         // Training documents
-        const tRes = await getRecords('document', { filters: { model_name: 'system', status: 'published' }, ordering: 'name', limit: 20 }) as any;
+        const tRes = await getRecords('document', { filters: { target_model: 'system', status: 'published' }, ordering: 'name', limit: 20 }) as any;
         setTrainingDocs(tRes?.results || []);
 
         // LLM config
@@ -613,7 +613,7 @@ export default function AliceDashboard() {
         <h3 className="text-sm font-bold text-blue-600 dark:text-blue-400 mb-3">How to Extend Alice</h3>
         <div className="text-xs text-gray-600 dark:text-gray-400 space-y-2">
           <p><strong>Add coaching tips:</strong> Create Setting records with purpose="wc:coaching" and parent_model set to any model. Alice will show the tips when users work with that model. Tips include field_help, action guides, warnings, and code examples.</p>
-          <p><strong>Submit training documents:</strong> Create Document records with model_name="system" and status="published". They appear in the Training tab. Submit useful documents for bonus credit via the Submit for Bonus page — Alice tracks adoption.</p>
+          <p><strong>Submit training documents:</strong> Create Document records with target_model="system" and status="published". They appear in the Training tab. Submit useful documents for bonus credit via the Submit for Bonus page — Alice tracks adoption.</p>
           <p><strong>Create onboarding actions:</strong> Create Action records with project_name="Alice Onboarding". New users see these as their getting-started checklist.</p>
           <p><strong>Teach Alice field behaviors:</strong> Update the field_access Setting for any model to add field_behaviors — Alice uses these to know which fields are emails (mailto), phones (tel), addresses (map), selects, lookups, etc.</p>
           <p><strong>Improve column widths:</strong> Alice watches what column widths users set and refines her recommendations. The column_widths Setting (purpose="wc:coaching") is synced from WCHQ.</p>

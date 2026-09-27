@@ -317,7 +317,7 @@ def make_saved_search(*, name, model_name, role="", config=None, owner_user_id=N
         spec["owner_user_id"] = owner_user_id
     return Report.objects.create(
         name=name,
-        model_name=model_name,
+        target_model=model_name,
         purpose=REPORT_PURPOSE_SEARCH,
         category=kwargs.pop("category", "search"),
         output_type=kwargs.pop("output_type", "search"),

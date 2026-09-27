@@ -15,7 +15,7 @@ SEARCH_PRESETS = [
         'ida': 'search-assigned-period',
         'name': 'Actions: Assigned To in Period',
         'description': 'Filter actions by assignee within a date range.',
-        'model_name': 'action',
+        'target_model': 'action',
         'config': {
             'request_keyword': 'assigned_to',
             'request_filters': {
@@ -30,7 +30,7 @@ SEARCH_PRESETS = [
         'ida': 'search-assigned-active',
         'name': 'Actions: Assigned Active',
         'description': 'Filter active actions by assignee.',
-        'model_name': 'action',
+        'target_model': 'action',
         'config': {
             'request_keyword': 'assigned_to',
             'request_filters': {
@@ -44,7 +44,7 @@ SEARCH_PRESETS = [
         'ida': 'search-assigned-priority',
         'name': 'Actions: Active by Priority',
         'description': 'Filter active actions by assignee and priority.',
-        'model_name': 'action',
+        'target_model': 'action',
         'config': {
             'request_keyword': 'assigned_to',
             'request_filters': {
@@ -59,7 +59,7 @@ SEARCH_PRESETS = [
         'ida': 'search-questions-bill',
         'name': 'Questions for Bill',
         'description': 'Questions that neither Alice nor Claude can answer.',
-        'model_name': 'action',
+        'target_model': 'action',
         'config': {
             'ordering': '-dt_created',
             'pagination': {'limit': 50, 'offset': 0},
@@ -73,7 +73,7 @@ SEARCH_PRESETS = [
         'ida': 'search-support-qa',
         'name': 'Support Q&A',
         'description': 'Search answered support questions. Highest-scored answers first.',
-        'model_name': 'document',
+        'target_model': 'document',
         'config': {
             'ordering': '-config__score_avg',
             'pagination': {'limit': 50, 'offset': 0},
@@ -88,7 +88,7 @@ SEARCH_PRESETS = [
         'ida': 'search-low-scored',
         'name': 'Low-Scored Answers',
         'description': 'Answered questions with low user scores. Need better answers or rephrasing.',
-        'model_name': 'document',
+        'target_model': 'document',
         'config': {
             'ordering': 'config__score_avg',
             'pagination': {'limit': 50, 'offset': 0},
@@ -102,7 +102,7 @@ SEARCH_PRESETS = [
         'ida': 'search-unanswered',
         'name': 'Unanswered Questions',
         'description': 'Questions waiting for answers. Oldest first.',
-        'model_name': 'document',
+        'target_model': 'document',
         'config': {
             'ordering': 'dt_created',
             'pagination': {'limit': 50, 'offset': 0},
@@ -131,7 +131,7 @@ class Command(BaseCommand):
                     'category': 'search',
                     'purpose': REPORT_PURPOSE_SEARCH,
                     'output_type': 'search',
-                    'model_name': preset['model_name'],
+                    'target_model': preset['target_model'],
                     'config': preset['config'],
                     'is_active': True,
                 },

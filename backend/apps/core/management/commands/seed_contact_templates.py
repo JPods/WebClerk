@@ -210,7 +210,7 @@ class Command(BaseCommand):
                 defaults={
                     "name": tpl["name"],
                     "description": tpl["description"],
-                    "model_name": "contact",
+                    "target_model": "contact",
                     "output_type": tpl["output_type"],
                     "category": tpl["category"],
                     "sort_order": tpl["sort_order"],

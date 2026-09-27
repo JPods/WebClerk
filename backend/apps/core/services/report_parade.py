@@ -3,7 +3,7 @@ Parade of Reports — Alice-driven onboarding tool.
 
 Alice walks new users through their reports, rendering each with polished
 sample data and collecting feedback. The parade is itself a Report record
-(category='onboarding', model_name='report').
+(category='onboarding', target_model='report').
 
 Usage:
     From Alice (via manage endpoint):
@@ -102,7 +102,7 @@ def _has_sample_data(model_name: str, report_name: str = "") -> bool:
 def _classify_report(report) -> str:
     """Assign a report to a parade group based on name and model."""
     name_lower = (report.name or "").lower()
-    model_lower = (report.model_name or "").lower()
+    model_lower = (report.target_model or "").lower()
 
     for group in PARADE_GROUPS:
         # Match by model
@@ -149,7 +149,7 @@ def build_parade_manifest(
     ).exclude(
         # A hook is a Report, but it is not a form — it has no layout to parade.
         config__hooks__isnull=False,
-    ).order_by("model_name", "sort_order", "name")
+    ).order_by("target_model", "sort_order", "name")
 
     if report_ids:
         qs = qs.filter(id__in=report_ids)
@@ -157,7 +157,7 @@ def build_parade_manifest(
     # Build grouped manifest
     groups: Dict[str, List[Dict]] = {}
     for report in qs:
-        model = report.model_name or ""
+        model = report.target_model or ""
         config = report.config or {}
         has_sample = bool(config.get("sample_data")) or _has_sample_data(model, report.name or "")
 
@@ -166,7 +166,7 @@ def build_parade_manifest(
         entry = {
             "id": report.id,
             "name": report.name,
-            "model_name": model,
+            "target_model": model,
             "category": report.category or "",
             "description": report.description or "",
             "has_sample_data": has_sample,

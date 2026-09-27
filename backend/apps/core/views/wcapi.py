@@ -764,7 +764,7 @@ class WCAPIGetView(APIView):
 
         qs = Report.objects.filter(
             is_active=True,
-            model_name=model_key,
+            target_model=model_key,
             purpose=REPORT_PURPOSE_SEARCH,
         )
 
@@ -1638,7 +1638,7 @@ class SearchPresetListView(APIView):
 
         rpt_qs = Report.objects.filter(
             is_active=True,
-            model_name=model_key,
+            target_model=model_key,
         )
         if not is_admin:
             rpt_qs = rpt_qs.filter(
@@ -1656,7 +1656,7 @@ class SearchPresetListView(APIView):
                     "id": report.id,
                     "name": report.name,
                     "role": report.role_required,
-                    "model_name": report.model_name,
+                    "model_name": report.target_model,
                     "source": "report",
                     "output_type": report.output_type,
                     "category": report.category,

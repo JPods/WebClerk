@@ -171,7 +171,7 @@ def seed_shipped_reports() -> list[RegistryEntry]:
             category="report",
             purpose=REPORT_PURPOSE_EXECUTABLE,
             output_type="json",
-            model_name="report",
+            target_model="report",
             sort_order=order,
             config={
                 "report_key": report_key,

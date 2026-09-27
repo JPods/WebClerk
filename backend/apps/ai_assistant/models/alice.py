@@ -55,7 +55,7 @@ class AliceObservation(BaseModel):
     detail = models.TextField(blank=True)  # longer explanation or data
 
     # Context — what model/record/user this observation is about
-    model_name = models.CharField(max_length=50, blank=True, db_index=True)
+    target_model = models.CharField(max_length=50, blank=True, db_index=True)
     record_id = models.BigIntegerField(null=True, blank=True)
     contact = models.ForeignKey(
         'core.Contact', on_delete=models.SET_NULL,
@@ -121,7 +121,7 @@ class AlicePreset(BaseModel):
     # report: {report_name, model, filters, format}
 
     # Context
-    model_name = models.CharField(max_length=50, blank=True, db_index=True)
+    target_model = models.CharField(max_length=50, blank=True, db_index=True)
 
     # Usage tracking — Alice watches which presets are actually used
     use_count = models.IntegerField(default=0)
@@ -135,7 +135,7 @@ class AlicePreset(BaseModel):
     class Meta:
         db_table = 'alice_presets'
         indexes = [
-            models.Index(fields=['preset_type', 'model_name'], name='alicepreset_type_model_idx'),
+            models.Index(fields=['preset_type', 'target_model'], name='alicepreset_type_model_idx'),
         ]
 
     def __str__(self):

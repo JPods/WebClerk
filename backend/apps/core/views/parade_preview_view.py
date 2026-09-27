@@ -118,7 +118,7 @@ def _render_raw_html(report, config: dict, sample: dict) -> str:
       .k {{ color: #7FB3D5; }} .s {{ color: #A9DFBF; }} .n {{ color: #F7DC6F; }}
     </style></head><body>
     <h1>{report.name}</h1>
-    <div class="meta">{report.model_name or '—'} · {report.category or 'report'} · {layout}</div>
+    <div class="meta">{report.target_model or '—'} · {report.category or 'report'} · {layout}</div>
     <pre>{_colorize_json(json.dumps(sample, indent=2))}</pre>
     </body></html>"""
 
@@ -189,7 +189,7 @@ def _render_no_layout_html(report, config: dict, sample: dict) -> str:
              font-size: 12px; line-height: 1.45; }}
     </style></head><body>
     <h1>{report.name}</h1>
-    <div class="meta">{report.model_name or '—'} · {report.category or 'report'}</div>
+    <div class="meta">{report.target_model or '—'} · {report.category or 'report'}</div>
     <div class="note"><strong>No layout to show.</strong><br>{what}</div>
     <details><summary>Sample data this report would print from</summary>
     <pre>{json.dumps(sample, indent=2)}</pre></details>
@@ -496,8 +496,8 @@ class ParadePreviewView(APIView):
         if not sample:
             from pathlib import Path
             sample_dir = Path(__file__).resolve().parent.parent / "sample_data"
-            # Try model_name first, then report name slug
-            for candidate in [report.model_name, report.name.lower().replace(" ", "_")]:
+            # Try target_model first, then report name slug
+            for candidate in [report.target_model, report.name.lower().replace(" ", "_")]:
                 if not candidate:
                     continue
                 sample_file = sample_dir / f"{candidate}.json"
@@ -529,7 +529,7 @@ class ParadePreviewView(APIView):
         body = config.get("body")
         if form:
             html = _render_sample_html(
-                report.name, report.model_name or "", sample, form,
+                report.name, report.target_model or "", sample, form,
             )
         elif body:
             # Letters and touch templates are text with {{tokens}}, not layouts.

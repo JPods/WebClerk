@@ -324,7 +324,7 @@ def run_eom_close(
         Document = dj_apps.get_model("docs", "Document")
         eom_doc = Document(
             name=f"EOM Close — {period_key}",
-            model_name="eom_close",
+            target_model="eom_close",
             status="active",
             body=f"End of month close for {period_key}",
             config={
@@ -392,7 +392,7 @@ def get_eom_status(
     try:
         Document = dj_apps.get_model("docs", "Document")
         eom_doc = Document.objects.filter(
-            model_name="eom_close",
+            target_model="eom_close",
             name__icontains=period_key,
         ).order_by("-dt_created").first()
 
@@ -501,7 +501,7 @@ def reopen_period(
     try:
         Document = dj_apps.get_model("docs", "Document")
         eom_doc = Document.objects.filter(
-            model_name="eom_close",
+            target_model="eom_close",
             name__icontains=period_key,
         ).order_by("-dt_created").first()
 

@@ -246,7 +246,7 @@ def detect_rejected_patterns(since_days: int = 30) -> dict:
                 f"Common themes: {', '.join(common_words)}."
             ),
             detail=narrative,
-            model_name='Episode',
+            target_model='Episode',
             dedup_key=f"ep-pattern-{cluster_hash}",
         )
         observations_created += 1

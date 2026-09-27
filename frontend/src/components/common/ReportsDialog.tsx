@@ -8,7 +8,7 @@
  *   - Report Setup     → open report for editing (authority-gated)
  *   - New Report       → create a new report (authority-gated)
  *
- * Data source: getRecords('report', { model_name }) filtered client-side
+ * Data source: getRecords('report', { target_model }) filtered client-side
  *
  * LastChecked: 2026-07-21 | WhereUsed: DataBrowser, TransactionDetailBase | WhoCreated: Bill+Claude
  */
@@ -30,7 +30,7 @@ import './ReportsDialog.css';
 export interface ReportRecord {
   id: number;
   name: string;
-  model_name?: string;
+  target_model?: string;
   category?: string;
   output_type?: string;
   description?: string;
@@ -239,7 +239,7 @@ const ReportsDialog: React.FC<Props> = ({
   useEffect(() => {
     if (!open || !model || loadedModel === model) return;
     setLoading(true);
-    getRecords('report', { model_name_filter: model }).then((result: any) => {
+    getRecords('report', { target_model: model }).then((result: any) => {
       const rows: ReportRecord[] = result?.results || result?.records || result?.data?.results || result?.data?.records || [];
       // Sort: sort_order asc, then name
       rows.sort((a, b) => {
@@ -610,10 +610,9 @@ const ReportsDialog: React.FC<Props> = ({
                   const outputType = e.target.value;
                   e.target.value = '';
                   if (!outputType) return;
-                  // Report.model_name (the report's target model) cannot be sent: the REST
-                  // door refuses any body carrying model_name (save_view). Server-side gap.
                   createRecord('report', {
                     name: `New ${outputType.charAt(0).toUpperCase() + outputType.slice(1)} Report`,
+                    target_model: model,
                     output_type: outputType,
                   }).then((res: any) => {
                     const newId = res?.id ?? res?.record?.id;

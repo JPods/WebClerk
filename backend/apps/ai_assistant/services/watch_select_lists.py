@@ -44,7 +44,7 @@ def _create_observation(category, model_name, message, detail='',
     return AliceObservation.objects.create(
         category=category, source='alice', priority=priority,
         message=message, detail=detail,
-        model_name=model_name, record_id=record_id, dedup_key=dedup_key,
+        target_model=model_name, record_id=record_id, dedup_key=dedup_key,
     )
 
 

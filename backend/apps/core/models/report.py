@@ -50,7 +50,7 @@ class Report(BaseModel):
 
     name = models.CharField(max_length=255, blank=True, null=True)
     description = models.CharField(max_length=500, blank=True, null=True)
-    model_name = models.CharField(
+    target_model = models.CharField(
         max_length=255, blank=True, null=True, db_index=True,
         help_text="Canonical model key (e.g. 'customer', 'order')",
     )
@@ -104,10 +104,10 @@ class Report(BaseModel):
 
     class Meta:
         db_table = 'reports'
-        ordering = ['model_name', 'sort_order', 'name']
+        ordering = ['target_model', 'sort_order', 'name']
 
     def __str__(self):
-        return f"{self.name or 'Report'} ({self.model_name}) [{self.output_type}]"
+        return f"{self.name or 'Report'} ({self.target_model}) [{self.output_type}]"
 
     def save(self, *args, **kwargs):
         """Gate config.hooks: superuser only, declared point only, and any edit

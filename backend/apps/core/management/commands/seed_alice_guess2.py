@@ -139,12 +139,12 @@ LIST_PRIORITIES = {
 
     # System / admin
     'action':   ['ida', 'action', 'status', 'kanban_column', 'assigned_to', 'priority', 'project_name', 'dt_deadline', 'percent_complete'],
-    'document': ['ida', 'name', 'category', 'model_name', 'dt_created'],
+    'document': ['ida', 'name', 'category', 'target_model', 'dt_created'],
     'project':  ['ida', 'name', 'status', 'priority', 'dt_created'],
-    'report':   ['ida', 'name', 'category', 'output_type', 'model_name', 'purpose'],
+    'report':   ['ida', 'name', 'category', 'output_type', 'target_model', 'purpose'],
     'setting':  ['ida', 'name', 'purpose', 'parent_model', 'is_active'],
     'question_answer': ['ida', 'question', 'category', 'model_name', 'is_active'],
-    'tag':      ['ida', 'name', 'type', 'model_name', 'is_active'],
+    'tag':      ['ida', 'name', 'type', 'target_model', 'is_active'],
     'notification': ['ida', 'title', 'status', 'type', 'dt_created'],
     'audit':    ['ida', 'model_name', 'action', 'contact', 'dt_created'],
 

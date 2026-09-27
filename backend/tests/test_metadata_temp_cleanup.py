@@ -13,7 +13,7 @@ def _now_ms() -> int:
 
 
 def test_metadata_temp_add_and_expire_helpers():
-    report = Report.objects.create(name="TempTest", model_name="report")
+    report = Report.objects.create(name="TempTest", target_model="report")
 
     now_ms = _now_ms()
     report.add_temp_entry(
@@ -46,7 +46,7 @@ def test_metadata_temp_add_and_expire_helpers():
 def test_task_cleanup_metadata_temp_prunes_expired_entries(monkeypatch):
     now_ms = _now_ms()
 
-    stale = Report.objects.create(name="StaleTemp", model_name="report")
+    stale = Report.objects.create(name="StaleTemp", target_model="report")
     stale.add_temp_entry(
         kind="hint",
         snippet="stale",
@@ -55,7 +55,7 @@ def test_task_cleanup_metadata_temp_prunes_expired_entries(monkeypatch):
     )
     stale.save(update_fields=["metadata"])
 
-    fresh = Report.objects.create(name="FreshTemp", model_name="report")
+    fresh = Report.objects.create(name="FreshTemp", target_model="report")
     fresh.add_temp_entry(
         kind="hint",
         snippet="fresh",

@@ -492,8 +492,8 @@ def test_seed_search_presets_command_is_idempotent():
     stored = Report.objects.filter(purpose=REPORT_PURPOSE_SEARCH)
 
     assert "created=" in first_run
-    assert stored.filter(model_name="invoice", name="current_month").exists()
-    assert stored.filter(model_name="action", name="assigned_to_is_active_priority").exists()
+    assert stored.filter(target_model="invoice", name="current_month").exists()
+    assert stored.filter(target_model="action", name="assigned_to_is_active_priority").exists()
 
     count_after_first = stored.count()
 

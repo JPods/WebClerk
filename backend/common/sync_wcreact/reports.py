@@ -20,7 +20,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# Canonical report definitions — organized by model_name
+# Canonical report definitions — organized by target_model
 #
 # Each report dict has:
 #   name          (str)  — unique within model, stable identifier
@@ -443,7 +443,7 @@ REPORT_DEFS: dict[str, list[dict]] = {
     ],
 
     # ===================================================================
-    # WORK ORDER reports (new-style model_name='workorder')
+    # WORK ORDER reports (new-style target_model='workorder')
     # ===================================================================
     "workorder": [
         {"name": "Work Order",                     "description": "Print work order form",                             "output_type": "print",  "category": "report",  "sort_order": 10},
@@ -497,7 +497,7 @@ _FIELD_DEFAULTS = {
 def sync_reports(stdout, style, models=None, dry_run=False):
     """
     Create/update Report records to match REPORT_DEFS. Idempotent.
-    Matches on (model_name + name) as the unique key.
+    Matches on (target_model + name) as the unique key.
 
     Args:
         stdout:  management command stdout (or sys.stdout)
@@ -530,7 +530,7 @@ def sync_reports(stdout, style, models=None, dry_run=False):
         for defn in reports:
             name = defn["name"]
             try:
-                report = Report.objects.get(model_name=model_name, name=name)
+                report = Report.objects.get(target_model=model_name, name=name)
                 changes = []
                 for field in SYNC_FIELDS:
                     new_val = defn.get(field, _FIELD_DEFAULTS.get(field))
@@ -563,7 +563,7 @@ def sync_reports(stdout, style, models=None, dry_run=False):
             except Report.DoesNotExist:
                 if not dry_run:
                     report = Report.objects.create(
-                        model_name=model_name,
+                        target_model=model_name,
                         name=name,
                         description=defn.get("description", ""),
                         output_type=defn.get("output_type", "print"),
@@ -599,9 +599,9 @@ def list_reports(stdout, models=None):
     """Display all reports currently in the database, grouped by model."""
     from apps.core.models import Report
 
-    qs = Report.objects.filter(is_active=True).order_by("model_name", "sort_order", "name")
+    qs = Report.objects.filter(is_active=True).order_by("target_model", "sort_order", "name")
     if models:
-        qs = qs.filter(model_name__in=models)
+        qs = qs.filter(target_model__in=models)
 
     count = qs.count()
     stdout.write(f"Reports in database ({count}):")
@@ -611,9 +611,9 @@ def list_reports(stdout, models=None):
 
     current_model = None
     for r in qs:
-        if r.model_name != current_model:
-            current_model = r.model_name
-            model_count = qs.filter(model_name=current_model).count()
+        if r.target_model != current_model:
+            current_model = r.target_model
+            model_count = qs.filter(target_model=current_model).count()
             stdout.write(f"\n  {current_model} ({model_count}):")
         role = f"  role={r.role_required}" if r.role_required else ""
         stdout.write(
@@ -627,9 +627,9 @@ def show_reports_for_r25(stdout, models=None):
     """Output wc3 reports formatted as r25 TypeScript code."""
     from apps.core.models import Report
 
-    qs = Report.objects.filter(is_active=True).order_by("model_name", "sort_order", "name")
+    qs = Report.objects.filter(is_active=True).order_by("target_model", "sort_order", "name")
     if models:
-        qs = qs.filter(model_name__in=models)
+        qs = qs.filter(target_model__in=models)
 
     if not qs.exists():
         stdout.write("No report records found in wc3.")
@@ -640,11 +640,11 @@ def show_reports_for_r25(stdout, models=None):
 
     current_model = None
     for r in qs:
-        if r.model_name != current_model:
+        if r.target_model != current_model:
             if current_model is not None:
                 stdout.write("  ],")
                 stdout.write("")
-            current_model = r.model_name
+            current_model = r.target_model
             stdout.write(f"  {current_model}: [")
 
         role_str = f", role_required: '{r.role_required}'" if r.role_required else ""

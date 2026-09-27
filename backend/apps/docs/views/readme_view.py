@@ -91,7 +91,7 @@ class ReadmeDetailView(APIView):
     Returns { item: {...} } minimal payload.
     """
     def get(self, request, slug: str):
-        doc = Document.objects.filter(model_name='readme', slug=slug).first()
+        doc = Document.objects.filter(target_model='readme', slug=slug).first()
         if not doc:
             raise Http404("readme not found")
 
@@ -108,7 +108,7 @@ class ReadmeDetailView(APIView):
         item = {
             "id": doc.id,
             "slug": doc.slug,
-            "model_name": doc.model_name,
+            "target_model": doc.target_model,
             "name": getattr(doc, "name", None),
             "title": getattr(doc, "title", None),
             "dt_created": getattr(doc, "dt_created", None),
@@ -125,7 +125,7 @@ class ReadmeTopView(APIView):
     """
     def get(self, request):
         # Do not use .only(...) with fields that may not exist on Document
-        qs = Document.objects.filter(model_name='readme')
+        qs = Document.objects.filter(target_model='readme')
         rows = []
         for doc in qs:
             c = cache.get(f"readme_access:{doc.slug}", 0)
@@ -178,7 +178,7 @@ class ReadmeSyncView(APIView):
         did_run = False
 
         # Basic stats placeholder (satisfies tests without coupling to command output)
-        stats: Dict[str, Any] = {"readmes_before": Document.objects.filter(model_name="readme").count()}
+        stats: Dict[str, Any] = {"readmes_before": Document.objects.filter(target_model="readme").count()}
 
         if not dry_run:
             out_buf = io.StringIO() if include_output else None
@@ -196,7 +196,7 @@ class ReadmeSyncView(APIView):
                 output = out_buf.getvalue() if out_buf else ""
 
         # Update post counts (noop for dry_run)
-        stats["readmes_after"] = Document.objects.filter(model_name="readme").count()
+        stats["readmes_after"] = Document.objects.filter(target_model="readme").count()
 
         return Response(
             {"ok": True, "dry_run": dry_run, "ran": did_run, "output": output, "stats": stats},

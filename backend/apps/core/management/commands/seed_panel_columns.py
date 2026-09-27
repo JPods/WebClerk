@@ -315,7 +315,7 @@ PANEL_COLUMNS = {
         f('purpose', width=80),
         f('status', width=70),
         f('name', width=150),
-        f('model_name', width=100),
+        f('target_model', width=100),
     ],
 
     # ── Products ────────────────────────────────────────────────────────
@@ -520,7 +520,7 @@ PANEL_COLUMNS = {
         f('status', width=70),
         f('name', width=150),
         f('preset_type', width=80),
-        f('model_name', width=100),
+        f('target_model', width=100),
     ],
 
     # ── Sync ────────────────────────────────────────────────────────────
@@ -555,7 +555,7 @@ PANEL_COLUMNS = {
         f('purpose', width=80),
         f('status', width=70),
         f('name', width=180),
-        f('model_name', width=80),
+        f('target_model', width=80),
     ],
     'report': [
         f('ida', width=80),

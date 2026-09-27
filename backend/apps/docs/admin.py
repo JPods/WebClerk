@@ -127,7 +127,7 @@ class TagAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
         'ida',
         'is_active',
         'is_archived',
-        'model_name',
+        'target_model',
         'name',
         'purpose',
         'record_id',
@@ -146,17 +146,17 @@ class TagAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
         'prefs',
         'refs',
     )
-    # Scalar fields: count_accessed, dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, is_locked, model_name, name, purpose, record_id, security_level, sequence, status, uuid, version
+    # Scalar fields: count_accessed, dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, is_locked, target_model, name, purpose, record_id, security_level, sequence, status, uuid, version
     list_display = ("ida", "name", "status", "count_accessed", "health_rating", "is_locked", "is_active", "dt_created")
-    list_filter = ('purpose', 'status', 'model_name', 'is_active')
-    search_fields = ('name', 'purpose', 'model_name')
+    list_filter = ('purpose', 'status', 'target_model', 'is_active')
+    search_fields = ('name', 'purpose', 'target_model')
     readonly_fields = ('uuid', 'dt_created', 'dt_modified')
     ordering = ('-dt_created',)
     
     fieldsets = (
         ('Identification', {'fields': ('id', 'ida', 'uuid', 'name')}),
         ('Classification', {'fields': ('purpose', 'status', 'security_level')}),
-        ('Target Record', {'fields': ('model_name', 'record_id')}),
+        ('Target Record', {'fields': ('target_model', 'record_id')}),
         ('Counters & Sequence', {'fields': ('count_accessed', 'sequence')}),
         ('Data', {'fields': ('config',)}),
         ('Lifecycle', {'fields': ('is_active', 'is_archived', 'version')}),

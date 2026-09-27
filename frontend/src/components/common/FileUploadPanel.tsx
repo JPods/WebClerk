@@ -1,7 +1,7 @@
 /**
  * FileUploadPanel — reusable photo/video/file upload for any record.
  *
- * Every upload creates a Document record (model_name, record_id, role, path).
+ * Every upload creates a Document record (target_model, record_id, role, path).
  * Phone camera opens directly via capture="environment".
  * Shows existing attachments from Document records linked to this record.
  *
@@ -79,7 +79,7 @@ const FileUploadPanel: React.FC<Props> = ({
     setLoadingDocs(true);
     try {
       const res = await getRecords("document", {
-        model_name: modelName,
+        target_model: modelName,
         record_id: String(recordId),
         ordering: "-dt_created",
         limit: 50,

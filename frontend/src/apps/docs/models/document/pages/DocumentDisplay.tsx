@@ -213,13 +213,13 @@ export default function DocumentDisplay({
                 disabled={currentMode === "view"}
               />
             </HorizontalField>
-            <HorizontalField label="Model Name" htmlFor="model_name" icon={<Database size={14} />}>
+            <HorizontalField label="Target Model" htmlFor="target_model" icon={<Database size={14} />}>
               <Input
                 type="text"
-                id="model_name"
+                id="target_model"
                 placeholder="Source model type"
-                value={data?.model_name || ""}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFieldChange("model_name", e.target.value)}
+                value={data?.target_model || ""}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFieldChange("target_model", e.target.value)}
                 disabled={currentMode === "view"}
               />
             </HorizontalField>
