@@ -146,6 +146,11 @@ def check_quantity(
     children_sum = Decimal("0")
     if children_active and isinstance(children_active, dict):
         children_sum = Decimal(str(children_active.get("sum", 0) or 0))
+    if kind == "workorderline":
+        # One writer (line_parent.children_active_sum): a workorder line is consumed by its own
+        # events, and a count/adjust line is done once recorded — not active − children.
+        from apps.transactions.services.line_parent import children_active_sum
+        children_sum = Decimal(str(children_active_sum(line) or 0))
     expected = active - children_sum
 
     if abs(remaining - expected) > QUANTITY_TOLERANCE:
