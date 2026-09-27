@@ -19,7 +19,7 @@
 import { useAuth } from "../../hooks/useAuth";
 import React, { useCallback, useEffect, useState } from "react";
 import apiClient from "../../api/axios";
-import { getRecords, manageAction } from "../../api/wcapi";
+import { getRecord, getRecords, manageAction } from "../../api/wcapi";
 import { saveCorrection } from "../../api/workorderApi";
 import AliceHintBar from "../../components/common/AliceHintBar";
 import { formatDt } from '@/utils/fieldFormatters';
@@ -623,9 +623,11 @@ function AdjustTab() {
       setResult(
         `${verb === "allocate" ? "Allocated" : "Released"} ${allocQty} — allocated ${res.allocated}, available ${res.available}`
       );
-      const data = await getRecords("item", { id: selectedItem.id });
-      if (data.results?.[0]) {
-        const updated = data.results[0];
+      // The item by its id: a list query does not filter on id, and its first row was another
+      // item — the next adjustment went to it (found 2026-09-27 in the browser).
+      const data: any = await getRecord("item", selectedItem.id);
+      if (data?.record) {
+        const updated = data.record;
         setSelectedItem({
           id: updated.id,
           ida: updated.ida || "",
@@ -665,9 +667,11 @@ function AdjustTab() {
       );
 
       // Refresh item data
-      const data = await getRecords("item", { id: selectedItem.id });
-      if (data.results?.[0]) {
-        const updated = data.results[0];
+      // The item by its id: a list query does not filter on id, and its first row was another
+      // item — the next adjustment went to it (found 2026-09-27 in the browser).
+      const data: any = await getRecord("item", selectedItem.id);
+      if (data?.record) {
+        const updated = data.record;
         setSelectedItem({
           id: updated.id,
           ida: updated.ida || "",
