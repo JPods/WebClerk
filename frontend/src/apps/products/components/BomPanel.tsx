@@ -7,7 +7,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getRecords, createRecord } from '@/api/wcapi';
 import { searchItems } from '@/api/wcapi';
-import apiClient from '@/api/axios';
+import { buildItem } from '@/api/workorderApi';
 import { useDispatch } from 'react-redux';
 import { showToast } from '@/store/slices/toastSlice';
 import { useWindowManager } from '@/context/WindowManagerContext';
@@ -31,7 +31,6 @@ const BomPanel: React.FC<BomPanelProps> = ({ itemId, itemCode }) => {
   // Build from BOM
   const [showBuild, setShowBuild] = useState(false);
   const [buildQty, setBuildQty] = useState('1');
-  const [buildReason, setBuildReason] = useState('');
   const [building, setBuilding] = useState(false);
 
   // Add component search
@@ -108,26 +107,21 @@ const BomPanel: React.FC<BomPanelProps> = ({ itemId, itemCode }) => {
     }
     setBuilding(true);
     try {
-      const res = await apiClient.post(`/wcapi/products/items/${itemId}/bom/consume/`, {
-        qty,
-        adjust_for_on_hand: false,
-        reason: buildReason || `Build ${qty} × ${itemCode}`,
-      });
-      const data = res.data?.data || res.data;
-      const applied = data?.applied ?? data?.movements ?? '?';
+      // A build is a production workorder: build line → expand one BOM level → complete
+      // (workorder plan; the old bom/consume/ path built outside the door).
+      const done: any = await buildItem(itemId, qty, 1);
       dispatch(showToast({
-        message: `Built ${qty} × ${itemCode} — ${applied} inventory movements posted`,
+        message: `Built ${qty} × ${itemCode} on workorder ${done.workorder_id} (${done.lines_applied ?? '?'} lines applied)`,
         type: 'success',
       }));
       setShowBuild(false);
       setBuildQty('1');
-      setBuildReason('');
     } catch (e: any) {
       const msg = e?.response?.data?.detail || e?.response?.data?.message || e?.response?.data?.error || 'Build failed';
       dispatch(showToast({ message: msg, type: 'error' }));
     }
     setBuilding(false);
-  }, [itemId, itemCode, buildQty, buildReason, dispatch]);
+  }, [itemId, itemCode, buildQty, dispatch]);
 
   return (
     <div className="p-2">
@@ -171,16 +165,6 @@ const BomPanel: React.FC<BomPanelProps> = ({ itemId, itemCode }) => {
                 onChange={(e) => setBuildQty(e.target.value)}
                 autoFocus
                 className="w-24 px-2 py-1.5 text-xs rounded border border-blue-300 dark:border-blue-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-              />
-            </div>
-            <div className="flex-1">
-              <label className="text-[10px] text-slate-500 dark:text-slate-400">Reason (optional)</label>
-              <input
-                type="text"
-                value={buildReason}
-                onChange={(e) => setBuildReason(e.target.value)}
-                placeholder="Production run, work order #, etc."
-                className="w-full px-2 py-1.5 text-xs rounded border border-blue-300 dark:border-blue-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
               />
             </div>
             <button

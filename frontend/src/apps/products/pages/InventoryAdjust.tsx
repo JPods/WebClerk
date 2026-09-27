@@ -4,7 +4,7 @@
  * Every adjustment flows through PendingInventoryAdjustment — one path, one audit trail.
  */
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import apiClient from "@/api/axios";
+import { buildItem, saveCorrection } from "@/api/workorderApi";
 import { getRecords, searchItems } from "@/api/wcapi";
 import "@/pages/admin/DataBrowser.css";
 
@@ -135,8 +135,9 @@ export default function InventoryAdjust() {
       setMessage("No adjustments to apply.");
       return;
     }
-    if (!warehouseId) {
-      setMessage("Select a warehouse.");
+    const unexplained = toApply.find((l) => !(l.reason || "").trim());
+    if (unexplained) {
+      setMessage(`An adjustment needs its reason (${unexplained.ida || unexplained.item_id}).`);
       return;
     }
 
@@ -144,45 +145,27 @@ export default function InventoryAdjust() {
     setMessage("");
 
     try {
-      const resp = await apiClient.post("/wcapi/products/inventory/adjust/", {
-          warehouse_id: warehouseId,
-          lines: toApply.map((l) => ({
-            item_id: l.item_id,
-            qty: l.adjust,
-            reason: l.reason,
-            notes: l.notes,
-          })),
-        });
-
-      const result = resp.data;
-      if (result.success !== false) {
-        const data = result.data || result;
-        setMessage(
-          `Applied ${data.applied || 0}, pending ${data.pending || 0}.`
-        );
-        // Update on-hand from results
-        const resultLines = data.lines || [];
-        setLines((prev) =>
-          prev.map((l) => {
-            const rl = resultLines.find(
-              (r: any) => r.item_id === l.item_id
-            );
-            if (rl) {
-              return {
-                ...l,
-                qty_on_hand: rl.new_on_hand,
-                adjust: 0,
-                new_on_hand: rl.new_on_hand,
-              };
-            }
-            return { ...l, adjust: 0, new_on_hand: l.qty_on_hand };
-          })
-        );
-      } else {
-        setMessage(`Error: ${result.message || "Failed"}`);
-      }
+      // One count workorder of adjust lines (stock plan §16b): the server's door moves the stock.
+      const saved: any = await saveCorrection(
+        toApply.map((l) => ({
+          item_id: l.item_id,
+          line_type: "adjust" as const,
+          quantity: l.adjust,
+          unit_cost: l.adjust > 0 ? l.unit_cost : undefined,
+          reason: [l.reason, l.notes].filter(Boolean).join(": "),
+        }))
+      );
+      const woIda = saved?.record?.ida ?? saved?.ida ?? "";
+      setMessage(`Saved as count workorder ${woIda}: ${toApply.length} adjustment(s).`);
+      setLines((prev) =>
+        prev.map((l) => {
+          const done = toApply.find((a) => a.item_id === l.item_id);
+          const onHand = done ? l.qty_on_hand + l.adjust : l.qty_on_hand;
+          return { ...l, qty_on_hand: onHand, adjust: 0, new_on_hand: onHand };
+        })
+      );
     } catch (err: any) {
-      setMessage(`Error: ${err.message}`);
+      setMessage(`Error: ${err?.response?.data?.message || err.message}`);
     }
     setApplying(false);
   }, [lines, warehouseId]);
@@ -191,26 +174,16 @@ export default function InventoryAdjust() {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const applyBOM = useCallback(
     async (itemId: number, qty: number) => {
-      if (!warehouseId) return;
 
-      const resp = await apiClient.post("/wcapi/products/inventory/adjust-bom/", {
-          item_id: itemId,
-          warehouse_id: warehouseId,
-          qty,
-          reason: "bom_build",
-        });
-
-      const result = resp.data;
-      if (result.success !== false) {
-        const data = result.data || result;
-        setMessage(
-          `BOM: Applied ${data.applied || 0}, pending ${data.pending || 0}.`
-        );
-      } else {
-        setMessage(`BOM Error: ${result.message || "Failed"}`);
+      // A build is a production workorder: build line → expand one BOM level → complete.
+      try {
+        const done: any = await buildItem(itemId, qty, 1);
+        setMessage(`Built ${qty} on workorder ${done.workorder_id}.`);
+      } catch (err: any) {
+        setMessage(`BOM Error: ${err?.response?.data?.message || err.message}`);
       }
     },
-    [warehouseId]
+    []
   );
 
   const hasChanges = lines.some((l) => l.adjust !== 0);

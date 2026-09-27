@@ -46,7 +46,6 @@ const ACTION_CONFIGS: Record<string, ActionDef[]> = {
     { key: 'journalize_invoice_and_cash_entries', label: 'Journalize Invoice + Cash',
       confirm: 'Post GL journals for this invoice AND all linked cash? This locks both.',
       params: (r) => ({ invoice_id: r.id, ida_prefix: '' }) },
-    { key: 'consume_inventory', label: 'Consume Inventory', needsDialog: true },
     { key: 'assign_serial_on_ship', label: 'Assign Serial', needsDialog: true },
     { key: 'clone_record', label: 'Clone',
       confirm: 'Duplicate this invoice with fresh dates?',
@@ -54,7 +53,6 @@ const ACTION_CONFIGS: Record<string, ActionDef[]> = {
     { key: 'link_transaction_to_campaign', label: 'Link Campaign', needsDialog: true },
   ],
   purchase: [
-    { key: 'receive_inventory', label: 'Receive Goods', needsDialog: true },
     { key: 'create_serial_on_receive', label: 'Create Serial', needsDialog: true },
   ],
   quote: [

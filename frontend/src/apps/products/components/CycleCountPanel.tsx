@@ -4,12 +4,14 @@
  * calculates variance, and creates adjustments for differences.
  */
 import React, { useEffect, useState, useCallback } from "react";
+import { saveCorrection } from "@/api/workorderApi";
 
 interface LayerCount {
   layer_id: number;
   warehouse_name: string;
   lot: string;
   system_qty: number;
+  unit_cost: number;
   counted_qty: number | null;
   variance: number;
 }
@@ -48,6 +50,7 @@ export default function CycleCountPanel({ itemId, itemCode }: Props) {
               warehouse_name: l.warehouse_name || l.warehouse_code || "Default",
               lot: l.lot || "-",
               system_qty: l.remaining,
+              unit_cost: Number(l.landed) || 0,
               counted_qty: null,
               variance: 0,
             }))
@@ -82,57 +85,21 @@ export default function CycleCountPanel({ itemId, itemCode }: Props) {
     setMessage("");
 
     try {
-      const token = document.cookie
-        .split("; ")
-        .find((c) => c.startsWith("access_token="))
-        ?.split("=")[1];
-
-      // Get warehouse_id from layers endpoint — we need it for the adjustment
-      const layerResp = await fetch(`/wcapi/products/inventory/layers/?item_id=${itemId}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        credentials: "include",
-      });
-      const layerData = await layerResp.json();
-      const layerMap: Record<number, any> = {};
-      for (const l of layerData.data || []) {
-        layerMap[l.id] = l;
-      }
-
-      // Group adjustments by warehouse
-      const byWarehouse: Record<number, { item_id: number; qty: number; reason: string; notes: string }[]> = {};
-      for (const d of diffs) {
-        const layer = layerMap[d.layer_id];
-        if (!layer) continue;
-        const wid = layer.warehouse_id;
-        if (!byWarehouse[wid]) byWarehouse[wid] = [];
-        byWarehouse[wid].push({
+      // A layer's count is an adjustment of that layer (stock plan §16b): the variance, the layer it
+      // belongs to, and what was seen, on one count workorder. More than the layer held lands in a
+      // layer of its own at this layer's cost.
+      const saved: any = await saveCorrection(
+        diffs.map((d) => ({
           item_id: itemId,
-          qty: d.variance,
-          reason: "cycle_count",
-          notes: `Cycle count: system=${d.system_qty}, counted=${d.counted_qty}, variance=${d.variance}`,
-        });
-      }
-
-      let totalApplied = 0;
-      let totalPending = 0;
-
-      for (const [whId, lines] of Object.entries(byWarehouse)) {
-        const resp = await fetch("/wcapi/products/inventory/adjust/", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          credentials: "include",
-          body: JSON.stringify({ warehouse_id: Number(whId), lines }),
-        });
-        const result = await resp.json();
-        const data = result.data || result;
-        totalApplied += data.applied || 0;
-        totalPending += data.pending || 0;
-      }
-
-      setMessage(`Cycle count: ${totalApplied} applied, ${totalPending} pending.`);
+          line_type: "adjust" as const,
+          quantity: d.variance,
+          layer_id: d.layer_id,
+          unit_cost: d.variance > 0 ? d.unit_cost : undefined,
+          reason: `Cycle count, layer ${d.layer_id} (${d.lot}): system ${d.system_qty}, counted ${d.counted_qty}`,
+        }))
+      );
+      const woIda = saved?.record?.ida ?? saved?.ida ?? "";
+      setMessage(`Cycle count saved as workorder ${woIda}: ${diffs.length} layer(s) corrected.`);
       // Reset counted values
       setRows((prev) =>
         prev.map((r) => ({
@@ -143,7 +110,7 @@ export default function CycleCountPanel({ itemId, itemCode }: Props) {
         }))
       );
     } catch (err: any) {
-      setMessage(`Error: ${err.message}`);
+      setMessage(`Error: ${err?.response?.data?.message || err.message}`);
     }
     setApplying(false);
   }, [rows, itemId]);

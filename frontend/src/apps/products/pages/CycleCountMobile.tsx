@@ -6,6 +6,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import apiClient from "@/api/axios";
 import "@/pages/admin/DataBrowser.css";
+import { saveCorrection } from "@/api/workorderApi";
 
 interface CountEntry {
   item_id: number;
@@ -189,29 +190,13 @@ export default function CycleCountMobile() {
     setMessage("");
 
     try {
-      const byWarehouse: Record<number, any[]> = {};
-      for (const d of diffs) {
-        const wid = d.warehouse_id || 0;
-        if (!byWarehouse[wid]) byWarehouse[wid] = [];
-        byWarehouse[wid].push({
-          item_id: d.item_id,
-          qty: d.variance,
-          reason: "cycle_count",
-          notes: `Mobile count: expected=${d.expected}, counted=${d.actual}, variance=${d.variance}`,
-        });
-      }
-
-      let total = 0;
-      for (const [whId, lines] of Object.entries(byWarehouse)) {
-        const resp = await apiClient.post("/wcapi/products/inventory/adjust/", {
-          warehouse_id: Number(whId),
-          lines,
-        });
-        const result = resp.data;
-        total += (result.data?.applied || 0);
-      }
-
-      setMessage(`Applied ${total} adjustment(s).`);
+      // One count workorder: each scanned item's count line carries what was counted; the server
+      // records the book and posts the variance (stock plan §16b). Who counted is the signed-in person.
+      const saved: any = await saveCorrection(
+        diffs.map((d) => ({ item_id: d.item_id, line_type: "count" as const, quantity: d.actual as number }))
+      );
+      const woIda = saved?.record?.ida ?? saved?.ida ?? "";
+      setMessage(`Saved count workorder ${woIda}: ${diffs.length} item(s).`);
       setEntries((prev) =>
         prev.map((e) => ({
           ...e,
@@ -221,7 +206,7 @@ export default function CycleCountMobile() {
         }))
       );
     } catch (err: any) {
-      setMessage(`Error: ${err.message}`);
+      setMessage(`Error: ${err?.response?.data?.message || err.message}`);
     }
     setApplying(false);
   }, [entries]);

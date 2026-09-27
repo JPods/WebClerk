@@ -12,8 +12,7 @@
  *   5. Training  — Alice's guided Quote→Order→Invoice→Cash→PO→Receive cycle
  *
  * All mutations go through manageAction → backend services:
- *   - receive_inventory (inventory_stacks.py)
- *   - adjust_item_quantity (inventory_pending.py)
+ *   - corrections: a count workorder (api/workorderApi.saveCorrection)
  *   - get_item_inventory_summary (inventory_stacks.py)
  *   - get_items_below_reorder (suggest_purchase.py)
  */
@@ -21,6 +20,7 @@ import { useAuth } from "../../hooks/useAuth";
 import React, { useCallback, useEffect, useState } from "react";
 import apiClient from "../../api/axios";
 import { getRecords, manageAction } from "../../api/wcapi";
+import { saveCorrection } from "../../api/workorderApi";
 import AliceHintBar from "../../components/common/AliceHintBar";
 import { formatDt } from '@/utils/fieldFormatters';
 import {
@@ -543,7 +543,8 @@ function AdjustTab() {
   const [searchTerm, setSearchTerm] = useState("");
   const [items, setItems] = useState<ItemRecord[]>([]);
   const [selectedItem, setSelectedItem] = useState<ItemRecord | null>(null);
-  const [adjField, setAdjField] = useState("on_hand");
+  // A correction changes stock on the shelf only; every other quantity is moved by its documents.
+  const adjField = "on_hand";
   const [adjDelta, setAdjDelta] = useState<number>(0);
   const [adjReason, setAdjReason] = useState("count_correction");
   // Allocation is a person's act, not a document's (Bill, 2026-09-19)
@@ -654,19 +655,13 @@ function AdjustTab() {
     setResult(null);
 
     try {
-      const res = await manageAction("adjust_item_quantity", {
-        item_id: selectedItem.id,
-        field: adjField,
-        delta: adjDelta,
-        reason: adjReason,
-        acted_by: actedBy,
-        source_type: "manual_adjustment",
-      });
-
+      // One adjust line on a count workorder (stock plan §16b); the reason is its comments.process.
+      const saved: any = await saveCorrection([
+        { item_id: selectedItem.id, line_type: "adjust", quantity: adjDelta, reason: adjReason },
+      ]);
+      const woIda = saved?.record?.ida ?? saved?.ida ?? "";
       setResult(
-        `Adjustment ${res.applied ? "applied" : "queued as pending"}: ${adjField} ${
-          adjDelta > 0 ? "+" : ""
-        }${adjDelta} (${adjReason})`
+        `Saved as count workorder ${woIda}: on hand ${adjDelta > 0 ? "+" : ""}${adjDelta} (${adjReason})`
       );
 
       // Refresh item data
@@ -779,20 +774,11 @@ function AdjustTab() {
             <div className="grid grid-cols-3 gap-3 mb-4">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Field to Adjust
+                  Adjusts
                 </label>
-                <select
-                  data-wc="inv-adjust-field"
-                  value={adjField}
-                  onChange={(e) => setAdjField(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
-                >
-                  {QTY_FIELDS.map(({ value, label }) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
+                <div className="px-3 py-2 text-sm text-gray-700" title="A correction changes on-hand stock; orders, purchases and workorders move the other quantities.">
+                  On hand (saved as a count workorder)
+                </div>
               </div>
 
               <div>
@@ -1191,20 +1177,8 @@ function ReconcileTab() {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [rows, setRows] = useState<ReconcileRow[]>([]);
-  const [countId, setCountId] = useState("");
   const [countNotes, setCountNotes] = useState("");
   const [warehouseCode, setWarehouseCode] = useState("");
-  const [countedBy, setCountedBy] = useState(
-    [user?.name_first, user?.name_last].filter(Boolean).join(" ") || user?.email || ""
-  );
-  useEffect(() => {
-    if (!countedBy) {
-      setCountedBy(
-        [user?.name_first, user?.name_last].filter(Boolean).join(" ") || user?.email || ""
-      );
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
   useEffect(() => {
     (async () => {
       try {
@@ -1271,29 +1245,26 @@ function ReconcileTab() {
       setError("Enter a physical count for at least one item.");
       return;
     }
-    if (!countedBy.trim()) {
-      setError("A count needs the name of the person answerable for it.");
-      return;
-    }
 
     setApplying(true);
     setError(null);
     setResult(null);
 
     try {
-      const res = await manageAction("count_inventory", {
-        count_id: countId || `count-${new Date().toISOString().slice(0, 19).replace(/[-:T]/g, "")}`,
-        counted_by: countedBy,
-        notes: countNotes,
-        lines: counted.map((row) => ({
+      // One count workorder: each line carries what was counted; the server records the book and
+      // who counted (the signed-in person), and posts the variance (stock plan §16b).
+      const saved: any = await saveCorrection(
+        counted.map((row) => ({
           item_id: row.item_id,
-          counted: row.physical_count,
-          warehouse_code: warehouseCode,
-          reason: "cycle_count",
-        })),
-      });
+          line_type: "count" as const,
+          quantity: row.physical_count as number,
+          reason: countNotes || undefined,
+        }))
+      );
+      const woIda = saved?.record?.ida ?? saved?.ida ?? "";
+      const net = counted.reduce((sum, r) => sum + ((r.physical_count as number) - r.system_on_hand), 0);
       const lines = [
-        `Count ${res.ida} by ${res.counted_by}: ${counted.length} item(s), variance ${res.variance_total > 0 ? "+" : ""}${res.variance_total}`,
+        `Count workorder ${woIda}: ${counted.length} item(s), variance ${net > 0 ? "+" : ""}${net}`,
         ...counted
           .filter((r) => r.variance)
           .map((r) => `  ${r.item_ida}: system ${r.system_on_hand}, counted ${r.physical_count}`),
@@ -1429,17 +1400,6 @@ function ReconcileTab() {
                   {totalVariance}
                 </span>
               </div>
-              <label className="flex items-center gap-2 text-sm text-gray-600">
-                counted by
-                <input
-                  data-wc="inv-reconcile-counted-by"
-                  type="text"
-                  placeholder="who counted"
-                  value={countedBy}
-                  onChange={(e) => setCountedBy(e.target.value)}
-                  className="px-2 py-1.5 text-sm border border-gray-300 rounded"
-                />
-              </label>
               <label className="flex items-center gap-2 text-sm text-gray-600">
                 note
                 <input
