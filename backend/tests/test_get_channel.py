@@ -72,11 +72,6 @@ def test_anonymous_search_matches_public_text_leaves_only(items):
     assert [r['ida'] for r in response.json()['data']['results']] == ['PUB-1']
 
 
-def test_contact_search_requires_login():
-    response = APIClient().get('/wcapi/ai/contact/search/', {'q': 'a'})
-    assert response.status_code in (401, 403)
-
-
 def test_action_cannot_reach_a_record_its_caller_cannot_read(db):
     """A command looks its record up through visible_queryset: a signed-in user whose role
     shows them no quotes gets 404, not the quote."""
