@@ -11,7 +11,12 @@
  *   4. Reconcile — physical count vs system, variance adjustments
  *   5. Training  — Alice's guided Quote→Order→Invoice→Cash→PO→Receive cycle
  *
- * All mutations go through manageAction → backend services:
+ * Receiving is a convert, like order→invoice (Bill, 2026-09-27):
+ *   POST /wcapi/purchase/<id>/convert/ {to: 'receipt', lines: [{line_id, qty}]}
+ *   — only the lines affected, each at the qty entered; one save through the door. The receipt
+ *   keeps the PO line's cost; stock lands in the default warehouse. More than is left is taken
+ *   and flagged to Alice (an over-shipment).
+ * The other tabs go through manageAction → backend services:
  *   - corrections: a count workorder (api/workorderApi.saveCorrection)
  *   - get_item_inventory_summary (inventory_stacks.py)
  *   - get_items_below_reorder (suggest_purchase.py)
@@ -19,7 +24,7 @@
 import { useAuth } from "../../hooks/useAuth";
 import React, { useCallback, useEffect, useState } from "react";
 import apiClient from "../../api/axios";
-import { getRecord, getRecords, manageAction } from "../../api/wcapi";
+import { getRecord, getRecords, manageAction, refusedFrom } from "../../api/wcapi";
 import { saveCorrection } from "../../api/workorderApi";
 import AliceHintBar from "../../components/common/AliceHintBar";
 import { formatDt } from '@/utils/fieldFormatters';
@@ -221,27 +226,6 @@ function ReceiveTab() {
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [warehouses, setWarehouses] = useState<{ id: number; code: string; name: string }[]>([]);
-  const [warehouseCode, setWarehouseCode] = useState<string>("");
-
-  // Warehouses to receive into — the receiving path needs a code, not a guess
-  useEffect(() => {
-    (async () => {
-      try {
-        const whData = await getRecords("warehouse", { limit: 100 });
-        const whs = (whData.results || []).map((w: any) => ({
-          id: w.id,
-          code: w.code || "",
-          name: w.name || w.code || `Warehouse ${w.id}`,
-        }));
-        setWarehouses(whs);
-        if (whs.length && !warehouseCode) setWarehouseCode(whs[0].code);
-      } catch {
-        /* the endpoint falls back to the default warehouse */
-      }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // Fetch open purchase orders
   const fetchPurchases = useCallback(async () => {
@@ -335,23 +319,19 @@ function ReceiveTab() {
     const results: string[] = [];
     let hasError = false;
 
-    // One receiving path (Bill, 2026-09-19): the endpoint writes the receipt, moves
-    // on_po -> on_hand, writes on_rc, and recomputes the PO line's remaining. The
-    // buckets and the document can no longer move apart.
+    // One receiving path (Bill, 2026-09-19), the purchase's convert to a receipt (2026-09-27):
+    // the receipt and the lines affected are one save; each line moves on_po -> on_hand and
+    // on_rc and recomputes the PO line's remaining. Cost comes from the PO line; edit it on
+    // the receipt.
     try {
-      const res = await apiClient.post(
-        `/transactions/purchase/${selectedPO.id}/receive-goods/`,
-        {
-          warehouse_code: warehouseCode || undefined,
-          lines: linesToReceive.map((line) => ({
-            po_line_id: line.id,
-            qty: receiveQtys[line.id] || 0,
-            warehouse_code: warehouseCode || undefined,
-            unit_cost: line.unit_cost,
-          })),
-        }
-      );
-      const data = res.data || {};
+      const res = await apiClient.post(`/wcapi/purchase/${selectedPO.id}/convert/`, {
+        to: "receipt",
+        lines: linesToReceive.map((line) => ({
+          line_id: line.id,
+          qty: receiveQtys[line.id] || 0,
+        })),
+      });
+      const data = res.data?.data?.result || {};
       results.push(
         `Receipt ${data.receipt_ida || data.receipt_id}: ${linesToReceive.length} line(s) received`
       );
@@ -360,9 +340,7 @@ function ReceiveTab() {
       );
     } catch (err: any) {
       hasError = true;
-      results.push(
-        `Receive failed - ${err?.response?.data?.error || err?.message || "unknown error"}`
-      );
+      results.push(`Receive failed - ${refusedFrom(err, "unknown error").message}`);
     }
 
     setReceiving(false);
@@ -504,21 +482,6 @@ function ReceiveTab() {
                 </pre>
               )}
             </div>
-            <label className="flex items-center gap-2 text-sm text-gray-600">
-              warehouse
-              <select
-                data-wc="inv-receive-warehouse"
-                value={warehouseCode}
-                onChange={(e) => setWarehouseCode(e.target.value)}
-                className="px-2 py-1.5 text-sm border border-gray-300 rounded"
-              >
-                {warehouses.map((wh) => (
-                  <option key={wh.id} value={wh.code}>
-                    {wh.code} — {wh.name}
-                  </option>
-                ))}
-              </select>
-            </label>
             <button
               data-wc="inv-receive-submit"
               onClick={handleReceive}

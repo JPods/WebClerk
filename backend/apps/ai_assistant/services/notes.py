@@ -109,7 +109,10 @@ def create_note(
     data.setdefault("category", category)
     data.setdefault("created_by", "alice")
 
-    setting = Setting(
+    # Settings refuse creation without authorization; a note is Alice's own record. Until
+    # 2026-09-27 this save was refused on every call and each caller swallowed the refusal,
+    # so no note reached Alice (found building R3's over-receipt flag).
+    setting = Setting.authorized_create(
         name=name,
         purpose=purpose,
         role=role,
@@ -117,7 +120,6 @@ def create_note(
         config=data,
         is_active=True,
     )
-    setting.save()
     logger.info("Alice %s note created: pk=%s role=%s", category, setting.pk, role)
     return setting
 

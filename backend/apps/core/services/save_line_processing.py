@@ -32,7 +32,10 @@ from common.schemas.carrier import read_carrier
 
 console_logger = logging.getLogger('console')
 
-HEADER_MODELS = frozenset({'order', 'invoice', 'purchase', 'workorder', 'quote'})
+# A receipt's lines were dropped without a word until 2026-09-27 (found building purchase.receive,
+# R3). Lines sent to any other model are refused, never dropped. Requisition is one: on hold until
+# 2026-11-27 (Bill, 2026-09-27; action 31281), its lines are refused until the review.
+HEADER_MODELS = frozenset({'order', 'invoice', 'purchase', 'workorder', 'quote', 'receipt'})
 
 LINE_MODEL_MAP = {
     'order': ('OrderLine', 'order'),
@@ -40,6 +43,7 @@ LINE_MODEL_MAP = {
     'purchase': ('PurchaseLine', 'purchase'),
     'workorder': ('WorkOrderLine', 'workorder'),
     'quote': ('QuoteLine', 'quote'),
+    'receipt': ('ReceiptLine', 'receipt'),
 }
 
 #: JSON fields an update merges into, keeping the keys the payload does not name.
@@ -144,12 +148,14 @@ def process_lines(obj, data: dict, model_key: str, actor=None) -> list[int]:
     header's, or that tries to change its item; the door rolls the whole save back.
     """
     norm_model = _normalize_model_key(model_key)
-    if norm_model not in HEADER_MODELS:
-        return []
-
     lines_data = data.get('lines')
-    if not isinstance(lines_data, list):
+    if lines_data is None or lines_data == []:
         return []
+    if norm_model not in HEADER_MODELS:
+        raise Refused(400, 'lines_not_accepted', f'{model_key} records have no lines; nothing was saved.',
+                      model_key)
+    if not isinstance(lines_data, list):
+        raise Refused(400, 'lines_not_a_list', '"lines" must be a list of lines.', model_key)
 
     line_model_name, fk_field_name = LINE_MODEL_MAP[norm_model]
     LineModel = get_model(line_model_name.lower())

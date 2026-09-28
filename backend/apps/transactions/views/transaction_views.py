@@ -13,7 +13,6 @@ from apps.transactions.serializers import (
     QuoteSerializer, OrderSerializer, PurchaseSerializer,
     InvoiceSerializer
 )
-from apps.transactions.services.transaction_flow import receive_purchase, ReceiveLine
 from apps.transactions.services.pricing.commission_compute import populate_transaction_commission
 
 
@@ -82,39 +81,11 @@ class OrderViewSet(_VisibleActions):
 
 
 class PurchaseViewSet(_VisibleActions):
-    """Actions on a purchase. Writes go through /wcapi/save/."""
+    """Actions on a purchase. Writes go through /wcapi/save/; receiving is the purchase's
+    receive command (services/receive_commands.py)."""
 
     model_key = 'purchase'
     serializer_class = PurchaseSerializer
-
-    @action(detail=True, methods=['post'])
-    def receive_goods(self, request, pk=None):
-        """Record receipt of goods."""
-        purchase = self.get_object()
-        receipt_id = request.data.get('receipt_id')
-        if not receipt_id:
-            return Response({'error': 'receipt_id is required'}, status=status.HTTP_400_BAD_REQUEST)
-
-        lines_data = request.data.get('lines', [])
-        if not lines_data:
-            return Response({'error': 'lines are required'}, status=status.HTTP_400_BAD_REQUEST)
-
-        lines = []
-        for ld in lines_data:
-            lines.append(ReceiveLine(
-                po_line_id=ld.get('po_line_id') or ld['purchase_line_id'],
-                qty=ld['qty'],
-                warehouse_code=ld['warehouse_code'],
-                unit_cost=ld.get('unit_cost'),
-                lot=ld.get('lot'),
-                serial_batch=ld.get('serial_batch')
-            ))
-
-        try:
-            result = receive_purchase(purchase, receipt_id, lines)
-            return Response(result, status=status.HTTP_201_CREATED)
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['get'])
     def totals(self, request, pk=None):

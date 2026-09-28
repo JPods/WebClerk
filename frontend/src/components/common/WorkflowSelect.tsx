@@ -53,6 +53,9 @@ const ACTION_CONFIGS: Record<string, ActionDef[]> = {
     { key: 'link_transaction_to_campaign', label: 'Link Campaign', needsDialog: true },
   ],
   purchase: [
+    { key: 'convert_to_receipt', label: 'To Receipt', command: 'convert',
+      confirm: 'Receive everything left on this purchase? Edit the receipt before journalizing.',
+      params: () => ({ to: 'receipt' }) },
     { key: 'create_serial_on_receive', label: 'Create Serial', needsDialog: true },
   ],
   quote: [

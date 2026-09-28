@@ -201,6 +201,40 @@ class CashBehaviour(ModelBehaviour):
                               'with POST /wcapi/cash/<id>/pay/.', {'status': ctx.obj.status})
 
 
+class ReceiptBehaviour(ModelBehaviour):
+    """A receipt may take more than its purchase line has left: a vendor's over-shipment is
+    accepted and Alice is told (Bill, 2026-09-27, "accept and flag"). So a receipt carries no
+    transfer check; after the save, each purchase line received past its active is flagged."""
+
+    def after_save(self, ctx: HookContext) -> None:
+        from apps.transactions.models import PurchaseLine, ReceiptLine
+        from apps.transactions.services.line_parent import children_active_sum
+        parents = set(ReceiptLine.objects.filter(receipt_id=ctx.obj.pk, parent_line_id__isnull=False)
+                      .values_list('parent_line_id', flat=True))
+        for pol in PurchaseLine.objects.filter(pk__in=parents):
+            active = float((pol.quantity or {}).get('active') or 0)
+            received = float(children_active_sum(pol) or 0)
+            if received > active + 1e-9:
+                _flag_over_receipt(ctx.obj, pol, active, received)
+
+
+def _flag_over_receipt(receipt, pol, ordered: float, received: float) -> None:
+    """One alice_pending note per purchase line and received total: a re-save of the same
+    receipt does not repeat it; a further receipt against the line does."""
+    from apps.ai_assistant.services.notes import create_note
+    from apps.core.models import Setting
+    if Setting.objects.filter(purpose='alice_pending', role='action_required', is_active=True,
+                              config__purchase_line_id=pol.pk, config__received=received).exists():
+        return
+    create_note('pending', role='action_required', parent_model='receipt',
+                name=f'Over-received: purchase {pol.purchase_id} line {pol.pk} ordered {ordered:g}, '
+                     f'received {received:g}',
+                details={'kind': 'over_receipt', 'receipt_id': receipt.pk,
+                         'purchase_id': pol.purchase_id, 'purchase_line_id': pol.pk,
+                         'ordered': ordered, 'received': received,
+                         'over': round(received - ordered, 6)})
+
+
 class LineBehaviour(ModelBehaviour):
     """A line cannot exist without its document; `new` takes that id."""
 
@@ -222,3 +256,4 @@ def register_documents() -> None:
     register('order', OrderBehaviour())
     register('invoice', InvoiceBehaviour())
     register('cash', CashBehaviour())
+    register('receipt', ReceiptBehaviour())

@@ -72,20 +72,15 @@ def test_receive_purchase_action(django_user_model):
     client = _auth(user)
 
     item = Item.objects.create(name='Widget', sku='W-1', description='Widget')
-    wh = Warehouse.objects.create(code='MAIN', name='Main WH')
+    Warehouse.objects.create(code='MAIN', name='Main WH')
     po = Purchase.objects.create(ida='PO-T1')
     pol = PurchaseLine.objects.create(
-        purchase=po, status='OPEN',
-        item={"id_num": item.id}, cost={"unit": 12.34}
+        purchase=po, status='OPEN', item_fk=item,
+        item={"item_id": item.id}, quantity={"active": 2, "staged": 2}, cost={"unit": 12.34}
     )
 
-    payload = {
-        "receipt_id": "R-1001",
-        "lines": [{"po_line_id": pol.id, "qty": "2.0", "warehouse_code": wh.code, "unit_cost": "11.11"}]
-    }
-    resp = client.post(f'/wcapi/purchase/{po.pk}/receive-goods/', payload, format='json')
-    assert resp.status_code in (200, 201)  # type: ignore[attr-defined]
-    body = resp.data  # type: ignore[attr-defined]
-    # Response may wrap in 'data' or return directly
-    result = body.get('data', body) if isinstance(body, dict) else body
-    assert isinstance(result, dict)
+    payload = {"to": "receipt", "lines": [{"line_id": pol.id, "qty": "2.0"}]}
+    resp = client.post(f'/wcapi/purchase/{po.pk}/convert/', payload, format='json')
+    assert resp.status_code == 200, resp.content  # type: ignore[attr-defined]
+    result = resp.json()['data']['result']
+    assert result['receipt_ida'] and len(result['lines']) == 1

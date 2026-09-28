@@ -18,18 +18,19 @@ pytestmark = pytest.mark.django_db
 def _received(qty=7, ordered=10):
     from apps.products.models import Item, Warehouse
     from apps.transactions.models import Purchase, PurchaseLine
-    from apps.transactions.services.transaction_flow import ReceiveLine, receive_purchase
+    from apps.core.services.door import Actor
+    from apps.core.services.verbs import run_command
     item = Item.objects.create(name='Widget', quantity={'on_hand': 0, 'on_po': 0, 'on_rc': 0,
                                                         'allocated': 0, 'available': 0})
-    warehouse = Warehouse.objects.create(code='WH1', name='Main')
+    Warehouse.objects.create(code='WH1', name='Main')   # the default warehouse stock lands in
     po = Purchase.objects.create(ida='PO-D10')
     pol = PurchaseLine.objects.create(
         purchase=po, item={'item_id': item.pk, 'id_num': item.pk, 'description': 'Widget'},
         quantity={'active': ordered, 'staged': ordered}, cost={'unit': 4.00})
-    out = receive_purchase(po, 'RC-D10', [ReceiveLine(po_line_id=pol.pk, qty=qty,
-                                                      warehouse_code=warehouse.code)])
+    out = run_command(Actor.system(), 'convert', 'purchase', po.pk,
+                      {'to': 'receipt', 'lines': [{'line_id': pol.pk, 'qty': qty}]})
     from apps.transactions.models import ReceiptLine
-    line = ReceiptLine.objects.get(pk=out['receipt_lines_created'][0])
+    line = ReceiptLine.objects.get(receipt_id=out['receipt_id'])
     return item, line, out
 
 
@@ -54,7 +55,7 @@ def test_receiving_moves_stock_and_creates_the_layer_in_one_pending():
     from apps.core.models import Pending
     item, line, out = _received(qty=7, ordered=10)
     assert _stock(item) == (7, 7, 3)
-    assert out['stacks_created'] == [line.inventory_layer_id]
+    assert out['layers'] == [line.inventory_layer_id]
     assert _layer_received(line) == 7
     assert line.inventory_layer.serial_batch == line.serial_batch
     add = Pending.objects.get(record_id=str(item.pk), purpose='inventory_line_add',

@@ -17,16 +17,17 @@ pytestmark = pytest.mark.django_db
 def _received(qty=7, ordered=10):
     from apps.products.models import Item, Warehouse
     from apps.transactions.models import Purchase, PurchaseLine
-    from apps.transactions.services.transaction_flow import ReceiveLine, receive_purchase
+    from apps.core.services.door import Actor
+    from apps.core.services.verbs import run_command
     item = Item.objects.create(name='Widget', quantity={'on_hand': 0, 'on_po': 0, 'on_rc': 0,
                                                         'allocated': 0, 'available': 0})
-    warehouse = Warehouse.objects.create(code='WH1', name='Main')
+    Warehouse.objects.create(code='WH1', name='Main')   # the default warehouse stock lands in
     po = Purchase.objects.create(ida='PO-BAL')
     pol = PurchaseLine.objects.create(
         purchase=po, item={'item_id': item.pk, 'id_num': item.pk, 'description': 'Widget'},
         quantity={'active': ordered, 'staged': ordered}, cost={'unit': 4.00})
-    receive_purchase(po, 'RC-BAL', [ReceiveLine(po_line_id=pol.pk, qty=qty,
-                                                warehouse_code=warehouse.code)])
+    run_command(Actor.system(), 'convert', 'purchase', po.pk,
+                {'to': 'receipt', 'lines': [{'line_id': pol.pk, 'qty': qty}]})
     return item
 
 

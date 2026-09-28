@@ -187,6 +187,8 @@ PAIRS = {
     ("quote", "invoice"): True,
     ("order", "invoice"): True,
     ("order", "purchase"): False,
+    # Receiving is a convert, like order→invoice (Bill, 2026-09-27, R3).
+    ("purchase", "receipt"): False,
 }
 
 
@@ -218,7 +220,8 @@ def _header(source, source_type: str, target_type: str, is_sell_side: bool,
     return header
 
 
-def _review_lines(source_lines, source_type: str, is_sell_side: bool) -> List[Dict[str, Any]]:
+def _review_lines(source_lines, source_type: str, target_type: str,
+                  is_sell_side: bool) -> List[Dict[str, Any]]:
     """What the target's lines would be — returned for review, not saved here."""
     lines = []
     for src_line in source_lines:
@@ -234,11 +237,13 @@ def _review_lines(source_lines, source_type: str, is_sell_side: bool) -> List[Di
             if key in src_qty:
                 target_qty[key] = src_qty[key]
         cost = copy.deepcopy(getattr(src_line, "cost", None) or {})
-        if not is_sell_side:
+        if target_type == "purchase":
             # A purchase is what we pay the vendor: the item's cost at the company default,
             # never the sell line's estimate.
             cost["unit"] = float(_item_unit_cost_for_line(src_line))
-        lines.append({
+        # A receipt keeps the purchase line's whole cost: what was bought is what lands on the
+        # layer (Bill, 2026-09-27). Copied once; the two costs are independent after that.
+        line = {
             "line_number": getattr(src_line, "line_number", 0) or 0,
             # A discount line stays a discount line; as a product it adds instead of subtracts.
             "line_type": getattr(src_line, "line_type", None) or "product",
@@ -249,13 +254,63 @@ def _review_lines(source_lines, source_type: str, is_sell_side: bool) -> List[Di
             "price_level": getattr(src_line, "price_level", "") or "",
             "status": "",
             "is_active": True,
-            "comments": getattr(src_line, "comments", None) or {},
-            "config": getattr(src_line, "config", None) or {},
-            "commission": _copy_commission(getattr(src_line, "commission", None)),
             "refs": {"source": {f"{source_type}_line_id": src_line.pk}},
             "_dirty": True,
-        })
+        }
+        # Carried forward when they hold something. An empty container names no leaf, and the
+        # door offers it as a bare path that no role grants (a person's convert was refused).
+        carried = {
+            "comments": getattr(src_line, "comments", None),
+            "config": getattr(src_line, "config", None),
+            "commission": _copy_commission(getattr(src_line, "commission", None)),
+        }
+        line.update({key: value for key, value in carried.items() if value})
+        if target_type == "receipt":
+            from apps.transactions.services.line_door import _stock_warehouse
+            # A receipt line declares no price, commission, comments, config or refs.source:
+            # parent_line_id is its one link, and the purchase line's remaining follows it.
+            for key in ("price", "commission", "comments", "config", "refs"):
+                line.pop(key, None)
+            line["parent_line_id"] = src_line.pk
+            # The default warehouse while the warehouse feature is set aside (action 31277).
+            line["warehouse_id"] = _stock_warehouse(src_line)
+        lines.append(line)
     return lines
+
+
+def _take_named(lines_named, source_type: str) -> Callable[[List[dict]], List[dict]]:
+    """``lines: [{line_id, qty?}]`` — the source lines affected (Bill, 2026-09-27): only those,
+    each at the qty given or else at what is left. Whether a qty above what is left may stand
+    is the target's rule (check_transfer refuses it for an invoice; a receipt takes it)."""
+    wanted: Dict[int, Optional[float]] = {}
+    for row in lines_named:
+        if not isinstance(row, dict) or row.get("line_id") in (None, ""):
+            raise _refuse("line_id_required", 'Each line names its "line_id".')
+        qty = row.get("qty")
+        if qty not in (None, ""):
+            try:
+                qty = float(qty)
+            except (TypeError, ValueError):
+                raise _refuse("bad_qty", f'Line {row["line_id"]}: "{qty}" is not a quantity.')
+            if qty <= 0:
+                raise _refuse("qty_not_positive",
+                              f'Line {row["line_id"]}: convert a quantity above 0 ({qty:g} was asked).')
+        wanted[int(row["line_id"])] = None if qty in (None, "") else qty
+
+    def take(review_lines):
+        kept = []
+        for review in review_lines:
+            source_line_id = (((review.get("refs") or {}).get("source") or {}).get(f"{source_type}_line_id")
+                              or review.get("parent_line_id"))
+            if source_line_id not in wanted:
+                continue
+            qty = wanted[source_line_id]
+            if qty is not None:
+                review["quantity"] = {**review["quantity"], "active": qty, "staged": qty,
+                                      "remaining": qty}
+            kept.append(review)
+        return kept
+    return take
 
 
 @transaction.atomic
@@ -292,13 +347,19 @@ def convert_record(actor, source_type: str, source_id: int, target_type: str, *,
     except ConversionError as e:
         raise _refuse("no_lines", str(e)) from e
 
+    if target_type == "receipt":
+        # Vendor, contact and terms inherit from the purchase on save.
+        header_extra = {"source_type": "purchase_receipt"}
+    else:
+        header_extra = {}
     if target_type == "purchase" and vendor_id is None:
         vendor_id = getattr(source, "vendor_id", None)     # the user may set it in review
     header = _header(source, source_type, target_type, is_sell_side, contact_id, vendor_id)
-    review = _review_lines(source_lines, source_type, is_sell_side)
+    review = _review_lines(source_lines, source_type, target_type, is_sell_side)
     if not review:
         raise _refuse("nothing_to_convert", "No convertible lines (every line has remaining 0).")
 
+    header.update(header_extra)
     header.update(copy.deepcopy(stamp or {}))
     payload = {"lines": take(copy.deepcopy(review))} if take is not None else {}
     result = save_record(actor, payload, model_key=target_type, server_set=header)
@@ -317,14 +378,32 @@ def convert_record(actor, source_type: str, source_id: int, target_type: str, *,
     }
 
 
+#: Pairs whose target is saved with its lines when no lines are named: a receipt is the review
+#: (the user edits the planned receipt before journalizing — Bill, 2026-09-27).
+SAVES_ALL_LINES = frozenset({("purchase", "receipt")})
+
+
 def convert_command(ctx) -> Dict[str, Any]:
-    """POST /wcapi/<source>/<id>/convert/ {to, line_ids?, vendor_id?, contact_id?}."""
+    """POST /wcapi/<source>/<id>/convert/ {to, lines?: [{line_id, qty?}], vendor_id?, contact_id?}.
+
+    ``lines`` names the source lines affected (Bill, 2026-09-27); the target is saved with
+    exactly those. Without it, everything left comes back for review, or, for a receipt, is saved.
+    """
     to = (ctx.data.get("to") or "").lower()
     if not to:
         raise _refuse("to_required", f"Name what the {ctx.model_key} converts to: {{\"to\": ...}}.")
+    named = ctx.data.get("lines")
+    line_ids, take = None, None
+    if named is not None:
+        if not isinstance(named, list) or not named:
+            raise _refuse("lines_required", 'Name the lines affected: "lines": [{"line_id", "qty"?}].')
+        take = _take_named(named, ctx.model_key)
+        line_ids = [int(row["line_id"]) for row in named]
+    elif (ctx.model_key, to) in SAVES_ALL_LINES:
+        take = list
     return convert_record(ctx.actor, ctx.model_key, ctx.obj.pk, to,
-                          line_ids=ctx.data.get("line_ids"), contact_id=ctx.data.get("contact_id"),
-                          vendor_id=ctx.data.get("vendor_id"))
+                          line_ids=line_ids, contact_id=ctx.data.get("contact_id"),
+                          vendor_id=ctx.data.get("vendor_id"), take=take)
 
 
 def _system(source="convert"):

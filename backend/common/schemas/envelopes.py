@@ -208,6 +208,11 @@ class SourceRef(BaseModel):
     """Points back to the originating document."""
     type: str = ''                        # invoice, order, purchase, etc.
     id: int = 0
+    # A converted line's parent line (line_parent.PARENT_OF names which one a child reads).
+    # Declared so a person's convert passes the door (Bill, 2026-09-28).
+    quote_line_id: Optional[int] = None   # order line ← quote line
+    order_line_id: Optional[int] = None   # invoice / purchase line ← order line
+    purchase_line_id: Optional[int] = None  # receipt line ← purchase line
 
 
 # ═══════════════════════════════════════════════════════════════════════

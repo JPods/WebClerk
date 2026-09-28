@@ -32,7 +32,6 @@ urlpatterns = [
     path('', include(router.urls)),
 
     # Conversion is a command: POST /wcapi/<source>/<id>/convert/ {to} (services/convert).
-    path('purchase/<int:pk>/receive-goods/', PurchaseViewSet.as_view({'post': 'receive_goods'}), name='purchase-receive-goods'),
 
     # Transfer operations
     path('transfers/validate/', validate_transfer, name='validate_transfer'),

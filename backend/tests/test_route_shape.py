@@ -38,8 +38,6 @@ KNOWN_VIOLATIONS = frozenset({
     'wcapi/^invoice/(?P<pk>[^/.]+)/populate_commission\\.(?P<format>[a-z0-9]+)/?$',
     'wcapi/^order/(?P<pk>[^/.]+)/populate_commission/$',
     'wcapi/^order/(?P<pk>[^/.]+)/populate_commission\\.(?P<format>[a-z0-9]+)/?$',
-    'wcapi/^purchase/(?P<pk>[^/.]+)/receive_goods/$',
-    'wcapi/^purchase/(?P<pk>[^/.]+)/receive_goods\\.(?P<format>[a-z0-9]+)/?$',
     'wcapi/^purchase/(?P<pk>[^/.]+)/totals/$',
     'wcapi/^purchase/(?P<pk>[^/.]+)/totals\\.(?P<format>[a-z0-9]+)/?$',
     'wcapi/^quote/(?P<pk>[^/.]+)/populate_commission/$',
@@ -159,7 +157,6 @@ KNOWN_VIOLATIONS = frozenset({
     'wcapi/products/serials/<int:serial_id>/status/',
     'wcapi/products/serials/search/',
     'wcapi/products/serials/warranty/',
-    'wcapi/purchase/<int:pk>/receive-goods/',
     'wcapi/register-installation/',
     'wcapi/register-installation/subscribe/',
     'wcapi/report/run/',                         # step 1 made it; owed: POST /wcapi/report/<id>/run/
