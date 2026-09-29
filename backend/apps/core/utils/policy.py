@@ -59,6 +59,12 @@ def inject_constraints(qs: QuerySet, *, actor, model_key: str) -> QuerySet:
         return qs
     if actor.kind == 'public':
         return qs.none()
+    from apps.core.services import access
+    if access.is_portal(actor):
+        # A portal person's rows are exactly their role block's scope (access.
+        # PORTAL_CUSTOMER_ACCESS, Bill 2026-09-28). The ownership guesses below compared a
+        # customer_id with the login's contact id, so a customer never saw their own cash.
+        return qs
     user = actor.user
     try:
         from django.conf import settings

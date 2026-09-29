@@ -87,23 +87,17 @@ class TestCustomerPortal:
         user = _login(django_user_model, 'cust3@example.fake', 'customer', 'customer', '')
         assert 'price' not in filter_response_data(Actor(user=user), 'item', ITEM_RECORD)
 
-    def test_edits_nothing_it_does_not_raise_itself(self, django_user_model, item_policy):
-        """A customer changes nothing of the company's.
-
-        order and quote are not in this list any more (2026-09-20). A portal customer has
-        always been able to raise their own order — `_PORTAL_ORDER_MODELS` in
-        apps/transactions/views/wcapi.py rewrites the payload, sets the customer and the
-        contact, and re-prices every line server-side. What they could fill was a tuple in
-        that view, so this test passed while the capability sat outside the enumeration
-        the test reads. Moving the list into the model's Setting made it visible here.
-
-        Nothing was granted. What is open is older: Bill, 2026-09-17, said portal users
-        are view-only "for now", and that order-creation path contradicts it. Whichever
-        wins, it should be one place — see the handoff.
+    def test_edits_nothing_of_the_companys(self, django_user_model, item_policy):
+        """A customer changes nothing of the company's, and their own contact's name, title,
+        company and department. Bill, 2026-09-28, settling the 09-17 "view-only for now"
+        against the order path: customers place orders, pay for them, raise a few support
+        requests, and edit their own contact (access.PORTAL_CUSTOMER_ACCESS).
         """
         user = _login(django_user_model, 'cust4@example.fake', 'customer', 'customer', 'retail')
-        for model in ('invoice', 'item', 'contact'):
+        for model in ('invoice', 'item'):
             assert get_allowed_fields(Actor(user=user), model, mode='edit') == [], model
+        assert set(get_allowed_fields(Actor(user=user), 'contact', mode='edit')) <= {
+            'company', 'department', 'name_first', 'name_last', 'title'}
 
     def test_fills_only_its_own_order_and_nothing_of_the_companys(self, django_user_model,
                                                                   item_policy):

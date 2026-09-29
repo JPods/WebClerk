@@ -119,6 +119,13 @@ def run_command(actor: Actor, verb: str, model_key: str, record_id, payload: dic
                       {'commands': sorted(v for m, v in COMMANDS if m == model_key)})
     if actor.kind == 'public' and not spec['public']:
         raise Refused(401, 'authentication_required', 'Sign in to do that.', verb)
+    from apps.core.services import access
+    if access.is_portal(actor) and (model_key, verb) not in access.PORTAL_COMMANDS:
+        # Edit rights on a model admitted every command on it: a customer who may pay
+        # could also refund (Bill, 2026-09-28: customers order, pay and ask for support).
+        raise Refused(403, 'command_not_permitted',
+                      f'{verb} on a {model_key} is done by company staff. '
+                      f'Ask for it with a support request.', {'command': verb})
 
     with transaction.atomic(), unit_of_work():
         admitted = bool(spec.get('admit')) and spec['admit'](actor)

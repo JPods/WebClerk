@@ -9,7 +9,7 @@ from apps.transactions.models.project import Project
 pytestmark = pytest.mark.django_db
 
 
-def _create_user(role: str = "staff"):
+def _create_user(role: str = "employee"):
     User = get_user_model()
     suffix = uuid.uuid4().hex[:8]
     return User.objects.create_user(
@@ -23,7 +23,7 @@ def _create_user(role: str = "staff"):
 
 
 def test_generate_kanban_projects_snaps_to_wednesday(client):
-    user = _create_user("staff")
+    user = _create_user("employee")  # _manage is staff-only (Bill, 2026-09-28)
     client.force_login(user)
 
     resp = client.post(

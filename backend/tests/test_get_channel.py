@@ -73,14 +73,15 @@ def test_anonymous_search_matches_public_text_leaves_only(items):
 
 
 def test_action_cannot_reach_a_record_its_caller_cannot_read(db):
-    """A command looks its record up through visible_queryset: a signed-in user whose role
-    shows them no quotes gets 404, not the quote."""
+    """A portal customer runs no command but pay (Bill, 2026-09-28), so a convert is refused
+    before any record is looked up: 403 command_not_permitted, the same for every quote."""
     quote = Quote.objects.create(status='planned')
     portal = Contact.objects.create(email='portal@example.com', role='customer')
     client = APIClient()
     client.force_authenticate(user=portal)
     response = client.post(f'/wcapi/quote/{quote.pk}/convert/', {'to': 'order'}, format='json')
-    assert response.status_code == 404
+    assert response.status_code == 403
+    assert 'command_not_permitted' in str(response.content)
 
 
 # ── Gate 1: security_level ──────────────────────────────────────────────

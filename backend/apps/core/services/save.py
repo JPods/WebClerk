@@ -199,6 +199,9 @@ def _authorize(actor: Actor, obj, model_cls, model_key: str, data: dict,
         data['rep_id'] = rep_ids[0]
         server_set_fields['rep_id'] = rep_ids[0]
 
+    if access.is_portal(actor) and actor.role in access.PORTAL_ORDER_ROLES:
+        server_set_fields.update(_portal_stamp(actor, model_key, obj, data, is_update))
+
     # Identity, authority and org scope on a contact.
     if model_key == 'contact':
         from apps.core.views.save_view import _contact_account_denial
@@ -602,6 +605,55 @@ def _results_are_computed(model_key: str, data: dict) -> None:
     for line in data.get('lines') or []:
         if isinstance(line, dict):
             line.pop('totals', None)
+
+
+def _portal_stamp(actor: Actor, model_key: str, obj, data: dict, is_update: bool) -> dict:
+    """What the server sets when a customer or buyer writes (Bill, 2026-09-28): they order,
+    pay and ask for support, always as themselves for their own customer.
+
+    A new order, quote or cash carries their customer and them as the contact; a new action
+    is linked to their customer and is theirs, and they may hold PORTAL_OPEN_ACTIONS open at
+    once; a cash is a card payment (payservice) and stays one. Without the stamp a `new`
+    order had no customer and its own scope check refused it (audit A3-M-6).
+    """
+    from apps.core.services import access
+    stamped: dict = {}
+    customer_ids = actor.context()['org_ids'].get('customer') or []
+    if not customer_ids:
+        raise Refused(403, 'no_customer_account',
+                      'No customer account is linked to this login. Ask the company to link one.',
+                      model_key)
+    customer_id = customer_ids[0]
+    if model_key == 'cash':
+        from apps.transactions.services.cash.cash_commands import PAYSERVICE
+        purpose = data.get('purpose', getattr(obj, 'purpose', None) if is_update else PAYSERVICE)
+        if purpose != PAYSERVICE:
+            raise Refused(403, 'portal_cash_is_payservice',
+                          f'A payment you make is a card payment: purpose "{PAYSERVICE}".',
+                          {'purpose': purpose})
+        data['purpose'] = stamped['purpose'] = PAYSERVICE
+    if is_update:
+        return stamped
+    if model_key in ('order', 'quote', 'cash'):
+        data['customer_id'] = stamped['customer_id'] = customer_id
+        data['contact_id'] = stamped['contact_id'] = actor.user_id
+    elif model_key == 'action':
+        from apps.core.models import Action
+        open_count = (Action.objects.filter(contact_id=actor.user_id)
+                      .exclude(status__in=access.PORTAL_CLOSED_ACTION_STATUSES).count())
+        if open_count >= access.PORTAL_OPEN_ACTIONS:
+            raise Refused(409, 'too_many_open_requests',
+                          f'You have {open_count} open support requests. Add to one of them, '
+                          f'or wait until one is closed.',
+                          {'open': open_count, 'limit': access.PORTAL_OPEN_ACTIONS})
+        from apps.orgs.models import OrgBase
+        from common.denorm_registry import link_entry
+        refs = {'links': {'customer': [link_entry(OrgBase.objects.get(pk=customer_id),
+                                                  'customer')]}}
+        data['refs'] = stamped['refs'] = refs
+        data['contact_id'] = stamped['contact_id'] = actor.user_id
+        data['status'] = stamped['status'] = 'open'
+    return stamped
 
 
 def _within_scope(actor: Actor, obj, model_key: str) -> None:

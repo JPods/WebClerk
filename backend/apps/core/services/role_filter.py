@@ -282,13 +282,20 @@ def inject_role_filters(
     from apps.core.services.door import as_actor
     actor = as_actor(actor)
     if access.is_open_read(model_name):
-        return existing_q if actor.role else Q(pk__isnull=True)
+        # Open to the company, not to the portal: a customer read every Setting, the
+        # company profile and access lists included (Bill, 2026-09-28).
+        return existing_q if actor.role and not access.is_portal(actor) else Q(pk__isnull=True)
 
     config = get_user_filter_config(actor, model_name)
     if not config:
         # No block for this role on this model: no rows.
         return Q(pk__isnull=True)
 
+    if "scope" not in config and access.is_portal(actor):
+        # A portal block that names no scope is a mistake, not a grant of every row
+        # (sync_bundle and project_association were read in full this way). An explicit
+        # {} still means every row the level gate allows — the published catalog.
+        return Q(pk__isnull=True)
     query_filters = dict(config.get("scope") or {})
     if not query_filters:
         # An empty scope is every row (a row rule, not a field wildcard).

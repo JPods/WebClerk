@@ -7608,15 +7608,36 @@
               "delete": true
             },
             "customer": {
-              "edit": [],
               "view": [
                 "id",
                 "ida",
-                "dt_created",
                 "status",
-                "description"
+                "priority",
+                "action_type",
+                "dt_created",
+                "dt_completed",
+                "description.en",
+                "description.es",
+                "comments.partner.mgs",
+                "comments.partner.time",
+                "comments.partner.user"
               ],
-              "create": false,
+              "edit": [
+                "description.en",
+                "description.es",
+                "priority"
+              ],
+              "scope": {
+                "refs__links__customer__contains": [
+                  {
+                    "id": "$user.org_ids.customer"
+                  }
+                ]
+              },
+              "edit_scope": {
+                "contact_id": "$user.contact_id"
+              },
+              "create": true,
               "delete": false
             },
             "warehouse": {
@@ -7690,6 +7711,39 @@
               "edit": [],
               "view": "*",
               "create": false,
+              "delete": false
+            },
+            "buyer": {
+              "view": [
+                "id",
+                "ida",
+                "status",
+                "priority",
+                "action_type",
+                "dt_created",
+                "dt_completed",
+                "description.en",
+                "description.es",
+                "comments.partner.mgs",
+                "comments.partner.time",
+                "comments.partner.user"
+              ],
+              "edit": [
+                "description.en",
+                "description.es",
+                "priority"
+              ],
+              "scope": {
+                "refs__links__customer__contains": [
+                  {
+                    "id": "$user.org_ids.customer"
+                  }
+                ]
+              },
+              "edit_scope": {
+                "contact_id": "$user.contact_id"
+              },
+              "create": true,
               "delete": false
             }
           },
@@ -9336,17 +9390,6 @@
               "create": true,
               "delete": true
             },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status"
-              ],
-              "create": false,
-              "delete": false
-            },
             "warehouse": {
               "edit": [
                 "status"
@@ -10436,18 +10479,6 @@
               "create": true,
               "delete": true
             },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "kind",
-                "status"
-              ],
-              "create": false,
-              "delete": false
-            },
             "warehouse": {
               "edit": [
                 "status"
@@ -11468,17 +11499,6 @@
               "create": true,
               "delete": true
             },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status"
-              ],
-              "create": false,
-              "delete": false
-            },
             "warehouse": {
               "edit": [
                 "status"
@@ -12445,17 +12465,6 @@
               "view": "*",
               "create": true,
               "delete": true
-            },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status"
-              ],
-              "create": false,
-              "delete": false
             },
             "warehouse": {
               "edit": [
@@ -13480,19 +13489,6 @@
               "create": true,
               "delete": true
             },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status",
-                "name",
-                "description"
-              ],
-              "create": false,
-              "delete": false
-            },
             "warehouse": {
               "edit": [
                 "status",
@@ -14401,18 +14397,6 @@
               "view": "*",
               "create": true,
               "delete": true
-            },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status",
-                "name"
-              ],
-              "create": false,
-              "delete": false
             },
             "warehouse": {
               "edit": [
@@ -15385,16 +15369,6 @@
               "view": "*",
               "create": true,
               "delete": true
-            },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "dt_created",
-                "status"
-              ],
-              "create": false,
-              "delete": false
             },
             "warehouse": {
               "edit": [
@@ -16469,14 +16443,24 @@
               "delete": true
             },
             "customer": {
-              "edit": [],
               "view": [
                 "id",
                 "ida",
-                "dt_created",
-                "status"
+                "amount",
+                "method",
+                "status",
+                "purpose",
+                "invoice_id",
+                "dt_cash",
+                "dt_created"
               ],
-              "create": false,
+              "edit": [
+                "purpose"
+              ],
+              "scope": {
+                "customer_id__in": "$user.org_ids.customer"
+              },
+              "create": true,
               "delete": false
             },
             "warehouse": {
@@ -16539,6 +16523,27 @@
               "edit": [],
               "view": "*",
               "create": false,
+              "delete": false
+            },
+            "buyer": {
+              "view": [
+                "id",
+                "ida",
+                "amount",
+                "method",
+                "status",
+                "purpose",
+                "invoice_id",
+                "dt_cash",
+                "dt_created"
+              ],
+              "edit": [
+                "purpose"
+              ],
+              "scope": {
+                "customer_id__in": "$user.org_ids.customer"
+              },
+              "create": true,
               "delete": false
             }
           },
@@ -17954,17 +17959,6 @@
               "create": true,
               "delete": true
             },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "dt_created",
-                "status",
-                "name"
-              ],
-              "create": false,
-              "delete": false
-            },
             "warehouse": {
               "edit": [
                 "status",
@@ -18999,18 +18993,6 @@
               "view": "*",
               "create": true,
               "delete": true
-            },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status",
-                "name"
-              ],
-              "create": false,
-              "delete": false
             },
             "warehouse": {
               "edit": [
@@ -20202,17 +20184,27 @@
               "delete": true
             },
             "customer": {
-              "edit": [
-                "phone"
-              ],
               "view": [
                 "id",
-                "email",
+                "ida",
+                "status",
+                "dt_created",
+                "company",
+                "department",
                 "name_first",
                 "name_last",
-                "phone",
-                "company"
+                "title"
               ],
+              "edit": [
+                "company",
+                "department",
+                "name_first",
+                "name_last",
+                "title"
+              ],
+              "scope": {
+                "id": "$user.contact_id"
+              },
               "create": false,
               "delete": false
             },
@@ -20276,6 +20268,31 @@
             "accounting": {
               "edit": [],
               "view": "*",
+              "create": false,
+              "delete": false
+            },
+            "buyer": {
+              "view": [
+                "id",
+                "ida",
+                "status",
+                "dt_created",
+                "company",
+                "department",
+                "name_first",
+                "name_last",
+                "title"
+              ],
+              "edit": [
+                "company",
+                "department",
+                "name_first",
+                "name_last",
+                "title"
+              ],
+              "scope": {
+                "id": "$user.contact_id"
+              },
               "create": false,
               "delete": false
             }
@@ -21564,18 +21581,6 @@
               "create": true,
               "delete": true
             },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status",
-                "name"
-              ],
-              "create": false,
-              "delete": false
-            },
             "warehouse": {
               "edit": [
                 "status",
@@ -22557,21 +22562,21 @@
               "delete": true
             },
             "customer": {
-              "edit": [
-                "email",
-                "phone",
-                "attention",
-                "address_full"
-              ],
               "view": [
                 "id",
                 "ida",
-                "dt_created",
-                "status",
-                "display_name",
+                "company",
                 "attention",
-                "email"
+                "email",
+                "status",
+                "terms",
+                "price_level",
+                "tax_exempt_code"
               ],
+              "edit": [],
+              "scope": {
+                "id__in": "$user.org_ids.customer"
+              },
               "create": false,
               "delete": false
             },
@@ -22636,6 +22641,25 @@
             "accounting": {
               "edit": [],
               "view": "*",
+              "create": false,
+              "delete": false
+            },
+            "buyer": {
+              "view": [
+                "id",
+                "ida",
+                "company",
+                "attention",
+                "email",
+                "status",
+                "terms",
+                "price_level",
+                "tax_exempt_code"
+              ],
+              "edit": [],
+              "scope": {
+                "id__in": "$user.org_ids.customer"
+              },
               "create": false,
               "delete": false
             }
@@ -24082,18 +24106,6 @@
               "create": true,
               "delete": true
             },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status",
-                "name"
-              ],
-              "create": false,
-              "delete": false
-            },
             "warehouse": {
               "edit": [
                 "status",
@@ -24969,19 +24981,6 @@
               "view": "*",
               "create": true,
               "delete": true
-            },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status",
-                "name",
-                "description"
-              ],
-              "create": false,
-              "delete": false
             },
             "warehouse": {
               "edit": [
@@ -26114,17 +26113,6 @@
               "create": true,
               "delete": true
             },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status"
-              ],
-              "create": false,
-              "delete": false
-            },
             "warehouse": {
               "edit": [
                 "status"
@@ -27020,20 +27008,6 @@
               "view": "*",
               "create": true,
               "delete": true
-            },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status",
-                "email",
-                "name",
-                "attention"
-              ],
-              "create": false,
-              "delete": false
             },
             "warehouse": {
               "edit": [
@@ -28083,20 +28057,6 @@
               "view": "*",
               "create": true,
               "delete": true
-            },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status",
-                "display_name",
-                "attention",
-                "email"
-              ],
-              "create": false,
-              "delete": false
             },
             "warehouse": {
               "edit": [
@@ -29554,18 +29514,6 @@
               "create": true,
               "delete": true
             },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status",
-                "name"
-              ],
-              "create": false,
-              "delete": false
-            },
             "warehouse": {
               "edit": [
                 "status",
@@ -30342,12 +30290,6 @@
               "view": "*",
               "create": true,
               "delete": true
-            },
-            "customer": {
-              "edit": [],
-              "view": [],
-              "create": false,
-              "delete": false
             },
             "warehouse": {
               "edit": [
@@ -31430,12 +31372,6 @@
               "create": true,
               "delete": true
             },
-            "customer": {
-              "edit": [],
-              "view": [],
-              "create": false,
-              "delete": false
-            },
             "warehouse": {
               "edit": [
                 "status"
@@ -32467,16 +32403,6 @@
               "create": true,
               "delete": true
             },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "dt_created",
-                "status"
-              ],
-              "create": false,
-              "delete": false
-            },
             "warehouse": {
               "edit": [
                 "status"
@@ -33436,16 +33362,6 @@
               "create": true,
               "delete": true
             },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "dt_created",
-                "status"
-              ],
-              "create": false,
-              "delete": false
-            },
             "warehouse": {
               "edit": [
                 "status"
@@ -34316,16 +34232,6 @@
               "create": true,
               "delete": true
             },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "dt_created",
-                "status"
-              ],
-              "create": false,
-              "delete": false
-            },
             "warehouse": {
               "edit": [
                 "status"
@@ -35134,18 +35040,6 @@
               "view": "*",
               "create": true,
               "delete": true
-            },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status",
-                "description"
-              ],
-              "create": false,
-              "delete": false
             },
             "warehouse": {
               "edit": [
@@ -36286,14 +36180,27 @@
               "delete": true
             },
             "customer": {
-              "edit": [],
               "view": [
                 "id",
                 "ida",
-                "dt_created",
                 "status",
-                "attention"
+                "dt_created"
               ],
+              "edit": [],
+              "scope": {
+                "OR": [
+                  {
+                    "customer_id__in": "$user.org_ids.customer"
+                  },
+                  {
+                    "refs__links__customer__contains": [
+                      {
+                        "id": "$user.org_ids.customer"
+                      }
+                    ]
+                  }
+                ]
+              },
               "create": false,
               "delete": false
             },
@@ -36360,6 +36267,31 @@
             "accounting": {
               "edit": [],
               "view": "*",
+              "create": false,
+              "delete": false
+            },
+            "buyer": {
+              "view": [
+                "id",
+                "ida",
+                "status",
+                "dt_created"
+              ],
+              "edit": [],
+              "scope": {
+                "OR": [
+                  {
+                    "customer_id__in": "$user.org_ids.customer"
+                  },
+                  {
+                    "refs__links__customer__contains": [
+                      {
+                        "id": "$user.org_ids.customer"
+                      }
+                    ]
+                  }
+                ]
+              },
               "create": false,
               "delete": false
             }
@@ -38447,17 +38379,6 @@
               "create": true,
               "delete": true
             },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status"
-              ],
-              "create": false,
-              "delete": false
-            },
             "warehouse": {
               "edit": [
                 "status"
@@ -39825,17 +39746,25 @@
               "delete": true
             },
             "customer": {
-              "edit": [],
               "view": [
+                "catalog.categories",
+                "catalog.web.short",
+                "catalog.web.slug",
+                "catalog.web.title",
+                "description",
                 "id",
                 "ida",
-                "name",
-                "description",
-                "sku",
                 "kind",
+                "name",
+                "price.$user.price_level",
+                "sku",
                 "uom",
-                "status"
+                "metadata.images.tn",
+                "metadata.images.md",
+                "metadata.images.hr"
               ],
+              "edit": [],
+              "scope": {},
               "create": false,
               "delete": false
             },
@@ -39898,6 +39827,29 @@
             "accounting": {
               "edit": [],
               "view": "*",
+              "create": false,
+              "delete": false
+            },
+            "buyer": {
+              "view": [
+                "catalog.categories",
+                "catalog.web.short",
+                "catalog.web.slug",
+                "catalog.web.title",
+                "description",
+                "id",
+                "ida",
+                "kind",
+                "name",
+                "price.$user.price_level",
+                "sku",
+                "uom",
+                "metadata.images.tn",
+                "metadata.images.md",
+                "metadata.images.hr"
+              ],
+              "edit": [],
+              "scope": {},
               "create": false,
               "delete": false
             }
@@ -41290,17 +41242,6 @@
               "create": true,
               "delete": true
             },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "dt_created",
-                "status",
-                "description"
-              ],
-              "create": false,
-              "delete": false
-            },
             "warehouse": {
               "edit": [
                 "status",
@@ -42168,16 +42109,6 @@
               "view": "*",
               "create": true,
               "delete": true
-            },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "dt_created",
-                "status"
-              ],
-              "create": false,
-              "delete": false
             },
             "warehouse": {
               "edit": [
@@ -43080,17 +43011,6 @@
               "view": "*",
               "create": true,
               "delete": true
-            },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status"
-              ],
-              "create": false,
-              "delete": false
             },
             "warehouse": {
               "edit": [
@@ -44122,17 +44042,6 @@
               "create": true,
               "delete": true
             },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status"
-              ],
-              "create": false,
-              "delete": false
-            },
             "warehouse": {
               "edit": [
                 "status"
@@ -45150,18 +45059,6 @@
               "create": true,
               "delete": true
             },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status",
-                "name"
-              ],
-              "create": false,
-              "delete": false
-            },
             "warehouse": {
               "edit": [
                 "status",
@@ -46126,20 +46023,6 @@
               "view": "*",
               "create": true,
               "delete": true
-            },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status",
-                "display_name",
-                "attention",
-                "email"
-              ],
-              "create": false,
-              "delete": false
             },
             "warehouse": {
               "edit": [
@@ -47622,18 +47505,6 @@
               "create": true,
               "delete": true
             },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status",
-                "name"
-              ],
-              "create": false,
-              "delete": false
-            },
             "warehouse": {
               "edit": [
                 "status",
@@ -48610,15 +48481,41 @@
               "delete": true
             },
             "customer": {
-              "edit": [],
               "view": [
                 "id",
                 "ida",
-                "dt_created",
                 "status",
-                "attention"
+                "dt_created",
+                "attention",
+                "dt_needed",
+                "ship_via",
+                "purpose",
+                "lines.item.item_id",
+                "lines.quantity.active"
               ],
-              "create": false,
+              "edit": [
+                "attention",
+                "dt_needed",
+                "ship_via",
+                "purpose",
+                "lines.item.item_id",
+                "lines.quantity.active"
+              ],
+              "scope": {
+                "OR": [
+                  {
+                    "customer_id__in": "$user.org_ids.customer"
+                  },
+                  {
+                    "refs__links__customer__contains": [
+                      {
+                        "id": "$user.org_ids.customer"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "create": true,
               "delete": false
             },
             "warehouse": {
@@ -48684,6 +48581,44 @@
               "edit": [],
               "view": "*",
               "create": false,
+              "delete": false
+            },
+            "buyer": {
+              "view": [
+                "id",
+                "ida",
+                "status",
+                "dt_created",
+                "attention",
+                "dt_needed",
+                "ship_via",
+                "purpose",
+                "lines.item.item_id",
+                "lines.quantity.active"
+              ],
+              "edit": [
+                "attention",
+                "dt_needed",
+                "ship_via",
+                "purpose",
+                "lines.item.item_id",
+                "lines.quantity.active"
+              ],
+              "scope": {
+                "OR": [
+                  {
+                    "customer_id__in": "$user.org_ids.customer"
+                  },
+                  {
+                    "refs__links__customer__contains": [
+                      {
+                        "id": "$user.org_ids.customer"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "create": true,
               "delete": false
             }
           },
@@ -50744,17 +50679,6 @@
               "create": true,
               "delete": true
             },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status"
-              ],
-              "create": false,
-              "delete": false
-            },
             "warehouse": {
               "edit": [
                 "status"
@@ -52091,20 +52015,6 @@
               "create": true,
               "delete": true
             },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status",
-                "display_name",
-                "attention",
-                "email"
-              ],
-              "create": false,
-              "delete": false
-            },
             "warehouse": {
               "edit": [
                 "status",
@@ -53407,16 +53317,6 @@
               "create": true,
               "delete": true
             },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created"
-              ],
-              "create": false,
-              "delete": false
-            },
             "warehouse": {
               "edit": [],
               "view": [
@@ -54122,19 +54022,6 @@
               "view": "*",
               "create": true,
               "delete": true
-            },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status",
-                "name",
-                "attention"
-              ],
-              "create": false,
-              "delete": false
             },
             "warehouse": {
               "edit": [
@@ -55122,19 +55009,6 @@
               "view": "*",
               "create": true,
               "delete": true
-            },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status",
-                "name",
-                "attention"
-              ],
-              "create": false,
-              "delete": false
             },
             "warehouse": {
               "edit": [
@@ -56440,17 +56314,6 @@
               "create": true,
               "delete": true
             },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status"
-              ],
-              "create": false,
-              "delete": false
-            },
             "warehouse": {
               "edit": [
                 "status"
@@ -57429,14 +57292,27 @@
               "delete": true
             },
             "customer": {
-              "edit": [],
               "view": [
                 "id",
                 "ida",
-                "dt_created",
                 "status",
-                "attention"
+                "dt_created"
               ],
+              "edit": [],
+              "scope": {
+                "OR": [
+                  {
+                    "customer_id__in": "$user.org_ids.customer"
+                  },
+                  {
+                    "refs__links__customer__contains": [
+                      {
+                        "id": "$user.org_ids.customer"
+                      }
+                    ]
+                  }
+                ]
+              },
               "create": false,
               "delete": false
             },
@@ -57503,6 +57379,31 @@
             "accounting": {
               "edit": [],
               "view": "*",
+              "create": false,
+              "delete": false
+            },
+            "buyer": {
+              "view": [
+                "id",
+                "ida",
+                "status",
+                "dt_created"
+              ],
+              "edit": [],
+              "scope": {
+                "OR": [
+                  {
+                    "customer_id__in": "$user.org_ids.customer"
+                  },
+                  {
+                    "refs__links__customer__contains": [
+                      {
+                        "id": "$user.org_ids.customer"
+                      }
+                    ]
+                  }
+                ]
+              },
               "create": false,
               "delete": false
             }
@@ -59575,17 +59476,6 @@
               "create": true,
               "delete": true
             },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status"
-              ],
-              "create": false,
-              "delete": false
-            },
             "warehouse": {
               "edit": [
                 "status"
@@ -60972,18 +60862,6 @@
               "view": "*",
               "create": true,
               "delete": true
-            },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status",
-                "attention"
-              ],
-              "create": false,
-              "delete": false
             },
             "warehouse": {
               "edit": [
@@ -63092,17 +62970,6 @@
               "create": true,
               "delete": true
             },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status"
-              ],
-              "create": false,
-              "delete": false
-            },
             "warehouse": {
               "edit": [
                 "status"
@@ -64303,19 +64170,6 @@
               "create": true,
               "delete": true
             },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status",
-                "question",
-                "answer"
-              ],
-              "create": false,
-              "delete": false
-            },
             "warehouse": {
               "edit": [
                 "status"
@@ -65235,17 +65089,6 @@
               "view": "*",
               "create": true,
               "delete": true
-            },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status"
-              ],
-              "create": false,
-              "delete": false
             },
             "warehouse": {
               "edit": [
@@ -66565,17 +66408,6 @@
               "view": "*",
               "create": true,
               "delete": true
-            },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status"
-              ],
-              "create": false,
-              "delete": false
             },
             "warehouse": {
               "edit": [
@@ -67901,20 +67733,6 @@
               "view": "*",
               "create": true,
               "delete": true
-            },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status",
-                "display_name",
-                "attention",
-                "email"
-              ],
-              "create": false,
-              "delete": false
             },
             "warehouse": {
               "edit": [
@@ -69411,19 +69229,6 @@
               "create": true,
               "delete": true
             },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status",
-                "name",
-                "description"
-              ],
-              "create": false,
-              "delete": false
-            },
             "warehouse": {
               "edit": [
                 "status",
@@ -70538,18 +70343,6 @@
               "create": true,
               "delete": true
             },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status",
-                "name"
-              ],
-              "create": false,
-              "delete": false
-            },
             "warehouse": {
               "edit": [
                 "status",
@@ -71613,17 +71406,6 @@
               "view": "*",
               "create": true,
               "delete": true
-            },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status"
-              ],
-              "create": false,
-              "delete": false
             },
             "warehouse": {
               "edit": [
@@ -72812,17 +72594,6 @@
               "create": true,
               "delete": true
             },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "dt_created",
-                "status",
-                "description"
-              ],
-              "create": false,
-              "delete": false
-            },
             "warehouse": {
               "edit": [
                 "status",
@@ -73701,16 +73472,6 @@
               "create": true,
               "delete": true
             },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "dt_created",
-                "status"
-              ],
-              "create": false,
-              "delete": false
-            },
             "warehouse": {
               "edit": [
                 "status"
@@ -74494,12 +74255,6 @@
               "view": "*",
               "create": true,
               "delete": true
-            },
-            "customer": {
-              "edit": [],
-              "view": [],
-              "create": false,
-              "delete": false
             },
             "warehouse": {
               "edit": [
@@ -75447,18 +75202,6 @@
               "view": "*",
               "create": true,
               "delete": true
-            },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status",
-                "description"
-              ],
-              "create": false,
-              "delete": false
             },
             "warehouse": {
               "edit": [
@@ -76485,17 +76228,6 @@
               "create": true,
               "delete": true
             },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status"
-              ],
-              "create": false,
-              "delete": false
-            },
             "warehouse": {
               "edit": [
                 "status"
@@ -77484,18 +77216,6 @@
               "create": true,
               "delete": true
             },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status",
-                "name"
-              ],
-              "create": false,
-              "delete": false
-            },
             "warehouse": {
               "edit": [
                 "status",
@@ -78353,17 +78073,6 @@
               "view": "*",
               "create": true,
               "delete": true
-            },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status"
-              ],
-              "create": false,
-              "delete": false
             },
             "warehouse": {
               "edit": [
@@ -79280,19 +78989,6 @@
               "view": "*",
               "create": true,
               "delete": true
-            },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status",
-                "name",
-                "description"
-              ],
-              "create": false,
-              "delete": false
             },
             "warehouse": {
               "edit": [
@@ -80272,17 +79968,6 @@
               "view": "*",
               "create": true,
               "delete": true
-            },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status"
-              ],
-              "create": false,
-              "delete": false
             },
             "warehouse": {
               "edit": [
@@ -81373,17 +81058,6 @@
               "create": true,
               "delete": true
             },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "dt_created",
-                "status",
-                "description"
-              ],
-              "create": false,
-              "delete": false
-            },
             "warehouse": {
               "edit": [
                 "status",
@@ -82337,20 +82011,6 @@
               "view": "*",
               "create": true,
               "delete": true
-            },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status",
-                "display_name",
-                "attention",
-                "email"
-              ],
-              "create": false,
-              "delete": false
             },
             "warehouse": {
               "edit": [
@@ -83842,17 +83502,6 @@
               "create": true,
               "delete": true
             },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "dt_created",
-                "status",
-                "name"
-              ],
-              "create": false,
-              "delete": false
-            },
             "warehouse": {
               "edit": [
                 "status",
@@ -84757,18 +84406,6 @@
               "create": true,
               "delete": true
             },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status",
-                "name"
-              ],
-              "create": false,
-              "delete": false
-            },
             "warehouse": {
               "edit": [
                 "status",
@@ -85665,18 +85302,6 @@
               "view": "*",
               "create": true,
               "delete": true
-            },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status",
-                "attention"
-              ],
-              "create": false,
-              "delete": false
             },
             "warehouse": {
               "edit": [
@@ -87740,17 +87365,6 @@
               "create": true,
               "delete": true
             },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status"
-              ],
-              "create": false,
-              "delete": false
-            },
             "warehouse": {
               "edit": [
                 "status"
@@ -88928,19 +88542,6 @@
               "view": "*",
               "create": true,
               "delete": true
-            },
-            "customer": {
-              "edit": [],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "status",
-                "name",
-                "description"
-              ],
-              "create": false,
-              "delete": false
             },
             "warehouse": {
               "edit": [

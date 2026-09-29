@@ -310,6 +310,59 @@ PORTAL_ORDER_MODELS = frozenset({'order', 'quote'})
 PORTAL_ORDER_FIELDS = ('attention', 'dt_needed', 'ship_via', 'purpose',
                        'lines.item.item_id', 'lines.quantity.active')
 
+#: What a customer or buyer may do (Bill, 2026-09-28): "customers should only be able to
+#: place new orders, pay for them, and add a limited number of action records to request
+#: support" — plus their own contact (which they may edit), their own customer record, their
+#: quotes and invoices, and the published catalog with images. Every other model has no
+#: block for them: no block, no rows. The door stamps their customer on what they create.
+_OWN_CUSTOMER = {'OR': [{'customer_id__in': '$user.org_ids.customer'},
+                        {'refs__links__customer__contains': [{'id': '$user.org_ids.customer'}]}]}
+PORTAL_CUSTOMER_ACCESS = {
+    'contact': {'view': ['@customer_view'],
+                'edit': ['company', 'department', 'name_first', 'name_last', 'title'],
+                'scope': {'id': '$user.contact_id'}, 'create': False, 'delete': False},
+    'customer': {'view': ['id', 'ida', 'company', 'attention', 'email', 'status', 'terms',
+                          'price_level', 'tax_exempt_code'],
+                 'edit': [], 'scope': {'id__in': '$user.org_ids.customer'},
+                 'create': False, 'delete': False},
+    'order': {'view': ['@customer_view'], 'edit': list(PORTAL_ORDER_FIELDS),
+              'scope': _OWN_CUSTOMER, 'create': True, 'delete': False},
+    'quote': {'view': ['@customer_view'], 'edit': [], 'scope': _OWN_CUSTOMER,
+              'create': False, 'delete': False},
+    'invoice': {'view': ['@customer_view'], 'edit': [], 'scope': _OWN_CUSTOMER,
+                'create': False, 'delete': False},
+    # Paying: a new Cash (purpose payservice only — the door refuses any other) and the pay
+    # command on it. 'purpose' is the one edit leaf, so the command gate admits them.
+    'cash': {'view': ['id', 'ida', 'amount', 'method', 'status', 'purpose', 'invoice_id',
+                      'dt_cash', 'dt_created'],
+             'edit': ['purpose'], 'scope': {'customer_id__in': '$user.org_ids.customer'},
+             'create': True, 'delete': False},
+    'action': {'view': ['id', 'ida', 'status', 'priority', 'action_type', 'dt_created',
+                        'dt_completed', 'description.en', 'description.es',
+                        'comments.partner.mgs', 'comments.partner.time', 'comments.partner.user'],
+               'edit': ['description.en', 'description.es', 'priority'],
+               'scope': {'refs__links__customer__contains': [{'id': '$user.org_ids.customer'}]},
+               'edit_scope': {'contact_id': '$user.contact_id'},
+               'create': True, 'delete': False},
+    # Unpublished items are security_level 0, staff only: the catalog is what is published.
+    'item': {'view': ['catalog.categories', 'catalog.web.short', 'catalog.web.slug',
+                      'catalog.web.title', 'description', 'id', 'ida', 'kind', 'name',
+                      'price.$user.price_level', 'sku', 'uom', 'metadata.images.tn',
+                      'metadata.images.md', 'metadata.images.hr'],
+             'edit': [], 'scope': {}, 'create': False, 'delete': False},
+}
+#: Commands a portal person may run; every other command is staff's.
+PORTAL_COMMANDS = frozenset({('cash', 'pay')})
+#: Open support actions one portal contact may hold at a time (Bill, 2026-09-28).
+PORTAL_OPEN_ACTIONS = 3
+PORTAL_CLOSED_ACTION_STATUSES = ('complete', 'completed', 'closed', 'canceled', 'cancelled', 'done')
+
+
+def portal_customer_block(key: str) -> Optional[dict]:
+    """A customer's or buyer's block for one model; None = they have none."""
+    block = PORTAL_CUSTOMER_ACCESS.get(key)
+    return {k: (list(v) if isinstance(v, list) else v) for k, v in block.items()} if block else None
+
 
 def default_access(key: str) -> dict:
     """The access a new install starts with for one model.
@@ -326,19 +379,18 @@ def default_access(key: str) -> dict:
     if key in ACCOUNTING_MODELS:
         agent.update(edit=[], create=False)
     roles = {'superuser': full, 'admin': dict(full), 'agent': agent}
-    if key in PORTAL_ORDER_MODELS:
-        # What a portal customer may put on their own order. This lived as a tuple in
-        # apps/transactions/views/wcapi.py, which meant the one place that says what a
-        # role may write did not say it (Bill, 2026-09-20: the list is an enumeration in
-        # a Setting record). Everything else on the document is set by the server.
+    portal = portal_customer_block(key)
+    if portal:
         # Not '@all': that expands to every leaf including the opaque (untyped) ones,
-        # which never go outside the company — validate_access refuses it, so a new
-        # install would not seed. A portal role starts able to see exactly what it may
-        # fill; anything more is an admin's deliberate grant.
-        portal_fields = [p for p in PORTAL_ORDER_FIELDS if p in leaves]
-        portal = {'view': list(portal_fields), 'edit': list(portal_fields),
-                  'scope': {'customer_id__in': '$user.org_ids.customer'},
-                  'create': True, 'delete': False}
+        # which never go outside the company. A '@customer_view' set is not seeded here, so
+        # on a new install it stands for the record's identity plus what they may fill.
+        leaf_set = set(leaves)
+        if '@customer_view' in portal['view']:
+            portal['view'] = (['id', 'ida', 'status', 'dt_created'] + portal['edit']
+                              + [p for p in portal['view'] if p != '@customer_view'])
+        for list_key in ('view', 'edit'):
+            portal[list_key] = [p for p in portal[list_key]
+                                if p in leaf_set or p.startswith('price.$user')]
         for role in PORTAL_ORDER_ROLES:
             roles[role] = dict(portal)
     return {'sets': {'all': leaves}, 'roles': roles}
