@@ -19,13 +19,17 @@ Path forms:
 
 Role mapping (request.user is a core.Contact — AUTH_USER_MODEL):
     1. is_staff or is_superuser        -> role key "staff"
-    2. otherwise every role in contact.refs.roles (e.g. "user_customer",
-       "user_vendor", "user_manufacturer", "user_rep") is a role key; the user
-       receives the UNION of the paths listed for those keys.
+    2. otherwise the login's role — the one the door reads (access.own_role) —
+       names the key: customer and buyer → "user_customer", vendor →
+       "user_vendor", manufacturer → "user_manufacturer", rep → "user_rep"
+       (Bill, 2026-09-29: one role, not a second list in contact.refs.roles).
     3. a key with no entry in bootstrap_exposure contributes nothing. A user
-       whose keys have no entries (or no roles at all) gets an empty payload
+       whose key has no entry (or who has no role) gets an empty payload
        plus _version — fail closed, never a silent default. A missing or
        malformed bootstrap_exposure section also sends nothing.
+
+What a portal login is published of the company — name, website, phone, email and
+the pay_to (where a check is mailed) — is listed under its key (Bill, 2026-09-29).
 
 The version hash is computed over the FILTERED payload, so each role sees its
 own version and a 304 never hands one role another role's copy.
@@ -45,15 +49,21 @@ from rest_framework import status
 STAFF_ROLE_KEY = 'staff'
 
 
+#: The exposure key for each role outside the staff flags.
+ROLE_EXPOSURE_KEYS = {'customer': 'user_customer', 'buyer': 'user_customer',
+                      'vendor': 'user_vendor', 'manufacturer': 'user_manufacturer',
+                      'rep': 'user_rep'}
+
+
 def bootstrap_role_keys(user) -> list:
     """Role keys used to look up config.bootstrap_exposure for this user."""
     if not user or not getattr(user, 'is_authenticated', False):
         return []
     if getattr(user, 'is_staff', False) or getattr(user, 'is_superuser', False):
         return [STAFF_ROLE_KEY]
-    roles = (getattr(user, 'refs', None) or {}).get('roles') or []
-    # "staff" is granted only by the is_staff/is_superuser flags, never by a refs entry.
-    return [r for r in roles if isinstance(r, str) and r != STAFF_ROLE_KEY]
+    from apps.core.services.access import own_role
+    key = ROLE_EXPOSURE_KEYS.get(own_role(user) or '')
+    return [key] if key else []
 
 
 def allowed_paths(exposure, role_keys) -> list:

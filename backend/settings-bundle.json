@@ -3657,7 +3657,19 @@
           "legal_name": "JPods LLC",
           "address_full": "Tulsa, OK 74135",
           "address_receiving": "",
-          "registration_number": ""
+          "registration_number": "",
+          "pay_to": {
+            "name": "",
+            "address": {
+              "street1": "",
+              "street2": "",
+              "city": "",
+              "state": "",
+              "zip": "",
+              "country": ""
+            },
+            "address_full": ""
+          }
         },
         "pricing": {
           "price_levels": {
@@ -6082,31 +6094,44 @@
             "company.email",
             "company.website",
             "company.phone",
-            "document_text.invoice_comment"
+            "document_text.invoice_comment",
+            "company.pay_to"
           ],
           "user_rep": [
             "currency.*",
             "company.name",
             "company.website",
-            "document_text.invoice_comment"
+            "document_text.invoice_comment",
+            "company.phone",
+            "company.email",
+            "company.pay_to"
           ],
           "user_vendor": [
             "currency.*",
             "company.name",
             "company.website",
-            "document_text.invoice_comment"
+            "document_text.invoice_comment",
+            "company.phone",
+            "company.email",
+            "company.pay_to"
           ],
           "user_customer": [
             "currency.*",
             "company.name",
             "company.website",
-            "document_text.invoice_comment"
+            "document_text.invoice_comment",
+            "company.phone",
+            "company.email",
+            "company.pay_to"
           ],
           "user_manufacturer": [
             "currency.*",
             "company.name",
             "company.website",
-            "document_text.invoice_comment"
+            "document_text.invoice_comment",
+            "company.phone",
+            "company.email",
+            "company.pay_to"
           ]
         }
       },

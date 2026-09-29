@@ -12,7 +12,10 @@ vi.mock('../../../api/wcapi', () => ({
   saveRecord: (...a: any[]) => saveRecord(...a),
   refusedFrom: (e: any, fallback: string) => ({ message: e?.message || fallback }),
 }));
-vi.mock('../../../store/hooks', () => ({ useAppSelector: (f: any) => f({ auth: { user: { id: 5 } } }) }));
+const company = { name: 'JPods LLC', phone: '612.414.4211', email: 'info@jpods.com',
+  pay_to: { name: 'JPods LLC', address_full: '3939 E 60th PL, Tulsa, OK 74135',
+            address: { street1: '3939 E 60th PL', city: 'Tulsa', state: 'OK', zip: '74135' } } };
+vi.mock('../../../store/hooks', () => ({ useAppSelector: (f: any) => f({ auth: { user: { id: 5 } }, company: { company } }) }));
 let environmentKey = 'env-key';
 vi.mock('../../../apps/transactions/models/cash/services/cashApi', () => ({
   fetchGatewayConfig: () => Promise.resolve({ environment_key: environmentKey }),
@@ -45,7 +48,8 @@ describe('CustomerConsole', () => {
     await waitFor(() => expect((screen.getByLabelText('Pay by') as HTMLSelectElement).value).toBe('card'));
     expect(screen.getByText('card form for invoice 9: 80')).toBeTruthy();
     fireEvent.change(screen.getByLabelText('Pay by'), { target: { value: 'check' } });
-    expect(screen.getByText(/Write invoice/)).toBeTruthy();
+    expect(screen.getByText('3939 E 60th PL', { exact: false })).toBeTruthy();
+    expect(screen.getByText(/612.414.4211/)).toBeTruthy();
   });
 
   it('offers card grayed out until a card gateway is set up', async () => {

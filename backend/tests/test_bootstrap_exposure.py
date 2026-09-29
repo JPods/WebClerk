@@ -6,7 +6,9 @@ from rest_framework.test import APIClient
 
 from apps.core.models import Setting
 
-PORTAL = ["currency.*", "company.name", "company.website", "document_text.invoice_comment"]
+PAY_TO = {"name": "Test Co Remittance", "address_full": "PO Box 9, Tulsa, OK 74101"}
+PORTAL = ["currency.*", "company.name", "company.website", "company.phone", "company.email",
+          "company.pay_to", "document_text.invoice_comment"]
 EXPOSURE = {
     "staff": ["currency.*", "inventory.do_serial_nums", "costing.unit_cost_default",
               "company.name", "company.legal_name", "company.address_full", "company.email",
@@ -22,7 +24,7 @@ def company_profile(db):
     config["bootstrap_exposure"] = EXPOSURE
     config["company"] = {"name": "Test Co", "legal_name": "Test Co LLC", "phone": "555-0100",
                          "email": "co@example.com", "website": "https://example.com",
-                         "address_full": "1 Main St", "tax_id": "00-0000000"}
+                         "address_full": "1 Main St", "tax_id": "00-0000000", "pay_to": PAY_TO}
     config["inventory"] = {"costing_method": "fifo", "unit_cost_default": "last_cost",
                            "unit_cost_precision": 5}
     s.config = config
@@ -35,11 +37,11 @@ def company_profile(db):
     return s
 
 
-def _user(email, *, staff=False, roles=None):
+def _user(email, *, staff=False, role=None):
     u = get_user_model().objects.create_user(email=email, password=None,
                                              name_first="T", name_last="U", username=email)
     u.is_staff = staff
-    u.refs = {"roles": roles or []}
+    u.role = role or ""
     u.save()
     return u
 
@@ -71,17 +73,25 @@ def test_staff_gets_costing_and_phone(company_profile):
 
 @pytest.mark.django_db
 def test_customer_gets_only_portal_paths(company_profile):
-    p = _payload(_get(_user("cust@example.com", roles=["user_customer"])))
+    p = _payload(_get(_user("cust@example.com", role="customer")))
     assert p["currency"]["code"] == "USD"
-    assert p["company"] == {"name": "Test Co", "website": "https://example.com"}
-    assert "phone" not in p["company"]
+    assert p["company"] == {"name": "Test Co", "website": "https://example.com", "phone": "555-0100",
+                            "email": "co@example.com", "pay_to": PAY_TO}
+    assert "tax_id" not in p["company"] and "legal_name" not in p["company"]
     assert "costing" not in p and "commissions" not in p and "inventory" not in p
     assert p["document_text"] == {"invoice_comment": "Thank you"}
 
 
 @pytest.mark.django_db
+def test_a_buyer_is_published_what_a_customer_is(company_profile):
+    """The key comes from the login's role (Bill, 2026-09-29): a buyer is a customer here."""
+    p = _payload(_get(_user("buyer@example.com", role="buyer")))
+    assert p["company"]["pay_to"] == PAY_TO
+
+
+@pytest.mark.django_db
 def test_unlisted_role_gets_nothing(company_profile):
-    p = _payload(_get(_user("sales@example.com", roles=["user_sales"])))
+    p = _payload(_get(_user("sales@example.com", role="sales")))
     assert set(p) == {"_version"}
 
 
@@ -92,15 +102,19 @@ def test_no_roles_gets_nothing(company_profile):
 
 
 @pytest.mark.django_db
-def test_refs_cannot_claim_staff(company_profile):
-    p = _payload(_get(_user("fake@example.com", roles=["staff"])))
+def test_refs_cannot_claim_a_key(company_profile):
+    """contact.refs.roles names no key any more; only the role does."""
+    u = _user("fake@example.com")
+    u.refs = {"roles": ["staff", "user_customer"]}
+    u.save()
+    p = _payload(_get(u))
     assert set(p) == {"_version"}
 
 
 @pytest.mark.django_db
 def test_version_differs_by_role_and_304_per_role(company_profile):
     staff = _user("staff2@example.com", staff=True)
-    cust = _user("cust2@example.com", roles=["user_customer"])
+    cust = _user("cust2@example.com", role="customer")
     v_staff = _payload(_get(staff))["_version"]
     v_cust = _payload(_get(cust))["_version"]
     assert v_staff != v_cust

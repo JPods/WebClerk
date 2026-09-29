@@ -140,6 +140,9 @@ const PayDialog: React.FC<{ invoice: Rec; cardReady: boolean; onClose: () => voi
   ({ invoice, cardReady, onClose, onPaid }) => {
   const [payBy, setPayBy] = useState<PayBy>(cardReady ? 'card' : 'check');
   const owed = Number(invoice.totals?.balance || 0);
+  // The company's published pay_to (company profile config.company.pay_to, Bill 2026-09-29).
+  const company = useAppSelector((s) => s.company?.company) || {};
+  const payTo = company.pay_to || {};
   return (
     <Modal isOpen onClose={onClose} className="wc-console-dialog">
       <h3 className="wc-portal-section-title">Pay invoice {invoice.ida}</h3>
@@ -154,8 +157,19 @@ const PayDialog: React.FC<{ invoice: Rec; cardReady: boolean; onClose: () => voi
       </label>
       {payBy === 'check' && (
         <div className="wc-console-check">
-          <p>Make the check payable to the company named on your invoice, for <strong>{money(owed)}</strong>.</p>
-          <p>Write invoice <strong>{invoice.ida}</strong> on the check, and mail it to the remit-to address on the invoice.</p>
+          <p>Make the check payable to <strong>{payTo.name || company.name || 'the company named on your invoice'}</strong>
+            {' '}for <strong>{money(owed)}</strong>, and write invoice <strong>{invoice.ida}</strong> on it.</p>
+          {payTo.address_full ? (
+            <address className="wc-console-payto">
+              Mail it to:<br />{payTo.name || company.name}<br />
+              {(payTo.address?.street1 ? [payTo.address.street1, payTo.address.street2,
+                `${payTo.address.city || ''}${payTo.address.state ? ', ' + payTo.address.state : ''} ${payTo.address.zip || ''}`.trim()]
+                : [payTo.address_full]).filter(Boolean).map((line: string) => <React.Fragment key={line}>{line}<br /></React.Fragment>)}
+            </address>
+          ) : <p>Mail it to the remit-to address on your invoice.</p>}
+          {(company.phone || company.email) && (
+            <p className="wc-console-hint">Questions: {[company.phone, company.email].filter(Boolean).join(' · ')}</p>
+          )}
           <p className="wc-console-hint">Your balance changes when we receive the check.</p>
           <button type="button" onClick={onClose}>Done</button>
         </div>

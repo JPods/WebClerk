@@ -1089,6 +1089,7 @@ button.wc-portal-card:hover { border-color: var(--wc-accent, #2563eb); }
 .wc-console-dialog select { padding: 6px 8px; border: 1px solid var(--wc-border, #e5e7eb); border-radius: 6px; font: inherit; }
 .wc-console-dialog button:not(.wc-console-link) { padding: 6px 14px; border-radius: 6px; border: 1px solid var(--wc-accent, #2563eb); background: var(--wc-accent, #2563eb); color: #fff; font: inherit; cursor: pointer; }
 .wc-console-check p { margin: 6px 0; }
+.wc-console-payto { font-style: normal; margin: 8px 0; padding: 8px 12px; border-left: 3px solid var(--wc-accent, #2563eb); background: var(--wc-hover, #f9fafb); }
 
 /* Kanban bar */
 .wc-kanban-bar { position: relative; height: 20px; background: var(--wc-border, #e5e7eb); border-radius: 4px; overflow: hidden; min-width: 120px; }
