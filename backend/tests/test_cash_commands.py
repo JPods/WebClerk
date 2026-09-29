@@ -477,7 +477,7 @@ def test_a_card_payment_in_flight_is_not_journalized_as_zero(invoice):
     cash = _payservice_cash(invoice)
     assert journalize_cash(cash.pk)['status'] == 'skipped_payservice'
     cash.refresh_from_db()
-    assert not cash.is_locked
+    assert not cash.dt_journaled
 
 
 def test_a_card_claimed_before_payservice_settles_at_its_own_amount(invoice, django_capture_on_commit_callbacks):

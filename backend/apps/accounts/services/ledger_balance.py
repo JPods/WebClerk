@@ -661,8 +661,7 @@ def reverse_gl_entries(instance, reason: str = '') -> int:
     entries (debit↔credit swapped, same amounts). Standard double-entry
     accounting: no erasure, only reversal.
 
-    After reversal, the record is unlocked (is_locked=False) so it can
-    be edited and re-journalized.
+    It writes no mark on the record: the unjournalize command clears dt_journaled.
 
     Returns the number of reversal GlJournal records created.
     """
@@ -703,8 +702,9 @@ def reverse_gl_entries(instance, reason: str = '') -> int:
         )
         created += 1
 
-    # Unlock the record so it can be edited and re-journalized
-    instance.__class__.objects.filter(pk=source_id).update(is_locked=False)
+    # A GL function reverses GL; it never writes a mark on the source. The unjournalize
+    # command clears dt_journaled (invoice 1050-inv was left journalized with its lock
+    # cleared here: Fable review H11, 2026-09-28).
 
     return created
 

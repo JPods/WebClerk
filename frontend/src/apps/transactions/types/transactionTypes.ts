@@ -366,7 +366,8 @@ export interface Transaction {
   // Lifecycle fields
   is_active?: boolean;
   is_archived?: boolean;
-  is_locked?: boolean;
+  /** The journal lock: UTC epoch ms when journalized; 0 = editable. */
+  dt_journaled?: number;
 
   // Timestamps
   dt_created?: string;

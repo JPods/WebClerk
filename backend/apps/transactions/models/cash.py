@@ -171,6 +171,9 @@ class Cash(HardDeleteOnly, BaseModel):
         blank=True,
         help_text="When the cash was processed by gateway"
     )
+    # The journal lock, as on every header (Bill, 2026-09-28: dt_journaled is the one mark).
+    dt_journaled = models.BigIntegerField(default=0, db_index=True,
+        help_text="UTC epoch ms when journalized to GL. 0=editable, non-zero=locked.")
     reconciled = models.BooleanField(
         default=False,
         help_text="Whether this cash has been reconciled"

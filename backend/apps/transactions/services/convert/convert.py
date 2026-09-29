@@ -339,9 +339,9 @@ def convert_record(actor, source_type: str, source_id: int, target_type: str, *,
     if source is None:
         from apps.core.services.door import Refused
         raise Refused(404, "not_found", f"{source_type} {source_id} not found")
-    if getattr(source, "is_locked", False):
+    if getattr(source, "dt_journaled", 0):
         from apps.core.services.door import Refused
-        raise Refused(409, "locked", f"{source_type} {source_id} is locked; it cannot be converted.")
+        raise Refused(409, "locked", f"{source_type} {source_id} is journalized; it cannot be converted.")
     try:
         source_lines = _get_lines(source, source_type, line_ids)
     except ConversionError as e:

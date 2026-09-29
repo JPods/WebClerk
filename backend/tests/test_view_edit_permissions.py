@@ -74,8 +74,8 @@ def test_staff_edits_everything_except_what_a_record_locks(django_user_model):
     assert 'totals.total' in open_data['edit']
     assert open_data['locked'] == []
 
-    invoice.is_locked = True
-    invoice.save(update_fields=['is_locked'])
+    invoice.dt_journaled = 1790000000000
+    invoice.save(update_fields=['dt_journaled'])
 
     locked_data = _rules(user, pk=invoice.pk).data['data']
     assert 'totals' in locked_data['locked']
@@ -113,8 +113,8 @@ def test_journalized_write_is_refused_not_just_hidden():
     invoice = Invoice.objects.create(status='planned', totals={'total': 100})
     line = InvoiceLine.objects.create(invoice=invoice, quantity={'staged': 1, 'active': 1},
                                       price={'unit': 100, 'amount': 100})
-    invoice.is_locked = True
-    invoice.save(update_fields=['is_locked'])
+    invoice.dt_journaled = 1790000000000
+    invoice.save(update_fields=['dt_journaled'])
 
     invoice.totals = {**invoice.totals, 'total': 999}
     with pytest.raises(JournalizedLockError) as err:

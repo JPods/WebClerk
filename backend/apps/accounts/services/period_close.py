@@ -225,8 +225,8 @@ def _generate_period_summary(year: int, month: int) -> Dict[str, Any]:
 def _lock_period_transactions(year: int, month: int) -> int:
     """Lock all journalized transactions for the period.
 
-    Only locks records that have already been journalized (is_locked=True
-    is set by the journalize service). This sets a period lock flag
+    Only locks records that have already been journalized (dt_journaled != 0,
+    set by the journalize service). This sets a period lock flag
     in metadata to prevent reopening without explicit reopen_period.
 
     Returns count of records marked.
@@ -241,7 +241,7 @@ def _lock_period_transactions(year: int, month: int) -> int:
             records = Model.objects.filter(
                 dt_created__gte=start,
                 dt_created__lt=end,
-                is_locked=True,
+                dt_journaled__gt=0,
             )
             for record in records:
                 meta = copy.deepcopy(getattr(record, "metadata", None) or {})
@@ -408,7 +408,7 @@ def get_eom_status(
         Invoice = dj_apps.get_model("transactions", "Invoice")
         pending_invoices = Invoice.objects.filter(
             dt_created__gte=start, dt_created__lt=end,
-            is_locked=False,
+            dt_journaled=0,
         ).count()
     except Exception:
         pass
@@ -419,7 +419,7 @@ def get_eom_status(
         Cash = dj_apps.get_model("transactions", "Cash")
         pending_cash_entries = Cash.objects.filter(
             dt_created__gte=start, dt_created__lt=end,
-            is_locked=False,
+            dt_journaled=0,
         ).count()
     except Exception:
         pass

@@ -37,16 +37,14 @@ def unjournalize(ctx) -> Dict[str, Any]:
         raise Refused(400, 'reason_required',
                       'Say why this must be unjournalized; an amending document is the usual way '
                       '(a return line, an adjustment invoice, a count workorder).', ctx.model_key)
-    # Posting locks the record (is_locked); dt_journaled marks it too. Either is journalized.
-    if not (getattr(obj, 'is_locked', False) or is_journalized(obj)):
+    if not is_journalized(obj):
         raise Refused(409, 'not_journalized', f'{ctx.model_key} {obj.pk} is not journalized.', obj.pk)
 
     reversed_count = reverse_gl_entries(obj, reason=reason)
     user = getattr(ctx.actor, 'user', None)
     append_comment(obj, 'process', f'Unjournalized: {reason}', user=user, source='unjournalize')
     obj.dt_journaled = 0
-    obj.is_locked = False
-    obj.save(update_fields=['dt_journaled', 'is_locked', 'comments', 'dt_modified', 'version'])
+    obj.save(update_fields=['dt_journaled', 'comments', 'dt_modified', 'version'])
     logger.warning('[unjournalize] %s %s by %s: %s (%d GL rows reversed)', ctx.model_key, obj.pk,
                    getattr(user, 'pk', ctx.actor.kind), reason, reversed_count)
     return {'id': obj.pk, 'reversed': reversed_count, 'reason': reason}

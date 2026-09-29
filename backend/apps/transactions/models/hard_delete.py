@@ -8,7 +8,7 @@ deleted, or have values edited within our scope of work."
 
 No model has a deleted flag any more (Bill, 2026-09-22: soft delete removed everywhere), so what is
 left to guard is the posted record. Every transaction header, every line and every Cash:
-  - refuses deletion once journalized (is_locked / dt_journaled) or reconciled (Cash);
+  - refuses deletion once journalized (dt_journaled) or reconciled (Cash);
   - a line refuses to be added to, or deleted from, a journalized document.
 The delete guard is a pre_delete receiver, so it also stops queryset deletes and a header's
 CASCADE, which never call Model.delete().
@@ -32,7 +32,7 @@ def _label(record) -> str:
 
 def _posted(record) -> str | None:
     """Why this record is closed to deletion, or None."""
-    if getattr(record, 'is_locked', False) or getattr(record, 'dt_journaled', 0):
+    if getattr(record, 'dt_journaled', 0):
         return 'journalized'
     if getattr(record, 'reconciled', False):
         return 'reconciled'

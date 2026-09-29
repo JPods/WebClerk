@@ -259,7 +259,7 @@ class TestSequence002(TestCase):
         inv = Invoice.objects.get(pk=self.invoice_id)
         self.assertTrue(
             result.get('applied', False) or result.get('state') == 'applied',
-            f'Cash should be applied: result={result} invoice.is_locked={inv.is_locked} dt_journaled={inv.dt_journaled}',
+            f'Cash should be applied: result={result} dt_journaled={inv.dt_journaled}',
         )
 
         print(f'  ✓ Cash applied: ${200} to invoice, state={result.get("state")}')
@@ -297,7 +297,7 @@ class TestSequence002(TestCase):
         Order = apps.get_model('transactions', 'Order')
         clone = Order.objects.get(pk=result['clone_id'])
         self.assertEqual(clone.status, 'planned', 'Clone should be planned')
-        self.assertFalse(clone.is_locked, 'Clone should not be locked')
+        self.assertEqual(clone.dt_journaled, 0, 'A clone is never born journalized')
         self.assertIsNone(clone.parent_id, 'Clone should have no parent')
 
         # Verify commission accrual reset

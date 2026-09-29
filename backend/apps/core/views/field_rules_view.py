@@ -5,7 +5,7 @@ GET /wcapi/<model_name>/fields/?id=<pk>
 Returns what this user may see and change, by role (the model's wc:model Setting), and —
 when an id is given — what the record's own state locks:
 
-    {"view": [...], "edit": [...], "locked": [...], "is_locked": bool}
+    {"view": [...], "edit": [...], "locked": [...], "journalized": bool}
 
 A journalized document locks its total and the values that make it up. Cash,
 comments and operational fields stay editable (Bill, 2026-09-17). The UI shows a
@@ -25,7 +25,7 @@ JOURNALIZED_LOCKED = ('totals', 'quantity', 'price', 'cost', 'tax', 'commission'
 
 def locked_fields_for(record) -> list:
     """The fields this record's own state locks. Empty when nothing is locked."""
-    if record is None or not getattr(record, 'is_locked', False):
+    if record is None or not getattr(record, 'dt_journaled', 0):
         return []
     return [name for name in JOURNALIZED_LOCKED if hasattr(record, name)]
 
@@ -76,6 +76,6 @@ class FieldRulesView(APIView):
             'edit': edit_fields,
             'edit_deny': denied_edit,
             'locked': locked,
-            'is_locked': bool(record is not None and getattr(record, 'is_locked', False)),
+            'journalized': bool(record is not None and getattr(record, 'dt_journaled', 0)),
             'source': 'rbac',
         })

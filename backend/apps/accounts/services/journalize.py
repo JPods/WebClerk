@@ -511,7 +511,6 @@ def journalize_invoice(invoice_id: int, ida_prefix: str = '') -> dict:
         now = _now_ms()
         Invoice.objects.filter(pk=invoice_id).update(
             dt_journaled=now,
-            is_locked=True,
             dt_modified=now,
         )
 
@@ -575,7 +574,7 @@ def journalize_cash(cash_id: int, ida_prefix: str = '') -> dict:
         now = _now_ms()
         from django.utils import timezone
         Cash.objects.filter(pk=cash_id).update(
-            is_locked=True, dt_processed=timezone.now(), dt_modified=now,
+            dt_journaled=now, dt_processed=timezone.now(), dt_modified=now,
         )
         return {'created': 0, 'status': 'auto_completed', 'cash_ida': cash.ida,
                 'message': 'Zero-amount cash auto-completed without GL entry'}
@@ -693,11 +692,11 @@ def journalize_cash(cash_id: int, ida_prefix: str = '') -> dict:
                 # full cash_receipt debit (abs_amount includes surcharge).
                 # This credit splits the surcharge revenue from AR.
 
-        # Mark cash as journalized — is_locked
+        # Mark cash as journalized — dt_journaled non-zero = locked
         now = _now_ms()
         from django.utils import timezone
         Cash.objects.filter(pk=cash_id).update(
-            is_locked=True,
+            dt_journaled=now,
             dt_processed=timezone.now(),
             dt_modified=now,
         )
@@ -945,7 +944,6 @@ def journalize_purchase(purchase_id: int, ida_prefix: str = '') -> dict:
         now = _now_ms()
         Purchase.objects.filter(pk=purchase_id).update(
             dt_journaled=now,
-            is_locked=True,
             dt_modified=now,
         )
 
@@ -1089,7 +1087,7 @@ def batch_journalize(ida_prefix: str = 'zzz-', run_by_id: int = None) -> dict:
     for inv in invoices:
         _classify(journalize_invoice(inv.pk, ida_prefix=ida_prefix), 'invoices', inv.ida)
 
-    cash_entries = Cash.objects.filter(is_locked=False, is_active=True)
+    cash_entries = Cash.objects.filter(dt_journaled=0, is_active=True)
     for pay in cash_entries:
         _classify(journalize_cash(pay.pk, ida_prefix=ida_prefix), 'cash_entries', pay.ida)
 

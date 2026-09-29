@@ -93,14 +93,14 @@ def negative_invoices_to_convert(now_ms: Optional[int] = None) -> List[dict]:
 
     out = []
     for invoice in Invoice.objects.filter(dt_created__lt=cutoff).only(
-            'id', 'ida', 'customer_id', 'totals', 'dt_created', 'is_locked'):
+            'id', 'ida', 'customer_id', 'totals', 'dt_created', 'dt_journaled'):
         balance = Decimal(str((invoice.totals or {}).get('balance') or 0))
         if balance >= 0:
             continue
         out.append({
             'invoice_id': invoice.pk, 'ida': invoice.ida, 'customer_id': invoice.customer_id,
             'credit': float(-balance), 'age_days': _age_days(invoice.dt_created, now_ms),
-            'journalized': bool(invoice.is_locked),
+            'journalized': bool(invoice.dt_journaled),
             'proposal': {'create': 'cash', 'amount': float(-balance), 'kind': 'unapplied',
                          'then': 'settle the invoice to zero through an adjustment'},
             'why': f'credit balance older than {days} days — money the customer has on account',

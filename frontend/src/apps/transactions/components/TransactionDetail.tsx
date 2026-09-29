@@ -136,7 +136,7 @@ const UiDetail: React.FC<UiDetailProps> = ({
   // ── Edit state ───────────────────────────────────────────────────
   const editTier = useMemo((): 'open' | 'pend' | 'closed' => {
     if (!data || !layout) return 'closed';
-    if (data.is_locked === true) return 'closed';
+    if (data.dt_journaled) return 'closed';
     const rules = layout.edit_rules as any;
     const statusField = rules.status_field || 'status';
     const status = String(data[statusField] || '').toLowerCase();

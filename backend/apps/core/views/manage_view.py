@@ -467,7 +467,7 @@ def _post_gl_entries(params: dict) -> dict:
     """Post staged GL journal entries for an invoice or cash.
 
     User-initiated action — records stay editable until this is called.
-    After posting, the record should be locked (is_locked=True) to prevent
+    After posting, the record is locked (dt_journaled set) to prevent
     edits. Corrections require reversing transactions.
 
     Params:
@@ -493,7 +493,7 @@ def _post_gl_entries(params: dict) -> dict:
         raise ValueError(f"{model_name} #{record_id} not found")
 
     # Check not already locked
-    if getattr(instance, 'is_locked', False):
+    if getattr(instance, 'dt_journaled', 0):
         raise ValueError(f"{model_name} #{record_id} is already journalized (locked)")
 
     # Post GL entries
@@ -505,7 +505,8 @@ def _post_gl_entries(params: dict) -> dict:
         }
 
     # Lock the record — no further edits without reversal
-    Model.objects.filter(pk=record_id).update(is_locked=True)
+    from apps.accounts.services.journalize import _now_ms
+    Model.objects.filter(pk=record_id).update(dt_journaled=_now_ms())
 
     return {
         'posted': count,

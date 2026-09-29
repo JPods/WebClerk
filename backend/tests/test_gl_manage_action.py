@@ -36,14 +36,14 @@ class TestPostGLManageAction:
 
         # Verify record is actually locked in DB
         invoice.refresh_from_db()
-        assert invoice.is_locked is True
+        assert invoice.dt_journaled
 
     def test_locked_record_rejected(self):
         """Already-locked record raises ValueError."""
         from apps.core.views.manage_view import _post_gl_entries
 
         invoice = InvoiceFactory()
-        invoice.__class__.objects.filter(pk=invoice.pk).update(is_locked=True)
+        invoice.__class__.objects.filter(pk=invoice.pk).update(dt_journaled=1790000000000)
 
         with pytest.raises(ValueError, match="already journalized"):
             _post_gl_entries({'model_name': 'invoice', 'id': invoice.pk})
@@ -58,7 +58,7 @@ class TestPostGLManageAction:
         assert result1['posted'] == 2
 
         # Unlock to allow retry attempt (normally wouldn't happen)
-        invoice.__class__.objects.filter(pk=invoice.pk).update(is_locked=False)
+        invoice.__class__.objects.filter(pk=invoice.pk).update(dt_journaled=0)
 
         result2 = _post_gl_entries({'model_name': 'invoice', 'id': invoice.pk})
         assert result2['posted'] == 0  # duplicate guard
@@ -129,12 +129,12 @@ class TestReverseGLManageAction:
         self._journalize(invoice)
 
         invoice.refresh_from_db()
-        assert invoice.is_locked is True
+        assert invoice.dt_journaled
 
         _unjournalize(invoice)
 
         invoice.refresh_from_db()
-        assert invoice.is_locked is False
+        assert invoice.dt_journaled == 0
 
     def test_double_reversal_blocked(self):
         """Can't reverse the same entries twice."""
@@ -146,7 +146,7 @@ class TestReverseGLManageAction:
         assert result1['reversed'] == 2
 
         # Re-lock to allow second attempt
-        invoice.__class__.objects.filter(pk=invoice.pk).update(is_locked=True)
+        invoice.__class__.objects.filter(pk=invoice.pk).update(dt_journaled=1790000000000)
 
         result2 = _unjournalize(invoice)
         assert result2['reversed'] == 0
@@ -174,7 +174,7 @@ class TestReverseGLManageAction:
         assert GlJournal.objects.filter(source_id=invoice.pk).count() == 4
 
         invoice.refresh_from_db()
-        assert invoice.is_locked is False
+        assert invoice.dt_journaled == 0
 
         # Edit the invoice as a user would: change the line's price
         line = invoice.lines.first()

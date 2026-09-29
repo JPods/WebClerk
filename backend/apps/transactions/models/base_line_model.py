@@ -720,7 +720,9 @@ class BaseLineCore(HardDeleteOnly, BaseModel):
             header = self.parent
         except Exception:
             return
-        if header is None or not getattr(header, 'is_locked', False):
+        # Read the header's stored mark, not an instance that may carry a pending change (C2-01).
+        if header is None or header.pk is None or not type(header).objects.filter(
+                pk=header.pk, dt_journaled__gt=0).exists():
             return
         fields = ('quantity', 'price', 'cost')
         stored = type(self).objects.filter(pk=self.pk).values(

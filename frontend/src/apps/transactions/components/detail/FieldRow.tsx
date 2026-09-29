@@ -199,7 +199,7 @@ export const JOURNALIZED_LOCKED = ['totals', 'quantity', 'price', 'cost', 'tax',
 
 /** What this record's own state locks. Cash, comments and operational fields stay open. */
 export function lockedFieldsForRecord(record: any): string[] {
-  return record?.is_locked ? JOURNALIZED_LOCKED : [];
+  return record?.dt_journaled ? JOURNALIZED_LOCKED : [];
 }
 
 export interface FieldRowProps {

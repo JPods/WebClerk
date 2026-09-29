@@ -31,13 +31,13 @@ CHILDREN_MAP = {
 # Fields to reset on cloned records
 RESET_FIELDS = {
     'id', 'uuid', 'ida', 'dt_created', 'dt_modified', 'version',
-    'is_locked', 'parent_id', 'parent_model',
+    'dt_journaled', 'parent_id', 'parent_model',
 }
 
 # Fields to clear (set to default) on cloned records
 CLEAR_ON_CLONE = {
     'status': 'planned',
-    'is_locked': False,
+    'dt_journaled': 0,
 }
 
 
@@ -49,7 +49,7 @@ def clone_record(model_name: str, record_id: int, include_children: bool = True,
     - Current timestamps
     - Status reset to 'planned'
     - Balance reset to 0
-    - is_locked = False
+    - dt_journaled = 0 (a clone is never born journalized)
     - parent_id/parent_model cleared
     - Commission accrual reset (accrued=False)
     - Lines copied with fresh ids and line numbers

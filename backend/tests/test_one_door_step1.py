@@ -25,7 +25,7 @@ def _order_with_line(qty=5):
 
 
 def _journalize(header):
-    type(header).objects.filter(pk=header.pk).update(is_locked=True)
+    type(header).objects.filter(pk=header.pk).update(dt_journaled=1790000000000)
     header.refresh_from_db()
 
 

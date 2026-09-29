@@ -54,13 +54,13 @@ def _get_journal_status() -> Dict[str, Any]:
     # Count invoices with staged GL but not posted (metadata has gl_accounts but no GlJournal records)
     # Approximation: invoices not locked that have totals > 0
     pending_invoices = Invoice.objects.filter(
-        is_locked=False, is_active=True,
+        dt_journaled=0, is_active=True,
     ).exclude(
         totals={},
     ).count()
 
     pending_cash_entries = Cash.objects.filter(
-        is_locked=False, is_active=True,
+        dt_journaled=0, is_active=True,
     ).exclude(
         amount=0,
     ).count()
@@ -143,8 +143,8 @@ def _get_locked_records() -> Dict[str, Any]:
     for key, model_name in [('invoice', 'Invoice'), ('cash', 'Cash')]:
         try:
             Model = dj_apps.get_model('transactions', model_name)
-            locked = Model.objects.filter(is_locked=True).count()
-            unlocked = Model.objects.filter(is_locked=False).count()
+            locked = Model.objects.filter(dt_journaled__gt=0).count()
+            unlocked = Model.objects.filter(dt_journaled=0).count()
             result[key] = {
                 'locked': locked,
                 'unlocked': unlocked,
@@ -307,7 +307,7 @@ def get_journal_exceptions(year: int = None, month: int = None) -> Dict[str, Any
         if status == 'consigned':
             rec['reason'] = 'Consigned — revenue deferred'
             skipped.append(rec)
-        elif inv.is_locked:
+        elif inv.dt_journaled:
             # Locked but no journal entries — something went wrong
             rec['reason'] = 'Locked but not journalized — possible interrupted posting'
             exceptions.append(rec)
@@ -352,7 +352,7 @@ def get_journal_exceptions(year: int = None, month: int = None) -> Dict[str, Any
 
     for po in po_qs:
         rec = _txn_dict(po, 'purchase')
-        if po.is_locked:
+        if po.dt_journaled:
             rec['reason'] = 'Locked but not journalized — possible interrupted posting'
             exceptions.append(rec)
         else:

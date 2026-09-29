@@ -325,10 +325,12 @@ class TransactionBaseModel(HardDeleteOnly, BaseModel):
     CASH_TOTALS_KEYS = ('received', 'balance', 'cash_state', 'paid', 'adjusted')
 
     def _assert_not_journalized(self) -> None:
-        if self._state.adding or self.pk is None or not getattr(self, 'is_locked', False):
+        # The lock is the STORED dt_journaled, never the incoming value: a request that
+        # sets the mark to 0 must not unlock the save that carries it (C2-01).
+        if self._state.adding or self.pk is None:
             return
-        stored = type(self).objects.filter(pk=self.pk).values('totals').first()
-        if not stored:
+        stored = type(self).objects.filter(pk=self.pk).values('totals', 'dt_journaled').first()
+        if not stored or not stored.get('dt_journaled'):
             return
         was = stored.get('totals') or {}
         now = self.totals if isinstance(self.totals, dict) else {}
