@@ -341,7 +341,18 @@ def get_allowed_fields(
         from apps.core.services import field_leaves as fl
         if not actor.role or (mode != "view" and not actor.may_write_open_read):
             return []
-        return sorted(fl.model_leaves(access.model_key(model_name))['leaves'])
+        leaves = fl.model_leaves(access.model_key(model_name))['leaves']
+        if mode != "view":
+            # A Setting's config, prefs and data are untyped by design, so their schema
+            # leaves are a sliver (config.layout.*, config.is_new): a superuser's edit of
+            # the company profile, an access list or a sequence was trimmed to nothing and
+            # answered 200 (audit A3-H-2). Superusers change Setting records (Bill,
+            # 2026-09-29): the edit list names each whole field. What a Setting may hold is
+            # still checked when it is saved (Setting.save, the access guard).
+            from apps.core.utils import registry
+            model_cls = registry.resolve(access.model_key(model_name))
+            leaves = set(leaves) | {f.name for f in model_cls._meta.concrete_fields}
+        return sorted(leaves)
     config = get_user_filter_config(actor, model_name)
     if not config:
         return []
