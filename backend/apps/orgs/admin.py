@@ -47,7 +47,7 @@ class OrgBaseAdminForm(forms.ModelForm):
 @admin.register(OrgBase)
 class OrgBaseAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
     form = OrgBaseAdminForm
-    # Scalar fields: address_full, address_id, attention, company, domain, domain_id, dt_created, dt_modified, email, email_id, health_rating, ida, is_active, is_archived, is_deleted, is_locked, org_type, phone, phone_id, price_level, security_level, status, terms, uuid, version
+    # Scalar fields: address_full, address_id, attention, company, domain, domain_id, dt_created, dt_modified, email, email_id, health_rating, ida, is_active, is_archived, is_deleted, org_type, phone, phone_id, price_level, security_level, status, terms, uuid, version
     list_display = ("ida", "company", "status", "email", "phone", "address_full", "is_active", "dt_created")
     list_filter = ("org_type", "status", "is_active", "is_archived")
     search_fields = ("company", "domains", "contacts", "email", "phone")

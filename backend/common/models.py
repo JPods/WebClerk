@@ -479,7 +479,8 @@ class CoreModel(models.Model):
 
 
 class LifecycleMixin(models.Model):
-    """Archive / lock flags + status (reversible lifecycle state).
+    """Archive flag + status (reversible lifecycle state). There is no record lock: a journalized
+    record is locked by its dt_journaled (Bill, 2026-09-28).
 
     There is no soft delete (Bill, 2026-09-22): a record is deleted outright, and the delete
     issues the Pendings that account for the inventory and cash it held.
@@ -488,7 +489,6 @@ class LifecycleMixin(models.Model):
     feature_flags = {"lifecycle"}
     # status removed — now on CoreModel (canonical, max_length=50)
     is_archived = models.BooleanField(default=False, db_index=True)
-    is_locked = models.BooleanField(default=False, db_index=True, help_text="Record is locked and cannot be edited (admin override required)")
 
     class Meta:
         abstract = True
@@ -499,16 +499,6 @@ class LifecycleMixin(models.Model):
 
     def unarchive(self):
         self.is_archived = False
-        self.save()
-
-    def lock(self):
-        """Lock the record to prevent edits (admin can unlock)."""
-        self.is_locked = True
-        self.save()
-
-    def unlock(self):
-        """Unlock the record to allow edits (admin action)."""
-        self.is_locked = False
         self.save()
 
 

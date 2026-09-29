@@ -11,7 +11,7 @@ from .services.decisions import accept_email_verification, reject_bundle
 
 @admin.register(Connection)
 class ConnectionAdmin(ScalarFirstFieldsetMixin, SchemaLabelsAdminMixin, admin.ModelAdmin):
-	# Scalar fields: action, dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, is_locked, name, purpose, security_level, status, type, uuid, version
+	# Scalar fields: action, dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, name, purpose, security_level, status, type, uuid, version
 	list_display = ("ida", "name", "status", "type", "action", "is_active", "dt_created")
 	search_fields = ("name", "type")
 	readonly_fields = ()
@@ -19,7 +19,7 @@ class ConnectionAdmin(ScalarFirstFieldsetMixin, SchemaLabelsAdminMixin, admin.Mo
 
 @admin.register(Bundle)
 class BundleAdmin(ScalarFirstFieldsetMixin, SchemaLabelsAdminMixin, admin.ModelAdmin):
-	# Scalar fields: alert, direction, dt_created, dt_modified, duration, health_rating, ida, is_active, is_archived, is_deleted, is_locked, security_level, size, status, uuid, version
+	# Scalar fields: alert, direction, dt_created, dt_modified, duration, health_rating, ida, is_active, is_archived, is_deleted, security_level, size, status, uuid, version
 	list_display = ("ida", "status", "alert", "direction", "duration", "health_rating", "is_active", "dt_created")
 	search_fields = ("id", "status", "direction")
 	actions = ("accept_selected", "reject_selected")

@@ -140,26 +140,18 @@ class BillOfMaterial(BaseModel):
         self._denorm_parent_bom()
 
     def _denorm_parent_bom(self):
-        """Rebuild parent_item.refs.bom[] from all BOM lines for this parent.
-
-        If parent is locked (journalized invoice, reconciled cash, etc.),
-        creates a Pending record so the denorm retries when the lock clears.
-        """
+        """Rebuild parent_item.refs.bom[] from all BOM lines for this parent."""
         try:
-            parent = self.parent_item
-            parent.refresh_from_db(fields=['is_locked', 'refs'])
-
-            bom_list = self._build_bom_list(parent.pk)
-
-            if getattr(parent, 'is_locked', False):
-                self._create_denorm_pending(parent, bom_list)
-                return
-
-            refs = parent.refs if isinstance(parent.refs, dict) else {}
-            refs['bom'] = bom_list
-            Item.objects.filter(pk=parent.pk).update(refs=refs)
+            self._write_parent_bom(self.parent_item)
         except Exception:
             pass  # best-effort denorm
+
+    @staticmethod
+    def _write_parent_bom(parent):
+        parent.refresh_from_db(fields=['refs'])
+        refs = parent.refs if isinstance(parent.refs, dict) else {}
+        refs['bom'] = BillOfMaterial._build_bom_list(parent.pk)
+        Item.objects.filter(pk=parent.pk).update(refs=refs)
 
     @staticmethod
     def _build_bom_list(parent_id):
@@ -179,41 +171,13 @@ class BillOfMaterial(BaseModel):
             'is_optional': line.is_optional,
         } for line in bom_lines]
 
-    @staticmethod
-    def _create_denorm_pending(parent, bom_list):
-        """Create a Pending record to retry denorm when parent unlocks."""
-        try:
-            from apps.core.models import Pending
-            Pending.objects.create(
-                model_name='item',
-                record_id=str(parent.pk),
-                purpose='denorm_refs',
-                name=f'Denorm BOM: Item {parent.ida}',
-                config={
-                    'field': 'refs.bom',
-                    'bom': bom_list,
-                    'reason': 'parent_locked',
-                    'parent_ida': parent.ida,
-                },
-            )
-        except Exception:
-            pass
-
     def delete(self, *args, **kwargs):
         parent = self.parent_item
         super().delete(*args, **kwargs)
-        # Rebuild after delete — respects lock
         try:
-            parent.refresh_from_db(fields=['is_locked', 'refs'])
-            bom_list = self._build_bom_list(parent.pk)
-            if getattr(parent, 'is_locked', False):
-                self._create_denorm_pending(parent, bom_list)
-            else:
-                refs = parent.refs if isinstance(parent.refs, dict) else {}
-                refs['bom'] = bom_list
-                Item.objects.filter(pk=parent.pk).update(refs=refs)
+            self._write_parent_bom(parent)
         except Exception:
-            pass
+            pass  # best-effort denorm
 
     # Lightweight roll-up helper (not auto-invoked here to avoid recursion) -----------------
     @staticmethod

@@ -29,7 +29,7 @@ BASEMODEL_RESERVED = frozenset({
     'id', 'uuid', 'ida', 'dt_created', 'dt_modified', 'version',
     'is_active', 'security_level', 'dt_approved', 'times_used',
     'dt_last_used', 'purpose', 'config',
-    'is_archived', 'is_locked',
+    'is_archived',
     'metadata', 'refs', 'prefs', 'actions', 'comments',
     'health_rating',
 })

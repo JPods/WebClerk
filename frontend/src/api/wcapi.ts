@@ -490,7 +490,7 @@ export async function saveTransactionWithLines(model_name: string, payload: any)
     'sell', 'cost', 'flow',
     'prefs', 'commission', 'health_rating',
     'dt_created', 'dt_modified',
-    'is_archived', 'is_locked',
+    'is_archived',
     'security_level', 'version',
   ];
   const lineStripKeys = [
@@ -502,7 +502,7 @@ export async function saveTransactionWithLines(model_name: string, payload: any)
     'uuid', 'metadata', 'prefs',
     'physical', 'actions', 'totals',
     'dt_created', 'dt_modified', 'health_rating',
-    'is_archived', 'is_locked',
+    'is_archived',
     'security_level', 'version',
   ];
   const cleanPayload = Object.fromEntries(

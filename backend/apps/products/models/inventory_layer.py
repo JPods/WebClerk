@@ -89,7 +89,6 @@ class InventoryLayer(ItemLinkedBase):
     source_doc_id = models.BigIntegerField(blank=True, null=True)
     # No app-level lock: a layer is guarded by the database row lock (select_for_update nowait)
     # under the item's lock; the soft lock had no caller (Bill, 2026-09-28, Fable review D2).
-    is_locked = models.BooleanField(default=False, db_index=True)
 
     class Meta:
         indexes = [

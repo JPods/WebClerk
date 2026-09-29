@@ -533,7 +533,7 @@ def _build_columns(model_key, field_map):
 
     # Detail fields: human-meaningful first, system/JSON last
     SYSTEM = {'id', 'uuid', 'version', 'security_level', 'health_rating',
-              'is_archived', 'is_locked', 'search_vector',
+              'is_archived', 'search_vector',
               'dt_created', 'dt_modified', 'dt_approved', 'times_used', 'dt_last_used',
               'parent_id', 'parent_model', 'line_increment', 'row_version'}
     JSON_ENVELOPES = {

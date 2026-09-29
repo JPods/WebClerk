@@ -124,3 +124,17 @@ def test_a_superuser_put_cannot_clear_the_journal_mark(django_user_model):
     assert 'system_field' in resp.content.decode()
     invoice.refresh_from_db()
     assert invoice.dt_journaled == JOURNALED
+
+
+def test_no_model_setting_or_bundle_names_is_locked():
+    """R2: dt_journaled is the one journal lock; is_locked is gone everywhere (Bill, 2026-09-28)."""
+    from pathlib import Path
+    from django.apps import apps as dj_apps
+    from apps.core.models import Setting
+    carriers = sorted(m._meta.label for m in dj_apps.get_models()
+                      if any(f.name == 'is_locked' for f in m._meta.get_fields()))
+    assert not carriers, carriers
+    assert not Setting.objects.filter(config__icontains='"is_locked"').exists()
+    root = Path(__file__).resolve().parent.parent
+    for bundle in ('demo-bundle.json', 'init-bundle.json', 'settings-bundle.json'):
+        assert '"is_locked"' not in (root / bundle).read_text(), bundle

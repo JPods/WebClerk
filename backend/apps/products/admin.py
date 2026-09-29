@@ -13,7 +13,7 @@ from .models.specification import Specification
 
 @admin.register(Item)
 class ItemAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
-    # Scalar fields: base_uom, description, dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, is_locked, kind, name, qr_code, row_version, security_level, sku, specification_id, uom, uuid, version
+    # Scalar fields: base_uom, description, dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, kind, name, qr_code, row_version, security_level, sku, specification_id, uom, uuid, version
     list_display = ("ida", "name", "sku", "description", "kind", "base_uom", "is_active", "dt_created")
     list_filter = ("kind", "is_active")
     search_fields = ("ida", "name", "sku", "description")
@@ -22,15 +22,15 @@ class ItemAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdm
 
 @admin.register(ItemXRef)
 class ItemXRefAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
-    # Scalar fields: dt_created, dt_modified, external_sku, external_uuid, health_rating, is_active, is_archived, is_deleted, is_locked, is_preferred, security_level, source, source_id, source_model_name, source_name, status, uuid, version
-    list_display = ("status", "external_sku", "external_uuid", "health_rating", "is_locked", "is_preferred", "is_active", "dt_created")
+    # Scalar fields: dt_created, dt_modified, external_sku, external_uuid, health_rating, is_active, is_archived, is_deleted, is_preferred, security_level, source, source_id, source_model_name, source_name, status, uuid, version
+    list_display = ("status", "external_sku", "external_uuid", "health_rating", "is_preferred", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("ida", "description")
 
 
 @admin.register(BillOfMaterial)
 class BillOfMaterialAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
-    # Scalar fields: alternate_group, change_reason, child_description, child_ida, cost_snapshot, dt_created, dt_effective_from, dt_effective_to, dt_last_recalc, dt_modified, health_rating, is_active, is_alternate, is_archived, is_deleted, is_locked, is_optional, parent_description, parent_ida, quantity, revision, scrap_factor, security_level, sequence, uuid, version, yield_pct
+    # Scalar fields: alternate_group, change_reason, child_description, child_ida, cost_snapshot, dt_created, dt_effective_from, dt_effective_to, dt_last_recalc, dt_modified, health_rating, is_active, is_alternate, is_archived, is_deleted, is_optional, parent_description, parent_ida, quantity, revision, scrap_factor, security_level, sequence, uuid, version, yield_pct
     list_display = ("quantity", "child_ida", "child_description", "parent_ida", "parent_description", "cost_snapshot", "dt_effective_from", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("ida", "description")
@@ -38,55 +38,55 @@ class BillOfMaterialAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admi
 
 @admin.register(Warehouse)
 class WarehouseAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
-    # Scalar fields: code, dt_created, dt_modified, health_rating, is_active, is_archived, is_deleted, is_locked, name, priority, security_level, site_code, uuid, version
-    list_display = ("name", "code", "health_rating", "is_locked", "priority", "security_level", "is_active", "dt_created")
+    # Scalar fields: code, dt_created, dt_modified, health_rating, is_active, is_archived, is_deleted, name, priority, security_level, site_code, uuid, version
+    list_display = ("name", "code", "health_rating", "priority", "security_level", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("ida", "description")
 
 
 @admin.register(InventoryLayer)
 class InventoryLayerAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
-    # Scalar fields: dt_created, dt_modified, health_rating, is_active, is_archived, is_deleted, is_locked, lot, security_level, serial_batch, source_doc_id, source_doc_type, status, uuid, version
-    list_display = ("status", "health_rating", "is_locked", "lot", "security_level", "serial_batch", "is_active", "dt_created")
+    # Scalar fields: dt_created, dt_modified, health_rating, is_active, is_archived, is_deleted, lot, security_level, serial_batch, source_doc_id, source_doc_type, status, uuid, version
+    list_display = ("status", "health_rating", "lot", "security_level", "serial_batch", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("ida", "description")
 
 
 @admin.register(SiteInventory)
 class SiteInventoryAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
-    # Scalar fields: dt_created, dt_modified, health_rating, is_active, is_archived, is_deleted, is_locked, security_level, site_code, status, uuid, version
-    list_display = ("status", "health_rating", "is_locked", "security_level", "site_code", "is_active", "dt_created")
+    # Scalar fields: dt_created, dt_modified, health_rating, is_active, is_archived, is_deleted, security_level, site_code, status, uuid, version
+    list_display = ("status", "health_rating", "security_level", "site_code", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("ida", "description")
 
 
 @admin.register(InventoryMovement)
 class InventoryMovementAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
-    # Scalar fields: dt_created, dt_modified, health_rating, is_active, is_archived, is_deleted, is_locked, movement_type, quantity, reason, security_level, site_code, source_doc_id, source_doc_type, status, uuid, version
-    list_display = ("status", "health_rating", "is_locked", "movement_type", "quantity", "reason", "is_active", "dt_created")
+    # Scalar fields: dt_created, dt_modified, health_rating, is_active, is_archived, is_deleted, movement_type, quantity, reason, security_level, site_code, source_doc_id, source_doc_type, status, uuid, version
+    list_display = ("status", "health_rating", "movement_type", "quantity", "reason", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("ida", "description")
 
 
 @admin.register(Serial)
 class SerialAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
-    # Scalar fields: description, dt_created, dt_modified, health_rating, is_active, is_archived, is_deleted, is_locked, item_ida, model_ida, qr_code, security_level, serial_ida, status, uuid, version
-    list_display = ("description", "status", "health_rating", "is_locked", "item_ida", "model_ida", "is_active", "dt_created")
+    # Scalar fields: description, dt_created, dt_modified, health_rating, is_active, is_archived, is_deleted, item_ida, model_ida, qr_code, security_level, serial_ida, status, uuid, version
+    list_display = ("description", "status", "health_rating", "item_ida", "model_ida", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("ida", "description")
 
 
 @admin.register(SerialLog)
 class SerialLogAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
-    # Scalar fields: action, dt, dt_created, dt_modified, health_rating, is_active, is_archived, is_deleted, is_locked, security_level, uuid, version
-    list_display = ("action", "dt", "health_rating", "is_locked", "security_level", "is_active", "dt_created")
+    # Scalar fields: action, dt, dt_created, dt_modified, health_rating, is_active, is_archived, is_deleted, security_level, uuid, version
+    list_display = ("action", "dt", "health_rating", "security_level", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("ida", "description")
 
 
 @admin.register(Catalog)
 class CatalogAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
-    # Scalar fields: code, currency, dt_created, dt_effective_end, dt_effective_start, dt_modified, health_rating, is_active, is_archived, is_deleted, is_locked, name, security_level, uuid, version
+    # Scalar fields: code, currency, dt_created, dt_effective_end, dt_effective_start, dt_modified, health_rating, is_active, is_archived, is_deleted, name, security_level, uuid, version
     list_display = ("name", "code", "currency", "dt_effective_end", "dt_effective_start", "health_rating", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("ida", "description")
@@ -94,31 +94,31 @@ class CatalogAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.Model
 
 @admin.register(CatalogLine)
 class CatalogLineAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
-    # Scalar fields: discount_amount, discount_percent, dt_created, dt_modified, health_rating, is_active, is_archived, is_deleted, is_locked, price_unit, security_level, status, uuid, version
-    list_display = ("status", "discount_amount", "discount_percent", "health_rating", "is_locked", "price_unit", "is_active", "dt_created")
+    # Scalar fields: discount_amount, discount_percent, dt_created, dt_modified, health_rating, is_active, is_archived, is_deleted, price_unit, security_level, status, uuid, version
+    list_display = ("status", "discount_amount", "discount_percent", "health_rating", "price_unit", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("ida", "description")
 
 
 @admin.register(ItemUsage)
 class ItemUsageAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
-    # Scalar fields: description, dt_created, dt_modified, health_rating, is_active, is_archived, is_deleted, is_locked, item_ida, month, security_level, status, uuid, version, year
-    list_display = ("description", "status", "health_rating", "is_locked", "item_ida", "month", "is_active", "dt_created")
+    # Scalar fields: description, dt_created, dt_modified, health_rating, is_active, is_archived, is_deleted, item_ida, month, security_level, status, uuid, version, year
+    list_display = ("description", "status", "health_rating", "item_ida", "month", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("ida", "description")
 
 
 @admin.register(InventoryMetricsSnapshot)
 class InventoryMetricsSnapshotAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
-    # Scalar fields: dt_created, dt_modified, health_rating, is_active, is_archived, is_deleted, is_locked, security_level, uuid, version
-    list_display = ("health_rating", "is_locked", "security_level", "is_active", "dt_created")
+    # Scalar fields: dt_created, dt_modified, health_rating, is_active, is_archived, is_deleted, security_level, uuid, version
+    list_display = ("health_rating", "security_level", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ()
 
 
 @admin.register(InventoryAdjustmentProcessorRun)
 class InventoryAdjustmentProcessorRunAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
-    # Scalar fields: applied, attempted, canceled, dry_run, dt_created, dt_finished, dt_modified, dt_started, duration_s, health_rating, insufficient, is_active, is_archived, is_deleted, is_locked, reserved_conflict_skipped, run_type, security_level, skipped_locked, stack_id, still_locked, uuid, version
+    # Scalar fields: applied, attempted, canceled, dry_run, dt_created, dt_finished, dt_modified, dt_started, duration_s, health_rating, insufficient, is_active, is_archived, is_deleted, reserved_conflict_skipped, run_type, security_level, skipped_locked, stack_id, still_locked, uuid, version
     list_display = ("applied", "attempted", "canceled", "dry_run", "dt_finished", "dt_started", "is_active", "dt_created")
     list_filter = ("run_type", "dry_run", "is_active")
     search_fields = ("run_type",)
@@ -126,15 +126,15 @@ class InventoryAdjustmentProcessorRunAdmin(SchemaLabelsAdminMixin, ScalarFirstFi
 
 @admin.register(Variant)
 class VariantAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
-    # Scalar fields: canonical_key, description, dt_created, dt_modified, health_rating, is_active, is_archived, is_deleted, is_locked, item_ida, security_level, set_uuid, uuid, variant_uuid, version
-    list_display = ("description", "canonical_key", "health_rating", "is_locked", "item_ida", "security_level", "is_active", "dt_created")
+    # Scalar fields: canonical_key, description, dt_created, dt_modified, health_rating, is_active, is_archived, is_deleted, item_ida, security_level, set_uuid, uuid, variant_uuid, version
+    list_display = ("description", "canonical_key", "health_rating", "item_ida", "security_level", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("item_ida", "canonical_key", "description")
 
 
 @admin.register(Specification)
 class SpecificationAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
-    # Scalar fields: description, description_long, dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, is_locked, name, security_level, status, unit, uuid, version
+    # Scalar fields: description, description_long, dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, name, security_level, status, unit, uuid, version
     list_display = ("ida", "name", "description", "status", "description_long", "health_rating", "is_active", "dt_created")
     list_filter = ("status", "is_active", "unit")
     search_fields = ("name", "description", "unit", "ida")

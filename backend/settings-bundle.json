@@ -7377,7 +7377,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -7538,7 +7537,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -7678,7 +7676,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -8422,10 +8419,6 @@
             "type": "boolean",
             "label": "is active"
           },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
-          },
           "languages": {
             "type": "i18n",
             "label": "languages"
@@ -8833,7 +8826,6 @@
               "status",
               "is_deleted",
               "is_archived",
-              "is_locked",
               "priority"
             ]
           },
@@ -9213,7 +9205,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -9315,7 +9306,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -9413,7 +9403,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -9922,10 +9911,6 @@
             "type": "boolean",
             "label": "is active"
           },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
-          },
           "longitude": {
             "pair": "latitude",
             "type": "geo",
@@ -10084,7 +10069,6 @@
               "status",
               "is_deleted",
               "is_archived",
-              "is_locked",
               "state"
             ]
           },
@@ -10320,7 +10304,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -10422,7 +10405,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -10521,7 +10503,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -10894,7 +10875,6 @@
                 "dt_last_used",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "health_rating"
               ]
             }
@@ -11030,10 +11010,6 @@
           "is_active": {
             "type": "boolean",
             "label": "is active"
-          },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
           },
           "dt_created": {
             "type": "readonly",
@@ -11183,7 +11159,6 @@
               "is_active",
               "is_deleted",
               "is_archived",
-              "is_locked",
               "status"
             ]
           },
@@ -11377,7 +11352,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -11469,7 +11443,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -11561,7 +11534,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -11890,7 +11862,6 @@
                 "dt_last_used",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "health_rating"
               ]
             }
@@ -12008,10 +11979,6 @@
           "is_active": {
             "type": "boolean",
             "label": "is active"
-          },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
           },
           "contact_id": {
             "type": "number",
@@ -12158,8 +12125,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -12356,7 +12322,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -12453,7 +12418,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -12548,7 +12512,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -12915,7 +12878,6 @@
                 "dt_last_used",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "health_rating"
               ]
             }
@@ -13062,10 +13024,6 @@
           "is_active": {
             "type": "boolean",
             "label": "is active"
-          },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
           },
           "record_id": {
             "type": "number",
@@ -13234,7 +13192,6 @@
               "status",
               "is_deleted",
               "is_archived",
-              "is_locked",
               "priority"
             ]
           },
@@ -13430,7 +13387,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -13507,7 +13463,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -13594,7 +13549,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -13918,7 +13872,6 @@
                 "times_used",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "health_rating",
                 "dt_last_used"
               ]
@@ -14021,10 +13974,6 @@
           "is_active": {
             "type": "boolean",
             "label": "is active"
-          },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
           },
           "use_count": {
             "type": "number",
@@ -14164,8 +14113,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -14361,7 +14309,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -14439,7 +14386,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -14524,7 +14470,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -14823,7 +14768,6 @@
                 "dt_last_used",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "health_rating"
               ]
             }
@@ -14956,10 +14900,6 @@
           "is_active": {
             "type": "boolean",
             "label": "is active"
-          },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
           },
           "dt_created": {
             "type": "readonly",
@@ -15104,7 +15044,6 @@
               "status",
               "is_deleted",
               "is_archived",
-              "is_locked",
               "is_completed",
               "priority"
             ]
@@ -15296,7 +15235,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -15410,7 +15348,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -15513,7 +15450,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -15964,10 +15900,6 @@
             "type": "boolean",
             "label": "is active"
           },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
-          },
           "yield_pct": {
             "type": "percentage",
             "label": "yield pct"
@@ -16157,7 +16089,6 @@
               "status",
               "is_deleted",
               "is_archived",
-              "is_locked",
               "is_alternate",
               "is_optional"
             ]
@@ -16356,7 +16287,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "prefs",
                 "actions",
                 "comments",
@@ -16486,7 +16416,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "prefs",
                 "actions",
                 "comments",
@@ -16605,7 +16534,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "prefs",
                 "actions",
                 "comments",
@@ -17387,10 +17315,6 @@
             "type": "boolean",
             "label": "is active"
           },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
-          },
           "parent_id": {
             "type": "number",
             "label": "parent id"
@@ -17660,8 +17584,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -17892,7 +17815,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -17997,7 +17919,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -18098,7 +18019,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -18450,7 +18370,6 @@
                 "dt_last_used",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "health_rating"
               ]
             }
@@ -18585,10 +18504,6 @@
           "is_active": {
             "type": "boolean",
             "label": "is active"
-          },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
           },
           "applies_to": {
             "type": "json",
@@ -18784,7 +18699,6 @@
               "status",
               "is_deleted",
               "is_archived",
-              "is_locked",
               "is_active",
               "priority",
               "is_universal_pct"
@@ -18981,7 +18895,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -19066,7 +18979,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -19156,7 +19068,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -19567,7 +19478,6 @@
                 "dt_last_used",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "health_rating"
               ]
             }
@@ -19716,10 +19626,6 @@
           "is_active": {
             "type": "boolean",
             "label": "is active"
-          },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
           },
           "dt_created": {
             "type": "readonly",
@@ -19872,8 +19778,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -20106,7 +20011,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -20241,7 +20145,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -20367,7 +20270,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -20945,7 +20847,6 @@
                 "dt_last_used",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "health_rating",
                 "email_id",
                 "address_id",
@@ -21135,10 +21036,6 @@
           "is_active": {
             "type": "boolean",
             "label": "is active"
-          },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
           },
           "name_last": {
             "type": "text",
@@ -21360,7 +21257,6 @@
               "status",
               "is_deleted",
               "is_archived",
-              "is_locked",
               "is_superuser",
               "is_active",
               "is_staff"
@@ -21589,7 +21485,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -21658,7 +21553,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -21737,7 +21631,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -22022,7 +21915,6 @@
                 "dt_last_used",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "health_rating"
               ]
             }
@@ -22128,10 +22020,6 @@
           "is_active": {
             "type": "boolean",
             "label": "is active"
-          },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
           },
           "precision": {
             "type": "number",
@@ -22252,7 +22140,6 @@
               "status",
               "is_deleted",
               "is_archived",
-              "is_locked",
               "is_active"
             ]
           },
@@ -22492,7 +22379,6 @@
                 "status",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -22621,7 +22507,6 @@
                 "status",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -22745,7 +22630,6 @@
                 "status",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -23332,7 +23216,6 @@
                 "dt_last_used",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "health_rating",
                 "address_id",
                 "email_id",
@@ -23572,10 +23455,6 @@
           "is_active": {
             "type": "boolean",
             "label": "is active"
-          },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
           },
           "relations": {
             "type": "json",
@@ -23867,8 +23746,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -24106,7 +23984,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -24187,7 +24064,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -24274,7 +24150,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -24501,7 +24376,6 @@
                 "dt_last_used",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "health_rating",
                 "parent_model"
               ]
@@ -24616,10 +24490,6 @@
           "is_active": {
             "type": "boolean",
             "label": "is active"
-          },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
           },
           "contact_id": {
             "type": "number",
@@ -24751,8 +24621,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -24968,7 +24837,6 @@
                 "status",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -25069,7 +24937,6 @@
                 "status",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -25172,7 +25039,6 @@
                 "status",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -25764,10 +25630,6 @@
             "type": "boolean",
             "label": "is active"
           },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
-          },
           "mime_type": {
             "type": "text",
             "label": "mime type"
@@ -25949,8 +25811,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -26174,7 +26035,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -26244,7 +26104,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -26321,7 +26180,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -26732,10 +26590,6 @@
             "type": "boolean",
             "label": "is active"
           },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
-          },
           "contact_id": {
             "type": "number",
             "label": "contact id"
@@ -26877,8 +26731,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -27070,7 +26923,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -27150,7 +27002,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -27240,7 +27091,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -27708,10 +27558,6 @@
             "type": "boolean",
             "label": "is active"
           },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
-          },
           "contact_id": {
             "type": "number",
             "label": "contact id"
@@ -27870,7 +27716,6 @@
               "status",
               "is_deleted",
               "is_archived",
-              "is_locked",
               "is_primary",
               "is_verified"
             ]
@@ -28062,7 +27907,6 @@
                 "status",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -28191,7 +28035,6 @@
                 "status",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -28310,7 +28153,6 @@
                 "status",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -28889,7 +28731,6 @@
                 "dt_last_used",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "health_rating",
                 "address_id",
                 "email_id",
@@ -29129,10 +28970,6 @@
           "is_active": {
             "type": "boolean",
             "label": "is active"
-          },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
           },
           "relations": {
             "type": "json",
@@ -29412,8 +29249,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -29620,7 +29456,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -29701,7 +29536,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -29788,7 +29622,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -30015,7 +29848,6 @@
                 "dt_last_used",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "health_rating",
                 "parent_model"
               ]
@@ -30130,10 +29962,6 @@
           "is_active": {
             "type": "boolean",
             "label": "is active"
-          },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
           },
           "contact_id": {
             "type": "number",
@@ -30265,8 +30093,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -30458,7 +30285,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -30579,7 +30405,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -30931,7 +30756,6 @@
                 "dt_last_used",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "health_rating"
               ]
             }
@@ -31107,10 +30931,6 @@
           "is_active": {
             "type": "boolean",
             "label": "is active"
-          },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
           },
           "dt_created": {
             "type": "readonly",
@@ -31295,8 +31115,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -31544,7 +31363,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -31673,7 +31491,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -32173,10 +31990,6 @@
             "type": "boolean",
             "label": "is active"
           },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
-          },
           "source_id": {
             "type": "number",
             "label": "source id"
@@ -32335,8 +32148,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -32530,7 +32342,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -32628,7 +32439,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -32721,7 +32531,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -33059,7 +32868,6 @@
                 "dt_last_used",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "health_rating"
               ]
             }
@@ -33177,10 +32985,6 @@
           "is_active": {
             "type": "boolean",
             "label": "is active"
-          },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
           },
           "dt_created": {
             "type": "readonly",
@@ -33332,8 +33136,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -33543,7 +33346,6 @@
                 "serial_batch",
                 "source_doc_type",
                 "source_doc_id",
-                "is_locked",
                 "dt_locked"
               ],
               "create": false,
@@ -33631,7 +33433,6 @@
                 "serial_batch",
                 "source_doc_type",
                 "source_doc_id",
-                "is_locked",
                 "dt_locked"
               ],
               "create": true,
@@ -33716,7 +33517,6 @@
                 "serial_batch",
                 "source_doc_type",
                 "source_doc_id",
-                "is_locked",
                 "dt_locked"
               ],
               "create": false,
@@ -34000,8 +33800,7 @@
                 "dt_last_used",
                 "is_deleted",
                 "is_archived",
-                "health_rating",
-                "is_locked"
+                "health_rating"
               ]
             }
           }
@@ -34120,10 +33919,6 @@
           "is_active": {
             "type": "boolean",
             "label": "is active"
-          },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
           },
           "warehouse": {
             "type": "lookup",
@@ -34264,8 +34059,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -34463,7 +34257,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -34521,7 +34314,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -34587,7 +34379,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -34837,7 +34628,6 @@
                 "dt_last_used",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "health_rating"
               ]
             }
@@ -34931,10 +34721,6 @@
           "is_active": {
             "type": "boolean",
             "label": "is active"
-          },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
           },
           "dt_created": {
             "type": "readonly",
@@ -35046,8 +34832,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -35242,7 +35027,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -35328,7 +35112,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -35418,7 +35201,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -35764,7 +35546,6 @@
                 "dt_last_used",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "health_rating"
               ]
             }
@@ -35895,10 +35676,6 @@
           "metadata": {
             "type": "json-tree",
             "label": "metadata"
-          },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
           },
           "warehouse": {
             "type": "lookup",
@@ -36063,7 +35840,6 @@
               "status",
               "is_deleted",
               "is_archived",
-              "is_locked",
               "state"
             ]
           },
@@ -36315,7 +36091,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "prefs",
                 "comments",
                 "health_rating",
@@ -36455,7 +36230,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "prefs",
                 "comments",
                 "health_rating",
@@ -36577,7 +36351,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "prefs",
                 "comments",
                 "health_rating",
@@ -37529,10 +37302,6 @@
             "type": "boolean",
             "label": "is active"
           },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
-          },
           "parent_id": {
             "type": "number",
             "label": "parent id"
@@ -38304,7 +38073,6 @@
               "status",
               "is_deleted",
               "is_archived",
-              "is_locked",
               "priority",
               "is_commission"
             ]
@@ -38574,7 +38342,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -38660,7 +38427,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -38746,7 +38512,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -39251,10 +39016,6 @@
             "type": "boolean",
             "label": "is active"
           },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
-          },
           "line_type": {
             "type": "select",
             "label": "line type",
@@ -39656,8 +39417,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -39900,7 +39660,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -40017,7 +39776,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -40137,7 +39895,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -40706,7 +40463,6 @@
                 "dt_last_used",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "health_rating",
                 "specification_id",
                 "row_version",
@@ -40924,10 +40680,6 @@
           "is_active": {
             "type": "boolean",
             "label": "is active"
-          },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
           },
           "dt_created": {
             "type": "readonly",
@@ -41227,8 +40979,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -41456,7 +41207,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -41528,7 +41278,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -41606,7 +41355,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -41897,7 +41645,6 @@
                 "dt_last_used",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "health_rating"
               ]
             }
@@ -42009,10 +41756,6 @@
           "is_active": {
             "type": "boolean",
             "label": "is active"
-          },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
           },
           "dt_created": {
             "type": "readonly",
@@ -42132,8 +41875,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -42328,7 +42070,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -42410,7 +42151,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -42492,7 +42232,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -42887,10 +42626,6 @@
             "type": "boolean",
             "label": "is active"
           },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
-          },
           "source_id": {
             "type": "number",
             "label": "source id"
@@ -43032,7 +42767,6 @@
               "status",
               "is_deleted",
               "is_archived",
-              "is_locked",
               "is_preferred"
             ]
           },
@@ -43229,7 +42963,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -43322,7 +43055,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -43414,7 +43146,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -43761,7 +43492,6 @@
                 "dt_last_used",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "health_rating"
               ]
             }
@@ -43861,10 +43591,6 @@
           "is_active": {
             "type": "boolean",
             "label": "is active"
-          },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
           },
           "batch_type": {
             "type": "text",
@@ -44031,8 +43757,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -44256,7 +43981,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -44363,7 +44087,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -44464,7 +44187,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -44970,10 +44692,6 @@
             "type": "boolean",
             "label": "is active"
           },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
-          },
           "parent_id": {
             "type": "number",
             "label": "parent id"
@@ -45140,7 +44858,6 @@
               "status",
               "is_deleted",
               "is_archived",
-              "is_locked",
               "is_cleared",
               "is_void"
             ]
@@ -45339,7 +45056,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -45417,7 +45133,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -45502,7 +45217,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -45804,7 +45518,6 @@
                 "dt_last_used",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "health_rating"
               ]
             }
@@ -45918,10 +45631,6 @@
           "is_active": {
             "type": "boolean",
             "label": "is active"
-          },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
           },
           "record_id": {
             "type": "number",
@@ -46049,8 +45758,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -46241,7 +45949,6 @@
                 "status",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -46370,7 +46077,6 @@
                 "status",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -46489,7 +46195,6 @@
                 "status",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -47075,7 +46780,6 @@
                 "dt_last_used",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "health_rating",
                 "address_id",
                 "email_id",
@@ -47315,10 +47019,6 @@
           "is_active": {
             "type": "boolean",
             "label": "is active"
-          },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
           },
           "relations": {
             "type": "json",
@@ -47610,8 +47310,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -47848,7 +47547,6 @@
                 "status",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -47914,7 +47612,6 @@
                 "status",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -47991,7 +47688,6 @@
                 "status",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -48272,7 +47968,6 @@
                 "dt_last_used",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "health_rating"
               ]
             }
@@ -48370,10 +48065,6 @@
           "is_active": {
             "type": "boolean",
             "label": "is active"
-          },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
           },
           "record_id": {
             "type": "text",
@@ -48497,8 +48188,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -48730,7 +48420,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -48867,7 +48556,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -48987,7 +48675,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -49917,10 +49604,6 @@
             "type": "boolean",
             "label": "is active"
           },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
-          },
           "parent_id": {
             "type": "number",
             "label": "parent id"
@@ -50687,7 +50370,6 @@
               "status",
               "is_deleted",
               "is_archived",
-              "is_locked",
               "priority",
               "is_commission"
             ]
@@ -50957,7 +50639,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -51043,7 +50724,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -51129,7 +50809,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -51634,10 +51313,6 @@
             "type": "boolean",
             "label": "is active"
           },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
-          },
           "line_type": {
             "type": "select",
             "label": "line type",
@@ -52039,8 +51714,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -52239,7 +51913,6 @@
                 "status",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -52368,7 +52041,6 @@
                 "status",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -52487,7 +52159,6 @@
                 "status",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -52950,7 +52621,6 @@
                 "dt_last_used",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "health_rating",
                 "address_id",
                 "email_id",
@@ -53186,10 +52856,6 @@
           "is_active": {
             "type": "boolean",
             "label": "is active"
-          },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
           },
           "relations": {
             "type": "json",
@@ -53465,8 +53131,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -54364,7 +54029,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -54442,7 +54106,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -54528,7 +54191,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -54963,10 +54625,6 @@
             "type": "boolean",
             "label": "is active"
           },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
-          },
           "contact_id": {
             "type": "number",
             "label": "contact id"
@@ -55093,8 +54751,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -55312,7 +54969,6 @@
                 "status",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -55425,7 +55081,6 @@
                 "status",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -55535,7 +55190,6 @@
                 "status",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -56060,7 +55714,6 @@
                 "dt_last_used",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "health_rating"
               ]
             }
@@ -56250,10 +55903,6 @@
           "is_active": {
             "type": "boolean",
             "label": "is active"
-          },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
           },
           "logistics": {
             "type": "json",
@@ -56467,7 +56116,6 @@
               "status",
               "is_deleted",
               "is_archived",
-              "is_locked",
               "priority"
             ]
           },
@@ -56719,7 +56367,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -56785,7 +56432,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -56859,7 +56505,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -57141,7 +56786,6 @@
                 "dt_last_used",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "health_rating"
               ]
             }
@@ -57241,10 +56885,6 @@
           "is_active": {
             "type": "boolean",
             "label": "is active"
-          },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
           },
           "object_id": {
             "type": "number",
@@ -57368,8 +57008,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -57595,7 +57234,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -57735,7 +57373,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -57857,7 +57494,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -58798,10 +58434,6 @@
             "type": "boolean",
             "label": "is active"
           },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
-          },
           "parent_id": {
             "type": "number",
             "label": "parent id"
@@ -59568,7 +59200,6 @@
               "status",
               "is_deleted",
               "is_archived",
-              "is_locked",
               "priority",
               "is_commission"
             ]
@@ -59839,7 +59470,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -59925,7 +59555,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -60011,7 +59640,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -60516,10 +60144,6 @@
             "type": "boolean",
             "label": "is active"
           },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
-          },
           "line_type": {
             "type": "select",
             "label": "line type",
@@ -60921,8 +60545,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -61161,7 +60784,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -61298,7 +60920,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -61418,7 +61039,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -62335,10 +61955,6 @@
             "type": "boolean",
             "label": "is active"
           },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
-          },
           "parent_id": {
             "type": "number",
             "label": "parent id"
@@ -63105,7 +62721,6 @@
               "status",
               "is_deleted",
               "is_archived",
-              "is_locked",
               "priority",
               "is_commission"
             ]
@@ -63375,7 +62990,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -63459,7 +63073,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -63544,7 +63157,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -64028,10 +63640,6 @@
             "type": "boolean",
             "label": "is active"
           },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
-          },
           "line_type": {
             "type": "select",
             "label": "line type",
@@ -64387,8 +63995,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -64588,7 +64195,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -64675,7 +64281,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -64765,7 +64370,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -65176,10 +64780,6 @@
             "type": "boolean",
             "label": "is active"
           },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
-          },
           "parent_id": {
             "type": "number",
             "label": "parent id"
@@ -65324,8 +64924,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -65519,7 +65118,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -65612,7 +65210,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -65704,7 +65301,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -66435,10 +66031,6 @@
             "type": "boolean",
             "label": "is active"
           },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
-          },
           "workorder": {
             "type": "lookup",
             "label": "workorder",
@@ -66610,8 +66202,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -66838,7 +66429,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -66943,7 +66533,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -67042,7 +66631,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -67543,10 +67131,6 @@
             "type": "boolean",
             "label": "is active"
           },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
-          },
           "line_type": {
             "type": "select",
             "label": "line type",
@@ -67941,8 +67525,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -68141,7 +67724,6 @@
                 "status",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -68270,7 +67852,6 @@
                 "status",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -68389,7 +67970,6 @@
                 "status",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -68972,7 +68552,6 @@
                 "dt_last_used",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "health_rating",
                 "address_id",
                 "email_id",
@@ -69212,10 +68791,6 @@
           "is_active": {
             "type": "boolean",
             "label": "is active"
-          },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
           },
           "relations": {
             "type": "json",
@@ -69495,8 +69070,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -69702,7 +69276,6 @@
                 "status",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -69803,7 +69376,6 @@
                 "status",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -69907,7 +69479,6 @@
                 "status",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -70298,7 +69869,6 @@
                 "dt_last_used",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "health_rating"
               ]
             }
@@ -70435,10 +70005,6 @@
           "is_active": {
             "type": "boolean",
             "label": "is active"
-          },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
           },
           "record_id": {
             "type": "text",
@@ -70718,8 +70284,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -70909,7 +70474,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -70969,7 +70533,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -71042,7 +70605,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -71526,7 +71088,6 @@
                 "dt_last_used",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "health_rating"
               ]
             }
@@ -71636,10 +71197,6 @@
           "is_active": {
             "type": "boolean",
             "label": "is active"
-          },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
           },
           "dt_created": {
             "type": "readonly",
@@ -71765,8 +71322,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -71956,7 +71512,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -72040,7 +71595,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -72125,7 +71679,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -72471,7 +72024,6 @@
                 "dt_last_used",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "health_rating"
               ]
             }
@@ -72601,10 +72153,6 @@
           "is_active": {
             "type": "boolean",
             "label": "is active"
-          },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
           },
           "line_type": {
             "type": "select",
@@ -72967,8 +72515,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -73166,7 +72713,6 @@
                 "status",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -73247,7 +72793,6 @@
                 "status",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -73331,7 +72876,6 @@
                 "status",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -73747,10 +73291,6 @@
             "type": "boolean",
             "label": "is active"
           },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
-          },
           "model_ida": {
             "type": "text",
             "label": "model ida"
@@ -73900,8 +73440,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -74090,7 +73629,6 @@
                 "status",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -74155,7 +73693,6 @@
                 "status",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -74226,7 +73763,6 @@
                 "status",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -74594,10 +74130,6 @@
             "type": "boolean",
             "label": "is active"
           },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
-          },
           "dt_created": {
             "type": "readonly",
             "label": "dt created"
@@ -74723,8 +74255,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -74918,7 +74449,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -75026,7 +74556,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -75352,7 +74881,6 @@
                 "dt_last_used",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "health_rating",
                 "parent_model"
               ]
@@ -75467,10 +74995,6 @@
           "is_active": {
             "type": "boolean",
             "label": "is active"
-          },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
           },
           "contact_id": {
             "type": "number",
@@ -75602,8 +75126,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -75794,7 +75317,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -75894,7 +75416,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -75994,7 +75515,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -76361,7 +75881,6 @@
                 "dt_last_used",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "health_rating"
               ]
             }
@@ -76499,10 +76018,6 @@
           "is_active": {
             "type": "boolean",
             "label": "is active"
-          },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
           },
           "dt_created": {
             "type": "readonly",
@@ -76654,8 +76169,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -76848,7 +76362,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -76944,7 +76457,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -77038,7 +76550,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -77393,7 +76904,6 @@
                 "dt_last_used",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "health_rating"
               ]
             }
@@ -77538,10 +77048,6 @@
           "is_active": {
             "type": "boolean",
             "label": "is active"
-          },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
           },
           "connection": {
             "type": "lookup",
@@ -77698,8 +77204,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -77894,7 +77399,6 @@
                 "status",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -77966,7 +77470,6 @@
                 "status",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -78047,7 +77550,6 @@
                 "status",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -78334,7 +77836,6 @@
                 "dt_last_used",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "health_rating"
               ]
             }
@@ -78436,10 +77937,6 @@
           "is_active": {
             "type": "boolean",
             "label": "is active"
-          },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
           },
           "record_id": {
             "type": "number",
@@ -78569,8 +78066,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -78761,7 +78257,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -78841,7 +78336,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -78924,7 +78418,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -79234,7 +78727,6 @@
                 "dt_last_used",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "health_rating"
               ]
             }
@@ -79336,10 +78828,6 @@
           "is_active": {
             "type": "boolean",
             "label": "is active"
-          },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
           },
           "dt_created": {
             "type": "readonly",
@@ -79484,7 +78972,6 @@
               "status",
               "is_deleted",
               "is_archived",
-              "is_locked",
               "is_active"
             ]
           },
@@ -79679,7 +79166,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -79769,7 +79255,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -79865,7 +79350,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -80196,7 +79680,6 @@
                 "dt_last_used",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "health_rating"
               ]
             }
@@ -80302,10 +79785,6 @@
           "is_active": {
             "type": "boolean",
             "label": "is active"
-          },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
           },
           "dt_created": {
             "type": "readonly",
@@ -80460,8 +79939,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -80652,7 +80130,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -80760,7 +80237,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -80862,7 +80338,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -81421,10 +80896,6 @@
             "type": "boolean",
             "label": "is active"
           },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
-          },
           "logged_by": {
             "type": "number",
             "label": "logged by"
@@ -81615,8 +81086,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -81808,7 +81278,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -81887,7 +81356,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -81970,7 +81438,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -82362,10 +81829,6 @@
             "type": "boolean",
             "label": "is active"
           },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
-          },
           "dt_created": {
             "type": "readonly",
             "label": "dt created"
@@ -82501,8 +81964,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -82693,7 +82155,6 @@
                 "status",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -82822,7 +82283,6 @@
                 "status",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -82946,7 +82406,6 @@
                 "status",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -83533,7 +82992,6 @@
                 "dt_last_used",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "health_rating",
                 "address_id",
                 "email_id",
@@ -83773,10 +83231,6 @@
           "is_active": {
             "type": "boolean",
             "label": "is active"
-          },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
           },
           "relations": {
             "type": "json",
@@ -84068,8 +83522,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -84305,7 +83758,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -84377,7 +83829,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -84455,7 +83906,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -84751,7 +84201,6 @@
                 "dt_last_used",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "health_rating"
               ]
             }
@@ -84880,10 +84329,6 @@
           "is_active": {
             "type": "boolean",
             "label": "is active"
-          },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
           },
           "site_code": {
             "type": "text",
@@ -85022,7 +84467,6 @@
               "status",
               "is_deleted",
               "is_archived",
-              "is_locked",
               "priority",
               "is_active"
             ]
@@ -85214,7 +84658,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -85295,7 +84738,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -85382,7 +84824,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -85600,7 +85041,6 @@
                 "dt_last_used",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "health_rating",
                 "parent_model"
               ]
@@ -85715,10 +85155,6 @@
           "is_active": {
             "type": "boolean",
             "label": "is active"
-          },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
           },
           "contact_id": {
             "type": "number",
@@ -85850,8 +85286,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -86042,7 +85477,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -86179,7 +85613,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -86299,7 +85732,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -87178,10 +86610,6 @@
             "type": "boolean",
             "label": "is active"
           },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
-          },
           "parent_id": {
             "type": "number",
             "label": "parent id"
@@ -87944,7 +87372,6 @@
               "status",
               "is_deleted",
               "is_archived",
-              "is_locked",
               "priority",
               "is_commission"
             ]
@@ -88211,7 +87638,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -88295,7 +87721,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -88380,7 +87805,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -88840,10 +88264,6 @@
             "type": "boolean",
             "label": "is active"
           },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
-          },
           "line_type": {
             "type": "select",
             "label": "line type",
@@ -89205,8 +88625,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {
@@ -89405,7 +88824,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -89489,7 +88907,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -89581,7 +88998,6 @@
                 "config",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "metadata",
                 "refs",
                 "prefs",
@@ -89893,7 +89309,6 @@
                 "dt_last_used",
                 "is_deleted",
                 "is_archived",
-                "is_locked",
                 "health_rating"
               ]
             }
@@ -90003,10 +89418,6 @@
           "is_active": {
             "type": "boolean",
             "label": "is active"
-          },
-          "is_locked": {
-            "type": "readonly",
-            "label": "is locked"
           },
           "nav_group": {
             "type": "text",
@@ -90148,8 +89559,7 @@
               "is_active",
               "status",
               "is_deleted",
-              "is_archived",
-              "is_locked"
+              "is_archived"
             ]
           },
           {

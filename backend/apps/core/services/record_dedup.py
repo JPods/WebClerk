@@ -329,7 +329,7 @@ def merge_records(model_name, winner_id, loser_ids, merge_strategy='fill_empty')
     # Skip these fields during merge
     skip_fields = {
         'id', 'uuid', 'ida', 'dt_created', 'dt_modified', 'dt_joined',
-        'version', 'is_active', 'is_archived', 'is_locked',
+        'version', 'is_active', 'is_archived',
         'password', 'is_superuser', 'is_staff', 'last_login',
         'metadata', 'refs', 'prefs', 'actions', 'comments', 'config',
     }
