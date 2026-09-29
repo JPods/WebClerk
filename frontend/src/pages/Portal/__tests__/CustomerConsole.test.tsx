@@ -37,22 +37,27 @@ describe('CustomerConsole', () => {
     expect(screen.getByText('of 3')).toBeTruthy();
   });
 
-  it('pays an invoice with the card form for what is owed', async () => {
+  it('Pay opens a dialog: check instructions, and card once a gateway is set up', async () => {
     data.invoice = [{ id: 9, ida: '1009-inv', totals: { total: 80, balance: 80 } }];
     render(<CustomerConsole />);
     fireEvent.click(screen.getByText('Invoices'));
-    await waitFor(() => expect((screen.getByText('Pay') as HTMLButtonElement).disabled).toBe(false));
-    fireEvent.click(screen.getByText('Pay'));
+    fireEvent.click(await screen.findByText('Pay'));
+    await waitFor(() => expect((screen.getByLabelText('Pay by') as HTMLSelectElement).value).toBe('card'));
     expect(screen.getByText('card form for invoice 9: 80')).toBeTruthy();
+    fireEvent.change(screen.getByLabelText('Pay by'), { target: { value: 'check' } });
+    expect(screen.getByText(/Write invoice/)).toBeTruthy();
   });
 
-  it('grays out Pay until a card gateway is set up', async () => {
+  it('offers card grayed out until a card gateway is set up', async () => {
     environmentKey = '';
     data.invoice = [{ id: 9, ida: '1009-inv', totals: { total: 80, balance: 80 } }];
     render(<CustomerConsole />);
     fireEvent.click(screen.getByText('Invoices'));
-    expect(await screen.findByText(/not set up yet/)).toBeTruthy();
-    expect((screen.getByText('Pay') as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(await screen.findByText('Pay'));
+    const select = screen.getByLabelText('Pay by') as HTMLSelectElement;
+    expect(select.value).toBe('check');
+    expect((screen.getByText('Card (not set up yet)') as HTMLOptionElement).disabled).toBe(true);
+    expect(screen.queryByText(/card form/)).toBeNull();
   });
 
   it('sends a support request as a new action with its text', async () => {

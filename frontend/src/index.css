@@ -1085,6 +1085,10 @@ button.wc-portal-card:hover { border-color: var(--wc-accent, #2563eb); }
 .wc-console-field { display: grid; grid-template-columns: 110px 1fr; gap: 8px; align-items: center; margin-bottom: 8px; }
 .wc-console-dl { display: grid; grid-template-columns: 110px 1fr; gap: 6px 8px; }
 .wc-console-dl dt { color: var(--wc-text-muted, #666); }
+.wc-console-dialog { max-width: 520px; padding: 24px; }
+.wc-console-dialog select { padding: 6px 8px; border: 1px solid var(--wc-border, #e5e7eb); border-radius: 6px; font: inherit; }
+.wc-console-dialog button:not(.wc-console-link) { padding: 6px 14px; border-radius: 6px; border: 1px solid var(--wc-accent, #2563eb); background: var(--wc-accent, #2563eb); color: #fff; font: inherit; cursor: pointer; }
+.wc-console-check p { margin: 6px 0; }
 
 /* Kanban bar */
 .wc-kanban-bar { position: relative; height: 20px; background: var(--wc-border, #e5e7eb); border-radius: 4px; overflow: hidden; min-width: 120px; }

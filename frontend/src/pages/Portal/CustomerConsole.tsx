@@ -14,6 +14,7 @@ import { useAppSelector } from '../../store/hooks';
 import { formatCurrency, formatDate } from '@/utils/stringUtils';
 import SpreedlyCardForm from '../../apps/transactions/components/SpreedlyCardForm';
 import { fetchGatewayConfig } from '../../apps/transactions/models/cash/services/cashApi';
+import { Modal } from '@/components/ui/modal';
 
 type Rec = Record<string, any>;
 type Tab = 'home' | 'order' | 'invoices' | 'support' | 'account';
@@ -132,11 +133,42 @@ const OrderPanel: React.FC<{ onPlaced: () => void }> = ({ onPlaced }) => {
   );
 };
 
-/* ── Invoices: what is owed, and pay by card ─────────────────────────────── */
+/* ── Invoices: what is owed, and a Pay dialog (check, or card once a gateway is set up) ── */
+type PayBy = 'check' | 'card';
+
+const PayDialog: React.FC<{ invoice: Rec; cardReady: boolean; onClose: () => void; onPaid: () => void }> =
+  ({ invoice, cardReady, onClose, onPaid }) => {
+  const [payBy, setPayBy] = useState<PayBy>(cardReady ? 'card' : 'check');
+  const owed = Number(invoice.totals?.balance || 0);
+  return (
+    <Modal isOpen onClose={onClose} className="wc-console-dialog">
+      <h3 className="wc-portal-section-title">Pay invoice {invoice.ida}</h3>
+      <p>Amount due: <strong>{money(owed)}</strong></p>
+      <label className="wc-console-field">
+        <span>Pay by</span>
+        <select value={payBy} onChange={(e) => setPayBy(e.target.value as PayBy)} aria-label="Pay by">
+          <option value="check">Check</option>
+          {/* Card is offered once a card gateway is set up (Bill, 2026-09-29). */}
+          <option value="card" disabled={!cardReady}>Card{cardReady ? '' : ' (not set up yet)'}</option>
+        </select>
+      </label>
+      {payBy === 'check' && (
+        <div className="wc-console-check">
+          <p>Make the check payable to the company named on your invoice, for <strong>{money(owed)}</strong>.</p>
+          <p>Write invoice <strong>{invoice.ida}</strong> on the check, and mail it to the remit-to address on the invoice.</p>
+          <p className="wc-console-hint">Your balance changes when we receive the check.</p>
+          <button type="button" onClick={onClose}>Done</button>
+        </div>
+      )}
+      {payBy === 'card' && cardReady && (
+        <SpreedlyCardForm invoiceId={invoice.id} amount={owed} onSuccess={() => { onClose(); onPaid(); }} />
+      )}
+    </Modal>
+  );
+};
+
 const InvoicesPanel: React.FC<{ invoices: Rec[]; onPaid: () => void }> = ({ invoices, onPaid }) => {
   const [paying, setPaying] = useState<Rec | null>(null);
-  // Card payment is offered once a card gateway is set up; until then Pay is grayed out
-  // (Bill, 2026-09-29: "We will set that up when needed").
   const [cardReady, setCardReady] = useState(false);
   useEffect(() => {
     fetchGatewayConfig().then((c) => setCardReady(Boolean(c?.environment_key))).catch(() => setCardReady(false));
@@ -144,24 +176,10 @@ const InvoicesPanel: React.FC<{ invoices: Rec[]; onPaid: () => void }> = ({ invo
   const owed = (i: Rec) => Number(i.totals?.balance || 0);
   return (
     <>
-      {!cardReady && (
-        <p className="wc-console-hint">Paying by card online is not set up yet. Pay by check or bank transfer,
-          or send a Support request and we will help.</p>
-      )}
-      {paying && (
-        <div className="wc-console-pay">
-          <h3 className="wc-portal-section-title">Pay invoice {paying.ida}</h3>
-          <SpreedlyCardForm invoiceId={paying.id} amount={owed(paying)}
-                            onSuccess={() => { setPaying(null); onPaid(); }} />
-          <button type="button" className="wc-console-link" onClick={() => setPaying(null)}>Cancel</button>
-        </div>
-      )}
+      {paying && <PayDialog invoice={paying} cardReady={cardReady} onClose={() => setPaying(null)} onPaid={onPaid} />}
       <Table head={['Invoice', 'Date', 'Total', 'Balance', '']} empty="No invoices yet."
              rows={invoices.map((i) => [i.ida, when(i), money(i.totals?.total), money(owed(i)),
-               owed(i) > 0
-                 ? <button type="button" disabled={!cardReady} onClick={() => setPaying(i)}
-                           title={cardReady ? undefined : 'Card payment is not set up yet'}>Pay</button>
-                 : 'Paid'])} />
+               owed(i) > 0 ? <button type="button" onClick={() => setPaying(i)}>Pay</button> : 'Paid'])} />
     </>
   );
 };
