@@ -4,6 +4,7 @@ Ratchets from Fable's review of that plan: the guards read the STORED mark (R12,
 behind audit C2-01), a GL reversal writes no mark (R8), a clone is never born journalized (R11),
 and Cash carries the same mark as every header.
 """
+import secrets
 from decimal import Decimal
 
 import pytest
@@ -11,6 +12,7 @@ import pytest
 pytestmark = pytest.mark.django_db
 
 JOURNALED = 1790000000000
+TEST_PASSWORD = secrets.token_urlsafe(16)
 
 
 def _invoice_with_line():
@@ -101,3 +103,24 @@ def test_a_journalized_cash_cannot_be_deleted():
     with pytest.raises(Exception):
         cash.delete()
     assert Cash.objects.filter(pk=cash.pk).exists()
+
+
+def test_a_superuser_put_cannot_clear_the_journal_mark(django_user_model):
+    """C2-01 end to end: PUT {"dt_journaled": 0} on a journalized invoice is refused with
+    coaching (Bill, 2026-09-28), even for a superuser; the invoice stays journalized."""
+    from rest_framework.test import APIClient
+    from rest_framework_simplejwt.tokens import RefreshToken
+    admin = django_user_model.objects.create_superuser(email='jl-admin@example.com',
+                                                       password=TEST_PASSWORD)
+    token = RefreshToken.for_user(admin)
+    token['role'] = getattr(admin, 'role', 'admin')
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION=f'Bearer {token.access_token}')
+    invoice, _ = _invoice_with_line()
+    _journalize(invoice)
+    resp = client.put(f'/wcapi/invoice/{invoice.pk}/', {'dt_journaled': 0, 'version': invoice.version},
+                      format='json')
+    assert resp.status_code == 400, resp.content
+    assert 'system_field' in resp.content.decode()
+    invoice.refresh_from_db()
+    assert invoice.dt_journaled == JOURNALED

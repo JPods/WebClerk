@@ -46,6 +46,7 @@ from django.forms.models import model_to_dict
 from apps.core.services import verbs
 from apps.core.services.behaviours import HookContext
 from apps.core.services.door import Actor, Refused, SaveResult, resolve_model
+from apps.core.services.dt_fields import SYSTEM_DT_FIELDS, system_dt_coaching
 from apps.core.services.unit_of_work import flush, unit_of_work
 
 console_logger = logging.getLogger('console')
@@ -227,6 +228,18 @@ SYSTEM_ONLY_FIELDS = frozenset({'id', 'uuid', 'ida', 'dt_created', 'dt_modified'
                                 'is_archived', 'health_rating'})
 
 
+def _same_as_stored(obj, key: str, value) -> bool:
+    """True when ``value`` is what ``obj`` already holds (or the field's default, on a new record)."""
+    field = obj._meta.get_field(key)
+    stored = getattr(obj, key, None) if obj.pk else field.get_default()
+    if not value and not stored:
+        return True
+    try:
+        return field.to_python(value) == stored
+    except Exception:
+        return False
+
+
 def _enumerated_edit(actor: Actor, obj, model_key: str, data: dict):
     """Keep only what the role's edit list enumerates — the one field authority.
 
@@ -259,6 +272,11 @@ def _enumerated_edit(actor: Actor, obj, model_key: str, data: dict):
             continue
         if key.startswith('_') or key in PASSTHROUGH_KEYS:
             kept[key] = value
+        elif key in SYSTEM_DT_FIELDS and key in field_names:
+            # A system stamp is written only by its event, for every role (Bill, 2026-09-28).
+            # An echo of the stored value changes nothing and is left out; a change is refused.
+            if not _same_as_stored(obj, key, value):
+                raise Refused(400, 'system_field', system_dt_coaching(key), {'field': key})
         elif '.' not in key and key not in field_names:
             kept[key] = value
         elif key in SYSTEM_ONLY_FIELDS and not admin:

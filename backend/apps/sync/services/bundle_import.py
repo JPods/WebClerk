@@ -103,8 +103,11 @@ def _require_superuser(actor) -> None:
 
 def _row_for_door(row: Dict[str, Any]) -> Dict[str, Any]:
     """The row as the door takes it: named by uuid, never by id; an exported version dropped
-    (it would read as a stale edit)."""
-    return {k: v for k, v in row.items() if k not in ('id', 'version')}
+    (it would read as a stale edit), and the source's system stamps dropped: the door refuses
+    them (Bill, 2026-09-28), and an imported record is created, modified and journalized here,
+    by its own events. The bundle keeps the source's stamps."""
+    from apps.core.services.dt_fields import SYSTEM_DT_FIELDS
+    return {k: v for k, v in row.items() if k not in ('id', 'version') and k not in SYSTEM_DT_FIELDS}
 
 
 def _look_alikes(model_key: str, row: Dict[str, Any]) -> List[Dict[str, Any]]:

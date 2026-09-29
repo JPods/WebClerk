@@ -13,6 +13,7 @@ from rest_framework.test import APIClient
 
 from apps.core.models import Contact
 from apps.core.services.door import Actor
+from apps.core.services.dt_fields import SYSTEM_DT_FIELDS
 from apps.core.services.save import SYSTEM_ONLY_FIELDS, _enumerated_edit
 from tests.utils import wcapi_save
 
@@ -69,11 +70,34 @@ def test_system_fields_are_written_only_by_an_admin():
     employee = Actor(user=Contact.objects.create(email='e3@example.com', role='employee'))
     admin = Actor(user=Contact.objects.create(email='a1@example.com', role='admin'))
     target = Contact.objects.create(email='t2@example.com')
-    payload = {field: 1 for field in SYSTEM_ONLY_FIELDS if field not in ('id', 'version')}
+    payload = {field: 1 for field in SYSTEM_ONLY_FIELDS
+               if field not in ('id', 'version') and field not in SYSTEM_DT_FIELDS}
     kept, denied = _enumerated_edit(employee, target, 'contact', payload)
     assert kept == {} and set(denied) == set(payload)
     kept, _ = _enumerated_edit(admin, target, 'contact', {'ida': 'C-100'})
     assert kept == {'ida': 'C-100'}
+
+
+@pytest.mark.parametrize('role', ['employee', 'admin', 'superuser'])
+def test_a_system_stamp_is_refused_for_every_role(role):
+    """Bill, 2026-09-28: a system dt_ is refused with coaching, admins included (C2-01)."""
+    from apps.core.services.door import Refused
+    _grant('contact', role, {**EMPLOYEE_CONTACT, 'edit': ['@all']})
+    actor = Actor(user=Contact.objects.create(email=f'{role}@example.com', role=role,
+                                              is_superuser=(role == 'superuser')))
+    target = Contact.objects.create(email=f't-{role}@example.com')
+    with pytest.raises(Refused) as refused:
+        _enumerated_edit(actor, target, 'contact', {'dt_created': 1})
+    assert refused.value.code == 'system_field'
+
+
+def test_an_echo_of_a_stored_stamp_is_left_out_not_refused():
+    _grant('contact', 'employee', {**EMPLOYEE_CONTACT, 'edit': ['@all']})
+    actor = Actor(user=Contact.objects.create(email='echo@example.com', role='employee'))
+    target = Contact.objects.create(email='t-echo@example.com')
+    kept, _ = _enumerated_edit(actor, target, 'contact',
+                               {'dt_created': target.dt_created, 'name_first': 'A'})
+    assert 'dt_created' not in kept and kept.get('name_first') == 'A'
 
 
 def test_envelope_keys_and_signals_pass():
