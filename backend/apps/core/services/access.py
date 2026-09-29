@@ -332,10 +332,12 @@ PORTAL_CUSTOMER_ACCESS = {
     'invoice': {'view': ['@customer_view'], 'edit': [], 'scope': _OWN_CUSTOMER,
                 'create': False, 'delete': False},
     # Paying: a new Cash (purpose payservice only — the door refuses any other) and the pay
-    # command on it. 'purpose' is the one edit leaf, so the command gate admits them.
+    # command on it. The card form saves purpose, invoice_id and method before pay; pay
+    # itself refuses an invoice the customer cannot see.
     'cash': {'view': ['id', 'ida', 'amount', 'method', 'status', 'purpose', 'invoice_id',
                       'dt_cash', 'dt_created'],
-             'edit': ['purpose'], 'scope': {'customer_id__in': '$user.org_ids.customer'},
+             'edit': ['purpose', 'invoice_id', 'method'],
+             'scope': {'customer_id__in': '$user.org_ids.customer'},
              'create': True, 'delete': False},
     'action': {'view': ['id', 'ida', 'status', 'priority', 'action_type', 'dt_created',
                         'dt_completed', 'description.en', 'description.es',

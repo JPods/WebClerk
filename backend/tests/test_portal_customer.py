@@ -119,3 +119,37 @@ def test_the_catalog_shows_images():
     call_command('narrow_portal_access', '--apply')
     block = access.portal_customer_block('item')
     assert {'metadata.images.tn', 'metadata.images.md', 'metadata.images.hr'} <= set(block['view'])
+
+
+def test_a_customer_fills_their_new_order_and_the_server_prices_it(world):
+    """The console's order flow: `new`, then the lines as the next save."""
+    from apps.products.models import Item
+    item = Item.objects.create(name='Widget', sku='W-1', security_level=1,
+                               price={'base': 12.5, 'retail': 12.5})
+    order_id = save_record(world['me'], {'model_name': 'order'}, new=True).obj_id
+    order = Order.objects.get(pk=order_id)
+    save_record(world['me'], {'model_name': 'order', 'id': order_id, 'version': order.version,
+                              'lines': [{'item': {'item_id': item.pk},
+                                         'quantity': {'active': 2}}]})
+    line = Order.objects.get(pk=order_id).lines.get()
+    assert (line.item or {}).get('item_id') == item.pk or line.item_fk_id == item.pk
+    assert (line.quantity or {}).get('active') in (2, '2', 2.0)
+    assert float(line.price['unit']) == 12.5, line.price
+
+
+def test_a_customer_cannot_price_a_line_or_order_an_unpublished_item(world):
+    from apps.products.models import Item
+    hidden = Item.objects.create(name='Prototype', sku='P-0', price={'base': 1.0})   # level 0
+    shown = Item.objects.create(name='Widget', sku='W-2', security_level=1, price={'base': 20.0})
+    order_id = save_record(world['me'], {'model_name': 'order'}, new=True).obj_id
+    with pytest.raises(Refused) as refused:
+        save_record(world['me'], {'model_name': 'order', 'id': order_id,
+                                  'lines': [{'item': {'item_id': hidden.pk}, 'quantity': {'active': 1}}]})
+    assert refused.value.code == 'item_not_available'
+    with pytest.raises(Refused):                  # a price they send is refused, not dropped
+        save_record(world['me'], {'model_name': 'order', 'id': order_id,
+                                  'lines': [{'item': {'item_id': shown.pk}, 'quantity': {'active': 1},
+                                             'price': {'unit': 0.01}}]})
+    save_record(world['me'], {'model_name': 'order', 'id': order_id,
+                              'lines': [{'item': {'item_id': shown.pk}, 'quantity': {'active': 1}}]})
+    assert float(Order.objects.get(pk=order_id).lines.get().price['unit']) == 20.0

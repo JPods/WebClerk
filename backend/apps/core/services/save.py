@@ -632,6 +632,8 @@ def _portal_stamp(actor: Actor, model_key: str, obj, data: dict, is_update: bool
                           f'A payment you make is a card payment: purpose "{PAYSERVICE}".',
                           {'purpose': purpose})
         data['purpose'] = stamped['purpose'] = PAYSERVICE
+    if model_key in ('order', 'quote') and isinstance(data.get('lines'), list):
+        data['lines'] = stamped['lines'] = _portal_priced_lines(actor, data['lines'], customer_id)
     if is_update:
         return stamped
     if model_key in ('order', 'quote', 'cash'):
@@ -654,6 +656,42 @@ def _portal_stamp(actor: Actor, model_key: str, obj, data: dict, is_update: bool
         data['contact_id'] = stamped['contact_id'] = actor.user_id
         data['status'] = stamped['status'] = 'open'
     return stamped
+
+
+def _portal_priced_lines(actor: Actor, lines: list, customer_id: int) -> list:
+    """A customer's order lines, rebuilt: they name the item and the quantity, the server
+    sets the price at their price level. Nothing else they send reaches a line (no price, no
+    pk). An item they cannot see (unpublished, or not in their catalog) is refused."""
+    from apps.core.services.record_serialize import visible_queryset
+    from apps.products.services.price_resolver import resolve_price_legacy
+    items = visible_queryset('item', actor=actor)[1]
+    rebuilt = []
+    for line in lines:
+        if not isinstance(line, dict):
+            continue
+        out = {k: line[k] for k in ('id', '_delete', '_dirty') if k in line}
+        if line.get('_delete'):
+            rebuilt.append(out)
+            continue
+        item_env = line.get('item') if isinstance(line.get('item'), dict) else {}
+        qty_env = line.get('quantity')
+        try:
+            item_id = int(item_env.get('item_id'))
+            qty = int((qty_env or {}).get('active') if isinstance(qty_env, dict) else qty_env)
+        except (TypeError, ValueError):
+            raise Refused(400, 'line_needs_item_and_quantity',
+                          'Each line needs an item and a whole-number quantity.', line)
+        if qty <= 0:
+            raise Refused(400, 'line_quantity_positive', 'A line quantity must be above zero.', line)
+        item = items.filter(pk=item_id).first()
+        if item is None:
+            raise Refused(400, 'item_not_available', f'Item {item_id} is not in your catalog.',
+                          {'item_id': item_id})
+        unit = resolve_price_legacy(item.pk, customer_id=customer_id, qty=qty)['unit_price']
+        out.update(_dirty=True, quantity={'active': qty}, price={'unit': unit},
+                   item={'item_id': item.pk, 'ida_item': item.ida, 'description': item.name or ''})
+        rebuilt.append(out)
+    return rebuilt
 
 
 def _within_scope(actor: Actor, obj, model_key: str) -> None:
