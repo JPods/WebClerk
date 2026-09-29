@@ -160,13 +160,16 @@ def test_a_completed_build_does_not_change(cart):
     assert refused.value.code == 'workorder_complete'
 
 
+@pytest.mark.django_db(transaction=True)
 def test_a_locked_part_refuses_the_whole_complete(cart):
+    """Another writer holds a part's layers: the complete is refused whole, nothing moves."""
     from apps.core.services.door import Refused
     from apps.products.models.inventory_layer import InventoryLayer
+    from tests.row_lock import row_locked
     wo, line = _wo(cart['cart'], 10)
     _run('expand', wo, line_id=line.pk, depth=1)
-    InventoryLayer.objects.filter(item_id=cart['frame'].pk).update(is_locked=True)
-    with pytest.raises(Refused) as refused:
+    with row_locked(InventoryLayer, item_id=cart['frame'].pk), \
+            pytest.raises(Refused) as refused:
         _run('complete', wo)
     assert refused.value.code == 'item_locked'
     assert (_q(cart['cart']), _q(cart['wheel']), _q(cart['frame'])) == (0, 40, 20)   # nothing moved

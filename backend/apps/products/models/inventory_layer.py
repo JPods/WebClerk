@@ -87,9 +87,9 @@ class InventoryLayer(ItemLinkedBase):
     serial_batch = models.CharField(max_length=80, blank=True)
     source_doc_type = models.CharField(max_length=40, blank=True)
     source_doc_id = models.BigIntegerField(blank=True, null=True)
-    # Soft concurrency / maintenance lock. When True direct issue mutations should enqueue a pending adjustment.
+    # No app-level lock: a layer is guarded by the database row lock (select_for_update nowait)
+    # under the item's lock; the soft lock had no caller (Bill, 2026-09-28, Fable review D2).
     is_locked = models.BooleanField(default=False, db_index=True)
-    dt_locked = models.DateTimeField(null=True, blank=True, help_text="When the lock was acquired. Auto-expires after 5 minutes.")
 
     class Meta:
         indexes = [
@@ -101,41 +101,6 @@ class InventoryLayer(ItemLinkedBase):
     def __str__(self):  # pragma: no cover
         qty = getattr(self, "quantity", {})
         return f"Stack#{self.pk}:{getattr(self.item, 'pk', '?')}:{qty}"
-
-    LOCK_TIMEOUT_SECONDS = 300  # 5 minutes
-
-    def check_lock_expired(self) -> bool:
-        """If lock has expired, release it (which drains pending queue). Otherwise return False."""
-        if not self.is_locked or not self.dt_locked:
-            return False
-        from django.utils import timezone
-        import datetime
-        if timezone.now() - self.dt_locked > datetime.timedelta(seconds=self.LOCK_TIMEOUT_SECONDS):
-            self.release_lock()
-            return True
-        return False
-
-    def acquire_lock(self):
-        from django.utils import timezone
-        self.is_locked = True
-        self.dt_locked = timezone.now()
-        self.save(update_fields=['is_locked', 'dt_locked', 'dt_modified', 'version'])
-
-    def release_lock(self):
-        """Clear the lock and drain any pending adjustments queued while locked."""
-        self.is_locked = False
-        self.dt_locked = None
-        self.save(update_fields=['is_locked', 'dt_locked', 'dt_modified', 'version'])
-        # Drain the pending queue — the whole reason pending exists
-        from apps.transactions.services.inventory_pending_process import process_pending_for_item
-        process_pending_for_item(item_id=self.item_id)
-
-    # Override LifecycleMixin so admin lock/unlock also honors the pending contract
-    def lock(self):
-        self.acquire_lock()
-
-    def unlock(self):
-        self.release_lock()
 
     # ---- Helpers ---------------------------------------------------------
     def remaining_qty(self) -> Decimal | float:

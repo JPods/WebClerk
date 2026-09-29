@@ -97,7 +97,6 @@ class InventoryLayersView(APIView):
                 'freight': cost.get('freight', 0),
                 'duty': cost.get('duty', 0),
                 'currency': cost.get('currency', 'USD'),
-                'is_locked': layer.is_locked,
                 'dt_created': layer.dt_created.isoformat() if layer.dt_created else None,
                 'source_doc_type': layer.source_doc_type,
                 'source_doc_id': layer.source_doc_id,

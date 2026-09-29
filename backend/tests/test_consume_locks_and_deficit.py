@@ -50,16 +50,19 @@ def test_enough_stock_records_no_deficit():
     assert not Pending.objects.filter(purpose=DEFICIT_PURPOSE, record_id=str(item.pk)).exists()
 
 
+@pytest.mark.django_db(transaction=True)
 def test_a_locked_layer_is_a_409_to_retry_not_a_wait():
+    """Another writer holds the layer's row: consume answers 409 at once, never waits."""
+    from django.db import transaction
     from apps.core.models.pending import LayerLocked
+    from apps.products.models.inventory_layer import InventoryLayer
     from apps.products.services.inventory.inventory_layers import consume_fifo
+    from tests.row_lock import row_locked
 
     item, layer = _stocked('5')
-    layer.is_locked = True
-    layer.save(update_fields=['is_locked'])
-
-    with pytest.raises(LayerLocked) as caught:
-        consume_fifo(item.pk, Decimal('1'))
+    with row_locked(InventoryLayer, pk=layer.pk):
+        with pytest.raises(LayerLocked) as caught, transaction.atomic():
+            consume_fifo(item.pk, Decimal('1'))
 
     assert isinstance(caught.value, Refused), "the door answers it with its code"
     assert caught.value.status == 409 and caught.value.code == 'layer_locked'

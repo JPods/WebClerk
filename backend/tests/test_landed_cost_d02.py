@@ -146,6 +146,7 @@ def test_the_landed_cost_moves_through_a_pending():
         'freight': 1.0, 'duty': 0.0, 'handling': 0.0, 'vat': 0.0, 'unit_po': 6.0}}
 
 
+@pytest.mark.django_db(transaction=True)
 def test_a_locked_layer_holds_the_cost_change_until_it_is_free():
     """Locked: the Pending stays open and the layer is untouched. Freed: it applies once."""
     from apps.core.models.pending import Pending
@@ -155,17 +156,16 @@ def test_a_locked_layer_holds_the_cost_change_until_it_is_free():
     layer = InventoryLayer.objects.create(item=item, warehouse=wh, quantity={'received': 7})
     r = _receipt()
     _line(r, 10, 7, 6.00, inventory_layer=layer, warehouse=wh)
-    InventoryLayer.objects.filter(pk=layer.pk).update(is_locked=True)
+    from tests.row_lock import row_locked
+    with row_locked(InventoryLayer, pk=layer.pk):
+        r.allocations = {**r.allocations, 'freight': 7}
+        r.save()
+        held = Pending.objects.filter(purpose='inventory_cost_change', record_id=str(item.pk),
+                                      dt_processed=0)
+        assert held.count() == 1
+        layer.refresh_from_db()
+        assert float(layer.cost.get('freight', 0) or 0) == 0.0
 
-    r.allocations = {**r.allocations, 'freight': 7}
-    r.save()
-    held = Pending.objects.filter(purpose='inventory_cost_change', record_id=str(item.pk),
-                                  dt_processed=0)
-    assert held.count() == 1
-    layer.refresh_from_db()
-    assert float(layer.cost.get('freight', 0) or 0) == 0.0
-
-    InventoryLayer.objects.filter(pk=layer.pk).update(is_locked=False)
     assert held.get().try_apply() is True
     layer.refresh_from_db()
     assert layer.cost['freight'] == 1.0

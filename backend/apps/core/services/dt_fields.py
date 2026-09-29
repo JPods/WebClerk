@@ -19,7 +19,6 @@ SYSTEM_DT_FIELDS = frozenset({
     'dt_last_used', 'dt_last_heartbeat', 'dt_last_interaction', 'dt_last_updated',
     'dt_last_recalc', 'dt_last_recalled',
     'dt_period_start', 'dt_period_end',
-    'dt_locked',
 })
 
 PLAN_DT_FIELDS = frozenset({

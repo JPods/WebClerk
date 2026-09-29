@@ -203,9 +203,6 @@ def _consume(
         layers = list(qs.select_for_update(nowait=True))
     except DatabaseError as e:
         raise LayerLocked(item_id=item_id) from e
-    locked = next((layer for layer in layers if getattr(layer, 'is_locked', False)), None)
-    if locked is not None:
-        raise LayerLocked(locked.pk, item_id=item_id)
     total_cost = Decimal('0')
     remaining = qty
     taken = []
@@ -335,8 +332,6 @@ def give_back(item_id: int, consumed: list, qty: Decimal, *, reason: str = 'Give
             continue                       # the layer is gone; the rest is the caller's
         except DatabaseError as e:
             raise LayerLocked(lid, item_id=item_id) from e
-        if layer.is_locked:
-            raise LayerLocked(layer.pk, item_id=item_id)
         layer.mark_issue(-take)
         layer.save(update_fields=['quantity'])
         InventoryMovement.objects.create(

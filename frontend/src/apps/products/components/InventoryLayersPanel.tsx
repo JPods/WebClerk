@@ -21,7 +21,6 @@ interface Layer {
   freight: number;
   duty: number;
   currency: string;
-  is_locked: boolean;
   dt_created: string | null;
   source_doc_type: string;
   source_doc_id: number | null;
@@ -94,14 +93,13 @@ export default function InventoryLayersPanel({ itemId }: Props) {
                   <th className="text-right px-2 py-1">Avg</th>
                   <th className="text-right px-2 py-1">Ext Value</th>
                   <th className="text-center px-2 py-1">Source</th>
-                  <th className="text-center px-1 py-1"></th>
                 </tr>
               </thead>
               <tbody>
                 {whLayers.map((l) => (
                   <tr
                     key={l.id}
-                    className={`border-b border-slate-800 ${l.is_locked ? "bg-yellow-900/20" : ""} ${l.remaining <= 0 ? "opacity-40" : ""}`}
+                    className={`border-b border-slate-800 ${l.remaining <= 0 ? "opacity-40" : ""}`}
                   >
                     <td className="px-2 py-1 text-slate-300">{l.lot || "-"}</td>
                     <td className="px-2 py-1 text-right">{l.received}</td>
@@ -117,9 +115,6 @@ export default function InventoryLayersPanel({ itemId }: Props) {
                     </td>
                     <td className="px-2 py-1 text-center text-slate-500">
                       {l.source_doc_type ? `${l.source_doc_type} #${l.source_doc_id}` : "-"}
-                    </td>
-                    <td className="px-1 py-1 text-center">
-                      {l.is_locked && <span title="Locked" className="text-yellow-500">L</span>}
                     </td>
                   </tr>
                 ))}

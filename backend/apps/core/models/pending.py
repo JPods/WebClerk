@@ -279,8 +279,6 @@ class Pending(CoreModel):
         if spec and spec.get('cost'):
             # A layer's cost moves like its quantity: under the item's lock, or not at all.
             layer = InventoryLayer.objects.select_for_update(nowait=True).get(pk=spec['layer_id'])
-            if layer.is_locked:
-                raise LayerLocked(layer.pk)
             c = spec['cost']
             layer.update_cost_after_receipt(
                 c['unit_po'], freight=c.get('freight', 0), duty=c.get('duty', 0),
@@ -294,8 +292,6 @@ class Pending(CoreModel):
         if spec.get('layer_id'):
             layer = InventoryLayer.objects.select_for_update(nowait=True).select_related(
                 'warehouse').get(pk=spec['layer_id'])
-            if layer.is_locked:
-                raise LayerLocked(layer.pk)
             q = dict(layer.quantity or {})
             received = Decimal(str(q.get('received', 0) or 0)) + on_hand
             out = Decimal(str(q.get('issued', 0) or 0)) + Decimal(str(q.get('scrapped', 0) or 0))
@@ -446,8 +442,6 @@ class Pending(CoreModel):
                 if qty <= 0:
                     break
                 layer = InventoryLayer.objects.select_for_update(nowait=True).get(pk=layer_id)
-                if layer.is_locked:
-                    raise LayerLocked(layer.pk)
                 take = min(held[layer_id], Decimal(str(layer.remaining_qty())), qty)
                 if take <= 0:
                     continue
@@ -470,8 +464,6 @@ class Pending(CoreModel):
                 layer = InventoryLayer.objects.select_for_update(nowait=True).select_related(
                     'warehouse').filter(pk=spec['layer_id'], item_id=item_id).first()
                 if layer is not None:
-                    if layer.is_locked:
-                        raise LayerLocked(layer.pk)
                     take = min(Decimal(str(layer.remaining_qty())), qty)
                     if take > 0:
                         layer.mark_issue(take)

@@ -38,8 +38,6 @@ def summarize_inventory_metrics(include_samples: bool = False, sample_limit: int
         issued_agg += Decimal(str(q.get('issued', 0) or 0)) + Decimal(str(q.get('scrapped', 0) or 0))
         remaining_agg += Decimal(str(q.get('received', 0) or 0)) - (Decimal(str(q.get('issued', 0) or 0)) + Decimal(str(q.get('scrapped', 0) or 0)))
 
-    # Lock statistics
-    locked_stack_count = stacks.filter(is_locked=True).count()
 
     metrics: Dict[str, Any] = {
         'timestamp': now.isoformat(),
@@ -49,7 +47,6 @@ def summarize_inventory_metrics(include_samples: bool = False, sample_limit: int
         },
         'stacks': {
             'total': stack_count,
-            'locked': locked_stack_count,
             'remaining_total': float(remaining_agg),
             'received_total': float(received_agg),
         },
