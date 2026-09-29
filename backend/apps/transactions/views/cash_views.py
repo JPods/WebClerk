@@ -8,6 +8,7 @@ from django.conf import settings
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import IsAuthenticated
+from apps.core.permissions import IsStaffRole
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.response import Response
 from apps.transactions.models import Cash, Invoice, Receipt
@@ -150,7 +151,7 @@ def gateway_config(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsStaffRole])
 def checkout_pricing(request, invoice_id):
     """Return dual pricing options for an invoice at checkout.
 

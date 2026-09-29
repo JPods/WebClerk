@@ -9,8 +9,9 @@ GET /wcapi/accounts/gl-export/?report=GL+Export+—+QuickBooks+IIF&period=2026-0
 import logging
 
 from django.http import HttpResponse
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
+
+from apps.core.permissions import IsStaffRole
 
 from common.api_responses import api_response
 
@@ -20,7 +21,7 @@ logger = logging.getLogger(__name__)
 class GlExportView(APIView):
     """Serve a GL journal export in a specific accounting format."""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsStaffRole]
 
     def get(self, request, *args, **kwargs):
         from apps.accounts.services.gl_export import gl_export, REPORT_NAME_MAP

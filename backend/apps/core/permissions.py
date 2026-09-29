@@ -228,3 +228,21 @@ class ViewEditPermission(DRFBasePermission):
 
         # 5. For write requests, the role must have at least one editable field
         return bool(rules.get('edit'))
+
+class IsStaffRole(DRFBasePermission):
+    """Company staff only (Bill, 2026-09-28): the caller's role is a staff role.
+
+    For routes whose handlers take no Actor and so scope nothing — `_manage`, the
+    receivables reports, GL export, checkout pricing. A portal person (customer, buyer,
+    vendor, manufacturer), a login with no role, and an anonymous visitor are refused;
+    they reach their own contact, customer and transactions through the door, which
+    scopes every query to them. An agent acting as a portal role is refused too.
+    """
+    message = ("These tools are for company staff. Your own account, contact and "
+               "transactions are on your portal pages.")
+    code = 'staff_required'
+
+    def has_permission(self, request, view):
+        from apps.core.services.access import STAFF_ROLES
+        from apps.core.services.door import Actor
+        return Actor.from_request(request).role in STAFF_ROLES

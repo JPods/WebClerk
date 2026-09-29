@@ -64,6 +64,7 @@ from typing import Any, Dict
 from rest_framework import status
 from rest_framework.views import APIView
 
+from apps.core.permissions import IsStaffRole
 from common.api_responses import api_response
 
 logger = logging.getLogger(__name__)
@@ -1263,8 +1264,13 @@ _STAFF_ONLY_ACTIONS = {
 # ---------------------------------------------------------------------------
 
 class ManageWcapiView(APIView):
-    """Administrative operations via POST { action, params }."""
+    """Administrative operations via POST { action, params }.
 
+    Every action is staff-only (Bill, 2026-09-28). The handlers never see the Actor, so none
+    of them is scoped: a portal login here reached every org's cash and reports (audit
+    A4-H-1)."""
+
+    permission_classes = [IsStaffRole]
     http_method_names = ["post", "options", "head"]
 
     def post(self, request, *args, **kwargs):
@@ -1280,7 +1286,7 @@ class ManageWcapiView(APIView):
                 error={"code": "missing_action"},
             )
 
-        # Staff-only gate — commission and other internal actions
+        # Commission and admin tools: Django staff or superuser on top of a staff role
         if action_name in _STAFF_ONLY_ACTIONS:
             user = getattr(request, 'user', None)
             if not user or not (user.is_staff or user.is_superuser):

@@ -4,9 +4,10 @@ Accounts views — report endpoints.
 from datetime import date
 
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+from apps.core.permissions import IsStaffRole
 
 from apps.accounts.services.aged_receivables import (
     aged_receivables_report,
@@ -21,7 +22,7 @@ class AgedReceivablesView(APIView):
     GET /wcapi/reports/aged_receivables/?customer_id=42
     GET /wcapi/reports/aged_receivables/?as_of=2026-07-31
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsStaffRole]
 
     def get(self, request):
         as_of_str = request.query_params.get('as_of')
@@ -60,7 +61,7 @@ class CustomerStatementView(APIView):
     GET /wcapi/reports/statement/<customer_id>/
     GET /wcapi/reports/statement/<customer_id>/?as_of=2026-07-31
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsStaffRole]
 
     def get(self, request, customer_id):
         as_of_str = request.query_params.get('as_of')
