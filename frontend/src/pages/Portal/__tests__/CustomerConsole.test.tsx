@@ -13,6 +13,10 @@ vi.mock('../../../api/wcapi', () => ({
   refusedFrom: (e: any, fallback: string) => ({ message: e?.message || fallback }),
 }));
 vi.mock('../../../store/hooks', () => ({ useAppSelector: (f: any) => f({ auth: { user: { id: 5 } } }) }));
+let environmentKey = 'env-key';
+vi.mock('../../../apps/transactions/models/cash/services/cashApi', () => ({
+  fetchGatewayConfig: () => Promise.resolve({ environment_key: environmentKey }),
+}));
 vi.mock('../../../apps/transactions/components/SpreedlyCardForm', () => ({
   default: (p: any) => <div>card form for invoice {p.invoiceId}: {p.amount}</div>,
 }));
@@ -21,7 +25,7 @@ import CustomerConsole from '../CustomerConsole';
 
 beforeEach(() => {
   for (const k of Object.keys(data)) delete data[k];
-  getRecords.mockClear(); newRecord.mockReset(); saveRecord.mockReset();
+  getRecords.mockClear(); newRecord.mockReset(); saveRecord.mockReset(); environmentKey = 'env-key';
 });
 
 describe('CustomerConsole', () => {
@@ -37,8 +41,18 @@ describe('CustomerConsole', () => {
     data.invoice = [{ id: 9, ida: '1009-inv', totals: { total: 80, balance: 80 } }];
     render(<CustomerConsole />);
     fireEvent.click(screen.getByText('Invoices'));
-    fireEvent.click(await screen.findByText('Pay'));
+    await waitFor(() => expect((screen.getByText('Pay') as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(screen.getByText('Pay'));
     expect(screen.getByText('card form for invoice 9: 80')).toBeTruthy();
+  });
+
+  it('grays out Pay until a card gateway is set up', async () => {
+    environmentKey = '';
+    data.invoice = [{ id: 9, ida: '1009-inv', totals: { total: 80, balance: 80 } }];
+    render(<CustomerConsole />);
+    fireEvent.click(screen.getByText('Invoices'));
+    expect(await screen.findByText(/not set up yet/)).toBeTruthy();
+    expect((screen.getByText('Pay') as HTMLButtonElement).disabled).toBe(true);
   });
 
   it('sends a support request as a new action with its text', async () => {

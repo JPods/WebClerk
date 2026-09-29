@@ -13,6 +13,7 @@ import { getRecord, getRecords, newRecord, refusedFrom, saveRecord } from '../..
 import { useAppSelector } from '../../store/hooks';
 import { formatCurrency, formatDate } from '@/utils/stringUtils';
 import SpreedlyCardForm from '../../apps/transactions/components/SpreedlyCardForm';
+import { fetchGatewayConfig } from '../../apps/transactions/models/cash/services/cashApi';
 
 type Rec = Record<string, any>;
 type Tab = 'home' | 'order' | 'invoices' | 'support' | 'account';
@@ -134,9 +135,19 @@ const OrderPanel: React.FC<{ onPlaced: () => void }> = ({ onPlaced }) => {
 /* ── Invoices: what is owed, and pay by card ─────────────────────────────── */
 const InvoicesPanel: React.FC<{ invoices: Rec[]; onPaid: () => void }> = ({ invoices, onPaid }) => {
   const [paying, setPaying] = useState<Rec | null>(null);
+  // Card payment is offered once a card gateway is set up; until then Pay is grayed out
+  // (Bill, 2026-09-29: "We will set that up when needed").
+  const [cardReady, setCardReady] = useState(false);
+  useEffect(() => {
+    fetchGatewayConfig().then((c) => setCardReady(Boolean(c?.environment_key))).catch(() => setCardReady(false));
+  }, []);
   const owed = (i: Rec) => Number(i.totals?.balance || 0);
   return (
     <>
+      {!cardReady && (
+        <p className="wc-console-hint">Paying by card online is not set up yet. Pay by check or bank transfer,
+          or send a Support request and we will help.</p>
+      )}
       {paying && (
         <div className="wc-console-pay">
           <h3 className="wc-portal-section-title">Pay invoice {paying.ida}</h3>
@@ -147,7 +158,10 @@ const InvoicesPanel: React.FC<{ invoices: Rec[]; onPaid: () => void }> = ({ invo
       )}
       <Table head={['Invoice', 'Date', 'Total', 'Balance', '']} empty="No invoices yet."
              rows={invoices.map((i) => [i.ida, when(i), money(i.totals?.total), money(owed(i)),
-               owed(i) > 0 ? <button type="button" onClick={() => setPaying(i)}>Pay</button> : 'Paid'])} />
+               owed(i) > 0
+                 ? <button type="button" disabled={!cardReady} onClick={() => setPaying(i)}
+                           title={cardReady ? undefined : 'Card payment is not set up yet'}>Pay</button>
+                 : 'Paid'])} />
     </>
   );
 };
