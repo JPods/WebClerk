@@ -1050,6 +1050,41 @@ span.flatpickr-weekday,
 .wc-portal-table tr.wc-clickable:hover { background: var(--wc-hover, #f9fafb); cursor: pointer; }
 .wc-portal-empty { color: var(--wc-text-muted, #999); font-size: calc(var(--wc-font-size, 13px) + 1px); padding: 16px 0; }
 .wc-portal-loading { padding: 40px; text-align: center; color: var(--wc-text-muted, #666); }
+.wc-portal-header { display: flex; justify-content: space-between; align-items: flex-start; }
+.wc-portal-dashboard { margin: 0 auto; }
+button.wc-portal-card { text-align: left; cursor: pointer; font: inherit; }
+button.wc-portal-card:hover { border-color: var(--wc-accent, #2563eb); }
+/* Customer console (Bill, 2026-09-28) */
+.wc-console-tabs { display: flex; gap: 4px; flex-wrap: wrap; border-bottom: 1px solid var(--wc-border, #e5e7eb); margin-bottom: 16px; }
+.wc-console-tabs button { padding: 8px 14px; border: none; background: none; font: inherit; color: var(--wc-text-muted, #666); border-bottom: 2px solid transparent; cursor: pointer; }
+.wc-console-tabs button.is-active { color: var(--wc-text, #111); border-bottom-color: var(--wc-accent, #2563eb); font-weight: 600; }
+.wc-portal-dashboard button:not(.wc-portal-card):not(.wc-console-link):not(.wc-console-tabs button) { padding: 6px 14px; border-radius: 6px; border: 1px solid var(--wc-accent, #2563eb); background: var(--wc-accent, #2563eb); color: #fff; font: inherit; cursor: pointer; }
+.wc-portal-dashboard button:disabled { opacity: .5; cursor: default; }
+.wc-portal-dashboard input, .wc-portal-dashboard textarea { padding: 6px 8px; border: 1px solid var(--wc-border, #e5e7eb); border-radius: 6px; font: inherit; background: var(--wc-surface, #fff); color: var(--wc-text, #111); }
+.wc-console-link { background: none; border: none; color: var(--wc-accent, #2563eb); cursor: pointer; font: inherit; padding: 4px 0; }
+.wc-console-notice { margin: 12px 0; padding: 8px 12px; border-radius: 6px; font-size: calc(var(--wc-font-size, 13px) + 1px); }
+.wc-console-notice-error { background: var(--color-error-50, #fef2f2); color: var(--color-error-700, #b91c1c); }
+.wc-console-notice-ok { background: var(--color-success-50, #f0fdf4); color: var(--color-success-700, #15803d); }
+.wc-console-hint { color: var(--wc-text-muted, #666); font-size: calc(var(--wc-font-size, 13px) - 1px); margin: 6px 0; }
+.wc-console-order { display: grid; grid-template-columns: 1fr 300px; gap: 20px; align-items: start; }
+@media (max-width: 800px) { .wc-console-order { grid-template-columns: 1fr; } }
+.wc-console-search { display: flex; gap: 8px; margin-bottom: 12px; }
+.wc-console-search input { flex: 1; }
+.wc-console-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
+.wc-console-item { border: 1px solid var(--wc-border, #e5e7eb); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 4px; background: var(--wc-surface, #fff); }
+.wc-console-item img { width: 100%; aspect-ratio: 1; object-fit: contain; background: var(--wc-hover, #f9fafb); border-radius: 6px; }
+.wc-console-item-name { font-weight: 600; color: var(--wc-text, #111); }
+.wc-console-item-sku { color: var(--wc-text-muted, #666); font-size: calc(var(--wc-font-size, 13px) - 1px); }
+.wc-console-item-price { font-weight: 600; margin-bottom: 4px; }
+.wc-console-cart { position: sticky; top: 16px; border: 1px solid var(--wc-border, #e5e7eb); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 8px; background: var(--wc-surface, #fff); }
+.wc-console-cart-line { display: grid; grid-template-columns: 32px 1fr 64px; gap: 8px; align-items: center; }
+.wc-console-cart-line img { width: 32px; height: 32px; object-fit: contain; }
+.wc-console-cart-total { font-weight: 700; text-align: right; }
+.wc-console-pay, .wc-console-request { border: 1px solid var(--wc-border, #e5e7eb); border-radius: 8px; padding: 12px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 8px; max-width: 560px; background: var(--wc-surface, #fff); }
+.wc-console-account { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+.wc-console-field { display: grid; grid-template-columns: 110px 1fr; gap: 8px; align-items: center; margin-bottom: 8px; }
+.wc-console-dl { display: grid; grid-template-columns: 110px 1fr; gap: 6px 8px; }
+.wc-console-dl dt { color: var(--wc-text-muted, #666); }
 
 /* Kanban bar */
 .wc-kanban-bar { position: relative; height: 20px; background: var(--wc-border, #e5e7eb); border-radius: 4px; overflow: hidden; min-width: 120px; }

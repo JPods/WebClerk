@@ -7,6 +7,7 @@ import { DevTools } from '../components/DevTools';
 import { AiHelpWidget } from '../components/AiHelpWidget';
 import { IssueReporter } from '../components/IssueReporter';
 import PrivateRoute from "./PrivateRoute";
+import PortalRoute from "./PortalRoute";
 import { recordRoutes } from "./recordRoutes";
 import { ScrollToTop, Toster } from "../components/wrapper";
 import { SignIn, SignUp, UserProfiles } from "../pages/wrapperPage";
@@ -14,7 +15,6 @@ import DataBrowser from "../pages/admin/DataBrowser";
 import NotFoundPage from "../pages/NotFoundPage";
 import DDCardDashboard from "../pages/Dashboard/DDCardDashboard";
 
-const PortalDashboard = React.lazy(() => import("../pages/Dashboard/PortalDashboard"));
 const UiDetail = React.lazy(() => import("../apps/transactions/components/TransactionDetail"));
 const ShoppingCart = React.lazy(() => import("../apps/transactions/components/ShoppingCart"));
 const AliceDashboard = React.lazy(() => import("../pages/admin/AliceDashboard"));
@@ -95,11 +95,13 @@ const Router: React.FC = () => {
         <Route path="/json-schema" element={<S><JsonSchemaReference /></S>} />
         <Route path="/setup" element={<S><Onboarding /></S>} />
 
+        {/* Customer and vendor console — its own page, outside the staff app */}
+        <Route path="/portal" element={<PortalRoute />} />
+
         {/* Protected */}
         <Route element={<PrivateRoute />}>
           <Route index element={<HomeRedirect />} />
           <Route path="dashboard" element={<DDCardDashboard dashboardName="sales" />} />
-          <Route path="portal" element={<S><PortalDashboard /></S>} />
           <Route path="browser" element={<DataBrowser />} />
           <Route path="profile" element={<UserProfiles />} />
           <Route path="alice-dashboard" element={<S><AliceDashboard /></S>} />

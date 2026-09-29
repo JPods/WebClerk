@@ -124,7 +124,7 @@ const AppLayout: React.FC = () => {
 };
 
 const PrivateRoute: React.FC = () => {
-  const { isLoading, isAuthenticated } = useAppSelector((state) => state.auth);
+  const { isLoading, isAuthenticated, user } = useAppSelector((state) => state.auth);
   
   // Show loading while auth state is being initialized
   if (isLoading) {
@@ -134,6 +134,12 @@ const PrivateRoute: React.FC = () => {
   // Once loading is done, check authentication
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Customers and vendors never enter the staff app: their console is /portal
+  // (Bill, 2026-09-28). The server refuses them the data regardless.
+  if (user?.is_portal) {
+    return <Navigate to="/portal" replace />;
   }
   
   return (

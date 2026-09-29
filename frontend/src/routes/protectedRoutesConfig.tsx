@@ -17,7 +17,6 @@ import Placeholder from "../pages/Placeholder";
 // Lazy imports — match Router.tsx to preserve code splitting
 const UiDetail = React.lazy(() => import("../apps/transactions/components/TransactionDetail"));
 const ModelDetailPage = React.lazy(() => import("../components/common/ModelDetailPage"));
-const PortalDashboard = React.lazy(() => import("../pages/Dashboard/PortalDashboard"));
 const AliceDashboard = React.lazy(() => import("../pages/admin/AliceDashboard"));
 const AdminTools = React.lazy(() => import("../pages/admin/AdminTools"));
 const SelectListEditor = React.lazy(() => import("../pages/admin/SelectListEditor"));
@@ -62,7 +61,6 @@ const S: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 export const protectedRoutesConfig = [
   { path: "/", element: <DDCardDashboard dashboardName="sales" /> },
   { path: PageRoutes.dashboard, element: <DDCardDashboard dashboardName="sales" /> },
-  { path: "/portal", element: <S><PortalDashboard /></S> },
   { path: PageRoutes.profile, element: <UserProfiles /> },
 
   // User-facing: Contact

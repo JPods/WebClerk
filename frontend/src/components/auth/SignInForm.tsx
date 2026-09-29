@@ -76,7 +76,7 @@ export default function SignInForm() {
         localStorage.setItem("userProfile", JSON.stringify(mappedUser));
         dispatch(setUser(mappedUser));
         dispatch(showToast({ message: "Login successful!", type: "success" }));
-        navigate(PageRoutes.dashboard);
+        navigate(mappedUser.is_portal ? '/portal' : PageRoutes.dashboard);
      } catch (error : any) {
        const msg = error?.response?.data?.message || error?.message || "Login failed";
        dispatch(showToast({ message: msg, type: "error" }));

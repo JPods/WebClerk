@@ -8,6 +8,8 @@ import React, { useEffect, useState } from 'react';
 import { useAppSelector } from '../../store/hooks';
 import { getRecords } from '../../api/wcapi';
 import { formatCurrency } from '@/utils/stringUtils';
+import { logout } from '../../api/auth';
+import CustomerConsole from '../Portal/CustomerConsole';
 
 interface PortalCard {
   title: string;
@@ -104,62 +106,6 @@ const SummaryCards: React.FC<{ cards: PortalCard[] }> = ({ cards }) => (
     ))}
   </div>
 );
-
-/* ── customer dashboard ── */
-const CustomerDashboard: React.FC = () => {
-  const [orders, setOrders] = useState<PortalRecord[]>([]);
-  const [invoices, setInvoices] = useState<PortalRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    Promise.all([
-      getRecords('order', { limit: 20, sort: '-dt_created' }),
-      getRecords('invoice', { limit: 20, sort: '-dt_created' }),
-    ]).then(([o, i]) => {
-      setOrders(o?.results || []);
-      setInvoices(i?.results || []);
-    }).finally(() => setLoading(false));
-  }, []);
-
-  if (loading) return <div className="wc-portal-loading">Loading...</div>;
-
-  // Money state is totals.cash_state; status is workflow only
-  const openInvoices = invoices.filter(i => i.status !== 'void' && ['open', 'partial'].includes(i.totals?.cash_state ?? ''));
-  // Aggregate of server-provided envelope values — no server-side aggregate available
-  const totalBalance = openInvoices.reduce((s, i) => s + (i.totals?.balance ?? 0), 0);
-  const recentOrders = orders.slice(0, 5);
-
-  return (
-    <>
-      <SummaryCards cards={[
-        { title: 'Open Orders', value: orders.filter(o => o.status === 'open').length },
-        { title: 'Open Invoices', value: openInvoices.length },
-        { title: 'Balance Due', value: fmt(totalBalance) },
-        { title: 'Total Orders', value: orders.length },
-      ]} />
-      <RecordList
-        title="Recent Orders"
-        records={recentOrders}
-        columns={[
-          { key: 'ida', label: 'Order #' },
-          { key: 'status', label: 'status', render: r => <span style={{ color: statusColor(r.status) }}>{r.status}</span> },
-          { key: 'total', label: 'total', render: r => fmt(r.totals?.total) },
-          { key: 'dt_created', label: 'date', render: r => r.dt_created ? new Date(r.dt_created).toLocaleDateString() : '' },
-        ]}
-      />
-      <RecordList
-        title="Open Invoices"
-        records={openInvoices}
-        columns={[
-          { key: 'ida', label: 'Invoice #' },
-          { key: 'status', label: 'status', render: r => <span style={{ color: statusColor(r.status) }}>{r.status}</span> },
-          { key: 'balance', label: 'balance', render: r => fmt(r.totals?.balance) },
-          { key: 'dt_created', label: 'date', render: r => r.dt_created ? new Date(r.dt_created).toLocaleDateString() : '' },
-        ]}
-      />
-    </>
-  );
-};
 
 /* ── vendor dashboard ── */
 const VendorDashboard: React.FC = () => {
@@ -304,10 +250,16 @@ const PortalDashboard: React.FC = () => {
   return (
     <div className="wc-portal-dashboard">
       <div className="wc-portal-header">
-        <h2>Welcome, {user?.name_first || 'User'}</h2>
-        {user?.company && <span className="wc-portal-company">{user.company}</span>}
+        <div>
+          <h2>Welcome, {user?.name_first || 'User'}</h2>
+          {user?.company && <span className="wc-portal-company">{user.company}</span>}
+        </div>
+        <button type="button" className="wc-console-link"
+                onClick={() => { logout().catch(() => undefined).finally(() => { window.location.href = '/login'; }); }}>
+          Sign out
+        </button>
       </div>
-      {(portalRole === 'customer' || portalRole === 'buyer') && <CustomerDashboard />}
+      {(portalRole === 'customer' || portalRole === 'buyer') && <CustomerConsole />}
       {portalRole === 'vendor' || portalRole === 'manufacturer' ? <VendorDashboard /> : null}
       {portalRole === 'rep' && <RepDashboard />}
       {!portalRole && (
