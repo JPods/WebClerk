@@ -16455,7 +16455,9 @@
                 "dt_created"
               ],
               "edit": [
-                "purpose"
+                "purpose",
+                "invoice_id",
+                "method"
               ],
               "scope": {
                 "customer_id__in": "$user.org_ids.customer"
@@ -16538,7 +16540,9 @@
                 "dt_created"
               ],
               "edit": [
-                "purpose"
+                "purpose",
+                "invoice_id",
+                "method"
               ],
               "scope": {
                 "customer_id__in": "$user.org_ids.customer"
