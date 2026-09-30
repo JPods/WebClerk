@@ -227,7 +227,11 @@ def _review_lines(source_lines, source_type: str, target_type: str,
     for src_line in source_lines:
         src_qty = getattr(src_line, "quantity", None) or {}
         remaining = float(src_qty.get("remaining", 0) or 0)
-        if remaining == 0:
+        if target_type == "receipt":
+            # Goods stay on order until received, so the purchase line's remaining counts only
+            # what was received; what open receipts already plan is not left to plan again.
+            remaining = round(remaining - planned_not_received(src_line), 6)
+        if remaining <= 0:
             continue
         # A document discount line moved into allocations; it travels there, not as a line.
         if isinstance(getattr(src_line, "metadata", None), dict) and src_line.metadata.get("document_discount"):
@@ -276,6 +280,16 @@ def _review_lines(source_lines, source_type: str, target_type: str,
             line["warehouse_id"] = _stock_warehouse(src_line)
         lines.append(line)
     return lines
+
+
+def planned_not_received(purchase_line) -> float:
+    """What open receipts plan against this purchase line and have not received yet."""
+    from apps.transactions.models import ReceiptLine
+    planned = 0.0
+    for q in ReceiptLine.objects.filter(parent_line_id=purchase_line.pk).values_list("quantity", flat=True):
+        q = q if isinstance(q, dict) else {}
+        planned += max(float(q.get("staged") or 0) - float(q.get("active") or 0), 0.0)
+    return round(planned, 6)
 
 
 def _take_named(lines_named, source_type: str) -> Callable[[List[dict]], List[dict]]:
@@ -362,6 +376,12 @@ def convert_record(actor, source_type: str, source_id: int, target_type: str, *,
     header.update(header_extra)
     header.update(copy.deepcopy(stamp or {}))
     payload = {"lines": take(copy.deepcopy(review))} if take is not None else {}
+    if target_type == "receipt":
+        # A planned receipt holds its goods as staged: nothing is on the shelf until the receipt's
+        # receive command (Bill, 2026-09-30), so the layer is born at the receipt's final cost.
+        for line in payload.get("lines") or []:
+            planned = float((line.get("quantity") or {}).get("active") or 0)
+            line["quantity"] = {**line["quantity"], "active": 0, "staged": planned, "remaining": 0}
     result = save_record(actor, payload, model_key=target_type, server_set=header)
 
     forwarded = 0

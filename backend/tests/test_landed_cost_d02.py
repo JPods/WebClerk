@@ -8,6 +8,8 @@ reaches the inventory layer, so stock is carried at what we owe.
 from __future__ import annotations
 
 import pytest
+
+from tests.utils import received_receipt_line
 from django.core.exceptions import ValidationError
 
 from apps.transactions.models import Receipt, ReceiptLine
@@ -26,7 +28,7 @@ def _receipt(method=None, **landed):
 def _line(receipt, n, qty, unit, **extra):
     cost = {'unit': unit, 'precision': 2}
     cost.update(extra.pop('cost', {}))
-    return ReceiptLine.objects.create(receipt=receipt, line_number=n, quantity={'active': qty},
+    return received_receipt_line(receipt=receipt, line_number=n, quantity={'active': qty},
                                       cost=cost, **extra)
 
 

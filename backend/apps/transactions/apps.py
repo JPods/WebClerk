@@ -30,6 +30,9 @@ class TransactionsConfig(AppConfig):
         from .services import document_lock
         document_lock.register()
 
+        from .services import receive_commands
+        receive_commands.register()
+
         # Convert: one engine, a command on its source (services/convert/convert.py).
         from .services.convert import convert
         convert.register()

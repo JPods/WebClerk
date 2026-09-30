@@ -1,25 +1,25 @@
-"""D10 — a receipt line moves stock on every change, and its layer moves with it.
+"""D10, as ruled 2026-09-28/30: receiving moves a receipt line's stock once, and then it is fixed.
 
-Bill, 2026-09-21: *"every change in inventory and cash should generate a pending
-record"* and *"Layers must change with items."* A receipt line is one of the six line
-types (signals._LINE_CONFIG): add, change and delete each write a Pending, and that
-Pending moves on_hand, on_rc, on_po and the layer in one apply — both saved, or neither.
-
-Before: receiving 7 then correcting to 6 moved the money and left the stock at 7.
+Bill, 2026-09-21: "every change in inventory and cash should generate a pending record" and
+"Layers must change with items." Bill, 2026-09-28/30: a layer never changes after it is born
+(its cost and its received quantity), goods go on the shelf at the receipt's receive command,
+and a correction is a count workorder. So receiving writes one Pending that moves on_hand,
+on_rc, on_po and creates the layer; after that the received quantity cannot be edited or the line
+deleted. This supersedes the 2026-09-21/26 rule that a receipt line edit moved stock and layer.
 """
-from decimal import Decimal
-
 import pytest
 from django.core.exceptions import ValidationError
+
+from apps.core.services.door import Refused
 
 pytestmark = pytest.mark.django_db
 
 
-def _received(qty=7, ordered=10):
-    from apps.products.models import Item, Warehouse
-    from apps.transactions.models import Purchase, PurchaseLine
+def _planned(qty=7, ordered=10):
     from apps.core.services.door import Actor
     from apps.core.services.verbs import run_command
+    from apps.products.models import Item, Warehouse
+    from apps.transactions.models import Purchase, PurchaseLine, ReceiptLine
     item = Item.objects.create(name='Widget', quantity={'on_hand': 0, 'on_po': 0, 'on_rc': 0,
                                                         'allocated': 0, 'available': 0})
     Warehouse.objects.create(code='WH1', name='Main')   # the default warehouse stock lands in
@@ -29,8 +29,14 @@ def _received(qty=7, ordered=10):
         quantity={'active': ordered, 'staged': ordered}, cost={'unit': 4.00})
     out = run_command(Actor.system(), 'convert', 'purchase', po.pk,
                       {'to': 'receipt', 'lines': [{'line_id': pol.pk, 'qty': qty}]})
-    from apps.transactions.models import ReceiptLine
-    line = ReceiptLine.objects.get(receipt_id=out['receipt_id'])
+    return item, ReceiptLine.objects.get(receipt_id=out['receipt_id'])
+
+
+def _received(qty=7, ordered=10):
+    from apps.transactions.services.receive_commands import receive_receipt
+    item, line = _planned(qty, ordered)
+    out = receive_receipt(line.receipt)
+    line.refresh_from_db()
     return item, line, out
 
 
@@ -40,89 +46,52 @@ def _stock(item):
     return q.get('on_hand'), q.get('on_rc'), q.get('on_po')
 
 
-def _layer_received(line):
-    line.refresh_from_db()
-    line.inventory_layer.refresh_from_db()
-    return line.inventory_layer.quantity['received']
-
-
-def _set_qty(line, qty):
-    line.quantity = {**line.quantity, 'active': qty, 'staged': qty}
-    line.save()
-
-
 def test_receiving_moves_stock_and_creates_the_layer_in_one_pending():
     from apps.core.models import Pending
     item, line, out = _received(qty=7, ordered=10)
     assert _stock(item) == (7, 7, 3)
-    assert out['layers'] == [line.inventory_layer_id]
-    assert _layer_received(line) == 7
+    assert out['received'] == [{'line_id': line.pk, 'qty': 7, 'layer_id': line.inventory_layer_id}]
+    assert line.inventory_layer.quantity['received'] == 7
     assert line.inventory_layer.serial_batch == line.serial_batch
     add = Pending.objects.get(record_id=str(item.pk), purpose='inventory_line_add',
-                              changes__type_id='RC')
+                              changes__layer__line_id=line.pk)
     assert add.is_processed() and add.changes['layer']['line_id'] == line.pk
-    assert not Pending.objects.filter(purpose='receipt_line_add').exists()
 
 
-def test_a_receipt_line_edit_moves_stock_and_layer():
+def test_a_received_quantity_cannot_be_edited():
     item, line, _ = _received(qty=7, ordered=10)
-    _set_qty(line, 6)
-    assert _stock(item) == (6, 6, 4)          # was (7, 7, 3): the D10 defect
-    assert _layer_received(line) == 6
+    line.quantity = {**line.quantity, 'active': 6, 'staged': 6}
+    with pytest.raises(Refused) as refused:
+        line.save()
+    assert refused.value.code == 'receive_command'
+    assert _stock(item) == (7, 7, 3)
 
 
-def test_a_receipt_line_delete_gives_the_goods_back():
+def test_a_received_line_and_its_receipt_cannot_be_deleted():
+    from apps.transactions.models.hard_delete import JournalizedDeleteRefused
     item, line, _ = _received(qty=7, ordered=10)
-    layer = line.inventory_layer
-    line.delete()
-    assert _stock(item) == (0, 0, 10)
-    layer.refresh_from_db()
-    assert layer.quantity['received'] == 0
+    with pytest.raises(JournalizedDeleteRefused, match='count workorder'):
+        line.delete()
+    with pytest.raises(JournalizedDeleteRefused, match='count workorder'):
+        line.receipt.delete()
+    assert _stock(item) == (7, 7, 3)
+
+
+def test_a_planned_line_may_leave_a_partly_received_receipt():
+    from apps.transactions.models import ReceiptLine
+    item, line, _ = _received(qty=7, ordered=10)
+    planned = ReceiptLine.objects.create(receipt=line.receipt, item=line.item,
+                                         quantity={'active': 0, 'staged': 3}, cost={'unit': 4.00},
+                                         warehouse_id=line.warehouse_id)
+    planned.delete()
+    assert _stock(item) == (7, 7, 3)
+    assert ReceiptLine.objects.filter(pk=line.pk).exists()
 
 
 def test_a_receipt_line_needs_a_warehouse_to_land_in():
-    from apps.transactions.models import ReceiptLine
-    item, line, _ = _received()
+    from apps.transactions.services.receive_commands import receive_receipt
+    item, line = _planned()
+    type(line).objects.filter(pk=line.pk).update(warehouse=None)
     with pytest.raises(ValidationError):
-        ReceiptLine.objects.create(receipt=line.receipt, item=line.item,
-                                   quantity={'active': 1, 'staged': 1}, cost={'unit': 4.00})
-
-
-def test_a_locked_layer_holds_the_item_back_until_both_can_move():
-    from apps.core.models import Pending
-    from apps.transactions.services.inventory_pending_process import process_pending_for_item
-    item, line, _ = _received(qty=7, ordered=10)
-    layer = line.inventory_layer
-    layer.acquire_lock()
-
-    _set_qty(line, 6)
-    waiting = Pending.objects.get(record_id=str(item.pk), purpose='inventory_qty_change')
-    assert not waiting.is_processed()
-    assert _stock(item) == (7, 7, 3)          # neither moved
-    assert _layer_received(line) == 7
-
-    layer.release_lock()                       # drains the queue through the one applier
-    waiting.refresh_from_db()
-    assert waiting.is_processed()
-    assert _stock(item) == (6, 6, 4)
-    assert _layer_received(line) == 6
-    assert process_pending_for_item(item.pk)['total_found'] == 0
-
-
-def test_a_receipt_cut_below_what_it_issued_applies_and_records_the_shortfall():
-    """Rule 10 (Bill, 2026-09-21): a Pending applies. Bill, 2026-09-26: a receipt reduced below
-    what its layer already issued is allowed and the shortfall is recorded: the layer holds what
-    left it, and an open deficit Pending carries the rest, as a short sale's does."""
-    from apps.core.models.pending import DEFICIT_PURPOSE, Pending
-    from apps.core.services.balance_checker import check_inventory
-    item, line, _ = _received(qty=7, ordered=10)
-    layer = line.inventory_layer
-    layer.quantity = {**layer.quantity, 'issued': 7}
-    layer.save(update_fields=['quantity'])
-    _set_qty(line, 6)
-    assert _stock(item) == (6, 6, 4)
-    assert _layer_received(line) == 7                  # never below what it issued
-    deficits = Pending.objects.filter(purpose=DEFICIT_PURPOSE, record_id=str(item.pk), dt_processed=0)
-    assert [float(d.changes['deficit_qty']) for d in deficits] == [1.0]
-    findings, _ = check_inventory(item_id=item.pk)
-    assert not any(f['check'] == 'inventory.layer_range' for f in findings)
+        receive_receipt(line.receipt)
+    assert _stock(item) == (0, 0, 10)

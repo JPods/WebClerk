@@ -11,6 +11,8 @@ by the pending applier in the same apply that moves the buckets (Bill, 2026-09-2
 from decimal import Decimal
 
 import pytest
+
+from tests.utils import received_receipt_line
 from django.apps import apps as dj_apps
 
 pytestmark = pytest.mark.django_db
@@ -68,7 +70,7 @@ def test_a_receipt_without_a_vendor_owes_nobody():
     from apps.accounts.services.terms_ledger import apply_terms_for_payable
     Ledger = dj_apps.get_model('accounts', 'Ledger')
     receipt = Receipt.objects.create(source_type=Receipt.SOURCE_ADJUSTMENT)
-    ReceiptLine.objects.create(receipt=receipt, quantity={'active': 2},
+    received_receipt_line(receipt=receipt, quantity={'active': 2},
                                cost={'unit': 5.00, 'precision': 2})
 
     rows = apply_terms_for_payable(receipt, replace=True)

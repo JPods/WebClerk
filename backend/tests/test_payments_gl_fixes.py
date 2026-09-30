@@ -8,6 +8,8 @@ from decimal import Decimal
 
 import pytest
 
+from tests.utils import received_receipt_line
+
 from apps.transactions.models import Cash, Invoice, InvoiceLine
 
 
@@ -330,7 +332,7 @@ def test_a_payable_creates_a_ledger_with_a_due_date(chart_of_accounts):
                                      vendor_invoice_amount=Decimal('300.00'))
     assert receipt.vendor_id == vendor.pk          # inherited from the purchase it receives against
     assert not Ledger.objects.filter(parent_id=receipt.pk, model_name='receipt').exists()   # no lines: a draft, no payable
-    ReceiptLine.objects.create(receipt=receipt, quantity={'active': 3}, cost={'unit': 100.00, 'precision': 2})
+    received_receipt_line(receipt=receipt, quantity={'active': 3}, cost={'unit': 100.00, 'precision': 2})
     receipt.refresh_from_db()
     assert receipt.totals['total'] == pytest.approx(300.00)              # the money comes from the lines
     assert receipt.metadata['vendor_claim']['in_step'] is True           # and matches the vendor's claim
@@ -408,7 +410,7 @@ def test_ap_paid_is_derived_so_a_double_apply_cannot_double_count():
 
     vendor = Vendor.objects.create(company='V')
     receipt = Receipt.objects.create(vendor_id=vendor.pk)
-    ReceiptLine.objects.create(receipt=receipt, quantity={'active': 1},
+    received_receipt_line(receipt=receipt, quantity={'active': 1},
                                cost={'unit': 100.00, 'precision': 2})
     receipt.refresh_from_db()
     cash = Cash.objects.create(vendor_id=vendor.pk, amount=Decimal('-60.00'),

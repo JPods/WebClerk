@@ -7,6 +7,8 @@ from decimal import Decimal
 
 import pytest
 
+from tests.utils import received_receipt_line
+
 from apps.core.models.pending import Pending
 from apps.orgs.models import OrgBase
 from apps.transactions.models import Cash, Invoice, InvoiceLine, Order, Receipt, ReceiptLine
@@ -61,7 +63,7 @@ def test_cash_added_to_an_invoice_is_applied_at_once(admin_client):
 def test_cash_added_to_a_receipt_pays_the_vendor_with_the_ap_sign(admin_client):
     vendor = OrgBase.objects.create(company='Add Cash Vendor', org_type='vendor', is_active=True)
     receipt = Receipt.objects.create(vendor_id=vendor.pk)
-    ReceiptLine.objects.create(receipt=receipt, quantity={'active': 1}, cost={'unit': 100.0, 'precision': 2})
+    received_receipt_line(receipt=receipt, quantity={'active': 1}, cost={'unit': 100.0, 'precision': 2})
     receipt.refresh_from_db()
     r = _post(admin_client, 'receipt', receipt.pk, {'amount': '60.00', 'method': 'ach'})
     assert r.status_code == 200, r.content

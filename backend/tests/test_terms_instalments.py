@@ -7,6 +7,8 @@ wc_demo used a multi-part term, so this path had never run on either side.
 from decimal import Decimal
 
 import pytest
+
+from tests.utils import received_receipt_line
 from django.apps import apps as dj_apps
 
 pytestmark = pytest.mark.django_db
@@ -85,7 +87,7 @@ def test_a_payable_splits_into_parts_like_a_receivable():
     _term()
     vendor = Vendor.objects.create(company='V')
     receipt = Receipt.objects.create(vendor_id=vendor.pk, terms='3Pay30Days')
-    ReceiptLine.objects.create(receipt=receipt, quantity={'active': 1},
+    received_receipt_line(receipt=receipt, quantity={'active': 1},
                                cost={'unit': 300.00, 'precision': 2})
     receipt.refresh_from_db()
 

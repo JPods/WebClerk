@@ -325,8 +325,10 @@ class Pending(CoreModel):
         # A receipt line's layer is born at the line's landed cost when its totals exist
         # by the time this applies (a queued apply) — else the next recalc's
         # inventory_cost_change lands it.
-        landed = {}
-        if spec.get('line_id'):
+        # The receive command hands the layer its final landed cost (Bill, 2026-09-30: a layer is
+        # born at the receipt's cost and never changes). Otherwise, the line's totals as they stand.
+        landed = create.get('landed') or {}
+        if not landed and spec.get('line_id'):
             from apps.transactions.models import ReceiptLine
             from apps.transactions.services.pricing.totals_compute import landed_layer_cost
             line = ReceiptLine.objects.filter(pk=spec['line_id']).first()

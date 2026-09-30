@@ -54,7 +54,7 @@ const ACTION_CONFIGS: Record<string, ActionDef[]> = {
   ],
   purchase: [
     { key: 'convert_to_receipt', label: 'To Receipt', command: 'convert',
-      confirm: 'Receive everything left on this purchase? Edit the receipt before journalizing.',
+      confirm: 'Plan a receipt for everything left on this purchase? Review it, then Receive it.',
       params: () => ({ to: 'receipt' }) },
     { key: 'create_serial_on_receive', label: 'Create Serial', needsDialog: true },
   ],
@@ -69,6 +69,13 @@ const ACTION_CONFIGS: Record<string, ActionDef[]> = {
       confirm: 'Duplicate this quote with fresh dates?',
       params: (r) => ({ model_name: 'quote', record_id: r.id, include_children: true }) },
     { key: 'link_transaction_to_campaign', label: 'Link Campaign', needsDialog: true },
+  ],
+  receipt: [
+    // Bill, 2026-09-30: the goods go on the shelf here, and each layer is born at the
+    // receipt's cost, which never changes after.
+    { key: 'receive', label: 'Receive', command: 'receive',
+      confirm: "Put this receipt's planned goods on the shelf? Their cost is fixed from then on.",
+      params: () => ({}) },
   ],
   cash: [
     { key: 'journalize_cash', label: 'Journalize',

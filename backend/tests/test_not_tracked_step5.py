@@ -10,6 +10,8 @@ from decimal import Decimal
 
 import pytest
 
+from tests.utils import received_receipt_line
+
 pytestmark = pytest.mark.django_db
 
 
@@ -74,7 +76,7 @@ def test_receiving_a_not_tracked_item_makes_no_layer():
     from apps.transactions.models import Receipt, ReceiptLine
     freight = _item('FREIGHT-S5', not_tracked=True, standard=12)
     receipt = Receipt.objects.create()
-    ReceiptLine.objects.create(receipt=receipt, line_number=10, item_fk=freight,
+    received_receipt_line(receipt=receipt, line_number=10, item_fk=freight,
                                item={'id': freight.pk}, quantity={'active': 3},
                                cost={'unit': 12, 'precision': 2})
     assert _stock_pendings(freight).count() == 0

@@ -214,15 +214,21 @@ class ReceiptBehaviour(ModelBehaviour):
     transfer check; after the save, each purchase line received past its active is flagged."""
 
     def after_save(self, ctx: HookContext) -> None:
-        from apps.transactions.models import PurchaseLine, ReceiptLine
-        from apps.transactions.services.line_parent import children_active_sum
-        parents = set(ReceiptLine.objects.filter(receipt_id=ctx.obj.pk, parent_line_id__isnull=False)
-                      .values_list('parent_line_id', flat=True))
-        for pol in PurchaseLine.objects.filter(pk__in=parents):
-            active = float((pol.quantity or {}).get('active') or 0)
-            received = float(children_active_sum(pol) or 0)
-            if received > active + 1e-9:
-                _flag_over_receipt(ctx.obj, pol, active, received)
+        flag_over_receipts(ctx.obj)
+
+
+def flag_over_receipts(receipt) -> None:
+    """Each purchase line this receipt received past what was ordered is flagged to Alice. Run
+    after a receipt save and after its receive command (which moves the received quantities)."""
+    from apps.transactions.models import PurchaseLine, ReceiptLine
+    from apps.transactions.services.line_parent import children_active_sum
+    parents = set(ReceiptLine.objects.filter(receipt_id=receipt.pk, parent_line_id__isnull=False)
+                  .values_list('parent_line_id', flat=True))
+    for pol in PurchaseLine.objects.filter(pk__in=parents):
+        active = float((pol.quantity or {}).get('active') or 0)
+        received = float(children_active_sum(pol) or 0)
+        if received > active + 1e-9:
+            _flag_over_receipt(receipt, pol, active, received)
 
 
 def _flag_over_receipt(receipt, pol, ordered: float, received: float) -> None:

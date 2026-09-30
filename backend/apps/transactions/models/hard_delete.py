@@ -8,7 +8,8 @@ deleted, or have values edited within our scope of work."
 
 No model has a deleted flag any more (Bill, 2026-09-22: soft delete removed everywhere), so what is
 left to guard is the posted record. Every transaction header, every line and every Cash:
-  - refuses deletion once journalized (dt_journaled) or reconciled (Cash);
+  - refuses deletion once journalized (dt_journaled), reconciled (Cash) or received (a receipt
+    line with goods on the shelf, and its receipt: Bill, 2026-09-30);
   - a line refuses to be added to, or deleted from, a journalized document.
 The delete guard is a pre_delete receiver, so it also stops queryset deletes and a header's
 CASCADE, which never call Model.delete().
@@ -21,9 +22,10 @@ from django.db.models.signals import pre_delete
 
 class JournalizedDeleteRefused(ValueError):
     def __init__(self, record, why):
-        super().__init__(
-            f"{_label(record)} is {why} and cannot be deleted or changed. Correct it with a new "
-            f"record: a credit memo, or a reversing cash.")
+        remedy = ("a count workorder: its goods are in layers, and a layer never changes"
+                  if why == 'received' else "a new record: a credit memo, or a reversing cash")
+        super().__init__(f"{_label(record)} is {why} and cannot be deleted or changed. "
+                         f"Correct it with {remedy}.")
 
 
 def _label(record) -> str:
@@ -36,7 +38,21 @@ def _posted(record) -> str | None:
         return 'journalized'
     if getattr(record, 'reconciled', False):
         return 'reconciled'
+    if _received(record):
+        return 'received'
     return None
+
+
+def _received(record) -> bool:
+    """A receipt line that has received goods, or a receipt with one (Bill, 2026-09-28/30: its
+    layers never change, so the line cannot be taken back by deleting it)."""
+    name = record._meta.model_name
+    if name == 'receiptline':
+        return float((record.quantity or {}).get('active') or 0) > 0
+    if name == 'receipt' and record.pk:
+        from apps.transactions.models import ReceiptLine
+        return ReceiptLine.objects.filter(receipt_id=record.pk, quantity__active__gt=0).exists()
+    return False
 
 
 class HardDeleteOnly:
@@ -59,7 +75,7 @@ class HardDeleteOnly:
         if self._state.adding and hasattr(self, 'parent_line_id'):
             header = self._header_for_guard()
             why = _posted(header)
-            if why:
+            if why and why != 'received':    # a partly received receipt still takes planned lines
                 raise JournalizedDeleteRefused(header, why)
         return super().save(*args, **kwargs)
 
@@ -67,8 +83,11 @@ class HardDeleteOnly:
 def refuse_posted_delete(sender, instance, **kwargs):
     if not isinstance(instance, HardDeleteOnly):
         return
-    for record in (instance, instance._header_for_guard()):
+    header = instance._header_for_guard()
+    for record in (instance, header):
         why = _posted(record)
+        if why == 'received' and record is header and header is not instance:
+            continue    # a line not yet received may leave a partly received receipt
         if why:
             raise JournalizedDeleteRefused(record, why)
 

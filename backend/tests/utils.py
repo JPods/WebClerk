@@ -75,3 +75,19 @@ def save_document(model_key, header_data, lines_data, actor=None):
                .exclude(pk__in=before).order_by('pk').values_list('pk', flat=True))
     return {'header': {'id': result.obj_id}, 'lines': [{'id': pk} for pk in created],
             'action': 'created' if result.created else 'updated', 'result': result}
+
+
+def received_receipt_line(receipt, **fields):
+    """A receipt line planned, then received by the receipt's receive command: nothing else sets a
+    receipt line's received quantity (Bill, 2026-09-30). ``quantity.active`` is what is received."""
+    from apps.transactions.models import ReceiptLine
+    from apps.transactions.services.receive_commands import receive_receipt
+    quantity = dict(fields.pop('quantity', None) or {})
+    active = float(quantity.pop('active', 0) or 0)
+    quantity['staged'] = max(float(quantity.get('staged') or 0), active)
+    quantity['active'] = 0
+    line = ReceiptLine.objects.create(receipt=receipt, quantity=quantity, **fields)
+    if active:
+        receive_receipt(receipt, lines=[{'line_id': line.pk, 'qty': active}])
+    line.refresh_from_db()
+    return line

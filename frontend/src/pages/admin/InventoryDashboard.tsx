@@ -11,11 +11,11 @@
  *   4. Reconcile — physical count vs system, variance adjustments
  *   5. Training  — Alice's guided Quote→Order→Invoice→Cash→PO→Receive cycle
  *
- * Receiving is a convert, like order→invoice (Bill, 2026-09-27):
- *   POST /wcapi/purchase/<id>/convert/ {to: 'receipt', lines: [{line_id, qty}]}
- *   — only the lines affected, each at the qty entered; one save through the door. The receipt
- *   keeps the PO line's cost; stock lands in the default warehouse. More than is left is taken
- *   and flagged to Alice (an over-shipment).
+ * Receiving at the dock is two commands (Bill, 2026-09-27 and 2026-09-30):
+ *   POST /wcapi/purchase/<id>/convert/ {to: 'receipt', lines: [{line_id, qty}]} plans the receipt
+ *   — only the lines affected, each at the qty entered; it keeps the PO line's cost — and
+ *   POST /wcapi/receipt/<id>/receive/ puts the goods on the shelf in the default warehouse, each
+ *   layer born at the receipt's cost. More than is left is taken and flagged to Alice.
  * The other tabs go through manageAction → backend services:
  *   - corrections: a count workorder (api/workorderApi.saveCorrection)
  *   - get_item_inventory_summary (inventory_stacks.py)
@@ -319,10 +319,8 @@ function ReceiveTab() {
     const results: string[] = [];
     let hasError = false;
 
-    // One receiving path (Bill, 2026-09-19), the purchase's convert to a receipt (2026-09-27):
-    // the receipt and the lines affected are one save; each line moves on_po -> on_hand and
-    // on_rc and recomputes the PO line's remaining. Cost comes from the PO line; edit it on
-    // the receipt.
+    // The goods are here: plan the receipt for the lines affected (convert), then receive it,
+    // which moves on_po -> on_hand and on_rc and creates each layer at the receipt's cost.
     try {
       const res = await apiClient.post(`/wcapi/purchase/${selectedPO.id}/convert/`, {
         to: "receipt",
@@ -332,6 +330,7 @@ function ReceiveTab() {
         })),
       });
       const data = res.data?.data?.result || {};
+      await apiClient.post(`/wcapi/receipt/${data.receipt_id}/receive/`, {});
       results.push(
         `Receipt ${data.receipt_ida || data.receipt_id}: ${linesToReceive.length} line(s) received`
       );
