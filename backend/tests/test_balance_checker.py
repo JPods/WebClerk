@@ -26,8 +26,10 @@ def _received(qty=7, ordered=10):
     pol = PurchaseLine.objects.create(
         purchase=po, item={'item_id': item.pk, 'id_num': item.pk, 'description': 'Widget'},
         quantity={'active': ordered, 'staged': ordered}, cost={'unit': 4.00})
-    run_command(Actor.system(), 'convert', 'purchase', po.pk,
-                {'to': 'receipt', 'lines': [{'line_id': pol.pk, 'qty': qty}]})
+    out = run_command(Actor.system(), 'convert', 'purchase', po.pk,
+                      {'to': 'receipt', 'lines': [{'line_id': pol.pk, 'qty': qty}]})
+    # The goods go on the shelf at the receipt's receive command (Bill, 2026-09-30).
+    run_command(Actor.system(), 'receive', 'receipt', out['receipt_id'], {})
     return item
 
 
