@@ -343,20 +343,30 @@ def get_allowed_fields(
             return []
         leaves = fl.model_leaves(access.model_key(model_name))['leaves']
         if mode != "view":
-            # A Setting's config, prefs and data are untyped by design, so their schema
-            # leaves are a sliver (config.layout.*, config.is_new): a superuser's edit of
-            # the company profile, an access list or a sequence was trimmed to nothing and
-            # answered 200 (audit A3-H-2). Superusers change Setting records (Bill,
-            # 2026-09-29): the edit list names each whole field. What a Setting may hold is
-            # still checked when it is saved (Setting.save, the access guard).
-            from apps.core.utils import registry
-            model_cls = registry.resolve(access.model_key(model_name))
-            leaves = set(leaves) | {f.name for f in model_cls._meta.concrete_fields}
+            return _superuser_edit_fields(model_name, leaves)
         return sorted(leaves)
+    if mode != "view" and actor.is_superuser_login:
+        from apps.core.services import field_leaves as fl
+        return _superuser_edit_fields(model_name, fl.model_leaves(access.model_key(model_name))['leaves'])
     config = get_user_filter_config(actor, model_name)
     if not config:
         return []
     return _resolve_field_tokens(config.get("view" if mode == "view" else "edit", []), actor)
+
+
+def _superuser_edit_fields(model_name: str, leaves) -> list:
+    """Superusers change every field of every record but uuid and id (Bill, 2026-09-29).
+
+    Schema leaves alone are not every field: a Setting's config is untyped, so its leaves
+    were config.layout.* and config.is_new and a superuser's company-profile save was
+    trimmed to nothing with a 200 (audit A3-H-2). So the list also names each whole field.
+    ida and the system dt_ fields stay locked at the door until the superuser names them in
+    _unlock; what a record may hold is still checked when it is saved.
+    """
+    from apps.core.utils import registry
+    model_cls = registry.resolve(access.model_key(model_name))
+    fields = set(leaves) | {f.name for f in model_cls._meta.concrete_fields}
+    return sorted(fields - {'uuid', 'id'})
 
 
 def user_price_level(user: AbstractUser) -> str:

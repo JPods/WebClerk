@@ -68,14 +68,26 @@ def test_only_enumerated_fields_are_kept():
 def test_system_fields_are_written_only_by_an_admin():
     _grant('contact', 'employee', {**EMPLOYEE_CONTACT, 'edit': ['@all']})
     employee = Actor(user=Contact.objects.create(email='e3@example.com', role='employee'))
-    admin = Actor(user=Contact.objects.create(email='a1@example.com', role='admin'))
     target = Contact.objects.create(email='t2@example.com')
     payload = {field: 1 for field in SYSTEM_ONLY_FIELDS
-               if field not in ('id', 'version') and field not in SYSTEM_DT_FIELDS}
+               if field not in ('id', 'version', 'ida', 'uuid') and field not in SYSTEM_DT_FIELDS}
     kept, denied = _enumerated_edit(employee, target, 'contact', payload)
     assert kept == {} and set(denied) == set(payload)
-    kept, _ = _enumerated_edit(admin, target, 'contact', {'ida': 'C-100'})
-    assert kept == {'ida': 'C-100'}
+
+
+@pytest.mark.parametrize('role', ['employee', 'admin'])
+def test_an_ida_is_locked_for_every_role_but_a_superuser_who_unlocks_it(role):
+    """Bill, 2026-09-29: ida is locked; only a superuser unlocks it (admins lose the edit)."""
+    from apps.core.services.door import Refused
+    _grant('contact', role, {**EMPLOYEE_CONTACT, 'edit': ['@all']})
+    actor = Actor(user=Contact.objects.create(email=f'ida-{role}@example.com', role=role))
+    target = Contact.objects.create(email=f'ida-t-{role}@example.com')
+    with pytest.raises(Refused) as refused:
+        _enumerated_edit(actor, target, 'contact', {'ida': 'C-100'})
+    assert refused.value.code == 'ida_locked'
+    su = Actor(user=Contact.objects.create(email=f'ida-su-{role}@example.com', is_superuser=True))
+    kept, _ = _enumerated_edit(su, target, 'contact', {'ida': 'C-100', '_unlock': ['ida']})
+    assert kept['ida'] == 'C-100'
 
 
 @pytest.mark.parametrize('role', ['employee', 'admin', 'superuser'])

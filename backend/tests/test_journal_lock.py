@@ -72,6 +72,27 @@ def test_a_gl_reversal_writes_no_mark_on_its_source():
     assert invoice.dt_journaled == JOURNALED
 
 
+def test_a_superuser_who_unlocks_the_journal_mark_may_change_it(django_user_model):
+    """The sibling of the test above (Bill, 2026-09-29): a superuser names the stamp in
+    _unlock and the change goes through."""
+    from rest_framework.test import APIClient
+    from rest_framework_simplejwt.tokens import RefreshToken
+    admin = django_user_model.objects.create_superuser(email='jl-unlock@example.com',
+                                                       password=TEST_PASSWORD)
+    token = RefreshToken.for_user(admin)
+    token['role'] = getattr(admin, 'role', 'admin')
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION=f'Bearer {token.access_token}')
+    invoice, _ = _invoice_with_line()
+    _journalize(invoice)
+    resp = client.put(f'/wcapi/invoice/{invoice.pk}/',
+                      {'dt_journaled': 0, 'version': invoice.version, '_unlock': ['dt_journaled']},
+                      format='json')
+    assert resp.status_code == 200, resp.content
+    invoice.refresh_from_db()
+    assert not invoice.dt_journaled
+
+
 def test_a_clone_of_a_journalized_invoice_is_not_journalized():
     """R11 / H5."""
     from apps.core.services.record_clone import clone_record

@@ -231,6 +231,31 @@ SYSTEM_ONLY_FIELDS = frozenset({'id', 'uuid', 'ida', 'dt_created', 'dt_modified'
                                 'is_archived', 'health_rating'})
 
 
+#: What a superuser may name in _unlock (Bill, 2026-09-29): ida and the system dt_ stamps.
+#: dt_modified is restamped by every save, so unlocking it would change nothing.
+UNLOCKABLE_FIELDS = frozenset({'ida'}) | (SYSTEM_DT_FIELDS - {'dt_modified'})
+_UNLOCK_COACHING = 'A superuser can change it by naming it in _unlock with the change: {"_unlock": ["%s"]}.'
+
+
+def _read_unlock(actor: Actor, data: dict) -> set:
+    """The locked fields this save may change. Only a superuser sends _unlock, and only for
+    fields that are locked; anything else is refused, never ignored."""
+    names = (data or {}).get('_unlock') or []
+    if not names:
+        return set()
+    if not actor.is_superuser_login:
+        raise Refused(403, 'unlock_superuser_only',
+                      'Only a superuser can unlock ida or a system date. Leave _unlock out.',
+                      {'_unlock': names})
+    unknown = sorted(n for n in names if n not in UNLOCKABLE_FIELDS)
+    if unknown:
+        raise Refused(400, 'unlock_unknown',
+                      f'{", ".join(unknown)}: not a locked field. _unlock names ida or a system dt_ '
+                      f'field; every other field a superuser changes without it.',
+                      {'unknown': unknown, 'unlockable': sorted(UNLOCKABLE_FIELDS)})
+    return set(names)
+
+
 def _same_as_stored(obj, key: str, value) -> bool:
     """True when ``value`` is what ``obj`` already holds (or the field's default, on a new record)."""
     field = obj._meta.get_field(key)
@@ -262,7 +287,8 @@ def _enumerated_edit(actor: Actor, obj, model_key: str, data: dict):
     allowed = set(get_allowed_fields(actor, model_key, mode='edit'))
     if model_key == 'contact' and getattr(obj, 'pk', None) and obj.pk == actor.user_id:
         allowed |= set(access.SELF_CONTACT_EDIT)
-    admin = access.is_admin(actor)          # an admin may set an ida, as before
+    admin = access.is_admin(actor)
+    unlocked = _read_unlock(actor, data)
     # 2026-09-20 ignores a FIELD the role may not edit; 2026-09-25 refuses a key that is no
     # field at all. So a non-field passes through here and the assignment refuses it with
     # coaching — dropped here, a `data` wrapper hid its fields and the save failed as a 500.
@@ -276,10 +302,22 @@ def _enumerated_edit(actor: Actor, obj, model_key: str, data: dict):
         if key.startswith('_') or key in PASSTHROUGH_KEYS:
             kept[key] = value
         elif key in SYSTEM_DT_FIELDS and key in field_names:
-            # A system stamp is written only by its event, for every role (Bill, 2026-09-28).
-            # An echo of the stored value changes nothing and is left out; a change is refused.
-            if not _same_as_stored(obj, key, value):
-                raise Refused(400, 'system_field', system_dt_coaching(key), {'field': key})
+            # A system stamp is written only by its event, for every role (Bill, 2026-09-28),
+            # unless a superuser unlocks it for this save (Bill, 2026-09-29). An echo of the
+            # stored value changes nothing and is left out; any other change is refused.
+            if key in unlocked:
+                kept[key] = value
+            elif not _same_as_stored(obj, key, value):
+                raise Refused(400, 'system_field',
+                              f'{system_dt_coaching(key)} {_UNLOCK_COACHING % key}', {'field': key})
+        elif key in ('ida', 'uuid') and key in field_names:
+            # uuid never changes; ida is locked and a superuser unlocks it (Bill, 2026-09-29).
+            if key in unlocked:
+                kept[key] = value
+            elif not _same_as_stored(obj, key, value):
+                coaching = ('A uuid never changes.' if key == 'uuid'
+                            else f'The ida is locked. {_UNLOCK_COACHING % "ida"}')
+                raise Refused(400, f'{key}_locked', coaching, {'field': key})
         elif '.' not in key and key not in field_names:
             kept[key] = value
         elif key in SYSTEM_ONLY_FIELDS and not admin:

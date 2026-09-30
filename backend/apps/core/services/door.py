@@ -135,12 +135,18 @@ class Actor:
         return role_filter.user_price_level(self.user) if self.user_id else ''
 
     @property
-    def may_write_open_read(self) -> bool:
-        """Writes to an open-read model (Settings): a login's own superuser role, never an
-        act-as and never a Connection."""
+    def is_superuser_login(self) -> bool:
+        """A login's own superuser role — never an act-as and never a Connection. Superusers
+        change every field of every record but uuid and id, and unlock ida and the system
+        dt_ fields (Bill, 2026-09-29), and they write open-read models (Settings)."""
         from apps.core.services import access
         return (self.kind in ('user', 'staff') and not self.acting_as
                 and access.open_read_can_write(self.user))
+
+    @property
+    def may_write_open_read(self) -> bool:
+        """Writes to an open-read model (Settings): a superuser's own login."""
+        return self.is_superuser_login
 
     def describe(self) -> str:
         """For log lines and history: the institution behind a sync write is traceable."""

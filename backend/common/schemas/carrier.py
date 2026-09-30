@@ -19,7 +19,7 @@ the save reported success (Bill: "failing hard will make seeing the failure more
 """
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
@@ -38,6 +38,10 @@ class CarrierBase(BaseModel):
                                      "parent, so the Pendings for what it held are written with it.")
     index: Optional[int] = Field(None, alias='_index',
                                  description="The record's position in the array it arrived in.")
+    unlock: List[str] = Field(default_factory=list, alias='_unlock',
+                              description="Locked fields a superuser changes in this save: ida or a "
+                                          "system dt_ (Bill, 2026-09-29). Only a superuser may send it, "
+                                          "and only for fields that are locked.")
 
 
 #: Every wire name this schema accepts — the registry the write policy checks against.
