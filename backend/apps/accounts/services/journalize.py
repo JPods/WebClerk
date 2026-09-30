@@ -305,6 +305,30 @@ def _cash_posted_and_not_reversed(GlJournal, cash_id: int) -> bool:
     return _posted_and_not_reversed(GlJournal, cash_id, 'cash')
 
 
+def _invoice_cost_of_goods(lines):
+    """(movements, {item_id: cost}) for an invoice's lines: each unposted movement of theirs at its
+    layer's fixed landed cost (issued out is cost, given back is negative cost), plus what each line
+    still owes as an open deficit, at the deficit's unit cost."""
+    InventoryMovement = dj_apps.get_model('products', 'InventoryMovement')
+    Pending = dj_apps.get_model('core', 'Pending')
+    line_ids = [l.pk for l in lines]
+    movements = list(InventoryMovement.objects.select_related('inventory_layer').filter(
+        parent_model='invoiceline', parent_id__in=line_ids, dt_journaled=0))
+    cost: dict = {}
+    for move in movements:
+        unit = Decimal(str(((move.inventory_layer.cost if move.inventory_layer else {}) or {}).get('landed') or 0))
+        cost[move.item_id] = cost.get(move.item_id, Decimal('0')) - Decimal(str(move.quantity)) * unit
+    from apps.core.models.pending import DEFICIT_PURPOSE
+    for deficit in Pending.objects.filter(purpose=DEFICIT_PURPOSE, dt_processed=0,
+                                          changes__parent_model='invoiceline',
+                                          changes__parent_id__in=line_ids):
+        short = deficit.incremental_remaining('deficit_qty')
+        unit = Decimal(str((deficit.changes or {}).get('unit_cost') or 0))
+        item_id = int(deficit.record_id)
+        cost[item_id] = cost.get(item_id, Decimal('0')) + Decimal(str(short)) * unit
+    return movements, {k: v.quantize(Decimal('0.01')) for k, v in cost.items()}
+
+
 def journalize_invoice(invoice_id: int, ida_prefix: str = '') -> dict:
     """Journalize a single invoice — line-level GL posting.
 
@@ -316,7 +340,8 @@ def journalize_invoice(invoice_id: int, ida_prefix: str = '') -> dict:
     For each invoice line:
       - Credit Revenue for line totals.amount (item.gls.revenue, net of every discount)
       - Debit sales discounts for a settlement (cash) discount line
-      - Debit COGS / Credit Inventory at item cost
+      - Debit COGS / Credit Inventory at the cost of the layers the lines consumed (their
+        movements) plus what they took short (open deficits, at the average they opened at)
     Balanced when totals.total = sum of line extended + tax + shipping + other;
     anything else is reported as out of balance, never absorbed.
 
@@ -408,30 +433,19 @@ def journalize_invoice(invoice_id: int, ida_prefix: str = '') -> dict:
             if cust_rev:
                 rev_account = cust_rev
 
-        cogs_account = item_gls.get('cogs') or _role('cost_of_goods_sold')
-        inv_account = item_gls.get('inventory') or _role('inventory')
-
         # Revenue credit (what we earned)
         _add(rev_account, 'credit', extended, 'sales_revenue')
 
-        # COGS debit + Inventory credit (cost side)
-        # Use item cost if available, otherwise skip COGS
-        qty_data = line.quantity or {}
-        qty = Decimal(str(qty_data.get('active', 0) or 0))
-        item_cost = Decimal('0')
-        if item_id:
-            try:
-                Item = dj_apps.get_model('products', 'Item')
-                item = Item.objects.get(pk=item_id)
-                cost_data = item.cost or {}
-                item_cost = Decimal(str(cost_data.get('standard', cost_data.get('average', 0)) or 0))
-            except Exception:
-                pass
-
-        if item_cost > 0 and qty > 0:
-            cogs_amount = item_cost * qty
-            _add(cogs_account, 'debit', cogs_amount, 'cost_of_goods')
-            _add(inv_account, 'credit', cogs_amount, 'inventory')
+    # COGS from the layers the invoice's lines consumed, at each layer's fixed cost, and from what
+    # they took short (an open deficit, at the average it opened at). Never the item's cost:
+    # inventory leaves the GL exactly as the layers say it did (Bill, 2026-09-28/30).
+    movements, cost_by_item = _invoice_cost_of_goods(lines)
+    for item_id, cost in cost_by_item.items():
+        if not cost:
+            continue
+        item_gls = _get_item_gls(item_id) if item_id else {}
+        _add(item_gls.get('cogs') or _role('cost_of_goods_sold'), 'debit', cost, 'cost_of_goods')
+        _add(item_gls.get('inventory') or _role('inventory'), 'credit', cost, 'inventory')
 
     # Header amounts: what the customer owes, and the parts that are not line revenue.
     totals = invoice.totals if isinstance(getattr(invoice, 'totals', None), dict) else {}
@@ -516,6 +530,8 @@ def journalize_invoice(invoice_id: int, ida_prefix: str = '') -> dict:
             dt_journaled=now,
             dt_modified=now,
         )
+        dj_apps.get_model('products', 'InventoryMovement').objects.filter(
+            pk__in=[m.pk for m in movements]).update(dt_journaled=now)
 
     # Accrue commission if present on this invoice
     commission_result = None
