@@ -256,6 +256,14 @@ def _read_unlock(actor: Actor, data: dict) -> set:
     return set(names)
 
 
+def _identity_is_set(obj) -> bool:
+    """A record's identity locks once it is made: saved, and past the save that fills a `new`
+    (config.is_new — the first save completes the create, Bill 2026-09-26)."""
+    if not getattr(obj, 'pk', None):
+        return False
+    return not ((getattr(obj, 'config', None) or {}).get('is_new'))
+
+
 def _same_as_stored(obj, key: str, value) -> bool:
     """True when ``value`` is what ``obj`` already holds (or the field's default, on a new record)."""
     field = obj._meta.get_field(key)
@@ -310,8 +318,10 @@ def _enumerated_edit(actor: Actor, obj, model_key: str, data: dict):
             elif not _same_as_stored(obj, key, value):
                 raise Refused(400, 'system_field',
                               f'{system_dt_coaching(key)} {_UNLOCK_COACHING % key}', {'field': key})
-        elif key in ('ida', 'uuid') and key in field_names:
-            # uuid never changes; ida is locked and a superuser unlocks it (Bill, 2026-09-29).
+        elif key in ('ida', 'uuid') and key in field_names and _identity_is_set(obj):
+            # A record's uuid never changes; its ida is locked and a superuser unlocks it (Bill,
+            # 2026-09-29). A record being made has nothing to lock yet: an import, the admin and
+            # sync keep identity from where the record came from, as before (below).
             if key in unlocked:
                 kept[key] = value
             elif not _same_as_stored(obj, key, value):

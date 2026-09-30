@@ -84,3 +84,14 @@ def test_what_a_field_holds_is_still_checked(actors):
     with pytest.raises(Refused):
         save_record(actors['su'], {'model_name': 'action', 'id': action.pk,
                                    'config': {'repair': {'note': 'set by hand'}}})
+
+
+def test_the_save_that_fills_a_new_record_may_name_its_ida(actors):
+    """A record being made has nothing to lock: `new`, then its first save, may carry the ida
+    it came with (an import, write-through). The next save finds it locked."""
+    made = save_record(actors['admin'], {'model_name': 'action'}, new=True)
+    save_record(actors['admin'], {'model_name': 'action', 'id': made.obj_id, 'ida': 'IMPORTED-7'})
+    assert Action.objects.get(pk=made.obj_id).ida == 'IMPORTED-7'
+    with pytest.raises(Refused) as refused:
+        save_record(actors['admin'], {'model_name': 'action', 'id': made.obj_id, 'ida': 'CHANGED'})
+    assert refused.value.code == 'ida_locked'

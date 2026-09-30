@@ -12,7 +12,7 @@ from common.schemas.carrier import CARRIER_KEYS, CarrierBase, CarrierError, read
 
 
 def test_the_wire_names_keep_their_underscore():
-    assert CARRIER_KEYS == {'_dirty', '_new', '_delete', '_index'}
+    assert CARRIER_KEYS == {'_dirty', '_new', '_delete', '_index', '_unlock'}
     carrier = read_carrier({'id': 4, '_delete': True, '_index': 2})
     assert carrier.delete is True and carrier.index == 2
     assert carrier.dirty is True and carrier.new is False          # defaults
@@ -29,7 +29,7 @@ def test_a_field_named_with_a_leading_underscore_would_have_validated_nothing():
 
     assert list(Naive.model_fields) == []                          # silently empty
     assert Naive(**{'_delete': True}).model_dump() == {}
-    assert set(CarrierBase.model_fields) == {'dirty', 'new', 'delete', 'index'}   # ours is not
+    assert set(CarrierBase.model_fields) == {'dirty', 'new', 'delete', 'index', 'unlock'}   # ours is not
 
 
 def test_an_unknown_signal_is_refused_not_ignored():

@@ -137,11 +137,15 @@ class TestVendorPortal:
 
 @pytest.mark.django_db
 class TestPositiveList:
-    def test_superuser_is_a_list_not_a_bypass(self, django_user_model, item_policy):
+    def test_superuser_edits_every_field_but_sees_by_the_list(self, django_user_model, item_policy):
+        """Bill, 2026-09-29: superusers change every field but uuid and id (ida and the system
+        dt_ unlock at the door). What they see is still the role's view list."""
         user = django_user_model.objects.create_superuser(
             email='staff@example.fake', password=get_random_string(20),
             name_first='S', name_last='T', username='')
-        assert get_allowed_fields(Actor(user=user), 'item', mode='edit') == STAFF_EDIT
+        edit = set(get_allowed_fields(Actor(user=user), 'item', mode='edit'))
+        assert set(STAFF_EDIT) <= edit and 'price' in edit and 'config' in edit
+        assert 'uuid' not in edit and 'id' not in edit
         visible = filter_response_data(Actor(user=user), 'item', ITEM_RECORD)
         assert 'price' in visible and set(visible['price']) == {'retail'}
 
