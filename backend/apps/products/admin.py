@@ -22,7 +22,7 @@ class ItemAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdm
 
 @admin.register(ItemXRef)
 class ItemXRefAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
-    # Scalar fields: dt_created, dt_modified, external_sku, external_uuid, health_rating, is_active, is_archived, is_deleted, is_preferred, security_level, source, source_id, source_model_name, source_name, status, uuid, version
+    # Scalar fields: dt_created, dt_modified, external_sku, external_uuid, health_rating, is_active, is_archived, is_deleted, is_preferred, security_level, source_id, source_model_name, source_name, status, uuid, version
     list_display = ("status", "external_sku", "external_uuid", "health_rating", "is_preferred", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("ida", "description")
@@ -46,7 +46,7 @@ class WarehouseAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.Mod
 
 @admin.register(InventoryLayer)
 class InventoryLayerAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
-    # Scalar fields: dt_created, dt_modified, health_rating, is_active, is_archived, is_deleted, lot, security_level, serial_batch, source_doc_id, source_doc_type, status, uuid, version
+    # Scalar fields: dt_created, dt_modified, health_rating, is_active, is_archived, is_deleted, lot, security_level, serial_batch, status, uuid, version
     list_display = ("status", "health_rating", "lot", "security_level", "serial_batch", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("ida", "description")
@@ -62,7 +62,7 @@ class SiteInventoryAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin
 
 @admin.register(InventoryMovement)
 class InventoryMovementAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
-    # Scalar fields: dt_created, dt_modified, health_rating, is_active, is_archived, is_deleted, movement_type, quantity, reason, security_level, site_code, source_doc_id, source_doc_type, status, uuid, version
+    # Scalar fields: dt_created, dt_modified, health_rating, is_active, is_archived, is_deleted, movement_type, quantity, reason, security_level, site_code, status, uuid, version
     list_display = ("status", "health_rating", "movement_type", "quantity", "reason", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("ida", "description")

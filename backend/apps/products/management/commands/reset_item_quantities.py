@@ -163,8 +163,8 @@ class Command(BaseCommand):
                                 'warehouse_id': rl.warehouse_id or warehouse.pk,
                                 'lot': rl.lot or '', 'serial_batch': rl.serial_batch or '',
                                 'unit_cost': float(cost.get('unit') or 0),
-                                'source_doc_type': rl.receipt.source_type or 'purchase_receipt',
-                                'source_doc_id': rl.receipt_id,
+                                'parent_model': rl._meta.model_name,
+                                'parent_id': rl.pk,
                             }},
                         },
                     )
@@ -179,7 +179,7 @@ class Command(BaseCommand):
                             'layer': {'create': {
                                 'warehouse_id': warehouse.pk,
                                 'unit_cost': float(cost.get('avg') or cost.get('last') or 0),
-                                'source_doc_type': 'opening_balance', 'source_doc_id': None,
+                                'parent_model': '', 'parent_id': None,
                                 'lot': 'OPENING',
                             }},
                         },

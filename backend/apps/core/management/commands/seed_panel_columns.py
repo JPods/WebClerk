@@ -390,7 +390,7 @@ PANEL_COLUMNS = {
         f('status', width=70),
         f('item_ida', width=100),
         f('lot', width=80),
-        f('source_doc_type', width=80),
+        f('parent_model', width=80),
     ],
     'inventory_adjustment_run': [
         f('ida', width=80),

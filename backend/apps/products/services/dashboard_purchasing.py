@@ -204,12 +204,6 @@ def compute_purchasing_dashboard(
         ))
         dashboard.layers_consumed = move_qs.filter(movement_type='issue').count()
 
-        # Unreconciled layers (source_doc_type='po', no cost finalization — older than 30 days)
-        thirty_days_ago = now_ms - (30 * 86400000)
-        dashboard.unreconciled_layers = layer_qs.filter(
-            source_doc_type__in=['po', 'purchase'],
-            dt_created__lt=thirty_days_ago,
-        ).count()
     except Exception:
         pass
 

@@ -97,7 +97,6 @@ FIELD_SCHEMAS: dict[str, str] = {
         'audit.changes', 'audit.conflicts', 'audit.recommendations',
         'pending.changes', 'tax_jurisdiction.scripts',
     )},
-    'inventory_layer.source': f'{_TE}:TransactionSource',
     'inventory_layer.cost': f'{_TE}:TransactionCost',
     'item_xref.cost': f'{_TE}:TransactionCost',
 }

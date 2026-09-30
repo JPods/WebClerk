@@ -98,8 +98,8 @@ class InventoryLayersView(APIView):
                 'duty': cost.get('duty', 0),
                 'currency': cost.get('currency', 'USD'),
                 'dt_created': layer.dt_created.isoformat() if layer.dt_created else None,
-                'source_doc_type': layer.source_doc_type,
-                'source_doc_id': layer.source_doc_id,
+                'parent_model': layer.parent_model,
+                'parent_id': layer.parent_id,
             })
 
         return api_response(data=results)

@@ -70,7 +70,6 @@ class InventoryLayer(ItemLinkedBase):
     """Received quantity at a specific unit cost (lot/stack)."""
 
     warehouse = models.ForeignKey(Warehouse, on_delete=models.PROTECT, related_name="inventory_layers", db_column='warehouse_id')
-    source = models.JSONField(default=dict, blank=True)
     # dt_s in metadata.history
     #dt_received = models.BigIntegerField(db_index=True)
     quantity = models.JSONField(default=dict, blank=True)
@@ -85,8 +84,10 @@ class InventoryLayer(ItemLinkedBase):
     # list of serial numbers if tracked
     # if it exceeds a size, put it in an external doc store
     serial_batch = models.CharField(max_length=80, blank=True)
-    source_doc_type = models.CharField(max_length=40, blank=True)
-    source_doc_id = models.BigIntegerField(blank=True, null=True)
+    # The line that made this layer (a receipt line, a workorder line), by the door's model key:
+    # every row that belongs to one record names it with parent_model + parent_id (Bill, 2026-09-28).
+    parent_model = models.CharField(max_length=100, blank=True, default='', db_index=True)
+    parent_id = models.BigIntegerField(blank=True, null=True, db_index=True)
     # No app-level lock: a layer is guarded by the database row lock (select_for_update nowait)
     # under the item's lock; the soft lock had no caller (Bill, 2026-09-28, Fable review D2).
 
@@ -195,10 +196,11 @@ class InventoryMovement(ItemLinkedBase):
     def description(self):
         return self.reason
 
-    """Immutable movement ledger (optional future use; scaffold only).
+    """One change to one layer: born (+received), consumed (-), counted or adjusted (±).
 
-    Records inventory-affecting events (receipts, issues, adjustments) for auditing and
-    reconstruction of site / stack balances. Not yet integrated with services.
+    The inventory journal's line (Bill, 2026-09-28/30: inventory values come from layers). Its
+    value is quantity x the layer's fixed unit cost, never stored twice. parent_model/parent_id
+    name the line that caused it; dt_journaled is set when its parent is journalized.
     """
 
     MOVEMENT_RECEIPT = "receipt"
@@ -214,8 +216,10 @@ class InventoryMovement(ItemLinkedBase):
     site_code = models.CharField(max_length=40, db_index=True, blank=True)
     quantity = models.DecimalField(max_digits=14, decimal_places=4)
     reason = models.CharField(max_length=120, blank=True)
-    source_doc_type = models.CharField(max_length=40, blank=True)
-    source_doc_id = models.BigIntegerField(blank=True, null=True)
+    parent_model = models.CharField(max_length=100, blank=True, default='', db_index=True)
+    parent_id = models.BigIntegerField(blank=True, null=True, db_index=True)
+    # UTC epoch ms when this movement was posted to the GL with its parent; 0 = not yet.
+    dt_journaled = models.BigIntegerField(default=0, db_index=True)
 
     class Meta:
         indexes = [

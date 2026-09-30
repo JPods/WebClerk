@@ -22,8 +22,8 @@ interface Layer {
   duty: number;
   currency: string;
   dt_created: string | null;
-  source_doc_type: string;
-  source_doc_id: number | null;
+  parent_model: string;
+  parent_id: number | null;
 }
 
 interface Props {
@@ -114,7 +114,7 @@ export default function InventoryLayersPanel({ itemId }: Props) {
                       {(l.remaining * l.landed).toFixed(2)}
                     </td>
                     <td className="px-2 py-1 text-center text-slate-500">
-                      {l.source_doc_type ? `${l.source_doc_type} #${l.source_doc_id}` : "-"}
+                      {l.parent_model ? `${l.parent_model} #${l.parent_id}` : "-"}
                     </td>
                   </tr>
                 ))}

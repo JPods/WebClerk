@@ -114,10 +114,10 @@ class Command(BaseCommand):
                     item_id=item.pk, warehouse=layer.warehouse, inventory_layer=layer,
                     site_code=layer.warehouse.site_code, movement_type=InventoryMovement.MOVEMENT_ADJUST,
                     quantity=parts[0] - received, reason='Demo split: moved to newer layers',
-                    source_doc_type='demo_seed')
+                    parent_model='')
                 for qty, weight in zip(parts[1:], weights[1:]):
                     create_layer(item.pk, layer.warehouse_id, qty, (base * weight).quantize(Decimal('0.01')),
-                                 source_doc_type='demo_seed', reason='Demo split layer')
+                                 parent_model='', reason='Demo split layer')
                 recalc_average_cost(item.pk)
                 created += len(parts)
                 continue
@@ -130,7 +130,7 @@ class Command(BaseCommand):
                 self.stdout.write(f"{item.ida or item.pk}: layer {qty} @ {unit_cost} in {warehouse.name}")
                 if apply:
                     create_layer(item.pk, warehouse.pk, qty, unit_cost,
-                                 source_doc_type='demo_seed', reason='Demo opening layer')
+                                 parent_model='', reason='Demo opening layer')
                     created += 1
 
         verb = 'Created' if apply else 'Would create'

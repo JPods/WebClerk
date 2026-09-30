@@ -50,8 +50,8 @@ def create_layer(
     qty: Decimal,
     unit_cost: Decimal,
     *,
-    source_doc_type: str = '',
-    source_doc_id: Optional[int] = None,
+    parent_model: str = '',
+    parent_id: Optional[int] = None,
     lot: str = '',
     serial_batch: str = '',
     freight: Decimal = Decimal('0'),
@@ -77,9 +77,8 @@ def create_layer(
         lot=lot,
         serial_batch=serial_batch,
         serial_numbers=serial_numbers or [],
-        source_doc_type=source_doc_type,
-        source_doc_id=source_doc_id,
-        source={},
+        parent_model=parent_model,
+        parent_id=parent_id,
     )
     # Landed cost computed at receipt time (#8)
     layer.update_cost_after_receipt(
@@ -101,8 +100,8 @@ def create_layer(
         movement_type=InventoryMovement.MOVEMENT_RECEIPT,
         quantity=qty,
         reason=reason,
-        source_doc_type=source_doc_type,
-        source_doc_id=source_doc_id,
+        parent_model=parent_model,
+        parent_id=parent_id,
     )
 
     # Update item average cost (the applier recalculates once per apply instead)
@@ -123,8 +122,8 @@ def consume_fifo(
     *,
     warehouse_id: Optional[int] = None,
     reason: str = 'Issue',
-    source_doc_type: str = '',
-    source_doc_id: Optional[int] = None,
+    parent_model: str = '',
+    parent_id: Optional[int] = None,
     recalc: bool = True,
 ) -> dict:
     """Consume qty using FIFO (oldest layers first). Returns the consumption (see _consume).
@@ -134,7 +133,7 @@ def consume_fifo(
     partially consumed.
     """
     return _consume(item_id, qty, order='id', warehouse_id=warehouse_id, reason=reason,
-                    source_doc_type=source_doc_type, source_doc_id=source_doc_id, recalc=recalc)
+                    parent_model=parent_model, parent_id=parent_id, recalc=recalc)
 
 
 @transaction.atomic
@@ -144,13 +143,13 @@ def consume_lifo(
     *,
     warehouse_id: Optional[int] = None,
     reason: str = 'Issue',
-    source_doc_type: str = '',
-    source_doc_id: Optional[int] = None,
+    parent_model: str = '',
+    parent_id: Optional[int] = None,
     recalc: bool = True,
 ) -> dict:
     """Consume qty using LIFO (newest layers first). Returns the consumption (see _consume)."""
     return _consume(item_id, qty, order='-id', warehouse_id=warehouse_id, reason=reason,
-                    source_doc_type=source_doc_type, source_doc_id=source_doc_id, recalc=recalc)
+                    parent_model=parent_model, parent_id=parent_id, recalc=recalc)
 
 
 def consume_by_item_method(
@@ -176,8 +175,8 @@ def _consume(
     *,
     warehouse_id: Optional[int] = None,
     reason: str = 'Issue',
-    source_doc_type: str = '',
-    source_doc_id: Optional[int] = None,
+    parent_model: str = '',
+    parent_id: Optional[int] = None,
     recalc: bool = True,
 ) -> dict:
     """Internal consume implementation. Walks layers in given order.
@@ -230,8 +229,8 @@ def _consume(
             movement_type=InventoryMovement.MOVEMENT_ISSUE,
             quantity=-take,
             reason=reason,
-            source_doc_type=source_doc_type,
-            source_doc_id=source_doc_id,
+            parent_model=parent_model,
+            parent_id=parent_id,
         )
 
         remaining -= take
@@ -251,7 +250,7 @@ def _consume(
             name=f'Short {remaining} of {item.ida or item.pk}'[:120],
             changes={'deficit_qty': float(remaining), 'unit_cost': float(avg_cost),
                      'batch_id': batch_id, 'reason': reason,
-                     'source_doc_type': source_doc_type, 'source_doc_id': source_doc_id},
+                     'parent_model': parent_model, 'parent_id': parent_id},
         )
         _create_deficit_alert(item, remaining, batch_id, reason)
 
@@ -294,7 +293,7 @@ def recalc_average_cost(item_id: int) -> Decimal:
 
 
 def give_back(item_id: int, consumed: list, qty: Decimal, *, reason: str = 'Given back',
-              source_doc_type: str = '', source_doc_id: Optional[int] = None) -> dict:
+              parent_model: str = '', parent_id: Optional[int] = None) -> dict:
     """Return qty to the layers a line consumed, newest consumption first, at the costs taken.
 
     ``consumed`` is the line's history, oldest first: each entry {layer_id, qty, unit_cost}, a
@@ -337,8 +336,8 @@ def give_back(item_id: int, consumed: list, qty: Decimal, *, reason: str = 'Give
         InventoryMovement.objects.create(
             item_id=item_id, warehouse=layer.warehouse, inventory_layer=layer,
             site_code=layer.warehouse.site_code, movement_type=InventoryMovement.MOVEMENT_ADJUST,
-            quantity=take, reason=reason[:120], source_doc_type=source_doc_type,
-            source_doc_id=source_doc_id)
+            quantity=take, reason=reason[:120], parent_model=parent_model,
+            parent_id=parent_id)
         back.append({'layer_id': lid, 'qty': float(-take), 'unit_cost': float(costs.get(lid, 0))})
         cost += take * costs.get(lid, Decimal('0'))
         left -= take
@@ -372,143 +371,6 @@ def settle_deficit(item_id: int, qty: Decimal, *, source_pending_id: Optional[in
         p.save(update_fields=fields)
         left -= take
     return left
-
-
-# ---------------------------------------------------------------------------
-# 4. Split layer to multiple locations (#3 lineage preserved)
-# ---------------------------------------------------------------------------
-
-@transaction.atomic
-def split_layer(
-    layer_id: int,
-    splits: list[dict],
-) -> list[InventoryLayer]:
-    """Split one layer into N layers at different locations.
-
-    splits: [{'warehouse_id': 5, 'qty': 10}, {'warehouse_id': 8, 'qty': 15}]
-    Original layer is consumed; new layers carry source.parent_layer_id (#3).
-    """
-    original = InventoryLayer.objects.select_for_update().get(id=layer_id)
-    remaining = original.remaining_qty()
-    total_split = sum(Decimal(str(s['qty'])) for s in splits)
-
-    if total_split > remaining:
-        raise ValueError(f"Split total ({total_split}) exceeds remaining qty ({remaining})")
-
-    new_layers = []
-    for split in splits:
-        wh = Warehouse.objects.get(id=split['warehouse_id'])
-        split_qty = Decimal(str(split['qty']))
-
-        child = InventoryLayer.objects.create(
-            item=original.item,
-            item_ida=original.item_ida,
-            warehouse=wh,
-            quantity={'received': float(split_qty), 'issued': 0, 'scrapped': 0},
-            cost=dict(original.cost),  # same cost
-            lot=original.lot,
-            serial_numbers=[],
-            source_doc_type=original.source_doc_type,
-            source_doc_id=original.source_doc_id,
-            source={},
-        )
-        # Lineage via refs.links (#3) — same pattern as all WC3 relationships
-        child_refs = child.refs if isinstance(child.refs, dict) else {}
-        child_links = child_refs.setdefault('links', {})
-        child_links['parent_layer_id'] = original.id
-        child_links['split_from'] = original.id
-        child_refs['links'] = child_links
-        child.refs = child_refs
-        child.save(update_fields=['refs'])
-        new_layers.append(child)
-
-        # Post movements
-        InventoryMovement.objects.create(
-            item=original.item, warehouse=original.warehouse,
-            inventory_layer=original, site_code=original.warehouse.site_code,
-            movement_type=InventoryMovement.MOVEMENT_ISSUE,
-            quantity=-split_qty, reason=f'Split to {wh.code}',
-            source_doc_type='split', source_doc_id=child.id,
-        )
-        InventoryMovement.objects.create(
-            item=original.item, warehouse=wh,
-            inventory_layer=child, site_code=wh.site_code,
-            movement_type=InventoryMovement.MOVEMENT_RECEIPT,
-            quantity=split_qty, reason=f'Split from layer #{original.id}',
-            source_doc_type='split', source_doc_id=original.id,
-        )
-
-    # Drain original layer by total split qty
-    original.mark_issue(total_split)
-    # Track child layers in original's refs.links
-    orig_refs = original.refs if isinstance(original.refs, dict) else {}
-    orig_links = orig_refs.setdefault('links', {})
-    orig_links.setdefault('child_layer_ids', [])
-    orig_links['child_layer_ids'].extend([l.id for l in new_layers])
-    original.refs = orig_refs
-    original.save(update_fields=['quantity', 'refs'])
-
-    return new_layers
-
-
-# ---------------------------------------------------------------------------
-# 5. Transfer between warehouses (#9 atomic)
-# ---------------------------------------------------------------------------
-
-@transaction.atomic
-def transfer_layer(
-    layer_id: int,
-    dest_warehouse_id: int,
-    qty: Optional[Decimal] = None,
-    reason: str = 'Transfer',
-) -> InventoryLayer:
-    """Move qty from one warehouse to another. Atomic — both sides or neither (#9)."""
-    source_layer = InventoryLayer.objects.select_for_update().get(id=layer_id)
-    dest_wh = Warehouse.objects.get(id=dest_warehouse_id)
-    transfer_qty = qty or Decimal(str(source_layer.remaining_qty()))
-    transfer_id = str(uuid.uuid4())
-
-    if transfer_qty > source_layer.remaining_qty():
-        raise ValueError("Transfer qty exceeds remaining")
-
-    # Drain source
-    source_layer.mark_issue(transfer_qty)
-    source_layer.save(update_fields=['quantity'])
-
-    # Create destination layer with lineage via refs.links
-    dest_layer = InventoryLayer.objects.create(
-        item=source_layer.item,
-        item_ida=source_layer.item_ida,
-        warehouse=dest_wh,
-        quantity={'received': float(transfer_qty), 'issued': 0, 'scrapped': 0},
-        cost=dict(source_layer.cost),
-        lot=source_layer.lot,
-        source={},
-        source_doc_type='transfer',
-    )
-    dest_refs = dest_layer.refs if isinstance(dest_layer.refs, dict) else {}
-    dest_links = dest_refs.setdefault('links', {})
-    dest_links['parent_layer_id'] = source_layer.id
-    dest_links['transfer_from'] = source_layer.id
-    dest_links['transfer_id'] = transfer_id
-    dest_refs['links'] = dest_links
-    dest_layer.refs = dest_refs
-    dest_layer.save(update_fields=['refs'])
-
-    # Paired movements — same transfer_id (#9)
-    for mvmt in [
-        (source_layer.warehouse, source_layer, -transfer_qty, f'Transfer out to {dest_wh.code}'),
-        (dest_wh, dest_layer, transfer_qty, f'Transfer in from {source_layer.warehouse.code}'),
-    ]:
-        InventoryMovement.objects.create(
-            item=source_layer.item, warehouse=mvmt[0],
-            inventory_layer=mvmt[1], site_code=mvmt[0].site_code,
-            movement_type=InventoryMovement.MOVEMENT_ADJUST,
-            quantity=mvmt[2], reason=mvmt[3],
-            source_doc_type='transfer', source_doc_id=int(transfer_id[:8], 16) if transfer_id else None,
-        )
-
-    return dest_layer
 
 
 # ---------------------------------------------------------------------------
@@ -659,23 +521,6 @@ def update_item_margin_velocity(
             continue
 
     return updated
-
-
-# ---------------------------------------------------------------------------
-# 9. Pending event heartbeat (#7)
-# ---------------------------------------------------------------------------
-
-def check_orphaned_events(max_age_hours: int = 1) -> list[dict]:
-    """Find InventoryMovements with no processed_at older than max_age_hours.
-    Alice should call this periodically and create Actions for any found (#7)."""
-    cutoff_ms = int((timezone.now() - timedelta(hours=max_age_hours)).timestamp() * 1000)
-    orphans = InventoryMovement.objects.filter(
-        dt_created__lt=cutoff_ms,
-    ).exclude(
-        source_doc_type='deficit',
-    ).values('id', 'item_id', 'movement_type', 'quantity', 'reason', 'dt_created')[:50]
-
-    return list(orphans)
 
 
 # ---------------------------------------------------------------------------

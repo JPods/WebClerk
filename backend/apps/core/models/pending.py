@@ -312,8 +312,8 @@ class Pending(CoreModel):
                 movement_type=InventoryMovement.MOVEMENT_ADJUST,
                 quantity=on_hand,
                 reason=str(data.get('reason') or self.purpose)[:120],
-                source_doc_type=layer.source_doc_type,
-                source_doc_id=layer.source_doc_id,
+                parent_model=layer.parent_model,
+                parent_id=layer.parent_id,
             )
             recalc_average_cost(item_id)
             return
@@ -340,8 +340,8 @@ class Pending(CoreModel):
             duty=Decimal(str(landed.get('duty', 0))),
             handling=Decimal(str(landed.get('handling', 0))),
             vat=Decimal(str(landed.get('vat', 0))),
-            source_doc_type=create.get('source_doc_type', ''),
-            source_doc_id=create.get('source_doc_id'),
+            parent_model=create.get('parent_model', ''),
+            parent_id=create.get('parent_id'),
             lot=create.get('lot', ''),
             serial_batch=create.get('serial_batch', ''),
             reason=str(data.get('reason') or 'Receipt')[:120],
@@ -416,7 +416,8 @@ class Pending(CoreModel):
         from apps.products.models import Item
         from apps.products.models.inventory_layer import InventoryLayer
 
-        doc_type, doc_id = config.get('line_model') or self.purpose, config.get('line_id')
+        # The line that caused this apply, by the door's model key; none for an opening (step 6).
+        doc_type, doc_id = config.get('line_model') or '', config.get('line_id')
         reason = str(data.get('reason') or self.purpose)[:120]
         live = self._line_history(config)
         layers, cost, short, settled, method = [], Decimal('0'), Decimal('0'), Decimal('0'), None
@@ -425,8 +426,8 @@ class Pending(CoreModel):
             nonlocal cost
             if unit is None:
                 unit = _get_item_avg_cost(Item.objects.only('id', 'cost').get(pk=item_id))
-            layer = create_layer(item_id, warehouse_id, qty, unit, source_doc_type=doc_type,
-                                 source_doc_id=doc_id, reason=why, recalc=False)
+            layer = create_layer(item_id, warehouse_id, qty, unit, parent_model=doc_type,
+                                 parent_id=doc_id, reason=why, recalc=False)
             layers.append({'layer_id': layer.pk, 'qty': float(-qty), 'unit_cost': float(unit),
                            flag: True})
             cost -= qty * unit
@@ -487,15 +488,15 @@ class Pending(CoreModel):
             elif spec.get('found_shrink'):
                 left = _shrink_own(Decimal(str(spec['found_shrink'])), 'found')
                 if left > 0:
-                    r = consume_by_item_method(item_id, left, reason=reason, source_doc_type=doc_type,
-                                               source_doc_id=doc_id, recalc=False)
+                    r = consume_by_item_method(item_id, left, reason=reason, parent_model=doc_type,
+                                               parent_id=doc_id, recalc=False)
                     layers += r['layers']
                     cost += Decimal(str(r['cost']))
                     short += Decimal(str(r['short']))
             elif spec.get('consume'):
                 r = consume_by_item_method(item_id, Decimal(str(spec['consume'])),
                                            warehouse_id=spec.get('warehouse_id'), reason=reason,
-                                           source_doc_type=doc_type, source_doc_id=doc_id, recalc=False)
+                                           parent_model=doc_type, parent_id=doc_id, recalc=False)
                 layers += r['layers']
                 cost += Decimal(str(r['cost']))
                 short += Decimal(str(r['short']))
@@ -512,8 +513,8 @@ class Pending(CoreModel):
                 if qty > 0:
                     taken = [e for h in history for e in (h.get('layers') or [])
                              if not e.get('return') and not e.get('found')]
-                    g = give_back(item_id, taken, qty, reason=reason, source_doc_type=doc_type,
-                                  source_doc_id=doc_id)
+                    g = give_back(item_id, taken, qty, reason=reason, parent_model=doc_type,
+                                  parent_id=doc_id)
                     layers += g['layers']
                     cost += Decimal(str(g['cost']))
                     unplaced = Decimal(str(g['unplaced']))
@@ -534,8 +535,8 @@ class Pending(CoreModel):
                 qty = _shrink_own(Decimal(str(spec['return_shrink'])), 'return')
                 if qty > 0:
                     # The return's layer has been sold from: the rest leaves by costing method.
-                    r = consume_by_item_method(item_id, qty, reason=reason, source_doc_type=doc_type,
-                                               source_doc_id=doc_id, recalc=False)
+                    r = consume_by_item_method(item_id, qty, reason=reason, parent_model=doc_type,
+                                               parent_id=doc_id, recalc=False)
                     layers += r['layers']
                     cost += Decimal(str(r['cost']))
                     short += Decimal(str(r['short']))

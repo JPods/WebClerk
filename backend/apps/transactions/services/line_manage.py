@@ -183,8 +183,8 @@ def _receipt_layer(line, receipt, *, create: bool) -> dict:
             'lot': getattr(line, 'lot', '') or '',
             'serial_batch': getattr(line, 'serial_batch', '') or '',
             'unit_cost': float(cost.get('unit') or 0),
-            'source_doc_type': getattr(receipt, 'source_type', '') or 'purchase_receipt',
-            'source_doc_id': receipt.pk,
+            'parent_model': line._meta.model_name,    # the receipt line carries the cost
+            'parent_id': line.pk,
         },
     }
 
