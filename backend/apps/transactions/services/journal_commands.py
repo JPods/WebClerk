@@ -64,14 +64,17 @@ def _clear_movement_marks(obj) -> None:
 
 
 def journalize(ctx) -> Dict[str, Any]:
-    """POST /wcapi/receipt/<id>/journalize/ — post a received receipt (Bill, 2026-09-28/30:
-    payables from the receipt, inventory values from its layers)."""
-    from apps.accounts.services.journalize import journalize_receipt
-    result = journalize_receipt(ctx.obj.pk, ida_prefix=str((ctx.data or {}).get('ida_prefix') or ''))
+    """POST /wcapi/<receipt|workorder>/<id>/journalize/ (Bill, 2026-09-28/30): a received receipt
+    posts its payable and its layers' value; a workorder posts its unposted events."""
+    from apps.accounts.services import journalize as posting
+    post = {'receipt': posting.journalize_receipt, 'workorder': posting.journalize_workorder}[ctx.model_key]
+    result = post(ctx.obj.pk, ida_prefix=str((ctx.data or {}).get('ida_prefix') or ''))
     if result.get('error'):
-        code = 'already_journalized' if result['error'] == 'Already journalized' else (
-            'nothing_received' if result['error'].startswith('Nothing received') else 'journalize_failed')
-        raise Refused(409 if code != 'journalize_failed' else 400, code, result['error'], ctx.obj.pk)
+        error = result['error']
+        code = ('already_journalized' if error == 'Already journalized' else
+                'nothing_received' if error.startswith('Nothing received') else
+                'nothing_to_journalize' if error.startswith('Nothing to journalize') else 'journalize_failed')
+        raise Refused(400 if code == 'journalize_failed' else 409, code, error, ctx.obj.pk)
     return result
 
 
@@ -79,4 +82,5 @@ def register() -> None:
     from apps.core.services.verbs import register_command
     for model_key in UNJOURNALIZE_MODELS:
         register_command(model_key, 'unjournalize', unjournalize)
-    register_command('receipt', 'journalize', journalize)
+    for model_key in ('receipt', 'workorder'):
+        register_command(model_key, 'journalize', journalize)

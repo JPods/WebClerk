@@ -1002,6 +1002,129 @@ def journalize_invoice_and_cash_entries(invoice_id: int, ida_prefix: str = '') -
     }
 
 
+def _standing_event_ids(GlJournal, source_id: int, source_model: str) -> set:
+    """Event ids with a posted GL row that no reversal names."""
+    rows = GlJournal.objects.filter(source_id=source_id, source_model=source_model).exclude(event_id='')
+    reversed_ids = set(GlJournal.objects.filter(reversal_of__in=rows.values('id'))
+                       .values_list('reversal_of', flat=True))
+    return {event_id for pk, event_id in rows.values_list('id', 'event_id') if pk not in reversed_ids}
+
+
+def journalize_workorder(workorder_id: int, ida_prefix: str = '') -> dict:
+    """Post a workorder's unposted events (Bill, 2026-09-28: workorders journalize on command, per
+    event; 2026-09-30: scrap is expensed; an opening is a count with config.opening).
+
+    Production: a part consumed is Dr WIP / Cr inventory; the build is Dr inventory / Cr WIP (its
+    layer's fixed cost); scrap is Dr scrap / Cr inventory; a part not tracked (labor, a service) is
+    Dr WIP / Cr labor applied at the cost its event carries; a part taken short (an open deficit) is
+    Dr WIP (or scrap) / Cr inventory at the deficit's cost. Once the workorder is complete, what WIP
+    still holds for it is a variance (Dr/Cr inventory cost variance).
+    Count: stock found is Dr inventory / Cr shrinkage, stock missing the reverse; an opening count
+    credits opening-balance equity instead.
+
+    Each pair carries its event's id (the movement, the line event, the deficit), so an event is
+    posted once and can be reversed on its own. Movements it posts get dt_journaled.
+    """
+    GlJournal = dj_apps.get_model('accounts', 'GlJournal')
+    WorkOrder = dj_apps.get_model('transactions', 'WorkOrder')
+    WorkOrderLine = dj_apps.get_model('transactions', 'WorkOrderLine')
+    InventoryMovement = dj_apps.get_model('products', 'InventoryMovement')
+    Pending = dj_apps.get_model('core', 'Pending')
+    from apps.core.models.pending import DEFICIT_PURPOSE
+
+    wo = WorkOrder.objects.filter(pk=workorder_id).first()
+    if wo is None:
+        return {'created': 0, 'error': f'Workorder {workorder_id} not found'}
+    lines = {l.pk: l for l in WorkOrderLine.objects.filter(workorder_id=wo.pk)}
+    is_count = getattr(wo, 'kind', '') == 'count'
+    opening = is_count and bool((wo.config or {}).get('opening'))
+    used_by = f'workorder {wo.ida or wo.pk}'
+    wip = _role('work_in_process', used_by)
+    scrap = _role('scrap', used_by)
+    count_other = _role('opening_balance_equity', used_by) if opening else scrap
+
+    def _inventory(item_id):
+        gls = _get_item_gls(item_id) if item_id else {}
+        return gls.get('inventory') or _role('inventory', used_by)
+
+    rows = []    # (account, debit, credit, event_id)
+
+    def _pair(debit_account, credit_account, value, event_id):
+        value = Decimal(str(value)).quantize(Decimal('0.01'))
+        if value < 0:
+            debit_account, credit_account, value = credit_account, debit_account, -value
+        if value:
+            rows.append((debit_account, value, Decimal('0'), event_id))
+            rows.append((credit_account, Decimal('0'), value, event_id))
+
+    movements = list(InventoryMovement.objects.select_related('inventory_layer').filter(
+        parent_model='workorderline', parent_id__in=list(lines), dt_journaled=0))
+    for move in movements:
+        line = lines[move.parent_id]
+        unit = Decimal(str(((move.inventory_layer.cost if move.inventory_layer else {}) or {}).get('landed') or 0))
+        value = Decimal(str(move.quantity)) * unit          # + into stock, - out of stock
+        inv = _inventory(move.item_id)
+        other = count_other if is_count else (scrap if line.line_type == 'scrap' else wip)
+        _pair(inv, other, value, str(move.pk))
+
+    posted = _standing_event_ids(GlJournal, wo.pk, 'workorder')
+    labor = None
+    for line in lines.values():
+        for event in (line.events or []):
+            if not isinstance(event, dict) or event.get('consumed') or 'cost' not in event:
+                continue
+            if event.get('id') in posted or line.line_type not in ('consume', 'scrap'):
+                continue
+            labor = labor or _role('labor_applied', used_by)
+            _pair(scrap if line.line_type == 'scrap' else wip, labor, abs(Decimal(str(event['cost']))), event['id'])
+    for deficit in Pending.objects.filter(purpose=DEFICIT_PURPOSE, dt_processed=0,
+                                          changes__parent_model='workorderline',
+                                          changes__parent_id__in=list(lines)):
+        event_id = f'deficit-{deficit.pk}'
+        if event_id in posted:
+            continue
+        line = lines.get((deficit.changes or {}).get('parent_id'))
+        short = Decimal(str(deficit.incremental_remaining('deficit_qty')))
+        unit = Decimal(str((deficit.changes or {}).get('unit_cost') or 0))
+        target = scrap if line is not None and line.line_type == 'scrap' else wip
+        _pair(target, _inventory(int(deficit.record_id)), short * unit, event_id)
+
+    if not is_count and (wo.status or '') == 'complete':
+        # What WIP still holds for this workorder once it is complete: rounding in the build's
+        # unit cost, or a part costed differently from what the build carried.
+        held = sum(((r.debit or 0) - (r.credit or 0)) for r in GlJournal.objects.filter(
+            source_id=wo.pk, source_model__in=('workorder', 'workorder_reversal'), account=wip))
+        held = Decimal(str(held)) + sum((d - c for a, d, c, _ in rows if a == wip), Decimal('0'))
+        if held.quantize(Decimal('0.01')) and 'wip-variance' not in posted:
+            _pair(_role('inventory_cost_variance', used_by), wip, held, 'wip-variance')
+
+    if not rows:
+        return {'created': 0, 'error': 'Nothing to journalize'}
+    debits = sum(r[1] for r in rows)
+    credits = sum(r[2] for r in rows)
+    if debits != credits:
+        return {'created': 0, 'status': 'exception', 'source_id': wo.pk, 'source_model': 'workorder',
+                'error': f'Out of balance: debits {debits} credits {credits}'}
+    try:
+        ida = journal_ida(ida_prefix, 'WJ', wo.ida or wo.pk)
+    except ValueError as e:
+        return {'created': 0, 'status': 'exception', 'error': str(e),
+                'source_id': wo.pk, 'source_model': 'workorder', 'postings': []}
+    now = _now_ms()
+    with transaction.atomic():
+        for account, debit, credit, event_id in rows:
+            GlJournal.objects.create(
+                ida=ida, account=account,
+                debit=float(debit) if debit else None, credit=float(credit) if credit else None,
+                source='automation', type='inventory', source_id=wo.pk, source_model='workorder',
+                event_id=event_id)
+        InventoryMovement.objects.filter(pk__in=[m.pk for m in movements]).update(dt_journaled=now)
+        # The workorder is journalized: its lines are locked like any journalized document's, and
+        # unjournalize reverses it. A further count goes on a new count workorder.
+        WorkOrder.objects.filter(pk=wo.pk).update(dt_journaled=now, dt_modified=now)
+    return {'created': len(rows), 'workorder_ida': wo.ida, 'events': len({r[3] for r in rows})}
+
+
 def batch_journalize(ida_prefix: str = 'zzz-', run_by_id: int = None) -> dict:
     """Journalize all un-journalized invoices, cash, and purchases.
 

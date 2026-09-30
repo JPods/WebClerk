@@ -1,7 +1,8 @@
 """Production workorders — one item per line, signed; nothing moves until Complete.
 
 Bill, 2026-09-26/27: three behaviours (no BOM with costs entered; one BOM level; full BOM with a
-+/− pair per subassembly); scrap on its own lines; the made item costs what its parts' layers gave.
++/− pair per subassembly); scrap on its own lines; the made item costs what its parts' layers gave,
+scrap excluded (expensed, Bill 2026-09-30).
 ~/Allie/readmes/assessments/2026-09-26-workorder-window.md
 
 Build 10 Carts. Cart = 4 Wheel + 1 Frame + 0.5 h labor. Wheel = 1 Tire (scrap 0.1) + 1 Rim.
@@ -133,7 +134,9 @@ def test_case_3_full_bom_builds_and_uses_the_subassembly_with_its_scrap(cart):
     assert _q(cart['wheel']) == 40                                    # built 40, used 40: net zero
     assert (_q(cart['tire']), _q(cart['rim'])) == (16, 20)            # 40 + 4 scrap, 40
     wheel_build = next(l for l in lines if l.item_fk_id == cart['wheel'].pk and l.line_type == 'build')
-    wheel_unit = (44 * 2 + 40 * 3) / 40                               # scrap goes into the item (Bill)
+    # Scrap is expensed, not built into the item (Bill, 2026-09-30; supersedes "scrap goes into
+    # the item"): the 4 scrapped tires leave stock but not into the wheel's cost.
+    wheel_unit = (40 * 2 + 40 * 3) / 40
     assert _layer_cost(wheel_build) == pytest.approx(wheel_unit)
     assert _layer_cost(line) == pytest.approx((40 * wheel_unit + 10 * 5 + 5 * 20) / 10)
     _balanced(cart['cart'], cart['wheel'], cart['tire'], cart['rim'], cart['frame'])

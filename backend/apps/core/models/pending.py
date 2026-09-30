@@ -442,6 +442,13 @@ class Pending(CoreModel):
                     if take > 0:
                         layer.mark_issue(take)
                         layer.save(update_fields=['quantity'])
+                        # Every change to a layer is a movement: the inventory journal's line
+                        # (a subassembly used from the layer its build made was missing one).
+                        InventoryMovement.objects.create(
+                            item_id=item_id, warehouse=layer.warehouse, inventory_layer=layer,
+                            site_code=layer.warehouse.site_code,
+                            movement_type=InventoryMovement.MOVEMENT_ISSUE, quantity=-take,
+                            reason=reason, parent_model=doc_type, parent_id=doc_id)
                         unit = Decimal(str((layer.cost or {}).get('landed') or 0))
                         layers.append({'layer_id': layer.pk, 'qty': float(take), 'unit_cost': float(unit)})
                         cost += take * unit

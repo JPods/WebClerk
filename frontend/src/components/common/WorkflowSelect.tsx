@@ -87,6 +87,10 @@ const ACTION_CONFIGS: Record<string, ActionDef[]> = {
   ],
   workorder: [
     { key: 'record_production_action', label: 'Add Production Note', needsDialog: true },
+    // Bill, 2026-09-28: a workorder journalizes on command, each event once.
+    { key: 'journalize', label: 'Journalize', command: 'journalize',
+      confirm: "Post this workorder's stock moves (parts, build, scrap, counts) to the GL? This locks it.",
+      params: () => ({}) },
   ],
   item: [
     { key: 'get_inventory_summary', label: 'Inventory Summary',

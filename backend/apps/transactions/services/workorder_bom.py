@@ -238,7 +238,11 @@ def complete(ctx) -> Dict[str, Any]:
                 total += use(kid, from_layer=layer_id)
         for kid in kids:                                   # then parts and scrap
             if kid.line_type in ('consume', 'scrap') and kid.pk not in done:
-                total += use(kid)
+                used = use(kid)
+                # Scrap is expensed, not built into the item (Bill, 2026-09-30): it leaves stock
+                # like any part, and its cost posts to scrap when the workorder is journalized.
+                if kid.line_type == 'consume':
+                    total += used
         qty = Decimal(str((line.quantity or {}).get('active') or 0))
         if qty <= 0:
             raise Refused(400, 'build_quantity', 'A build line makes a positive quantity.', line.pk)
