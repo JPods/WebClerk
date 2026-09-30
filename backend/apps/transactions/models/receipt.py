@@ -139,12 +139,31 @@ class Receipt(TransactionBaseModel):
         self.totals = t
 
     def save(self, *args, **kwargs):
+        self._assert_landed_fixed_once_received()
         if not self.dt_received:
             from datetime import datetime, timezone as _tz
             self.dt_received = int(datetime.now(_tz.utc).timestamp() * 1000)
         self._inherit_from_parent()      # base save populates the company snapshot
         self._sync_totals_from_allocations()
         super().save(*args, **kwargs)
+
+    def _assert_landed_fixed_once_received(self):
+        """The landed costs spread onto a receipt's lines reach their layers when they are received,
+        and a layer never changes after (Bill, 2026-09-28/30). So once a line is received, the
+        receipt's allocations stand."""
+        if not self.pk:
+            return
+        stored = type(self).objects.filter(pk=self.pk).values_list('allocations', flat=True).first() or {}
+        if (stored or {}) == (self.allocations or {}):
+            return
+        from apps.transactions.models.hard_delete import _received
+        if _received(self):
+            from apps.core.services.door import Refused
+            raise Refused(409, 'layer_cost_fixed',
+                          'This receipt has received goods: their layers carry the landed cost, and a '
+                          'layer never changes. A later freight or duty bill is its own payable; to '
+                          'correct a cost, use a count workorder (a negative count at the old cost and '
+                          'a positive count at the new cost).', {'receipt_id': self.pk})
 
     def __str__(self) -> str:  # pragma: no cover
         return f"R:{self.ida}" if self.ida else f"R:{self.pk}"

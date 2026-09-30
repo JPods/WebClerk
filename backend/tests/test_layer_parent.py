@@ -37,3 +37,17 @@ def test_every_named_parent_resolves():
         for model_key, pk in (Model.objects.exclude(parent_model='')
                               .values_list('parent_model', 'parent_id')):
             assert pk is not None and _resolves(model_key, pk), (Model.__name__, model_key, pk)
+
+
+def test_a_layer_never_changes_after_birth():
+    """Ratchet (Bill, 2026-09-28): a layer's cost and received quantity are fixed; its remaining
+    falls and rises only through movements (consumed, given back)."""
+    from apps.products.services.inventory.inventory_layers import consume_fifo, create_layer, give_back
+    item, wh = ItemFactory(), WarehouseFactory()
+    layer = create_layer(item.pk, wh.pk, Decimal('6'), Decimal('2.50'), parent_model='', parent_id=None)
+    born_cost, born_received = dict(layer.cost), layer.quantity['received']
+    taken = consume_fifo(item.pk, Decimal('4'))
+    give_back(item.pk, taken['layers'], Decimal('1'))
+    layer.refresh_from_db()
+    assert layer.cost == born_cost
+    assert layer.quantity['received'] == born_received

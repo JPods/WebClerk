@@ -194,9 +194,6 @@ def _recalculate_locked(transaction_id: int, model_name: str) -> Dict[str, Any]:
             if new is not None and new != (line.totals or {}):
                 LineModel.objects.filter(pk=line.pk).update(totals=new)
 
-    if model_name == 'receipt':
-        _land_on_layers(lines, computed['line_totals'])
-
     # A ledger echoes its primary record: rebuild whenever the total changes; when only
     # the settlement moved (a journal repair), re-spread it over the ledgers (Fable, fix #2).
     settled_moved = old_settled != tuple(_d(totals.get(k, 0)) for k in SETTLEMENT_KEYS)
@@ -253,36 +250,6 @@ def landed_layer_cost(totals, qty) -> Optional[Dict[str, float]]:
     cost = {k: float(_d(_d(shares.get(k, 0) or 0) / qty, places=4)) for k in LANDED_COMPONENTS}
     cost['unit_po'] = float(totals.get('discounted_unit', 0) or 0)
     return cost
-
-
-def _land_on_layers(lines, line_totals) -> None:
-    """Each receipt line's landed shares reach the layer it created — through a Pending.
-
-    A layer's cost moves the way its quantity does: one ``inventory_cost_change`` Pending
-    per changed line, applied under the item's lock by ``Pending._apply_layer`` (Fable,
-    D02). A locked item or layer leaves the Pending open for celery; nothing is lost.
-    Units already issued took the old cost; that gap is D13 (late landed cost), logged here.
-    """
-    from apps.core.models.pending import Pending
-    for line in lines:
-        layer = getattr(line, 'inventory_layer', None)
-        qty = (getattr(line, 'quantity', None) or {}).get('active', 0)
-        cost = landed_layer_cost(line_totals.get(line.pk), qty)
-        if layer is None or cost is None:
-            continue
-        have = layer.cost or {}
-        if all(float(have.get(k, 0) or 0) == v for k, v in cost.items()):
-            continue
-        issued = float((layer.quantity or {}).get('issued', 0) or 0)
-        if issued:
-            logger.warning("[D13] layer %s: landed cost changed after %s of its units were issued; "
-                           "their share did not reach COGS", layer.pk, issued)
-        Pending.objects.create(
-            model_name='item', record_id=str(layer.item_id), purpose='inventory_cost_change',
-            name=f"landed cost: receipt line {line.pk}"[:120],
-            changes={'item_id': layer.item_id, 'line_id': line.pk, 'reason': 'landed cost',
-                     'layer': {'layer_id': layer.pk, 'cost': cost}},
-        )
 
 
 def _customer_is_exempt(customer_id) -> bool:

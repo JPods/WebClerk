@@ -137,7 +137,6 @@ PENDING_TYPE_MAP = {
 PURPOSE_LINE_ADD = 'inventory_line_add'
 PURPOSE_LINE_QTY_CHANGE = 'inventory_qty_change'
 PURPOSE_LINE_DELETE = 'inventory_line_delete'
-PURPOSE_LINE_COST_CHANGE = 'inventory_cost_change'
 
 
 def _get_pending_type(transaction_type: str) -> str:

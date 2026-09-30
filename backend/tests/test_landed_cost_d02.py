@@ -112,64 +112,37 @@ def test_one_word_for_every_component_is_refused():
         _line(r, 10, 1, 1.00)
 
 
-def test_the_landed_cost_reaches_the_inventory_layer():
-    from apps.products.models import InventoryLayer, Item, Warehouse
-    item = Item.objects.create(name='D02 item')
+def _planned_line(receipt, n, qty, unit, item, warehouse):
+    return ReceiptLine.objects.create(receipt=receipt, line_number=n, item_fk=item, item={'id': item.pk},
+                                      quantity={'active': 0, 'staged': qty}, warehouse=warehouse,
+                                      cost={'unit': unit, 'precision': 2})
+
+
+def test_the_landed_cost_is_fixed_on_the_layer_when_received():
+    """Bill, 2026-09-28/30: the layer is born at the receipt's landed cost and never changes."""
+    from apps.core.models.pending import Pending
+    from apps.core.services.door import Refused
+    from apps.products.models import Item, Warehouse
+    from apps.transactions.services.receive_commands import receive_receipt
+    item, other = Item.objects.create(name='D02 item'), Item.objects.create(name='D02 other')
     wh = Warehouse.objects.create(name='D02 WH', code='D02WH')
-    layer = InventoryLayer.objects.create(item=item, warehouse=wh, quantity={'received': 7})
     r = _receipt(freight=10, duty=4)
-    _line(r, 10, 7, 6.00, inventory_layer=layer, warehouse=wh)
-    _line(r, 20, 4, 12.50)
-    layer.refresh_from_db()
+    first = _planned_line(r, 10, 7, 6.00, item, wh)
+    _planned_line(r, 20, 4, 12.50, other, wh)
+    receive_receipt(r)
+    first.refresh_from_db()
+    layer = first.inventory_layer
     # freight 4.57 / 7 = 0.6529, duty 1.83 / 7 = 0.2614
     assert layer.cost['unit_po'] == 6.00
     assert layer.cost['freight'] == 0.6529
     assert layer.cost['duty'] == 0.2614
     assert layer.cost['landed'] == pytest.approx(6.00 + 0.6529 + 0.2614)
 
-    r.allocations = {**r.allocations, 'freight': 0}       # the header change moves the layer too
-    r.save()
-    layer.refresh_from_db()
-    assert layer.cost['freight'] == 0.0
-
-
-def test_the_landed_cost_moves_through_a_pending():
-    """Fable D02: the layer's cost is written by the applier under the item's lock, never directly."""
-    from apps.core.models.pending import Pending
-    from apps.products.models import InventoryLayer, Item, Warehouse
-    item = Item.objects.create(name='D02 pending item')
-    wh = Warehouse.objects.create(name='D02 WH2', code='D02W2')
-    layer = InventoryLayer.objects.create(item=item, warehouse=wh, quantity={'received': 7})
-    r = _receipt(freight=7)
-    _line(r, 10, 7, 6.00, inventory_layer=layer, warehouse=wh)
-    moves = Pending.objects.filter(purpose='inventory_cost_change', record_id=str(item.pk))
-    assert moves.exists() and all(p.dt_processed for p in moves)
-    assert moves.last().changes['layer'] == {'layer_id': layer.pk, 'cost': {
-        'freight': 1.0, 'duty': 0.0, 'handling': 0.0, 'vat': 0.0, 'unit_po': 6.0}}
-
-
-@pytest.mark.django_db(transaction=True)
-def test_a_locked_layer_holds_the_cost_change_until_it_is_free():
-    """Locked: the Pending stays open and the layer is untouched. Freed: it applies once."""
-    from apps.core.models.pending import Pending
-    from apps.products.models import InventoryLayer, Item, Warehouse
-    item = Item.objects.create(name='D02 locked item')
-    wh = Warehouse.objects.create(name='D02 WH3', code='D02W3')
-    layer = InventoryLayer.objects.create(item=item, warehouse=wh, quantity={'received': 7})
-    r = _receipt()
-    _line(r, 10, 7, 6.00, inventory_layer=layer, warehouse=wh)
-    from tests.row_lock import row_locked
-    with row_locked(InventoryLayer, pk=layer.pk):
-        r.allocations = {**r.allocations, 'freight': 7}
+    r.refresh_from_db()
+    r.allocations = {**r.allocations, 'freight': 0}
+    with pytest.raises(Refused) as refused:
         r.save()
-        held = Pending.objects.filter(purpose='inventory_cost_change', record_id=str(item.pk),
-                                      dt_processed=0)
-        assert held.count() == 1
-        layer.refresh_from_db()
-        assert float(layer.cost.get('freight', 0) or 0) == 0.0
-
-    assert held.get().try_apply() is True
+    assert refused.value.code == 'layer_cost_fixed'
     layer.refresh_from_db()
-    assert layer.cost['freight'] == 1.0
-    assert not Pending.objects.filter(purpose='inventory_cost_change', record_id=str(item.pk),
-                                      dt_processed=0).exists()
+    assert layer.cost['freight'] == 0.6529, 'a layer never changes'
+    assert not Pending.objects.filter(purpose='inventory_cost_change').exists()

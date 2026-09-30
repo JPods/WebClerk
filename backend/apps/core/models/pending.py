@@ -16,7 +16,6 @@ INVENTORY_PURPOSES = (
     'inventory_line_add',
     'inventory_qty_change',
     'inventory_line_delete',
-    'inventory_cost_change',
     'opening_balance',     # stock a rebalance puts on the shelf, in a new layer
     'allocation',        # a salesperson setting goods aside, or giving them back
     'line_event',          # a change to a line: moves the buckets and records itself
@@ -276,55 +275,22 @@ class Pending(CoreModel):
         from apps.products.models.inventory_layer import InventoryLayer, InventoryMovement
         from apps.products.services.inventory.inventory_layers import create_layer, recalc_average_cost
 
-        if spec and spec.get('cost'):
-            # A layer's cost moves like its quantity: under the item's lock, or not at all.
-            layer = InventoryLayer.objects.select_for_update(nowait=True).get(pk=spec['layer_id'])
-            c = spec['cost']
-            layer.update_cost_after_receipt(
-                c['unit_po'], freight=c.get('freight', 0), duty=c.get('duty', 0),
-                handling=c.get('handling', 0), vat=c.get('vat', 0))
-            layer.save(update_fields=['cost', 'dt_modified', 'version'])
-            recalc_average_cost(item_id)
-
+        # A layer's cost is fixed at birth (Bill, 2026-09-28): nothing here changes it.
         if not spec or not on_hand:
             return
 
         if spec.get('layer_id'):
-            layer = InventoryLayer.objects.select_for_update(nowait=True).select_related(
-                'warehouse').get(pk=spec['layer_id'])
-            q = dict(layer.quantity or {})
-            received = Decimal(str(q.get('received', 0) or 0)) + on_hand
-            out = Decimal(str(q.get('issued', 0) or 0)) + Decimal(str(q.get('scrapped', 0) or 0))
-            if received < out:
-                # A receipt cut below what its layer has already issued (Bill, 2026-09-26: allow,
-                # record the shortfall): the layer holds what left it, and the rest is an open
-                # deficit, as a short sale's is.
-                self._open_deficit(item_id, out - received, reason='receipt reduced below issued')
-                received = out
-            q['received'] = float(received)
-            layer.quantity = q
-            layer.save(update_fields=['quantity', 'dt_modified', 'version'])
-            InventoryMovement.objects.create(
-                item_id=item_id,
-                warehouse=layer.warehouse,
-                inventory_layer=layer,
-                site_code=layer.warehouse.site_code,
-                movement_type=InventoryMovement.MOVEMENT_ADJUST,
-                quantity=on_hand,
-                reason=str(data.get('reason') or self.purpose)[:120],
-                parent_model=layer.parent_model,
-                parent_id=layer.parent_id,
-            )
-            recalc_average_cost(item_id)
-            return
+            # A layer's received quantity never changes after birth (Bill, 2026-09-28): a received
+            # receipt line cannot be edited or deleted (receipt_line.py, hard_delete.py), so a
+            # Pending asking to move an existing layer's received is a fault, never applied.
+            raise ValidationError({'layer': f'Pending {self.pk} would change layer '
+                                            f'{spec["layer_id"]} by {on_hand}; a layer never changes. '
+                                            'Correct stock with a count workorder.'})
 
         create = spec.get('create') or {}
         if on_hand <= 0:
             raise ValidationError({'layer': f'Pending {self.pk} would create a layer '
                                             f'holding {on_hand}'})
-        # A receipt line's layer is born at the line's landed cost when its totals exist
-        # by the time this applies (a queued apply) — else the next recalc's
-        # inventory_cost_change lands it.
         # The receive command hands the layer its final landed cost (Bill, 2026-09-30: a layer is
         # born at the receipt's cost and never changes). Otherwise, the line's totals as they stand.
         landed = create.get('landed') or {}
@@ -416,7 +382,7 @@ class Pending(CoreModel):
             _get_item_avg_cost, consume_by_item_method, create_layer, give_back,
             recalc_average_cost, settle_deficit)
         from apps.products.models import Item
-        from apps.products.models.inventory_layer import InventoryLayer
+        from apps.products.models.inventory_layer import InventoryLayer, InventoryMovement
 
         # The line that caused this apply, by the door's model key; none for an opening (step 6).
         doc_type, doc_id = config.get('line_model') or '', config.get('line_id')
@@ -448,10 +414,15 @@ class Pending(CoreModel):
                 take = min(held[layer_id], Decimal(str(layer.remaining_qty())), qty)
                 if take <= 0:
                     continue
-                q = dict(layer.quantity or {})
-                q['received'] = float(Decimal(str(q.get('received') or 0)) - take)
-                layer.quantity = q
+                # A layer's received quantity is fixed (Bill, 2026-09-28): taking back what this line
+                # found or returned is an issue from that layer, one movement of its own.
+                layer.mark_issue(take)
                 layer.save(update_fields=['quantity', 'dt_modified', 'version'])
+                InventoryMovement.objects.create(
+                    item_id=item_id, warehouse=layer.warehouse, inventory_layer=layer,
+                    site_code=layer.warehouse.site_code, movement_type=InventoryMovement.MOVEMENT_ISSUE,
+                    quantity=-take, reason=f'{flag} taken back'[:120],
+                    parent_model=doc_type, parent_id=doc_id)
                 unit = Decimal(str((layer.cost or {}).get('landed') or 0))
                 layers.append({'layer_id': layer_id, 'qty': float(take), 'unit_cost': float(unit), flag: True})
                 cost += take * unit

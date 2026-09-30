@@ -77,7 +77,8 @@ def test_found_stock_lands_in_a_layer_of_its_own_at_the_line_cost():
     assert float(layer.quantity['received']) == 3 and float(layer.cost['landed']) == 4.0
     _recount(line, 16)                                     # less found: its own layer comes down
     layer.refresh_from_db()
-    assert float(layer.quantity['received']) == 1
+    # A layer's received is fixed (Bill, 2026-09-28): what comes down is issued from it.
+    assert float(layer.quantity['received']) == 3 and float(layer.remaining_qty()) == 1
     assert _on_hand(item) == 16
     assert _balanced(item)
 
