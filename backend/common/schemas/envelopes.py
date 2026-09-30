@@ -16,7 +16,7 @@ Architecture (established 2026-08-04):
 """
 from __future__ import annotations
 
-from typing import Any, Optional, Union
+from typing import Any, List, Optional, Union
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from common.schemas.images import ImageFlags
@@ -163,13 +163,37 @@ class RecordHistory(BaseModel):
     verified: HistoryTimestamp = Field(default_factory=HistoryTimestamp)
 
 
+class LockedBy(BaseModel):
+    """Who set or lifted a lock: a contact, named so the record reads without a query."""
+    id: Optional[int] = None
+    name: str = ''
+
+
+class DocumentLock(BaseModel):
+    """A document locked by hand (Bill, 2026-09-29): who, when, why, and the status it replaced.
+    Written only by the lock and unlock commands (transactions/services/document_lock.py)."""
+    dt: int = Field(0, description='When it was locked: UTC epoch ms.')
+    by: LockedBy = Field(default_factory=LockedBy)
+    reason: str = ''
+    status_before: str = ''
+
+
+class ClosedLock(DocumentLock):
+    """A lock that was lifted, kept with who lifted it and why."""
+    unlocked_dt: int = 0
+    unlocked_by: LockedBy = Field(default_factory=LockedBy)
+    unlock_reason: str = ''
+
+
 class HealthScores(BaseModel):
-    """Data quality scores — machine-calculated."""
+    """Data quality scores — machine-calculated — and a document's lock."""
     rating: int = 0
     accuracy: int = 0
     freshness: int = 0
     consistency: int = 0
     completeness: int = 0
+    lock: Optional[DocumentLock] = None
+    lock_history: List[ClosedLock] = Field(default_factory=list)
 
 
 class RecordFlags(BaseModel):

@@ -27,6 +27,8 @@ class TransactionsConfig(AppConfig):
         # Unjournalize: kept, and glaring (services/journal_commands.py, plan §16d).
         from .services import journal_commands
         journal_commands.register()
+        from .services import document_lock
+        document_lock.register()
 
         # Convert: one engine, a command on its source (services/convert/convert.py).
         from .services.convert import convert

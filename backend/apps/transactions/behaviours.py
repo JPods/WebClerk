@@ -109,7 +109,14 @@ def check_transfer(model_key: str, parent_model: str, lines: List[Dict[str, Any]
 
 
 class DocumentBehaviour(ModelBehaviour):
-    """Every document: a transfer takes no more than its source has left."""
+    """Every document: a transfer takes no more than its source has left, and a locked one
+    refuses what its lock stops (services/document_lock.py)."""
+
+    def hook(self, moment: str, ctx: HookContext) -> None:
+        from apps.transactions.services.document_lock import LOCKABLE_MODELS, refuse_if_locked
+        if moment == 'before' and ctx.model_key in LOCKABLE_MODELS:
+            refuse_if_locked(ctx)
+        super().hook(moment, ctx)
 
     def before_save(self, ctx: HookContext) -> None:
         lines = ctx.data.get('lines')
@@ -236,10 +243,27 @@ def _flag_over_receipt(receipt, pol, ordered: float, received: float) -> None:
 
 
 class LineBehaviour(ModelBehaviour):
-    """A line cannot exist without its document; `new` takes that id."""
+    """A line cannot exist without its document; `new` takes that id. A line of a locked
+    document is not written."""
 
     def __init__(self, document_fk: str):
         self.NEW_REQUIRES = (document_fk,)
+        self.document_fk = document_fk
+
+    def hook(self, moment: str, ctx: HookContext) -> None:
+        if moment == 'before':
+            from apps.transactions.services.document_lock import LOCKABLE_MODELS, refuse_if_locked
+            doc_key = self.document_fk[:-3]
+            if doc_key in LOCKABLE_MODELS:
+                doc_id = (getattr(ctx.obj, self.document_fk, None) if ctx.obj is not None else None) \
+                    or (ctx.data or {}).get(self.document_fk)
+                if doc_id:
+                    from apps.core.services.door import resolve_model
+                    model_cls = resolve_model(doc_key)[0]
+                    document = model_cls.objects.filter(pk=doc_id).first()
+                    if document is not None:
+                        refuse_if_locked(ctx, document=document)
+        super().hook(moment, ctx)
 
 
 #: Each line model and the document it belongs to.
