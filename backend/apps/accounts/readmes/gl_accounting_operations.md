@@ -48,7 +48,7 @@ GlJournal
 |---|---|
 | `journalize_invoice(id)` | AR + Revenue + COGS + Inventory per line, with commission |
 | `journalize_cash(id)` | Cash + AR |
-| `journalize_purchase(id)` | Inventory + AP per line |
+| `journalize_receipt(id)` | A received receipt: its layers' value (Inventory / Received Not Billed, per movement) and the payable (Received Not Billed / AP). A purchase posts nothing |
 | `journalize_adjustment(item_id, qty, cost, reason)` | Inventory ↔ COGS (positive = found, negative = lost/scrapped) |
 | `batch_journalize()` | All un-journalized documents in one pass |
 | `account_summary_by_period(year, month)` | $ by account code — the screen users retype |

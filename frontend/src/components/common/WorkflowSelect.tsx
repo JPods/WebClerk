@@ -76,6 +76,9 @@ const ACTION_CONFIGS: Record<string, ActionDef[]> = {
     { key: 'receive', label: 'Receive', command: 'receive',
       confirm: "Put this receipt's planned goods on the shelf? Their cost is fixed from then on.",
       params: () => ({}) },
+    { key: 'journalize', label: 'Journalize', command: 'journalize',
+      confirm: 'Post what this receipt received (inventory) and what it owes the vendor (payable)? This locks the receipt.',
+      params: () => ({}) },
   ],
   cash: [
     { key: 'journalize_cash', label: 'Journalize',

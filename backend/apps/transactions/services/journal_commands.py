@@ -45,12 +45,38 @@ def unjournalize(ctx) -> Dict[str, Any]:
     append_comment(obj, 'process', f'Unjournalized: {reason}', user=user, source='unjournalize')
     obj.dt_journaled = 0
     obj.save(update_fields=['dt_journaled', 'comments', 'dt_modified', 'version'])
+    _clear_movement_marks(obj)
     logger.warning('[unjournalize] %s %s by %s: %s (%d GL rows reversed)', ctx.model_key, obj.pk,
                    getattr(user, 'pk', ctx.actor.kind), reason, reversed_count)
     return {'id': obj.pk, 'reversed': reversed_count, 'reason': reason}
+
+
+def _clear_movement_marks(obj) -> None:
+    """The inventory movements a document posted are unposted with it (their GL rows were just
+    reversed), so journalizing it again posts them again."""
+    lines = getattr(obj, 'lines', None)
+    if lines is None:
+        return
+    from apps.products.models.inventory_layer import InventoryMovement
+    line_model = lines.model._meta.model_name
+    InventoryMovement.objects.filter(parent_model=line_model,
+                                     parent_id__in=lines.values('pk')).update(dt_journaled=0)
+
+
+def journalize(ctx) -> Dict[str, Any]:
+    """POST /wcapi/receipt/<id>/journalize/ — post a received receipt (Bill, 2026-09-28/30:
+    payables from the receipt, inventory values from its layers)."""
+    from apps.accounts.services.journalize import journalize_receipt
+    result = journalize_receipt(ctx.obj.pk, ida_prefix=str((ctx.data or {}).get('ida_prefix') or ''))
+    if result.get('error'):
+        code = 'already_journalized' if result['error'] == 'Already journalized' else (
+            'nothing_received' if result['error'].startswith('Nothing received') else 'journalize_failed')
+        raise Refused(409 if code != 'journalize_failed' else 400, code, result['error'], ctx.obj.pk)
+    return result
 
 
 def register() -> None:
     from apps.core.services.verbs import register_command
     for model_key in UNJOURNALIZE_MODELS:
         register_command(model_key, 'unjournalize', unjournalize)
+    register_command('receipt', 'journalize', journalize)

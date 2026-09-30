@@ -89,7 +89,7 @@ function GLJournalSection() {
               Created {journalResult.total_created} journal entries —
               {' '}{journalResult.invoices?.length || 0} invoices,
               {' '}{journalResult.cash_entries?.length || 0} cash_entries,
-              {' '}{journalResult.purchases?.length || 0} purchases
+              {' '}{journalResult.receipts?.length || 0} receipts
               {journalResult.errors?.length > 0 && (
                 <span className="text-orange-600"> | Errors: {journalResult.errors.join('; ')}</span>
               )}

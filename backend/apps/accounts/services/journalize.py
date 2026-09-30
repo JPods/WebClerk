@@ -8,7 +8,9 @@ by GL account per document.
 
 Three journal types:
   - Sales Journal (invoices): AR debit, Revenue credit, COGS debit, Inventory credit
-  - Purchase Journal (purchase receipts): Inventory debit, AP credit
+  - Receipt Journal (received receipts): Inventory debit / Received Not Billed credit per layer
+    movement, and Received Not Billed debit / AP credit for the payable. A purchase posts nothing
+    (Bill, 2026-09-28/30).
   - Cash Journal (cash_entries): Cash debit, AR credit
 
 WebClerk is commerce, not accounting. We produce GL journal entries.
@@ -186,6 +188,7 @@ def force_to_balance(
             'invoice': ('transactions', 'Invoice'),
             'cash': ('transactions', 'Cash'),
             'purchase': ('transactions', 'Purchase'),
+            'receipt': ('transactions', 'Receipt'),
         }
         app_model = model_map.get(source_model)
         if app_model:
@@ -831,123 +834,87 @@ def journalize_cash(cash_id: int, ida_prefix: str = '') -> dict:
     return result
 
 
-def journalize_purchase(purchase_id: int, ida_prefix: str = '') -> dict:
-    """Journalize a purchase order receipt — Inventory debit, AP credit.
+def journalize_receipt(receipt_id: int, ida_prefix: str = '') -> dict:
+    """Journalize a received receipt: payables from the receipt, inventory from its layers
+    (Bill, 2026-09-28/30; plan 2026-09-30-gl-by-layer.md). The PO posts nothing.
 
-    For each purchase line:
-      - Debit Inventory (item.gls.inventory)
-      - Credit AP (item.gls.purchase or default)
+    - Each received movement of this receipt's lines that is not yet journalized: Dr inventory /
+      Cr received_not_billed at quantity x its layer's fixed landed cost. One pair per movement,
+      addressed by its id (GlJournal.event_id), so it can be reversed on its own.
+    - The payable: Dr received_not_billed / Cr accounts_payable at what the vendor bills, the sum
+      of the received lines' amounts.
+    - What is left in received_not_billed is landed cost someone else bills (freight, duty): the
+      accrual until that bill is entered, listed by the checker.
 
-    Args:
-        purchase_id: Purchase PK
-        ida_prefix: prefix for journal ida
-
-    Returns:
-        {created: int, postings: [...], error: str}
+    Sets dt_journaled on the receipt and on each movement it posted. Refuses a receipt that is
+    journalized already or has received nothing.
     """
     GlJournal = dj_apps.get_model('accounts', 'GlJournal')
-    Purchase = dj_apps.get_model('transactions', 'Purchase')
-    PurchaseLine = dj_apps.get_model('transactions', 'PurchaseLine')
+    Receipt = dj_apps.get_model('transactions', 'Receipt')
+    ReceiptLine = dj_apps.get_model('transactions', 'ReceiptLine')
+    InventoryMovement = dj_apps.get_model('products', 'InventoryMovement')
 
-    try:
-        purchase = Purchase.objects.get(pk=purchase_id)
-    except Purchase.DoesNotExist:
-        return {'created': 0, 'error': f'Purchase {purchase_id} not found'}
-
-    if GlJournal.objects.filter(source_id=purchase_id, source_model='purchase').exists():
+    receipt = Receipt.objects.filter(pk=receipt_id).first()
+    if receipt is None:
+        return {'created': 0, 'error': f'Receipt {receipt_id} not found'}
+    if receipt.dt_journaled:
         return {'created': 0, 'error': 'Already journalized'}
 
-    lines = PurchaseLine.objects.filter(purchase_id=purchase_id)
-    if not lines.exists():
-        return {'created': 0, 'error': 'No lines to journalize'}
+    lines = list(ReceiptLine.objects.filter(receipt_id=receipt_id))
+    received = [l for l in lines if float((l.quantity or {}).get('active') or 0) > 0]
+    if not received:
+        return {'created': 0, 'error': 'Nothing received: receive the receipt first'}
+    movements = list(InventoryMovement.objects.select_related('inventory_layer').filter(
+        parent_model='receiptline', parent_id__in=[l.pk for l in lines],
+        movement_type=InventoryMovement.MOVEMENT_RECEIPT, dt_journaled=0))
 
-    postings = {}
-
-    def _add(account, side, amount, purpose):
-        if account not in postings:
-            postings[account] = {'debit': Decimal('0'), 'credit': Decimal('0'), 'purpose': purpose}
-        postings[account][side] += amount
-
-    for line in lines:
-        # PurchaseLine uses 'cost' not 'price'
-        extended = Decimal(str((line.totals or {}).get('amount', 0) or 0))
-        if extended == 0:
+    rows = []    # (account, debit, credit, type, event_id)
+    rnb = _role('received_not_billed', used_by=f'receipt {receipt.ida}')
+    for move in movements:
+        layer = move.inventory_layer
+        unit = Decimal(str((layer.cost or {}).get('landed') or 0))
+        value = (Decimal(str(move.quantity)) * unit).quantize(Decimal('0.01'))
+        if not value:
             continue
-
-        item_id = line.item_fk_id
-        if not item_id:
-            item_data = line.item or {}
-            item_id = item_data.get('item_id')
-
-        item_gls = _get_item_gls(item_id) if item_id else {}
-
+        item_gls = _get_item_gls(move.item_id) if move.item_id else {}
         inv_account = item_gls.get('inventory') or _role('inventory')
-        ap_account = item_gls.get('purchase') or _role('accounts_payable')
+        rows.append((inv_account, value, Decimal('0'), 'inventory', str(move.pk)))
+        rows.append((rnb, Decimal('0'), value, 'inventory', str(move.pk)))
 
-        _add(inv_account, 'debit', extended, 'inventory')
-        _add(ap_account, 'credit', extended, 'accounts_payable')
+    payable = sum((Decimal(str((l.totals or {}).get('amount', 0) or 0)) for l in received), Decimal('0'))
+    payable = payable.quantize(Decimal('0.01'))
+    if payable:
+        ap_account = _role('accounts_payable', used_by=f'receipt {receipt.ida}')
+        rows.append((rnb, payable, Decimal('0'), 'purchase', ''))
+        rows.append((ap_account, Decimal('0'), payable, 'purchase', ''))
 
-    if not postings:
-        return {'created': 0, 'error': 'No amounts to post'}
-
-    # Verify balance — purchases can have FX too
-    finance = purchase.finance or {}
-    has_fx = bool(finance.get('exchange_rate') and finance.get('exchange_rate') != 1)
-    balance_check = _check_balance(postings, has_exchange_rate=has_fx)
-    if not balance_check['balanced']:
-        return {
-            'created': 0,
-            'status': 'exception',
-            'error': f'Out of balance: residual={balance_check["residual"]}',
-            'source_id': purchase_id,
-            'source_model': 'purchase',
-        }
+    debits = sum(r[1] for r in rows)
+    credits = sum(r[2] for r in rows)
+    if debits != credits:
+        return {'created': 0, 'status': 'exception', 'source_id': receipt_id, 'source_model': 'receipt',
+                'error': f'Out of balance: debits {debits} credits {credits}'}
 
     try:
-        ida = journal_ida(ida_prefix, 'PJ', purchase.ida)
+        ida = journal_ida(ida_prefix, 'RJ', receipt.ida)
     except ValueError as e:
         return {'created': 0, 'status': 'exception', 'error': str(e),
-                'source_id': purchase_id, 'source_model': 'purchase', 'postings': []}
+                'source_id': receipt_id, 'source_model': 'receipt', 'postings': []}
 
-    created = 0
-    posting_list = []
+    now = _now_ms()
     with transaction.atomic():
-        for account, data in postings.items():
-            if data['debit'] > 0:
-                GlJournal.objects.create(
-                    ida=ida,
-                    account=account,
-                    debit=float(data['debit']),
-                    credit=None,
-                    source='automation',
-                    type='purchase',
-                    source_id=purchase_id,
-                    source_model='purchase',
-                )
-                created += 1
-                posting_list.append({'account': account, 'debit': float(data['debit']), 'credit': 0, 'purpose': data['purpose']})
-            if data['credit'] > 0:
-                GlJournal.objects.create(
-                    ida=ida,
-                    account=account,
-                    debit=None,
-                    credit=float(data['credit']),
-                    source='automation',
-                    type='purchase',
-                    source_id=purchase_id,
-                    source_model='purchase',
-                )
-                created += 1
-                posting_list.append({'account': account, 'debit': 0, 'credit': float(data['credit']), 'purpose': data['purpose']})
+        for account, debit, credit, kind, event_id in rows:
+            GlJournal.objects.create(
+                ida=ida, account=account,
+                debit=float(debit) if debit else None, credit=float(credit) if credit else None,
+                source='automation', type=kind, source_id=receipt_id, source_model='receipt',
+                event_id=event_id)
+        InventoryMovement.objects.filter(pk__in=[m.pk for m in movements]).update(dt_journaled=now)
+        Receipt.objects.filter(pk=receipt_id).update(dt_journaled=now, dt_modified=now)
 
-        # Mark purchase as journalized — dt_journaled non-zero = locked
-        now = _now_ms()
-        Purchase.objects.filter(pk=purchase_id).update(
-            dt_journaled=now,
-            dt_modified=now,
-        )
-
-    return {'created': created, 'postings': posting_list, 'purchase_ida': purchase.ida}
+    return {'created': len(rows), 'receipt_ida': receipt.ida,
+            'inventory': float(sum(r[1] for r in rows if r[3] == 'inventory')),
+            'payable': float(payable),
+            'received_not_billed': float(sum(r[2] for r in rows if r[3] == 'inventory') - payable)}
 
 
 def journalize_invoice_and_cash_entries(invoice_id: int, ida_prefix: str = '') -> dict:
@@ -1038,7 +1005,6 @@ def batch_journalize(ida_prefix: str = 'zzz-', run_by_id: int = None) -> dict:
     JournalBatch = dj_apps.get_model('accounts', 'JournalBatch')
     Invoice = dj_apps.get_model('transactions', 'Invoice')
     Cash = dj_apps.get_model('transactions', 'Cash')
-    Purchase = dj_apps.get_model('transactions', 'Purchase')
 
     # Create the batch header
     batch = JournalBatch.objects.create(
@@ -1054,7 +1020,7 @@ def batch_journalize(ida_prefix: str = 'zzz-', run_by_id: int = None) -> dict:
         'batch_ida': batch_ida,
         'invoices': [],
         'cash_entries': [],
-        'purchases': [],
+        'receipts': [],
         'total_created': 0,
         'exceptions': [],   # out-of-balance — require user action
         'skipped': [],       # hold, consigned, zero-amount — informational
@@ -1076,7 +1042,7 @@ def batch_journalize(ida_prefix: str = 'zzz-', run_by_id: int = None) -> dict:
             result['doc_ida'] = doc_ida
             results['skipped'].append(result)
         elif result.get('error') and result['error'] not in (
-            'No lines to journalize', 'Already journalized',
+            'No lines to journalize', 'Already journalized', 'Nothing received: receive the receipt first',
         ):
             result['doc_type'] = doc_type
             result['doc_ida'] = doc_ida
@@ -1091,9 +1057,11 @@ def batch_journalize(ida_prefix: str = 'zzz-', run_by_id: int = None) -> dict:
     for pay in cash_entries:
         _classify(journalize_cash(pay.pk, ida_prefix=ida_prefix), 'cash_entries', pay.ida)
 
-    purchases = Purchase.objects.filter(dt_journaled=0, is_active=True)
-    for po in purchases:
-        _classify(journalize_purchase(po.pk, ida_prefix=ida_prefix), 'purchases', po.ida)
+    # A purchase posts nothing (a commitment, not an asset); a received receipt posts the payable
+    # and its layers' value (Bill, 2026-09-28/30).
+    Receipt = dj_apps.get_model('transactions', 'Receipt')
+    for receipt in Receipt.objects.filter(dt_journaled=0, is_active=True):
+        _classify(journalize_receipt(receipt.pk, ida_prefix=ida_prefix), 'receipts', receipt.ida)
 
     # Stamp the GlJournal lines created in this run with the batch ida
     GlJournal.objects.filter(

@@ -1042,7 +1042,7 @@ _ACTION_DISPATCH = {
     "journalize_invoice": lambda p: __import__('apps.accounts.services.journalize', fromlist=['journalize_invoice']).journalize_invoice(p['invoice_id'], p.get('ida_prefix', '')),
     "journalize_invoice_and_cash_entries": lambda p: __import__('apps.accounts.services.journalize', fromlist=['journalize_invoice_and_cash_entries']).journalize_invoice_and_cash_entries(p['invoice_id'], p.get('ida_prefix', '')),
     "journalize_cash": lambda p: __import__('apps.accounts.services.journalize', fromlist=['journalize_cash']).journalize_cash(p['cash_id'], p.get('ida_prefix', '')),
-    "journalize_purchase": lambda p: __import__('apps.accounts.services.journalize', fromlist=['journalize_purchase']).journalize_purchase(p['purchase_id'], p.get('ida_prefix', '')),
+    "journalize_receipt": lambda p: __import__('apps.accounts.services.journalize', fromlist=['journalize_receipt']).journalize_receipt(p['receipt_id'], p.get('ida_prefix', '')),
     "batch_journalize": lambda p: __import__('apps.accounts.services.journalize', fromlist=['batch_journalize']).batch_journalize(p.get('ida_prefix', 'zzz-')),
     # ── Cash Pending (One Path) ──
     "apply_cash_to_invoice": lambda p: __import__('apps.transactions.services.cash.cash_pending', fromlist=['apply_cash_to_invoice']).apply_cash_to_invoice(p['cash_id'], p['invoice_id'], p['amount'], p.get('reason', ''), p.get('contact_id'), discount_pct=p.get('discount_pct', 0), discount_amt=p.get('discount_amt', 0), dismiss_balance=p.get('dismiss_balance', False), fx_difference=p.get('fx_difference', 0), acted_by=p.get('_acting_user_id')),

@@ -78,6 +78,9 @@ VERBS: Dict[str, Callable[[Actor, str, dict], Any]] = {
     'preview': _command('preview'),
     'approve': _command('approve'),
     'import': _command('import'),
+    # Posting is a command on the document (Bill, 2026-09-28: workorders journalize on command;
+    # 2026-09-30: a received receipt posts the payable and its layers' value).
+    'journalize': _command('journalize'),
     'unjournalize': _command('unjournalize'),   # kept, and glaring (Bill, 2026-09-26; §16d)
     'expand': _command('expand'),               # a build line's BOM into lines (workorder plan)
     'complete': _command('complete'),           # a build moves its stock, all or nothing
