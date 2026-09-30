@@ -4286,7 +4286,9 @@
           "cost_of_goods_sold": "5000-cost_of_goods_sold",
           "accounts_receivable": "1100-accounts_receivable",
           "finance_charge_income": "4200-finance_charge_income",
-          "small_balance_writeoff": "4930-small_balance_writeoff"
+          "small_balance_writeoff": "4930-small_balance_writeoff",
+          "received_not_billed": "2050-received_not_billed",
+          "opening_balance_equity": "3050-opening_balance_equity"
         },
         "primary_org": {
           "id": 2,

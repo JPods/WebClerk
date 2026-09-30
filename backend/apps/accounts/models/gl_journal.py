@@ -25,6 +25,11 @@ class GlJournal(BaseModel):
     # Traceability — which record generated this entry
     source_id = models.BigIntegerField(null=True, blank=True, db_index=True)
     source_model = models.CharField(max_length=100, blank=True, default='')
+    # One event inside that record (a workorder line event, an inventory movement): a record
+    # can then post and reverse one event without touching the others (Fable review H1).
+    event_id = models.CharField(max_length=64, blank=True, default='', db_index=True)
+    # A reversal names the row it reverses; a row is standing while nothing reverses it.
+    reversal_of = models.BigIntegerField(null=True, blank=True, db_index=True)
 
     # Division and batch grouping (from WC2 GL mining)
     division = models.CharField(max_length=50, blank=True, default='',

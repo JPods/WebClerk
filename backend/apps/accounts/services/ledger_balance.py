@@ -653,8 +653,11 @@ def post_staged_gl_entries(instance) -> int:
     return int(result.get('created') or 0)
 
 
-def reverse_gl_entries(instance, reason: str = '') -> int:
-    """Create contra entries that reverse all GL postings for an instance.
+def reverse_gl_entries(instance, reason: str = '', event_id: str | None = None) -> int:
+    """Create contra entries that reverse the standing GL postings for an instance.
+
+    ``event_id`` narrows it to one event's rows (a workorder line event, an inventory
+    movement), leaving the record's other events standing.
 
     USER-INITIATED ACTION — called when a journalized record needs correction.
     The original entries stay as permanent record; reversal creates mirror
@@ -674,16 +677,18 @@ def reverse_gl_entries(instance, reason: str = '') -> int:
         source_id=source_id,
         source_model=source_model,
     ).order_by('id')
-    if not originals.exists():
-        return 0
+    if event_id is not None:
+        originals = originals.filter(event_id=event_id)
 
-    # Reverse only what is still standing: a record can be posted, reversed,
-    # posted again and reversed again (Bite 2 #4).
+    # Reverse only what is still standing: a row is standing until a reversal names it
+    # (reversal_of). A record can be posted, reversed, posted again and reversed again
+    # (Bite 2 #4); counting reversals by position could not tell two events apart (Fable H1).
     reversal_model = f'{source_model}_reversal'
-    already = GlJournal.objects.filter(source_id=source_id, source_model=reversal_model).count()
-    standing = list(originals)[already:]
+    reversed_ids = set(GlJournal.objects.filter(reversal_of__in=originals.values('id'))
+                       .values_list('reversal_of', flat=True))
+    standing = [row for row in originals if row.pk not in reversed_ids]
     if not standing:
-        return 0  # everything posted is already reversed
+        return 0  # nothing posted, or everything posted is already reversed
 
     created = 0
     for orig in standing:
@@ -699,6 +704,8 @@ def reverse_gl_entries(instance, reason: str = '') -> int:
             type=orig.type,
             source_id=source_id,
             source_model=reversal_model,
+            event_id=orig.event_id,
+            reversal_of=orig.pk,
         )
         created += 1
 

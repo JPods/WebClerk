@@ -4291,7 +4291,9 @@
           "work_in_process": "1210-work_in_process",
           "labor_applied": "2160-labor_applied",
           "inventory_cost_variance": "5310-inventory_cost_variance",
-          "labor_variance": "5320-labor_variance"
+          "labor_variance": "5320-labor_variance",
+          "received_not_billed": "2050-received_not_billed",
+          "opening_balance_equity": "3050-opening_balance_equity"
         },
         "primary_org": {
           "id": 2,
