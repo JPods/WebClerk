@@ -653,11 +653,13 @@ def post_staged_gl_entries(instance) -> int:
     return int(result.get('created') or 0)
 
 
-def reverse_gl_entries(instance, reason: str = '', event_id: str | None = None) -> int:
+def reverse_gl_entries(instance, reason: str = '', event_id: str | None = None,
+                       accounts=None) -> int:
     """Create contra entries that reverse the standing GL postings for an instance.
 
     ``event_id`` narrows it to one event's rows (a workorder line event, an inventory
-    movement), leaving the record's other events standing.
+    movement), leaving the record's other events standing; ``accounts`` narrows it to the rows
+    on those accounts (a restatement that corrects one part of a posting, e.g. its COGS).
 
     USER-INITIATED ACTION — called when a journalized record needs correction.
     The original entries stay as permanent record; reversal creates mirror
@@ -679,6 +681,8 @@ def reverse_gl_entries(instance, reason: str = '', event_id: str | None = None) 
     ).order_by('id')
     if event_id is not None:
         originals = originals.filter(event_id=event_id)
+    if accounts is not None:
+        originals = originals.filter(account__in=list(accounts))
 
     # Reverse only what is still standing: a row is standing until a reversal names it
     # (reversal_of). A record can be posted, reversed, posted again and reversed again

@@ -3,7 +3,7 @@
     manage.py check_balances                         # summary
     manage.py check_balances --json                  # the whole result, for Alice
     manage.py check_balances --item-id 612
-    manage.py check_balances --scope inventory pending
+    manage.py check_balances --scope inventory pending gl
 
 Exit status is 1 when anything is out of balance, so a script can act on it.
 The checks themselves live in apps/core/services/balance_checker.py. Alice (Allie's
@@ -21,7 +21,7 @@ class Command(BaseCommand):
     help = 'Check that inventory and cash balance (read-only).'
 
     def add_arguments(self, parser):
-        parser.add_argument('--scope', nargs='+', default=['inventory', 'cash', 'pending'],
+        parser.add_argument('--scope', nargs='+', default=['inventory', 'cash', 'pending', 'gl'],
                             choices=['inventory', 'cash', 'pending'])
         parser.add_argument('--item-id', type=int, default=None)
         parser.add_argument('--org-id', type=int, default=None)

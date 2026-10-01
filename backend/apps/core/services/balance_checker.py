@@ -451,7 +451,48 @@ def check_cash(org_id=None) -> tuple[list, dict]:
     return findings, {'customers': len(customers), 'vendors': len(vendors)}
 
 
-def check_balances(scope=('inventory', 'cash', 'pending'), item_id=None, org_id=None,
+def check_gl_inventory() -> tuple[list, dict]:
+    """The GL's inventory is what the layers say (Bill, 2026-09-28/30: inventory values come from
+    the layers): the inventory accounts' balance equals every posted movement at its layer's fixed
+    cost, less what posted documents took short (open deficits, at the cost they opened at).
+    Received-not-billed left on a receipt is the accrual for landed cost billed by someone else:
+    reported, not a fault."""
+    from django.apps import apps as dj_apps
+    from django.db.models import Q
+    GlAccount = dj_apps.get_model('accounts', 'GlAccount')
+    GlJournal = dj_apps.get_model('accounts', 'GlJournal')
+    InventoryMovement = dj_apps.get_model('products', 'InventoryMovement')
+    from apps.core.models import Pending
+    from apps.core.models.pending import DEFICIT_PURPOSE
+    accounts = list(GlAccount.objects.filter(used_for='inventory').values_list('ida', flat=True))
+    gl = sum((_d(d) - _d(c) for d, c in GlJournal.objects.filter(account__in=accounts)
+              .values_list('debit', 'credit')), Decimal('0'))
+    layers = sum((_d(q) * _d((cost or {}).get('landed')) for q, cost in InventoryMovement.objects
+                  .filter(dt_journaled__gt=0).values_list('quantity', 'inventory_layer__cost')), Decimal('0'))
+    posted_lines = {('invoiceline', pk) for pk in dj_apps.get_model('transactions', 'InvoiceLine').objects
+                    .filter(invoice__dt_journaled__gt=0).values_list('pk', flat=True)}
+    posted_lines |= {('workorderline', pk) for pk in dj_apps.get_model('transactions', 'WorkOrderLine').objects
+                     .filter(workorder__dt_journaled__gt=0).values_list('pk', flat=True)}
+    short = Decimal('0')
+    for deficit in Pending.objects.filter(purpose=DEFICIT_PURPOSE, dt_processed=0):
+        ch = deficit.changes or {}
+        if (ch.get('parent_model'), ch.get('parent_id')) in posted_lines:
+            short += _d(deficit.incremental_remaining('deficit_qty')) * _d(ch.get('unit_cost'))
+    expect = (layers - short).quantize(Decimal('0.01'))
+    gl = gl.quantize(Decimal('0.01'))
+    findings = []
+    if gl != expect:
+        findings.append(_finding('gl.inventory_vs_layers', 'gl_journal', None,
+                                 f'GL inventory {gl} differs from the posted layers {expect}',
+                                 field='inventory', have=gl, expect=expect))
+    rnb = GlAccount.objects.filter(ida__startswith='2050').values_list('ida', flat=True)
+    accrual = sum((_d(d) - _d(c) for d, c in GlJournal.objects.filter(account__in=list(rnb))
+                   .values_list('debit', 'credit')), Decimal('0'))
+    return findings, {'gl_inventory': float(gl), 'posted_layers': float(expect),
+                      'received_not_billed': float(accrual)}
+
+
+def check_balances(scope=('inventory', 'cash', 'pending', 'gl'), item_id=None, org_id=None,
                    stuck_minutes=STUCK_MINUTES) -> dict:
     """The one entry point. Returns ``{balanced, findings, counts, checked, dt_checked}``.
 
@@ -472,6 +513,10 @@ def check_balances(scope=('inventory', 'cash', 'pending'), item_id=None, org_id=
         f, c = check_cash(org_id)
         findings += f
         checked['cash'] = c
+    if 'gl' in scope and not item_id:
+        f, c = check_gl_inventory()
+        findings += f
+        checked['gl'] = c
 
     counts = defaultdict(int)
     for f in findings:

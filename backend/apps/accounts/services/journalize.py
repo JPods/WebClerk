@@ -1057,14 +1057,17 @@ def journalize_workorder(workorder_id: int, ida_prefix: str = '') -> dict:
             rows.append((debit_account, value, Decimal('0'), event_id))
             rows.append((credit_account, Decimal('0'), value, event_id))
 
+    # A movement names the line that caused it; an opening's layers name the workorder itself.
+    from django.db.models import Q
     movements = list(InventoryMovement.objects.select_related('inventory_layer').filter(
-        parent_model='workorderline', parent_id__in=list(lines), dt_journaled=0))
+        Q(parent_model='workorderline', parent_id__in=list(lines)) |
+        Q(parent_model='workorder', parent_id=wo.pk), dt_journaled=0))
     for move in movements:
-        line = lines[move.parent_id]
+        line = lines.get(move.parent_id) if move.parent_model == 'workorderline' else None
         unit = Decimal(str(((move.inventory_layer.cost if move.inventory_layer else {}) or {}).get('landed') or 0))
         value = Decimal(str(move.quantity)) * unit          # + into stock, - out of stock
         inv = _inventory(move.item_id)
-        other = count_other if is_count else (scrap if line.line_type == 'scrap' else wip)
+        other = count_other if is_count else (scrap if line is not None and line.line_type == 'scrap' else wip)
         _pair(inv, other, value, str(move.pk))
 
     posted = _standing_event_ids(GlJournal, wo.pk, 'workorder')
@@ -1099,6 +1102,9 @@ def journalize_workorder(workorder_id: int, ida_prefix: str = '') -> dict:
             _pair(_role('inventory_cost_variance', used_by), wip, held, 'wip-variance')
 
     if not rows:
+        if movements:
+            # Movements of no value (a layer costed 0) post nothing, but they are accounted for.
+            InventoryMovement.objects.filter(pk__in=[m.pk for m in movements]).update(dt_journaled=_now_ms())
         return {'created': 0, 'error': 'Nothing to journalize'}
     debits = sum(r[1] for r in rows)
     credits = sum(r[2] for r in rows)

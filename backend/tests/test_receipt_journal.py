@@ -104,3 +104,21 @@ def test_a_purchase_posts_nothing_and_the_batch_journalizes_receipts():
     result = batch_journalize(ida_prefix='zzz-')
     assert [r['receipt_ida'] for r in result['receipts']] == [receipt.ida]
     assert not GlJournal.objects.filter(source_model='purchase').exists()
+
+
+def test_the_gl_holds_what_the_layers_hold_after_receiving_and_selling():
+    """check_gl_inventory: GL inventory = posted movements at their layers' cost (Bill 2026-09-28/30)."""
+    from apps.accounts.services.journalize import journalize_invoice
+    from apps.core.services.balance_checker import check_gl_inventory
+    from tests.test_stock_layers_follow_sales import _invoice, _line
+    item, receipt = _received_receipt(qty=10, freight=5)
+    _run('journalize', 'receipt', receipt.pk)
+    findings, checked = check_gl_inventory()
+    assert not findings, findings
+    assert checked['gl_inventory'] == 45.0 and checked['received_not_billed'] == -5.0
+    invoice = _invoice()
+    _line(invoice, item, 4)
+    assert journalize_invoice(invoice.pk).get('created')
+    findings, checked = check_gl_inventory()
+    assert not findings, findings
+    assert checked['gl_inventory'] == 27.0, '6 left at 4.50 landed'
