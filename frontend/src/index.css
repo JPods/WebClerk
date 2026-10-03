@@ -180,6 +180,11 @@ layer(base);
    --wc-bg/surface/text/border/accent alias to --db-* for backward compat.
    TODO: migrate all --wc-bg etc. references to --db-* then remove aliases.
    --------------------------------------------------------------------------- */
+/* One font size: ThemeProvider sets --wc-font-size on <html> from the Font size setting. --db-font-size defaults to it
+   everywhere, so the db-font-* classes follow it outside the DataBrowser too (kanban cards); the DataBrowser root
+   sets the same value. */
+:root { --db-font-size: var(--wc-font-size, 13px); }
+
 :root[data-theme="dark"], :root.dark {
   --wc-bg: var(--db-bg);
   --wc-surface: var(--db-surface);
