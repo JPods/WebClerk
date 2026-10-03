@@ -1184,7 +1184,7 @@ const spsDropdownStyle: CSSProperties = {
 
 const spsItemStyle: CSSProperties = {
   padding: "4px 10px",
-  fontSize: 11,
+  fontSize: 'calc(var(--wc-font-size, 13px) - 2px)',
   cursor: "pointer",
   whiteSpace: "nowrap",
   overflow: "hidden",
@@ -1201,7 +1201,7 @@ const spsItemSelectedStyle: CSSProperties = {
 
 const spsSectionHeaderStyle: CSSProperties = {
   padding: "6px 10px 3px",
-  fontSize: 9,
+  fontSize: 'calc(var(--wc-font-size, 13px) - 4px)',
   fontWeight: 700,
   textTransform: "uppercase",
   letterSpacing: "0.06em",
@@ -1309,7 +1309,7 @@ const SegmentedProjectSelector: React.FC<SegmentedProjectSelectorProps> = ({
           style={collapsible ? spsSectionHeaderStyle : spsSectionHeaderFixedStyle}
           onClick={collapsible ? () => toggleSection(key) : undefined}
         >
-          {collapsible && <span style={{ fontSize: 8 }}>{isCollapsed ? "▶" : "▼"}</span>}
+          {collapsible && <span style={{ fontSize: 'calc(var(--wc-font-size, 13px) - 5px)' }}>{isCollapsed ? "▶" : "▼"}</span>}
           {label} ({items.length})
         </div>
         {!isCollapsed && items.map(renderItem)}
@@ -3030,10 +3030,10 @@ const KanbanBoardPage: React.FC = () => {
   const editModalExtraContent = null;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-1 px-2 py-1" style={{ fontSize: 12, color: 'var(--db-accent, #2563eb)' }}>
+    <div className="space-y-6" style={{ fontSize: 'var(--wc-font-size, 13px)' }}>
+      <div className="flex items-center gap-1 px-2 py-1" style={{ fontSize: 'calc(var(--wc-font-size, 13px) - 1px)', color: 'var(--db-accent, #2563eb)' }}>
         <Link to={PageRoutes.multiProjectGantt}
-          style={{ padding: '4px 8px', border: '1px solid transparent', borderRadius: 4, background: 'transparent', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', color: 'var(--db-accent, #2563eb)', textDecoration: 'none' }}
+          style={{ padding: '4px 8px', border: '1px solid transparent', borderRadius: 4, background: 'transparent', fontSize: 'calc(var(--wc-font-size, 13px) - 1px)', fontWeight: 600, whiteSpace: 'nowrap', color: 'var(--db-accent, #2563eb)', textDecoration: 'none' }}
         >📋 Multi-Project</Link>
           <SegmentedProjectSelector
             options={projectOptions}
@@ -3057,7 +3057,7 @@ const KanbanBoardPage: React.FC = () => {
             <button
               onClick={() => setIsContactManagerOpen(true)}
               title="Manage project contacts"
-              style={{ padding: '2px 6px', border: '1px solid transparent', borderRadius: 4, background: 'transparent', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: 'var(--db-accent-green, #16a34a)', lineHeight: 1 }}
+              style={{ padding: '2px 6px', border: '1px solid transparent', borderRadius: 4, background: 'transparent', cursor: 'pointer', fontSize: 'calc(var(--wc-font-size, 13px) - 1px)', fontWeight: 700, color: 'var(--db-accent-green, #16a34a)', lineHeight: 1 }}
             >+</button>
           )}
           <select value={columnsPerRow} onChange={(event) => setColumnsPerRow(Number(event.target.value))}
@@ -3069,16 +3069,16 @@ const KanbanBoardPage: React.FC = () => {
             ))}
           </select>
           <button onClick={() => setIsGenerateOpen(true)} title="Generate kanban project records"
-            style={{ padding: '4px 8px', border: '1px solid transparent', borderRadius: 4, background: 'transparent', cursor: 'pointer', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', color: 'var(--db-accent, #2563eb)' }}
+            style={{ padding: '4px 8px', border: '1px solid transparent', borderRadius: 4, background: 'transparent', cursor: 'pointer', fontSize: 'calc(var(--wc-font-size, 13px) - 1px)', fontWeight: 600, whiteSpace: 'nowrap', color: 'var(--db-accent, #2563eb)' }}
           >📦 Gen Projects</button>
           <button onClick={() => void handleNewActionFloating()}
-            style={{ padding: '4px 8px', border: '1px solid transparent', borderRadius: 4, background: 'transparent', cursor: 'pointer', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', color: 'var(--db-accent-green, #16a34a)' }}
+            style={{ padding: '4px 8px', border: '1px solid transparent', borderRadius: 4, background: 'transparent', cursor: 'pointer', fontSize: 'calc(var(--wc-font-size, 13px) - 1px)', fontWeight: 600, whiteSpace: 'nowrap', color: 'var(--db-accent-green, #16a34a)' }}
           >+ New Action</button>
           <button onClick={() => void handleManualRefresh()} disabled={isRefreshing || isLoading}
             title={`Last refreshed: ${formatLastRefresh(lastRefreshTime)}. Auto-refresh every 5 minutes${isAnyModalOpen ? ' (paused while dialog open)' : ''}`}
-            style={{ padding: '4px 8px', border: '1px solid transparent', borderRadius: 4, background: 'transparent', cursor: isRefreshing ? 'default' : 'pointer', opacity: isRefreshing ? 0.4 : 1, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', color: 'var(--db-accent, #2563eb)' }}
+            style={{ padding: '4px 8px', border: '1px solid transparent', borderRadius: 4, background: 'transparent', cursor: isRefreshing ? 'default' : 'pointer', opacity: isRefreshing ? 0.4 : 1, fontSize: 'calc(var(--wc-font-size, 13px) - 1px)', fontWeight: 600, whiteSpace: 'nowrap', color: 'var(--db-accent, #2563eb)' }}
           >🔄 {isRefreshing ? "Refreshing..." : "Refresh"}</button>
-          <span style={{ fontSize: 10, color: 'var(--db-text-muted)' }} title="Auto-refresh every 5 minutes">
+          <span style={{ fontSize: 'calc(var(--wc-font-size, 13px) - 3px)', color: 'var(--db-text-muted)' }} title="Auto-refresh every 5 minutes">
             {formatLastRefresh(lastRefreshTime)}
           </span>
       </div>
@@ -3087,7 +3087,7 @@ const KanbanBoardPage: React.FC = () => {
         <div className="flex items-center justify-between rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 db-font-sm text-amber-700">
           <span>{projectFetchError}</span>
           <button type="button" onClick={() => void fetchProjects()}
-            style={{ padding: '4px 8px', border: '1px solid transparent', borderRadius: 4, background: 'transparent', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#e8c870' }}
+            style={{ padding: '4px 8px', border: '1px solid transparent', borderRadius: 4, background: 'transparent', cursor: 'pointer', fontSize: 'calc(var(--wc-font-size, 13px) - 1px)', fontWeight: 600, color: '#e8c870' }}
           >↩ Retry</button>
         </div>
       )}
@@ -3097,7 +3097,7 @@ const KanbanBoardPage: React.FC = () => {
           <span>{fetchError}</span>
           <button type="button"
             onClick={() => void fetchActions({ projectId: selectedProjectId || undefined, contactId: selectedContactId || undefined })}
-            style={{ padding: '4px 8px', border: '1px solid transparent', borderRadius: 4, background: 'transparent', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#e05252' }}
+            style={{ padding: '4px 8px', border: '1px solid transparent', borderRadius: 4, background: 'transparent', cursor: 'pointer', fontSize: 'calc(var(--wc-font-size, 13px) - 1px)', fontWeight: 600, color: '#e05252' }}
           >↩ Retry</button>
         </div>
       )}

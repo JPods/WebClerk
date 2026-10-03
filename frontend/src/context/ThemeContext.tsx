@@ -31,6 +31,17 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
     setUI('theme.active', theme);
   }, [theme]);
 
+  // The Font size setting is per theme (theme.<active>.font.size). --wc-font-size is the one place
+  // the whole app reads it from CSS; nothing set it before, so every var(--wc-font-size, 13px) was 13px.
+  useEffect(() => {
+    const apply = (size: number) =>
+      document.documentElement.style.setProperty('--wc-font-size', `${size}px`);
+    apply(getUI<number>(`theme.${theme}.font.size`, 14));
+    const onChange = (e: Event) => apply(Number((e as CustomEvent).detail.size));
+    window.addEventListener('wc3-font-size-changed', onChange);
+    return () => window.removeEventListener('wc3-font-size-changed', onChange);
+  }, [theme]);
+
   const toggleTheme = () => {
     setTheme((prev) => (prev === "dark" ? "light" : "dark"));
   };

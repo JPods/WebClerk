@@ -196,13 +196,13 @@ const TaskCardComponent: React.FC<TaskCardProps> = ({ task, columnId, index, onD
                         return Object.entries(groups).map(([group, opts], gi) => (
                           <div key={group}>
                             {gi > 0 && <div style={{ height: 1, background: "#374151", margin: "3px 8px" }} />}
-                            <div style={{ padding: "4px 10px 2px", fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "#9ca3af" }}>
+                            <div style={{ padding: "4px 10px 2px", fontSize: 'calc(var(--wc-font-size, 13px) - 4px)', fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "#9ca3af" }}>
                               {groupLabels[group] ?? group}
                             </div>
                             {opts.map((opt) => (
                               <div
                                 key={opt.id}
-                                style={{ padding: "4px 10px", fontSize: 11, cursor: "pointer", color: "#d1d5db", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
+                                style={{ padding: "4px 10px", fontSize: 'calc(var(--wc-font-size, 13px) - 2px)', cursor: "pointer", color: "#d1d5db", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
                                 onMouseEnter={(e) => (e.currentTarget.style.background = "#334155")}
                                 onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                                 onClick={(e) => { e.stopPropagation(); handleMove(opt); }}
