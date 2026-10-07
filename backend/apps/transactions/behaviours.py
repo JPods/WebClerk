@@ -249,26 +249,24 @@ def _flag_over_receipt(receipt, pol, ordered: float, received: float) -> None:
 
 
 class LineBehaviour(ModelBehaviour):
-    """A line cannot exist without its document; `new` takes that id. A line of a locked
-    document is not written."""
+    """A line is not a record of its own: it is made, changed and deleted only through its
+    document's ``lines`` (Bill, 2026-10-07: "We should block line record changes"). One door
+    for a line, so the rules on lines (save_line_processing) cannot be gone around."""
 
     def __init__(self, document_fk: str):
+        # Kept so `new` reaches the hook below and is told where lines are made, rather than
+        # refused as "takes no values" (it took the document's id until 2026-10-07).
         self.NEW_REQUIRES = (document_fk,)
         self.document_fk = document_fk
 
     def hook(self, moment: str, ctx: HookContext) -> None:
-        if moment == 'before':
-            from apps.transactions.services.document_lock import LOCKABLE_MODELS, refuse_if_locked
+        if moment == 'before' and ctx.verb in ('save', 'delete'):
             doc_key = self.document_fk[:-3]
-            if doc_key in LOCKABLE_MODELS:
-                doc_id = (getattr(ctx.obj, self.document_fk, None) if ctx.obj is not None else None) \
-                    or (ctx.data or {}).get(self.document_fk)
-                if doc_id:
-                    from apps.core.services.door import resolve_model
-                    model_cls = resolve_model(doc_key)[0]
-                    document = model_cls.objects.filter(pk=doc_id).first()
-                    if document is not None:
-                        refuse_if_locked(ctx, document=document)
+            raise Refused(405, 'line_through_document',
+                          f'A {ctx.model_key} changes only through its {doc_key}: '
+                          f'PUT /wcapi/{doc_key}/<id>/ with "lines": [...] (a removed line '
+                          f'carries "_delete": true).',
+                          {'model_name': ctx.model_key, 'document': doc_key})
         super().hook(moment, ctx)
 
 

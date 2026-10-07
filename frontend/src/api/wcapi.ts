@@ -491,7 +491,8 @@ export async function saveTransactionWithLines(model_name: string, payload: any)
     'prefs', 'commission', 'health_rating',
     'dt_created', 'dt_modified',
     'is_archived',
-    'security_level', 'version',
+    // 'version' stays: the server refuses a stale save (412) only when it is sent (C2-04).
+    'security_level',
   ];
   const lineStripKeys = [
     // 'tax' stays: a rate typed on a line is the user's input (recheck 2).
@@ -503,7 +504,7 @@ export async function saveTransactionWithLines(model_name: string, payload: any)
     'physical', 'actions', 'totals',
     'dt_created', 'dt_modified', 'health_rating',
     'is_archived',
-    'security_level', 'version',
+    'security_level',
   ];
   const cleanPayload = Object.fromEntries(
     Object.entries(payload).filter(([k]) => !headerStripKeys.includes(k)),

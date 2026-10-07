@@ -118,7 +118,9 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
       is_active: true,
       item: {
         item_id: itemId,
-        ida_item: itemCode,
+        // The Item's own ida, or blank for the server to fill: a line's item ida must match
+        // the Item, and itemCode can be a sku or the id (Bill, 2026-10-07: line identity).
+        ida_item: (item as any).ida || '',
         description,
         unit_measure: item.unit_of_measure || item.unitOfMeasure || item.unit_measure || 'EA',
         is_serialized: isSerialized,

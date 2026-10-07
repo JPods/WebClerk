@@ -195,8 +195,9 @@ def _collection_too_large(model_name: str, payload: dict):
     return None
 
 
-#: Keys a client always sends that name the record rather than change it.
-_IDENTITY_KEYS = frozenset({"id", "pk", "uuid", "ida", "model_name", "parent_model", "version"})
+#: Keys a client always sends that name the record rather than change it. Not ``pk``: no
+#: client sends it, and exempt here it reached a line's setattr unenumerated (A3-H-1).
+_IDENTITY_KEYS = frozenset({"id", "uuid", "ida", "model_name", "parent_model", "version"})
 
 #: Keys that belong to the request envelope or the client's own bookkeeping, not to any
 #: record. They are not fields, so the enumeration has nothing to say about them and a

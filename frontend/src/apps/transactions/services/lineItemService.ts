@@ -13,7 +13,6 @@
 import type { TransactionLine } from '../types/transactionTypes';
 import {
   ItemSearchResult,
-  resolveItemCode,
   resolveItemDescription,
   resolveUnitPrice,
   resolveUnitCost,
@@ -181,7 +180,6 @@ export class LineItemService {
    * Create a new line from a catalog item search result
    */
   addItem(item: ItemSearchResult, quantity: number, options: AddItemOptions = {}): TransactionLine {
-    const itemCode = resolveItemCode(item);
     const description = resolveItemDescription(item);
     const unitPrice = options.unitPrice ?? resolveUnitPrice(item);
     const unitCost = options.unitCost ?? resolveUnitCost(item);
@@ -192,7 +190,8 @@ export class LineItemService {
     const itemEnvelope = {
       ...getDefaultItem(),
       item_id: itemId,
-      ida_item: itemCode,
+      // The Item's own ida, or blank for the server to fill (it must match the Item).
+      ida_item: String((item as any).ida ?? ''),
       description: description,
       description_text: description,
       unit_measure: unitMeasure,

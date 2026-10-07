@@ -13,7 +13,11 @@ deleted, its work moves into the save and the document hooks):
 - a line is looked up among **this header's** lines, locked; a line of another document
   is not found, whatever id the payload names;
 - a line that is not found is refused, never skipped (Axiom 6);
-- an existing line keeps its item — to change the item, delete the line and add one;
+- only the line's own fields are written; any other key (``pk``) is refused, never dropped
+  (A3-H-1: ``{"id": 5, "pk": 9999}`` wrote line 5's data over line 9999 of any document);
+- a line's identity never changes: its document, and its item's id, ida and uuid (Bill,
+  2026-10-07) — to change the item, delete the line and add one;
+- a line sent with its ``version`` is refused 412 when another save changed it first;
 - a JSON field on an update merges into what the line holds;
 - a new line with no number takes the header's next ``line_increment``;
 - a line marked ``_dirty: false`` is left as it is; ``_delete: true`` deletes it;
@@ -66,13 +70,23 @@ def _is_new_line(line_id) -> bool:
     return False
 
 
-def _get_fk_descriptors(line_model) -> set:
-    """Build set of FK descriptor names to skip during field copy."""
-    descriptors = set()
-    for f in line_model._meta.get_fields():
-        if hasattr(f, 'related_model') and f.related_model is not None:
-            descriptors.add(f.name)
-    return descriptors
+#: What names a line's item. None of it changes once the line is saved (Bill, 2026-10-07).
+ITEM_IDENTITY_KEYS = ('ida_item', 'uuid_item')
+
+
+def _writable_fields(line_model, skip_fields: tuple) -> dict:
+    """The keys a line payload may name → the attribute each one writes.
+
+    A line's concrete fields, by name and by column (``item_fk`` and ``item_fk_id`` both
+    write ``item_fk_id``). Nothing else: ``pk``, a property or a reverse relation is no field
+    of the line, and is refused rather than set (A3-H-1).
+    """
+    writable = {}
+    for f in line_model._meta.concrete_fields:
+        for key in (f.name, f.attname):
+            if key not in skip_fields:
+                writable[key] = f.attname
+    return writable
 
 
 def _stamp_line_comments(line_data: dict, actor) -> None:
@@ -89,21 +103,38 @@ def _stamp_line_comments(line_data: dict, actor) -> None:
                 entry.update({k: v for k, v in stamp(user).items() if not entry.get(k)})
 
 
-def _copy_line_fields(line_obj, line_data: dict, skip_fields: tuple, fk_descriptors: set,
-                      merge: bool):
-    """Copy fields from line_data to line_obj, skipping FK descriptors, signals and results."""
+def _copy_line_fields(line_obj, line_data: dict, skip_fields: tuple, writable: dict,
+                      merge: bool, model_key: str):
+    """Copy the line's own fields from line_data; refuse any key that is not one."""
+    from apps.core.services.save_field_assignment import _coach_unknown
+    from apps.core.services.dt_fields import SYSTEM_DT_FIELDS
+    from apps.core.services.save import _same_as_stored
+
+    unknown = [key for key in line_data
+               if key not in skip_fields and key != 'version' and not key.startswith('_')
+               and key not in writable]
+    if unknown:
+        json_names = {f.name for f in type(line_obj)._meta.concrete_fields
+                      if isinstance(f, models.JSONField)}
+        details = [_coach_unknown(key, type(line_obj), json_names) for key in unknown]
+        raise Refused(400, 'unknown_field', f"Not fields of a {model_key} line: " + '; '.join(details),
+                      {'line_id': line_data.get('id'), 'unknown': details})
     for field_name, field_value in line_data.items():
-        if field_name in skip_fields or field_name.startswith('_'):
+        if field_name in skip_fields or field_name == 'version' or field_name.startswith('_'):
             continue
-        if field_name in fk_descriptors and not isinstance(field_value, models.Model):
+        attname = writable[field_name]
+        if attname in SYSTEM_DT_FIELDS or (attname == 'ida' and line_obj.pk):
+            # Written by its event, as on the header (Bill, 2026-09-28): an echo is left alone.
+            if not _same_as_stored(line_obj, attname, field_value):
+                raise Refused(400, 'system_field' if attname != 'ida' else 'ida_locked',
+                              f"A line's {attname} is the server's; it cannot be sent.",
+                              {'line_id': line_obj.pk, 'field': attname})
             continue
-        if not hasattr(line_obj, field_name):
-            continue
-        if merge and field_name in MERGE_FIELDS and isinstance(field_value, dict):
-            held = getattr(line_obj, field_name, None)
+        if merge and attname in MERGE_FIELDS and isinstance(field_value, dict):
+            held = getattr(line_obj, attname, None)
             if isinstance(held, dict) and held:
                 field_value = {**held, **field_value}
-        setattr(line_obj, field_name, field_value)
+        setattr(line_obj, attname, field_value)
 
 
 def _item_id(envelope) -> object:
@@ -121,15 +152,61 @@ def _derive_item_fk(line_obj, line_data: dict):
         line_obj.item_fk_id = item_id
 
 
-def _refuse_item_change(line_obj, line_data: dict, model_key: str) -> None:
-    held = _item_id(getattr(line_obj, 'item', None))
-    offered = _item_id(line_data.get('item'))
-    if held is not None and offered is not None and str(held) != str(offered):
+def _same(a, b) -> bool:
+    return (a in (None, '') and b in (None, '')) or str(a) == str(b)
+
+
+def _item_identity(line_obj) -> dict:
+    envelope = getattr(line_obj, 'item', None) or {}
+    envelope = envelope if isinstance(envelope, dict) else {}
+    return {'item_fk_id': getattr(line_obj, 'item_fk_id', None), 'item_id': _item_id(envelope),
+            **{k: envelope.get(k) for k in ITEM_IDENTITY_KEYS}}
+
+
+def _refuse_identity_change(line_obj, held: dict, model_key: str) -> None:
+    """A saved line's item is its identity: id, ida and uuid never change (Bill, 2026-10-07).
+    To change the item, delete the line and add one."""
+    now = _item_identity(line_obj)
+    changed = sorted(k for k in now if not _same(held[k], now[k])
+                     # the column filled from the envelope it already held is not a change
+                     and not (k == 'item_fk_id' and held[k] in (None, '')
+                              and _same(now[k], held['item_id'])))
+    if changed:
         raise Refused(
             400, 'line_item_change',
-            f'Line {line_obj.pk} of this {model_key} is item {held}; its item cannot change. '
-            f'Delete the line and add a new one for item {offered}.',
-            {'line_id': line_obj.pk, 'held': held, 'offered': offered})
+            f"Line {line_obj.pk} of this {model_key} is item {held['item_id'] or held['item_fk_id']}; "
+            f"its item cannot change ({', '.join(changed)}). Delete the line and add a new one.",
+            {'line_id': line_obj.pk, 'changed': changed,
+             'held': {k: held[k] for k in changed}, 'offered': {k: now[k] for k in changed}})
+
+
+def _settle_new_line_item(line_obj, model_key: str) -> None:
+    """A new line's item is named once, and named the same everywhere: the column, the
+    envelope's id, and the ida and uuid of that Item. A blank ida or uuid is filled from the
+    Item; one that names another item is refused."""
+    ident = _item_identity(line_obj)
+    if ident['item_fk_id'] and ident['item_id'] and not _same(ident['item_fk_id'], ident['item_id']):
+        raise Refused(400, 'line_item_mismatch',
+                      f"item_fk {ident['item_fk_id']} and item.item_id {ident['item_id']} name two items.",
+                      {'item_fk_id': ident['item_fk_id'], 'item_id': ident['item_id']})
+    item_pk = ident['item_fk_id'] or ident['item_id']
+    if not item_pk:
+        return                                  # a line with no item (shipping, a note)
+    from apps.products.models import Item
+    item = Item.objects.filter(pk=_as_pk(item_pk)).only('pk', 'ida', 'uuid').first()
+    if item is None:
+        raise Refused(400, 'line_item_not_found', f'Item {item_pk} does not exist.', {'item_id': item_pk})
+    truth = {'ida_item': item.ida or '', 'uuid_item': str(item.uuid) if item.uuid else ''}
+    wrong = sorted(k for k in ITEM_IDENTITY_KEYS if ident[k] not in (None, '') and not _same(ident[k], truth[k]))
+    if wrong:
+        raise Refused(400, 'line_item_mismatch',
+                      f"Item {item.pk} is {truth['ida_item']}; the line names another ({', '.join(wrong)}).",
+                      {'item_id': item.pk, 'offered': {k: ident[k] for k in wrong},
+                       'item': {k: truth[k] for k in wrong}})
+    envelope = dict(getattr(line_obj, 'item', None) or {})
+    envelope.update({'item_id': item.pk, **truth})
+    line_obj.item = envelope
+    line_obj.item_fk_id = item.pk
 
 
 def _line_not_found(line_id, model_key: str, header_id):
@@ -162,11 +239,11 @@ def process_lines(obj, data: dict, model_key: str, actor=None) -> list[int]:
     if not LineModel:
         raise Refused(500, 'line_model_missing', f'No line model for {model_key}.', model_key)
 
-    fk_descriptors = _get_fk_descriptors(LineModel)
     # uuid is set once, on a new line, and never copied onto an existing one (a line's uuid
     # cannot change: common/models.py raises — it was an uncaught 500).
     skip_fields = ('id', 'uuid', 'model_name', 'totals', fk_field_name, f'{fk_field_name}_id',
                    'parent', 'parent_id')
+    writable = _writable_fields(LineModel, skip_fields)
     held = {line.pk: line for line in
             LineModel.objects.select_for_update().filter(**{f'{fk_field_name}_id': obj.pk})}
     by_uuid = {str(line.uuid): line.pk for line in held.values() if getattr(line, 'uuid', None)}
@@ -205,6 +282,13 @@ def process_lines(obj, data: dict, model_key: str, actor=None) -> list[int]:
             raise Refused(400, 'events_are_the_record',
                           "A line's events are written by the server as stock moves; send the change, "
                           "not the record of it.", {'line_id': line_data.get('id')})
+        for key in (fk_field_name, f'{fk_field_name}_id', 'parent', 'parent_id'):
+            if key in line_data and not _same(line_data[key], obj.pk):
+                # The document a line belongs to is its identity: an echo of it is fine,
+                # another document is a move, and a line never moves (Bill, 2026-10-07).
+                raise Refused(400, 'line_parent_change',
+                              f'A line of {model_key} {obj.pk} cannot move to {line_data[key]}.',
+                              {'line_id': line_data.get('id'), key: line_data[key]})
         _stamp_line_comments(line_data, actor)
 
         if _is_new_line(line_id):
@@ -215,11 +299,12 @@ def process_lines(obj, data: dict, model_key: str, actor=None) -> list[int]:
                 line_obj.uuid = keep_uuid
             line_obj._actor = actor
             setattr(line_obj, f'{fk_field_name}_id', obj.pk)
-            _copy_line_fields(line_obj, line_data, skip_fields, fk_descriptors, merge=False)
+            _copy_line_fields(line_obj, line_data, skip_fields, writable, merge=False,
+                              model_key=model_key)
             if not getattr(line_obj, 'line_number', 0):
                 line_obj.line_number = next_number
                 next_number += 10
-            _derive_item_fk(line_obj, line_data)
+            _settle_new_line_item(line_obj, model_key)
             line_obj.save()
             new_line_ids.append(line_obj.pk)
             changed += 1
@@ -239,9 +324,17 @@ def process_lines(obj, data: dict, model_key: str, actor=None) -> list[int]:
         if not carrier.dirty:
             continue
 
-        _refuse_item_change(line_obj, line_data, model_key)
-        _copy_line_fields(line_obj, line_data, skip_fields, fk_descriptors, merge=True)
+        sent_version = line_data.get('version')
+        if sent_version is not None and not _same(sent_version, getattr(line_obj, 'version', None)):
+            raise Refused(412, 'version_conflict',
+                          f'Line {line_obj.pk} was changed by another save. Reload and try again.',
+                          {'line_id': line_obj.pk, 'expected': sent_version,
+                           'current': getattr(line_obj, 'version', None)})
+        held_identity = _item_identity(line_obj)
+        _copy_line_fields(line_obj, line_data, skip_fields, writable, merge=True,
+                          model_key=model_key)
         _derive_item_fk(line_obj, line_data)
+        _refuse_identity_change(line_obj, held_identity, model_key)
         line_obj.save()
         changed += 1
 
