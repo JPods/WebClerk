@@ -68,7 +68,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--report-file",
             action="store_true",
-            help="(layout) Save full report to readmes/topics/ai/layout-drift-report.md",
+            help="(layout) Save full report to <work folder>/reports/layout-drift-report.md",
         )
         parser.add_argument(
             "--dismiss",
@@ -364,7 +364,7 @@ class Command(BaseCommand):
             self.stdout.write(full_report)
             if report_file:
                 self.stdout.write(self.style.SUCCESS(
-                    "\n  Report saved to readmes/topics/ai/layout-drift-report.md"
+                    "\n  Report saved to <work folder>/reports/layout-drift-report.md"
                 ))
 
         return result

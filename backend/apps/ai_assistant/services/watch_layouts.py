@@ -55,7 +55,7 @@ R25_ROOT = Path(settings.BASE_DIR).parent / "React2025"
 STATE_DIR = Path(settings.WORK_DIR) / "state"           # the work folder 'state' (was inside the repo)
 DISMISSALS_FILE = STATE_DIR / "layout_dismissals.json"
 HISTORY_FILE = STATE_DIR / "layout_history.json"
-REPORT_DIR = Path(settings.BASE_DIR) / "readmes" / "topics" / "ai"
+REPORT_DIR = Path(settings.WORK_DIR) / "reports"           # the work folder 'reports' (was inside the repo)
 REPORT_FILE = REPORT_DIR / "layout-drift-report.md"
 
 
