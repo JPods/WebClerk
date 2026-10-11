@@ -289,6 +289,14 @@ def process_lines(obj, data: dict, model_key: str, actor=None) -> list[int]:
                 raise Refused(400, 'line_parent_change',
                               f'A line of {model_key} {obj.pk} cannot move to {line_data[key]}.',
                               {'line_id': line_data.get('id'), key: line_data[key]})
+        for key in getattr(LineModel, 'HEADER_PARTY_FIELDS', ()):
+            if key in line_data and not _same(line_data[key], getattr(obj, key, None)):
+                # A line's party ids are its header's (Bill, 2026-09-23), refused like its
+                # parent rather than silently replaced (Bill, 2026-10-10): change the header.
+                raise Refused(400, 'line_party_derived',
+                              f"A line's {key} is its {model_key}'s ({getattr(obj, key, None)}); "
+                              f"change it on the {model_key}, not the line.",
+                              {'line_id': line_data.get('id'), key: line_data[key]})
         _stamp_line_comments(line_data, actor)
 
         if _is_new_line(line_id):

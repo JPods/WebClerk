@@ -664,6 +664,32 @@ class BaseLineCore(HardDeleteOnly, BaseModel):
         super().refresh_from_db(*args, **kwargs)
         self._take_snapshot()
 
+    # The person on our side assigned to this line — the picker, the technician, the buyer (Bill,
+    # 2026-09-23). Named as Actions name theirs (assigned_to) — not contact_id, which on a
+    # transaction is the customer's person. A contact id, a value not a foreign key, on every
+    # line type. Unlike the
+    # party ids it is an assignment: chosen and editable within the role's edit list.
+    assigned_to_id = models.BigIntegerField(null=True, blank=True, db_index=True,
+                                            help_text="Contact responsible for this line")
+
+    #: Party ids copied from the header onto the line; set by the sell and purchase bases.
+    HEADER_PARTY_FIELDS: tuple = ()
+
+    def _stamp_parties(self) -> tuple:
+        """Copy HEADER_PARTY_FIELDS from the header onto this line (Bill, 2026-09-23: users can
+        search and report customers by item and items by customer). Returns the fields set."""
+        if not self.HEADER_PARTY_FIELDS:
+            return ()
+        try:
+            parent = self.parent
+        except Exception:  # noqa: BLE001 — a line with no header yet has nothing to copy
+            parent = None
+        if parent is None:
+            return ()
+        for field in self.HEADER_PARTY_FIELDS:
+            setattr(self, field, getattr(parent, field, None))
+        return self.HEADER_PARTY_FIELDS
+
     def save(self, *args, **kwargs):
         """Save with JSON normalization and auto line_number assignment.
 
@@ -690,6 +716,11 @@ class BaseLineCore(HardDeleteOnly, BaseModel):
         update_fields = kwargs.get('update_fields')
         if status_changed and update_fields is not None and 'status' not in update_fields:
             kwargs['update_fields'] = list(update_fields) + ['status']
+
+        # Party ids are the header's, copied onto the line — derived, never entered.
+        stamped = self._stamp_parties()
+        if stamped and kwargs.get('update_fields') is not None:
+            kwargs['update_fields'] = list(set(kwargs['update_fields']) | set(stamped))
 
         # Auto-assign line_number from parent header's line_increment
         if self.line_number == 0:
@@ -810,6 +841,16 @@ class BaseSellLineModel(BaseLineCore):
     engine (totals_compute.compute_totals). One source of truth.
     """
     price = models.JSONField(default=dict, blank=True, null=True)
+    # The header's customer and the rep who made the sale, on every line, so customers-by-item
+    # and items-by-customer are one-table questions (Bill, 2026-09-23). Values, not foreign keys,
+    # like the header's rep_id; stamped from the header on every save and cascaded when the
+    # header changes — never entered. The rep is the seller's, kept with the sale.
+    customer_id = models.BigIntegerField(null=True, blank=True, db_index=True,
+                                         help_text="The header's customer (derived)")
+    rep_id = models.BigIntegerField(null=True, blank=True, db_index=True,
+                                    help_text="The rep who made the sale (derived from the header)")
+
+    HEADER_PARTY_FIELDS = ('customer_id', 'rep_id')
 
     class Meta(BaseLineCore.Meta):
         abstract = True

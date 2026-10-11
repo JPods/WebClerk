@@ -98,6 +98,22 @@ def test_a_line_cannot_move_to_another_document():
     assert refused.value.code == 'line_parent_change'
 
 
+def test_a_lines_party_ids_are_its_headers_echo_saves_another_is_refused():
+    """Bill, 2026-10-10: refused like the parent, not silently replaced."""
+    from apps.orgs.models import OrgBase
+    from apps.transactions.models import Order
+    acme = OrgBase.objects.create(company='Acme', org_type='customer')
+    globex = OrgBase.objects.create(company='Globex', org_type='customer')
+    item = _item('LID-5P')
+    order, line = _order_with_line(item)
+    Order.objects.filter(pk=order.pk).update(customer_id=acme.pk)
+    order.refresh_from_db()
+    _save(order, [{'id': line.pk, '_dirty': True, 'customer_id': acme.pk}])
+    with pytest.raises(Refused) as refused:
+        _save(order, [{'id': line.pk, '_dirty': True, 'customer_id': globex.pk}])
+    assert refused.value.code == 'line_party_derived'
+
+
 def test_a_stale_line_is_refused_412():
     item = _item('LID-6')
     order, line = _order_with_line(item)

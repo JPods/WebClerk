@@ -38263,7 +38263,10 @@
                 "tax",
                 "physical",
                 "price",
-                "invoice"
+                "invoice",
+                "customer_id",
+                "rep_id",
+                "assigned_to_id"
               ],
               "create": false,
               "delete": false
@@ -38293,7 +38296,8 @@
                 "tax",
                 "physical",
                 "price",
-                "invoice"
+                "invoice",
+                "assigned_to_id"
               ],
               "view": "*",
               "create": true,
@@ -38313,7 +38317,8 @@
                 "price_level",
                 "item_fk",
                 "commission",
-                "invoice"
+                "invoice",
+                "assigned_to_id"
               ],
               "view": [
                 "id",
@@ -38349,7 +38354,10 @@
                 "tax",
                 "physical",
                 "price",
-                "invoice"
+                "invoice",
+                "customer_id",
+                "rep_id",
+                "assigned_to_id"
               ],
               "create": true,
               "delete": false
@@ -38379,7 +38387,8 @@
                 "price_level",
                 "item_fk",
                 "commission",
-                "invoice"
+                "invoice",
+                "assigned_to_id"
               ],
               "view": "*",
               "create": true,
@@ -38422,7 +38431,10 @@
                 "tax",
                 "physical",
                 "price",
-                "invoice"
+                "invoice",
+                "customer_id",
+                "rep_id",
+                "assigned_to_id"
               ],
               "create": false,
               "delete": false
@@ -50563,7 +50575,10 @@
                 "tax",
                 "physical",
                 "price",
-                "order"
+                "order",
+                "customer_id",
+                "rep_id",
+                "assigned_to_id"
               ],
               "create": false,
               "delete": false
@@ -50593,7 +50608,8 @@
                 "tax",
                 "physical",
                 "price",
-                "order"
+                "order",
+                "assigned_to_id"
               ],
               "view": "*",
               "create": true,
@@ -50613,7 +50629,8 @@
                 "price_level",
                 "item_fk",
                 "commission",
-                "order"
+                "order",
+                "assigned_to_id"
               ],
               "view": [
                 "id",
@@ -50649,7 +50666,10 @@
                 "tax",
                 "physical",
                 "price",
-                "order"
+                "order",
+                "customer_id",
+                "rep_id",
+                "assigned_to_id"
               ],
               "create": true,
               "delete": false
@@ -50679,7 +50699,8 @@
                 "price_level",
                 "item_fk",
                 "commission",
-                "order"
+                "order",
+                "assigned_to_id"
               ],
               "view": "*",
               "create": true,
@@ -50722,7 +50743,10 @@
                 "tax",
                 "physical",
                 "price",
-                "order"
+                "order",
+                "customer_id",
+                "rep_id",
+                "assigned_to_id"
               ],
               "create": false,
               "delete": false
@@ -59360,7 +59384,10 @@
                 "tax",
                 "physical",
                 "price",
-                "quote"
+                "quote",
+                "customer_id",
+                "rep_id",
+                "assigned_to_id"
               ],
               "create": false,
               "delete": false
@@ -59390,7 +59417,8 @@
                 "tax",
                 "physical",
                 "price",
-                "quote"
+                "quote",
+                "assigned_to_id"
               ],
               "view": "*",
               "create": true,
@@ -59410,7 +59438,8 @@
                 "price_level",
                 "item_fk",
                 "commission",
-                "quote"
+                "quote",
+                "assigned_to_id"
               ],
               "view": [
                 "id",
@@ -59446,7 +59475,10 @@
                 "tax",
                 "physical",
                 "price",
-                "quote"
+                "quote",
+                "customer_id",
+                "rep_id",
+                "assigned_to_id"
               ],
               "create": true,
               "delete": false
@@ -59476,7 +59508,8 @@
                 "price_level",
                 "item_fk",
                 "commission",
-                "quote"
+                "quote",
+                "assigned_to_id"
               ],
               "view": "*",
               "create": true,
@@ -59519,7 +59552,10 @@
                 "tax",
                 "physical",
                 "price",
-                "quote"
+                "quote",
+                "customer_id",
+                "rep_id",
+                "assigned_to_id"
               ],
               "create": false,
               "delete": false
@@ -62856,7 +62892,9 @@
                 "commission",
                 "tax",
                 "physical",
-                "purchase"
+                "purchase",
+                "vendor_id",
+                "assigned_to_id"
               ],
               "create": false,
               "delete": false
@@ -62885,7 +62923,8 @@
                 "commission",
                 "tax",
                 "physical",
-                "purchase"
+                "purchase",
+                "assigned_to_id"
               ],
               "view": "*",
               "create": true,
@@ -62905,7 +62944,8 @@
                 "price_level",
                 "item_fk",
                 "commission",
-                "purchase"
+                "purchase",
+                "assigned_to_id"
               ],
               "view": [
                 "id",
@@ -62940,7 +62980,9 @@
                 "commission",
                 "tax",
                 "physical",
-                "purchase"
+                "purchase",
+                "vendor_id",
+                "assigned_to_id"
               ],
               "create": true,
               "delete": false
@@ -62970,7 +63012,8 @@
                 "price_level",
                 "item_fk",
                 "commission",
-                "purchase"
+                "purchase",
+                "assigned_to_id"
               ],
               "view": "*",
               "create": true,
@@ -63012,7 +63055,9 @@
                 "commission",
                 "tax",
                 "physical",
-                "purchase"
+                "purchase",
+                "vendor_id",
+                "assigned_to_id"
               ],
               "create": false,
               "delete": false
@@ -66267,7 +66312,8 @@
                 "inventory_layer",
                 "lot",
                 "serial_batch",
-                "adjustment_reason"
+                "adjustment_reason",
+                "assigned_to_id"
               ],
               "create": false,
               "delete": false
@@ -66303,7 +66349,8 @@
                 "inventory_layer",
                 "lot",
                 "serial_batch",
-                "adjustment_reason"
+                "adjustment_reason",
+                "assigned_to_id"
               ],
               "view": "*",
               "create": true,
@@ -66330,7 +66377,8 @@
                 "inventory_layer",
                 "lot",
                 "serial_batch",
-                "adjustment_reason"
+                "adjustment_reason",
+                "assigned_to_id"
               ],
               "view": [
                 "id",
@@ -66372,7 +66420,8 @@
                 "inventory_layer",
                 "lot",
                 "serial_batch",
-                "adjustment_reason"
+                "adjustment_reason",
+                "assigned_to_id"
               ],
               "create": true,
               "delete": false
@@ -66409,7 +66458,8 @@
                 "inventory_layer",
                 "lot",
                 "serial_batch",
-                "adjustment_reason"
+                "adjustment_reason",
+                "assigned_to_id"
               ],
               "view": "*",
               "create": true,
@@ -66458,7 +66508,8 @@
                 "inventory_layer",
                 "lot",
                 "serial_batch",
-                "adjustment_reason"
+                "adjustment_reason",
+                "assigned_to_id"
               ],
               "create": false,
               "delete": false
@@ -71293,7 +71344,8 @@
                 "commission",
                 "tax",
                 "physical",
-                "requisition"
+                "requisition",
+                "assigned_to_id"
               ],
               "create": false,
               "delete": false
@@ -71322,7 +71374,8 @@
                 "commission",
                 "tax",
                 "physical",
-                "requisition"
+                "requisition",
+                "assigned_to_id"
               ],
               "view": "*",
               "create": true,
@@ -71342,7 +71395,8 @@
                 "price_level",
                 "item_fk",
                 "commission",
-                "requisition"
+                "requisition",
+                "assigned_to_id"
               ],
               "view": [
                 "id",
@@ -71377,7 +71431,8 @@
                 "commission",
                 "tax",
                 "physical",
-                "requisition"
+                "requisition",
+                "assigned_to_id"
               ],
               "create": true,
               "delete": false
@@ -71407,7 +71462,8 @@
                 "price_level",
                 "item_fk",
                 "commission",
-                "requisition"
+                "requisition",
+                "assigned_to_id"
               ],
               "view": "*",
               "create": true,
@@ -71449,7 +71505,8 @@
                 "commission",
                 "tax",
                 "physical",
-                "requisition"
+                "requisition",
+                "assigned_to_id"
               ],
               "create": false,
               "delete": false
@@ -87251,7 +87308,8 @@
                 "commission",
                 "tax",
                 "physical",
-                "workorder"
+                "workorder",
+                "assigned_to_id"
               ],
               "create": false,
               "delete": false
@@ -87280,7 +87338,8 @@
                 "commission",
                 "tax",
                 "physical",
-                "workorder"
+                "workorder",
+                "assigned_to_id"
               ],
               "view": "*",
               "create": true,
@@ -87300,7 +87359,8 @@
                 "price_level",
                 "item_fk",
                 "commission",
-                "workorder"
+                "workorder",
+                "assigned_to_id"
               ],
               "view": [
                 "id",
@@ -87335,7 +87395,8 @@
                 "commission",
                 "tax",
                 "physical",
-                "workorder"
+                "workorder",
+                "assigned_to_id"
               ],
               "create": true,
               "delete": false
@@ -87365,7 +87426,8 @@
                 "price_level",
                 "item_fk",
                 "commission",
-                "workorder"
+                "workorder",
+                "assigned_to_id"
               ],
               "view": "*",
               "create": true,
@@ -87407,7 +87469,8 @@
                 "commission",
                 "tax",
                 "physical",
-                "workorder"
+                "workorder",
+                "assigned_to_id"
               ],
               "create": false,
               "delete": false
