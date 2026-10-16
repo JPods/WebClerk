@@ -492,7 +492,7 @@ const ModelDetailPage: React.FC<ModelDetailPageProps> = ({
         {sections.filter((s: any) => s.type === 'json_tree').map((section: any, idx: number) => renderSection(section, sections.length + idx))}
       </div>
       {commCard && commSpec && (
-        <CommunicationCard comm={commSpec} owner={data} ownerModel={modelName} anchor={commCard.anchor}
+        <CommunicationCard comm={commSpec} owner={data} anchor={commCard.anchor}
           onChanged={refreshCommunications} onClose={() => setCommCard(null)} />
       )}
     </div>

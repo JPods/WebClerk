@@ -38,13 +38,13 @@ export const COMMUNICATION_FIELDS: Record<string, Record<string, CommunicationFi
     address_full: {
       model: 'address', pointer: 'address_id', kind: 'address', label: 'address',
       inputs: [
-        { field: 'address_type', label: 'type (billing, shipping…)', cache: 'name', wide: true },
         { field: 'address1', label: 'street', wide: true },
         { field: 'address2', label: 'street 2', wide: true },
         { field: 'city', label: 'city' },
         { field: 'state', label: 'state' },
         { field: 'zip', label: 'zip' },
         { field: 'country', label: 'country (US, GB…)' },
+        { field: 'address_type', label: 'type (billing, shipping…)', cache: 'name', wide: true },
       ],
       line: r => [r.full || [r.address1, r.city, r.state, r.zip].filter(Boolean).join(', '),
                   r.name && `(${r.name})`].filter(Boolean).join(' '),
