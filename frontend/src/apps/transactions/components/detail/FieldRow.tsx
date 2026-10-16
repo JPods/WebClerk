@@ -214,9 +214,12 @@ export interface FieldRowProps {
   lockedFields?: string[];
   help?: string;       // Shift+hover shows Alice's field help
   onChange: (field: string, value: unknown) => void;
+  /** A value kept in its own record (a contact's phone, address, domain): shown read-only,
+   *  and a click opens that record's card — the one place it is edited (Bill, 2026-10-16). */
+  onOpen?: () => void;
 }
 
-const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, options, fieldType, lockedFields, help, onChange }) => {
+const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, options, fieldType, lockedFields, help, onChange, onOpen }) => {
   const [showHelp, setShowHelp] = useState(false);
   const [copyNote, setCopyNote] = useState<string | null>(null);
   const [refUnlocked, setRefUnlocked] = useState(false);
@@ -328,6 +331,18 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
       )}
       {/* Record reference field — locked when populated, searchable when empty */}
       {(() => {
+        if (onOpen) {
+          const shown = typeof displayVal === 'string' && displayVal !== '—' ? displayVal.split('|')[0] : '';
+          return (
+            <button type="button" onClick={onOpen} data-source={pathDisplay}
+              className="flex-1 min-w-0 truncate text-left db-font-sm px-2 py-0.5 rounded hover:underline"
+              style={{ color: shown ? 'var(--db-text, #1e293b)' : 'var(--db-text-muted, #6c757d)', maxWidth: 240,
+                       border: '1px dashed var(--db-border, #cbd5e1)', background: 'transparent' }}
+              title={shown ? `Open ${label} to edit` : `Add ${label}`}>
+              {shown || `+ add ${label}`}
+            </button>
+          );
+        }
         const AFF_FIELDS = ['customer','vendor','manufacturer','rep'];
         const isAffiliation = AFF_FIELDS.includes(leafName);
         // All org affiliations search the same org table

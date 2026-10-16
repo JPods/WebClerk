@@ -17,7 +17,8 @@ import { useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState } from '@/store';
 import { showToast } from '@/store/slices/toastSlice';
-import { getRecord, newRecord, saveRecord } from '@/api/wcapi';
+import { createRecord, getRecord, newRecord, saveRecord } from '@/api/wcapi';
+import { communicationField, showsCommunication, RECORD_SAVED_EVENT } from '@/utils/communicationFields';
 import { useWindowManager } from '@/context/WindowManagerContext';
 import { useDetailLayout } from '@/hooks/useDetailLayout';
 import { selectCompanyInfo, selectLogos } from '@/store/slices/companySlice';
@@ -239,6 +240,7 @@ const ModelDetailPage: React.FC<ModelDetailPageProps> = ({
     setSaving(true);
     try {
       await saveRecord(modelName, changedFields(data, editData));
+      window.dispatchEvent(new CustomEvent(RECORD_SAVED_EVENT, { detail: { model: modelName, id: recordId } }));
       dispatch(showToast({ message: `${modelName} saved`, type: 'success' }));
       setIsEditing(false);
       fetchData();
@@ -250,6 +252,32 @@ const ModelDetailPage: React.FC<ModelDetailPageProps> = ({
     }
     setSaving(false);
   };
+
+  // A phone, address or domain is edited in its own card; the contact shows its cache.
+  const openCommunication = async (field: string) => {
+    const comm = communicationField(modelName, field);
+    if (!comm || !data) return;
+    try {
+      let id = data[comm.pointer];
+      if (!id) {
+        ({ id } = await createRecord(comm.model, { contact_id: recordId }));
+        fetchData();
+      }
+      if (id) windowManager.ensureWindow(`/${comm.model}/${id}`, `${comm.model} #${id}`);
+    } catch {
+      dispatch(showToast({ message: `Failed to open ${comm.model}`, type: 'error' }));
+    }
+  };
+
+  // When that card saves, show the server's refreshed cache (unless mid-edit here).
+  useEffect(() => {
+    const onSaved = (e: Event) => {
+      const saved = (e as CustomEvent).detail?.model;
+      if (saved && showsCommunication(modelName, saved) && !isEditing) fetchData();
+    };
+    window.addEventListener(RECORD_SAVED_EVENT, onSaved);
+    return () => window.removeEventListener(RECORD_SAVED_EVENT, onSaved);
+  }, [modelName, isEditing, fetchData]);
 
   const handleAddNew = async () => {
     try {
@@ -338,6 +366,7 @@ const ModelDetailPage: React.FC<ModelDetailPageProps> = ({
                     fieldType={f.type}
                     help={f.help}
                     onChange={handleFieldChange}
+                    onOpen={communicationField(modelName, f.field) ? () => openCommunication(f.field) : undefined}
                   />
                 ))}
                 {col.action_summary && data.actions?.items?.[0] && (

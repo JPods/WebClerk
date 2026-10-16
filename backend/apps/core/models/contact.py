@@ -203,31 +203,32 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
         if self.name_first:
             return self.name_first
         return self.email.split('@')[0]
+    def _primary_value(self, kind: str, key: str) -> str:
+        """The primary record's value, from the cache; one query only when the cache lacks it."""
+        entry = self.primary_communication(kind)
+        if entry:
+            return entry.get(key) or ''
+        model_cls, pointer, _entry = self._communication_kinds()[kind]
+        target = getattr(self, pointer)
+        if not target:
+            return ''
+        return model_cls.objects.filter(pk=target).values_list(key, flat=True).first() or ''
+
     @property
     def address_full(self):
-        """Read from primary address record via FK pointer."""
-        if self.address_id:
-            from apps.communications.models import Address
-            addr = Address.objects.filter(pk=self.address_id).values_list('full', flat=True).first()
-            return addr or ''
-        return ''
+        """The primary address, from the cache (rebuilt from Address records)."""
+        return self._primary_value('address', 'full')
 
     @property
     def phone(self):
-        """Read from primary phone record via FK pointer."""
-        if self.phone_id:
-            from apps.communications.models import Phone
-            ph = Phone.objects.filter(pk=self.phone_id).values_list('number', flat=True).first()
-            return ph or ''
-        return ''
+        """The primary phone, from the cache (rebuilt from Phone records)."""
+        return self._primary_value('phone', 'number')
 
     @property
     def domain(self):
-        """Read from primary domain record via FK pointer."""
+        """The primary domain, from the cache (rebuilt from Domain records)."""
         if self.domain_id:
-            from apps.communications.models import Domain
-            dom = Domain.objects.filter(pk=self.domain_id).values_list('path', flat=True).first()
-            return dom or ''
+            return self._primary_value('domain', 'path')
         # Fall back to extracting from email
         if self.email and '@' in self.email:
             return self.email.split('@')[1]
@@ -288,135 +289,109 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
         return model_cls.objects.create(**payload)
 
     def _sync_primary_communication_links(self):
-        """Synchronize email with Email records and rebuild refs.links from communication tables.
+        """Keep the login email in its Email record, then rebuild the communication cache.
 
-        Shadow fields (phone, domain, address_full) have been removed — PJPV.
-        Communication records are now edited directly. This method:
-        1. Syncs email (the only remaining scalar) with Email records
-        2. Rebuilds refs.links from all communication tables
+        Email is the one communication scalar on the contact (the login). It flows one way:
+        contact.email → its Email record and email_id. Phone, address and domain are edited
+        only in their own records; the contact keeps pointers and a cache (PJPV).
         """
-        try:
-            from apps.communications.models import Address, Domain, Email, Phone
+        from apps.communications.models import Domain, Email
 
-            updates = {}
+        updates = {}
+        normalized_email = self._norm_comm_value(self.email).lower()
+        if normalized_email:
+            email_obj = self._find_or_create_comm_record(
+                Email,
+                {'email': normalized_email},
+                {'email': normalized_email, 'name': 'account', 'is_primary': True,
+                 'is_verified': False},
+            )
+            if self.email_id != email_obj.id:
+                updates['email_id'] = email_obj.id
 
-            # Email is the only remaining scalar field — sync it to Email records
-            normalized_email = self._norm_comm_value(self.email).lower()
-            if normalized_email:
-                email_obj = self._find_or_create_comm_record(
-                    Email,
-                    {'email': normalized_email},
-                    {
-                        'email': normalized_email,
-                        'name': 'account',
-                        'is_primary': True,
-                        'is_verified': False,
-                    },
+        # A domain from the email when the contact has none.
+        if not self.domain_id and normalized_email and '@' in normalized_email:
+            domain_part = normalized_email.split('@')[1]
+            if domain_part:
+                domain_obj = self._find_or_create_comm_record(
+                    Domain, {'path': domain_part},
+                    {'path': domain_part, 'type': 'website', 'status': 'active'},
                 )
-                if self.email_id != email_obj.id:
-                    updates['email_id'] = email_obj.id
+                if self.domain_id != domain_obj.id:
+                    updates['domain_id'] = domain_obj.id
 
-            # Extract domain from email if no domain_id is set
-            if not self.domain_id and normalized_email and '@' in normalized_email:
-                domain_part = normalized_email.split('@')[1]
-                if domain_part:
-                    domain_obj = self._find_or_create_comm_record(
-                        Domain,
-                        {'path': domain_part},
-                        {'path': domain_part, 'type': 'website', 'status': 'active'},
-                    )
-                    if self.domain_id != domain_obj.id:
-                        updates['domain_id'] = domain_obj.id
-
-            refs = self.refs if isinstance(self.refs, dict) else {}
-            links = refs.get('links', {})
-            if not isinstance(links, dict):
-                links = {}
-
-            email_links = [
-                {
-                    'id': e.id,
-                    'email': e.email,
-                    'name': e.name or '',
-                    'is_primary': bool(e.is_primary),
-                    'is_verified': bool(e.is_verified),
-                    'opt_out': e.opt_out or '',
-                }
-                for e in Email.objects.filter(contact=self).order_by('id')
-            ]
-            if email_links:
-                links['email'] = email_links
-            else:
-                links.pop('email', None)
-
-            phone_links = [
-                {
-                    'id': p.id,
-                    'number': p.number,
-                    'name': p.name or '',
-                    'country_code': p.country_code or '',
-                    'format': p.format or '',
-                    'opt_out': bool(p.opt_out),
-                }
-                for p in Phone.objects.filter(contact=self).order_by('id')
-            ]
-            if phone_links:
-                links['phone'] = phone_links
-            else:
-                links.pop('phone', None)
-
-            domain_links = [
-                {
-                    'id': d.id,
-                    'path': d.path,
-                    'name': d.type or '',
-                    'status': d.status,
-                }
-                for d in Domain.objects.filter(contact=self).order_by('id')
-            ]
-            if domain_links:
-                links['domain'] = domain_links
-            else:
-                links.pop('domain', None)
-
-            address_links = [
-                {
-                    'id': a.id,
-                    'name': a.address_type or '',
-                    'address1': a.address1,
-                    'address2': a.address2,
-                    'city': a.city,
-                    'state': a.state,
-                    'zip': a.zip,
-                    'country': a.country,
-                    'full': a.full,
-                }
-                for a in Address.objects.filter(contact=self).order_by('id')
-            ]
-            if address_links:
-                links['address'] = address_links
-            else:
-                links.pop('address', None)
-
-            refs['links'] = links
-            updates['refs'] = refs
-
+        if updates:
             type(self).objects.filter(pk=self.pk).update(**updates)
+            for field, value in updates.items():
+                setattr(self, field, value)
+        self.rebuild_communication_cache()
 
-            if 'email_id' in updates:
-                self.email_id = updates['email_id']
-            if 'phone_id' in updates:
-                self.phone_id = updates['phone_id']
-            if 'domain_id' in updates:
-                self.domain_id = updates['domain_id']
-            if 'address_id' in updates:
-                self.address_id = updates['address_id']
-            self.refs = refs
-        except Exception as e:
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.warning(f"Failed to sync communication links for contact {self.pk}: {e}")
-    
+    #: The cache: refs.links.<kind> rebuilt from the records, and the primary pointer kept
+    #: on a record the contact owns. (model, pointer, entry builder)
+    @staticmethod
+    def _communication_kinds():
+        from apps.communications.models import Address, Domain, Email, Phone
+        return {
+            'email': (Email, 'email_id', lambda e: {
+                'id': e.id, 'email': e.email, 'name': e.name or '',
+                'is_primary': bool(e.is_primary), 'is_verified': bool(e.is_verified),
+                'opt_out': e.opt_out or ''}),
+            'phone': (Phone, 'phone_id', lambda p: {
+                'id': p.id, 'number': p.number, 'name': p.name or '',
+                'country_code': p.country_code or '', 'format': p.format or '',
+                'opt_out': bool(p.opt_out)}),
+            'domain': (Domain, 'domain_id', lambda d: {
+                'id': d.id, 'path': d.path, 'name': d.type or '', 'status': d.status}),
+            'address': (Address, 'address_id', lambda a: {
+                'id': a.id, 'name': a.address_type or '', 'address1': a.address1,
+                'address2': a.address2, 'city': a.city, 'state': a.state, 'zip': a.zip,
+                'country': a.country, 'full': a.full}),
+        }
+
+    def rebuild_communication_cache(self):
+        """Rebuild refs.links.{email,phone,domain,address} from the records this contact owns.
+
+        Called after the contact saves and after any communication record saves or is
+        deleted (apps/communications/signals.py), so the cache follows whichever side
+        changed (Bill, 2026-10-16). A pointer to a record the contact no longer owns moves
+        to its first record, or clears. Writes with update(), never save(): no recursion,
+        no version bump for a cache. A failure raises — a stale cache is not silent.
+        """
+        if not self.pk:
+            return
+        refs = self.refs if isinstance(self.refs, dict) else {}
+        links = refs.get('links') if isinstance(refs.get('links'), dict) else {}
+        updates = {}
+        for kind, (model_cls, pointer, entry) in self._communication_kinds().items():
+            rows = list(model_cls.objects.filter(contact_id=self.pk).order_by('id'))
+            if rows:
+                links[kind] = [entry(r) for r in rows]
+            else:
+                links.pop(kind, None)
+            ids = [r.id for r in rows]
+            current = getattr(self, pointer)
+            if kind != 'email' and current not in ids:
+                new = ids[0] if ids else None
+                if new != current:
+                    updates[pointer] = new
+        refs['links'] = links
+        updates['refs'] = refs
+        type(self).objects.filter(pk=self.pk).update(**updates)
+        for field, value in updates.items():
+            setattr(self, field, value)
+
+    def primary_communication(self, kind: str) -> dict:
+        """The primary record's cache entry ({} when none) — read without a query."""
+        pointer = self._communication_kinds()[kind][1]
+        target = getattr(self, pointer)
+        if not target:
+            return {}
+        refs = self.refs if isinstance(self.refs, dict) else {}
+        for row in (refs.get('links') or {}).get(kind) or []:
+            if isinstance(row, dict) and row.get('id') == target:
+                return row
+        return {}
+
     @property
     def display_name(self):
         """Property for template display"""
