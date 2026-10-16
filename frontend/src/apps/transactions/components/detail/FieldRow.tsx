@@ -215,8 +215,9 @@ export interface FieldRowProps {
   help?: string;       // Shift+hover shows Alice's field help
   onChange: (field: string, value: unknown) => void;
   /** A value kept in its own record (a contact's phone, address, domain): shown read-only,
-   *  and a click opens that record's card — the one place it is edited (Bill, 2026-10-16). */
-  onOpen?: () => void;
+   *  and a click opens that record's card beside this button — the one place it is edited
+   *  (Bill, 2026-10-16). */
+  onOpen?: (anchor: HTMLElement) => void;
 }
 
 const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, options, fieldType, lockedFields, help, onChange, onOpen }) => {
@@ -334,7 +335,7 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
         if (onOpen) {
           const shown = typeof displayVal === 'string' && displayVal !== '—' ? displayVal.split('|')[0] : '';
           return (
-            <button type="button" onClick={onOpen} data-source={pathDisplay}
+            <button type="button" onClick={e => onOpen(e.currentTarget)} data-source={pathDisplay}
               className="flex-1 min-w-0 truncate text-left db-font-sm px-2 py-0.5 rounded hover:underline"
               style={{ color: shown ? 'var(--db-text, #1e293b)' : 'var(--db-text-muted, #6c757d)', maxWidth: 240,
                        border: '1px dashed var(--db-border, #cbd5e1)', background: 'transparent' }}

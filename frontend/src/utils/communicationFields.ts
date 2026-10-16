@@ -9,13 +9,51 @@
  * The login email stays on the contact: it flows one way into its Email record.
  */
 
-export type CommunicationField = { model: string; pointer: string };
+/** One input in the card: the record's field, and its key in the contact's cache
+ *  (refs.links.<kind>[]) when the two differ. */
+export type CommunicationInput = { field: string; label: string; cache?: string; wide?: boolean };
+
+export type CommunicationField = {
+  model: string;
+  pointer: string;
+  /** Key of the cache list in refs.links. */
+  kind: string;
+  label: string;
+  inputs: CommunicationInput[];
+  /** One line for a cache entry in the card's list. */
+  line: (row: Record<string, any>) => string;
+};
 
 export const COMMUNICATION_FIELDS: Record<string, Record<string, CommunicationField>> = {
   contact: {
-    phone: { model: 'phone', pointer: 'phone_id' },
-    address_full: { model: 'address', pointer: 'address_id' },
-    domain: { model: 'domain', pointer: 'domain_id' },
+    phone: {
+      model: 'phone', pointer: 'phone_id', kind: 'phone', label: 'phone',
+      inputs: [
+        { field: 'number', label: 'number' },
+        { field: 'name', label: 'type (cell, office…)' },
+        { field: 'country_code', label: 'country code' },
+      ],
+      line: r => [r.number, r.name && `(${r.name})`].filter(Boolean).join(' '),
+    },
+    address_full: {
+      model: 'address', pointer: 'address_id', kind: 'address', label: 'address',
+      inputs: [
+        { field: 'address_type', label: 'type (billing, shipping…)', cache: 'name', wide: true },
+        { field: 'address1', label: 'street', wide: true },
+        { field: 'address2', label: 'street 2', wide: true },
+        { field: 'city', label: 'city' },
+        { field: 'state', label: 'state' },
+        { field: 'zip', label: 'zip' },
+        { field: 'country', label: 'country (US, GB…)' },
+      ],
+      line: r => [r.full || [r.address1, r.city, r.state, r.zip].filter(Boolean).join(', '),
+                  r.name && `(${r.name})`].filter(Boolean).join(' '),
+    },
+    domain: {
+      model: 'domain', pointer: 'domain_id', kind: 'domain', label: 'domain',
+      inputs: [{ field: 'path', label: 'web address or handle', wide: true }],
+      line: r => r.path || '',
+    },
   },
 };
 

@@ -17,8 +17,8 @@ import { useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState } from '@/store';
 import { showToast } from '@/store/slices/toastSlice';
-import { createRecord, getRecord, newRecord, saveRecord } from '@/api/wcapi';
-import { communicationField, showsCommunication, RECORD_SAVED_EVENT } from '@/utils/communicationFields';
+import { getRecord, newRecord, saveRecord } from '@/api/wcapi';
+import { COMMUNICATION_FIELDS, communicationField, showsCommunication, RECORD_SAVED_EVENT } from '@/utils/communicationFields';
 import { useWindowManager } from '@/context/WindowManagerContext';
 import { useDetailLayout } from '@/hooks/useDetailLayout';
 import { selectCompanyInfo, selectLogos } from '@/store/slices/companySlice';
@@ -27,6 +27,7 @@ import { renderPanel } from './panelRegistry';
 
 import FieldRow from '@/apps/transactions/components/detail/FieldRow';
 import DetailToolbar from '@/components/common/DetailToolbar';
+import CommunicationCard from '@/components/common/CommunicationCard';
 
 const PanelSectionRenderer = lazy(() => import('@/apps/transactions/components/detail/PanelSectionRenderer'));
 const JsonSectionRenderer = lazy(() => import('@/apps/transactions/components/detail/JsonSectionRenderer'));
@@ -253,21 +254,27 @@ const ModelDetailPage: React.FC<ModelDetailPageProps> = ({
     setSaving(false);
   };
 
-  // A phone, address or domain is edited in its own card; the contact shows its cache.
-  const openCommunication = async (field: string) => {
-    const comm = communicationField(modelName, field);
-    if (!comm || !data) return;
-    try {
-      let id = data[comm.pointer];
-      if (!id) {
-        ({ id } = await createRecord(comm.model, { contact_id: recordId }));
-        fetchData();
-      }
-      if (id) windowManager.ensureWindow(`/${comm.model}/${id}`, `${comm.model} #${id}`);
-    } catch {
-      dispatch(showToast({ message: `Failed to open ${comm.model}`, type: 'error' }));
-    }
+  // A phone, address or domain is edited in a card floating over this record; the
+  // record keeps showing its cache (Bill, 2026-10-16: a separate window lost the contact).
+  const [commCard, setCommCard] = useState<{ field: string; anchor: DOMRect } | null>(null);
+  const openCommunication = (field: string, el: HTMLElement) => {
+    if (communicationField(modelName, field)) setCommCard({ field, anchor: el.getBoundingClientRect() });
   };
+
+  // Re-read only the cache and pointers, so unsaved edits here survive a card save.
+  const refreshCommunications = useCallback(async () => {
+    if (!recordId) return;
+    const response = await getRecord(modelName, recordId);
+    const record = response?.record || response;
+    const pointers = Object.values(COMMUNICATION_FIELDS[modelName] || {}).map(c => c.pointer);
+    const pick = (prev: any) => prev && ({
+      ...prev, refs: record.refs, ...Object.fromEntries(pointers.map(p => [p, record[p]])),
+      ...Object.fromEntries(Object.keys(COMMUNICATION_FIELDS[modelName] || {}).map(f => [f, record[f]])),
+    });
+    setData(pick);
+    setEditData(pick);
+    window.dispatchEvent(new CustomEvent(RECORD_SAVED_EVENT, { detail: { model: modelName, id: recordId } }));
+  }, [modelName, recordId]);
 
   // When that card saves, show the server's refreshed cache (unless mid-edit here).
   useEffect(() => {
@@ -359,14 +366,14 @@ const ModelDetailPage: React.FC<ModelDetailPageProps> = ({
                   <FieldRow
                     key={f.field}
                     field={f.field}
-                    label={f.label}
+                    label={(f.label === f.field && communicationField(modelName, f.field)?.label) || f.label}
                     data={currentData}
                     isEditing={isEditing}
                     options={f.options}
                     fieldType={f.type}
                     help={f.help}
                     onChange={handleFieldChange}
-                    onOpen={communicationField(modelName, f.field) ? () => openCommunication(f.field) : undefined}
+                    onOpen={communicationField(modelName, f.field) ? (el: HTMLElement) => openCommunication(f.field, el) : undefined}
                   />
                 ))}
                 {col.action_summary && data.actions?.items?.[0] && (
@@ -412,6 +419,8 @@ const ModelDetailPage: React.FC<ModelDetailPageProps> = ({
         return null;
     }
   };
+
+  const commSpec = commCard && communicationField(modelName, commCard.field);
 
   return (
     <div className="flex flex-col h-full overflow-hidden" data-wc={`${modelName}-detail`} data-zone={`db.detail.form | .${modelName}-detail | ModelDetailPage.tsx`}>
@@ -482,6 +491,10 @@ const ModelDetailPage: React.FC<ModelDetailPageProps> = ({
         {/* JSON tree — always last (admin tool) */}
         {sections.filter((s: any) => s.type === 'json_tree').map((section: any, idx: number) => renderSection(section, sections.length + idx))}
       </div>
+      {commCard && commSpec && (
+        <CommunicationCard comm={commSpec} owner={data} ownerModel={modelName} anchor={commCard.anchor}
+          onChanged={refreshCommunications} onClose={() => setCommCard(null)} />
+      )}
     </div>
   );
 };
