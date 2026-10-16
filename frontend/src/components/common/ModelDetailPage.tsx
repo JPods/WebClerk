@@ -12,6 +12,7 @@
  */
 import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { changedFields } from '@/utils/changedFields';
+import { applyDerived } from '@/utils/derivedFields';
 import { useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState } from '@/store';
@@ -230,8 +231,8 @@ const ModelDetailPage: React.FC<ModelDetailPageProps> = ({
   };
 
   const handleFieldChange = useCallback((field: string, value: unknown) => {
-    setEditData((prev: any) => nestedWrite(prev, field, value));
-  }, []);
+    setEditData((prev: any) => applyDerived(modelName, prev, nestedWrite(prev, field, value), field));
+  }, [modelName]);
 
   const handleSave = async () => {
     if (!editData) return;

@@ -234,7 +234,19 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
         return ''
 
     def save(self, *args, **kwargs):  # ensure role and attention sync
-        self.attention = f"{self.name_first} {self.name_last}".strip()
+        # Attention fills from the names only when empty; a typed attention is the user's
+        # (Bill, 2026-10-16). The form applies the same rule (frontend utils/derivedFields.ts).
+        # An attention still equal to the stored names is derived, not typed, and follows them.
+        names = f"{self.name_first or ''} {self.name_last or ''}".strip()
+        attention = (self.attention or '').strip()
+        if not attention:
+            self.attention = names
+        elif self.pk and attention != names:
+            old = type(self).objects.filter(pk=self.pk).values(
+                'name_first', 'name_last', 'attention').first()
+            if old and attention == (old['attention'] or '').strip() == \
+                    f"{old['name_first'] or ''} {old['name_last'] or ''}".strip():
+                self.attention = names
         # Sync company from primary affiliation (customer > vendor > manufacturer > rep)
         for fk_field in ('customer', 'vendor', 'manufacturer', 'rep'):
             org = getattr(self, fk_field, None)
