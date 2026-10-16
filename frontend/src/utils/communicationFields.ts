@@ -1,3 +1,5 @@
+import { formatAddress } from '@/utils/fieldFormatters';
+
 /**
  * communicationFields.ts — values a record shows but keeps in another record.
  *
@@ -20,8 +22,10 @@ export type CommunicationField = {
   kind: string;
   label: string;
   inputs: CommunicationInput[];
-  /** One line for a cache entry in the card's list. */
+  /** What the contact's field shows for its cache entry. */
   line: (row: Record<string, any>) => string;
+  /** Live preview in the card while typing (the server's format is authoritative). */
+  preview?: (values: Record<string, string>) => string;
 };
 
 export const COMMUNICATION_FIELDS: Record<string, Record<string, CommunicationField>> = {
@@ -46,8 +50,8 @@ export const COMMUNICATION_FIELDS: Record<string, Record<string, CommunicationFi
         { field: 'country', label: 'country (US, GB…)' },
         { field: 'address_type', label: 'type (billing, shipping…)', cache: 'name', wide: true },
       ],
-      line: r => [r.full || [r.address1, r.city, r.state, r.zip].filter(Boolean).join(', '),
-                  r.name && `(${r.name})`].filter(Boolean).join(' '),
+      line: r => r.full || formatAddress(r).replace(/\n/g, ', '),
+      preview: v => formatAddress(v).replace(/\n/g, ', '),
     },
     domain: {
       model: 'domain', pointer: 'domain_id', kind: 'domain', label: 'domain',
@@ -59,6 +63,14 @@ export const COMMUNICATION_FIELDS: Record<string, Record<string, CommunicationFi
 
 export function communicationField(modelName: string, field: string): CommunicationField | undefined {
   return COMMUNICATION_FIELDS[modelName]?.[field];
+}
+
+/** The value a record's field shows: the cache entry its pointer names. The GET does not
+ *  carry computed properties (address_full, …), so the field reads the cache itself. */
+export function communicationValue(comm: CommunicationField, record: Record<string, any> | null): string {
+  const id = record?.[comm.pointer];
+  const row = id ? (record?.refs?.links?.[comm.kind] || []).find((r: any) => r?.id === id) : null;
+  return row ? comm.line(row) : '';
 }
 
 /** True when a save of `savedModel` can change what `modelName` shows. */

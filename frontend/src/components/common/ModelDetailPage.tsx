@@ -18,7 +18,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import type { RootState } from '@/store';
 import { showToast } from '@/store/slices/toastSlice';
 import { getRecord, newRecord, saveRecord } from '@/api/wcapi';
-import { COMMUNICATION_FIELDS, communicationField, showsCommunication, RECORD_SAVED_EVENT } from '@/utils/communicationFields';
+import { COMMUNICATION_FIELDS, communicationField, communicationValue, showsCommunication, RECORD_SAVED_EVENT } from '@/utils/communicationFields';
 import { useWindowManager } from '@/context/WindowManagerContext';
 import { useDetailLayout } from '@/hooks/useDetailLayout';
 import { selectCompanyInfo, selectLogos } from '@/store/slices/companySlice';
@@ -269,7 +269,6 @@ const ModelDetailPage: React.FC<ModelDetailPageProps> = ({
     const pointers = Object.values(COMMUNICATION_FIELDS[modelName] || {}).map(c => c.pointer);
     const pick = (prev: any) => prev && ({
       ...prev, refs: record.refs, ...Object.fromEntries(pointers.map(p => [p, record[p]])),
-      ...Object.fromEntries(Object.keys(COMMUNICATION_FIELDS[modelName] || {}).map(f => [f, record[f]])),
     });
     setData(pick);
     setEditData(pick);
@@ -312,7 +311,13 @@ const ModelDetailPage: React.FC<ModelDetailPageProps> = ({
     return <div className="flex items-center justify-center py-20 text-slate-400">Record not found</div>;
   }
 
-  const currentData = isEditing ? editData : data;
+  const editedData = isEditing ? editData : data;
+  // Fields kept in another record show that record's cache entry.
+  const currentData = COMMUNICATION_FIELDS[modelName] ? {
+    ...editedData,
+    ...Object.fromEntries(Object.entries(COMMUNICATION_FIELDS[modelName])
+      .map(([f, c]) => [f, communicationValue(c, editedData)])),
+  } : editedData;
   const sections = activeLayout.sections?.length > 0
     ? activeLayout.sections
     : (DEFAULT_SECTIONS[modelName] || []);

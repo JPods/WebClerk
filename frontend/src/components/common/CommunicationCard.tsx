@@ -113,6 +113,11 @@ const CommunicationCard: React.FC<Props> = ({ comm, owner, anchor, onChanged, on
             </label>
           ))}
         </div>
+        {comm.preview && (
+          <div className="mt-2 px-1.5 py-1 text-xs rounded bg-[var(--db-surface-alt,#f1f5f9)] dark:bg-slate-700 min-h-[1.5rem]" aria-live="polite">
+            {comm.preview(values) || <span className="text-[var(--db-text-muted,#6c757d)]">full address</span>}
+          </div>
+        )}
         <div className="flex items-center gap-2 mt-2">
           <button type="button" className={`${btn} bg-blue-600 text-white border-blue-600`} onClick={save} disabled={busy}>
             {editing === 'new' ? `Add ${comm.label}` : 'Save'}
