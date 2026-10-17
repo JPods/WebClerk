@@ -501,7 +501,9 @@ def save_record(actor: Actor, data: dict, *, model_key: Optional[str] = None,
     messages = list(size_warnings) + ctx.messages
 
     try:
-        record = model_to_dict(obj, fields=[f.name for f in obj._meta.concrete_fields])
+        from apps.core.services.record_serialize import NEVER_SERVED
+        record = model_to_dict(obj, fields=[f.name for f in obj._meta.concrete_fields
+                                            if f.name not in NEVER_SERVED])
     except Exception as e:  # noqa: BLE001
         console_logger.warning("[SAVE] Error generating record dict: %s", e)
         record = {'id': getattr(obj, 'id', None)}

@@ -138,5 +138,7 @@ def _command_response(actor, command, model_name, record_id, payload):
         model_cls = resolve_model(model_name)[0]
         obj = model_cls.objects.filter(pk=record_id).first()
         if obj is not None:
-            data['record'] = model_to_dict(obj, fields=[f.name for f in obj._meta.concrete_fields])
+            from apps.core.services.record_serialize import NEVER_SERVED
+            data['record'] = model_to_dict(obj, fields=[f.name for f in obj._meta.concrete_fields
+                                                        if f.name not in NEVER_SERVED])
     return api_response(data=data)

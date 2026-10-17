@@ -6,7 +6,20 @@ from django.forms.models import model_to_dict
 from django.db.models import Model, QuerySet
 from apps.core.utils import registry, policy
 
+#: Fields no response ever carries, whatever a role may view. The password hash was served
+#: to every caller who could view a contact (FAULT 20261017T023030); whether someone has
+#: signed in is last_login.
+NEVER_SERVED = frozenset({'password'})
+
+
 def to_dict(obj: Model, *, allow: Optional[Iterable[str]] = None) -> Dict[str, Any]:
+    data = _to_dict(obj, allow=allow)
+    for name in NEVER_SERVED:
+        data.pop(name, None)
+    return data
+
+
+def _to_dict(obj: Model, *, allow: Optional[Iterable[str]] = None) -> Dict[str, Any]:
     data = model_to_dict(obj)
     
     # Explicitly add fields that model_to_dict might miss
