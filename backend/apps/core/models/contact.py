@@ -260,8 +260,11 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
         if self.is_superuser and not self.role:
             self.role = 'admin'
         super().save(*args, **kwargs)
-        # After save, keep scalar comm fields and communication tables in sync.
-        self._sync_primary_communication_links()
+        # After save, keep scalar comm fields and communication tables in sync. The records
+        # this makes or claims must not save the contact again (communications.signals).
+        from apps.communications.signals import contact_saving
+        with contact_saving(self.pk):
+            self._sync_primary_communication_links()
 
     @staticmethod
     def _norm_comm_value(value):
@@ -291,9 +294,11 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
     def _sync_primary_communication_links(self):
         """Keep the login email in its Email record, then rebuild the communication cache.
 
-        Email is the one communication scalar on the contact (the login). It flows one way:
-        contact.email → its Email record and email_id. Phone, address and domain are edited
-        only in their own records; the contact keeps pointers and a cache (PJPV).
+        Email is the one communication scalar on the contact (the login). A contact saved
+        with an email (signup, import) gets its Email record and email_id here; after that
+        the email is edited in its card and the login follows the primary Email record
+        (rebuild_communication_cache). Phone, address and domain are edited only in their
+        own records; the contact keeps pointers and a cache (PJPV).
         """
         from apps.communications.models import Domain, Email
 
@@ -354,8 +359,11 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
         Called after the contact saves and after any communication record saves or is
         deleted (apps/communications/signals.py), so the cache follows whichever side
         changed (Bill, 2026-10-16). A pointer to a record the contact no longer owns moves
-        to its first record, or clears. Writes with update(), never save(): no recursion,
-        no version bump for a cache. A failure raises — a stale cache is not silent.
+        to its first record, or clears. The login column is not touched here: it moves only
+        when its Email record is edited or deleted (communications.signals._refresh),
+        never because a contact save made a new Email record. Writes with update(), never
+        save(): no recursion, no version bump for a cache. A failure raises — a stale cache
+        is not silent.
         """
         if not self.pk:
             return
@@ -370,10 +378,9 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
                 links.pop(kind, None)
             ids = [r.id for r in rows]
             current = getattr(self, pointer)
-            if kind != 'email' and current not in ids:
-                new = ids[0] if ids else None
-                if new != current:
-                    updates[pointer] = new
+            primary = current if current in ids else (ids[0] if ids else None)
+            if primary != current:
+                updates[pointer] = primary
         refs['links'] = links
         updates['refs'] = refs
         type(self).objects.filter(pk=self.pk).update(**updates)

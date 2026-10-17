@@ -453,6 +453,15 @@ class WCAPIGetView(APIView):
         if value is None:
             return None
 
+        if lookup_type == "isnull":
+            # ?contact__isnull=true — the lookup takes a bool whatever the field's type.
+            lowered = str(value).strip().lower()
+            if lowered in {"true", "1", "yes"}:
+                return True
+            if lowered in {"false", "0", "no"}:
+                return False
+            return value          # not a bool: the caller coaches it as an unknown filter
+
         if lookup_type in {"in", "range"}:
             if isinstance(value, str):
                 parts = [part.strip() for part in value.split(",") if part.strip()]
@@ -671,6 +680,9 @@ class WCAPIGetView(APIView):
                     continue
 
             coerced = self._coerce_filter_value(field_types.get(field_base, ''), value, lookup_type)
+            if lookup_type == 'isnull' and not isinstance(coerced, bool):
+                unknown.append(f'{key}={value}')
+                continue
 
             # User searching for "" on a nullable field means "find nulls"
             if coerced == '' and lookup_type == 'exact':

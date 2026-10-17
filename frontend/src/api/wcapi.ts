@@ -436,7 +436,9 @@ export async function saveRecord(model_name: string, payload: any) {
   // Strip computed property fields that don't exist as model columns — they cause
   // envelope_invalid errors when the backend tries to pack them into config.
   // These are @property methods on TransactionBaseModel, not real DB fields.
+  // An Email record's `email` is its own column, not the computed property (Bill, 2026-10-16).
   for (const k of ['email', 'phone', 'address_full', 'company_name']) {
+    if (k === 'email' && resolved === 'email') continue;
     delete record[k];
   }
 

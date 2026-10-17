@@ -49,6 +49,12 @@ const CommunicationCard: React.FC<Props> = ({ comm, owner, anchor, onChanged, on
   });
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmSignin, setConfirmSignin] = useState(false);
+  const [original] = useState(values);
+  // Bill, 2026-10-16: changing the address of a contact who has signed in warns first and
+  // takes a second click. Their password stays; they sign in with the new address.
+  const signinChange = comm.model === 'email' && editing !== 'new' && !!owner?.last_login
+    && (values.email || '').trim().toLowerCase() !== (original.email || '').trim().toLowerCase();
   const [pos, setPos] = useState({ top: anchor.bottom + 4, left: anchor.left });
 
   // Keep the card on screen: below the field, or above it when there's no room.
@@ -72,8 +78,13 @@ const CommunicationCard: React.FC<Props> = ({ comm, owner, anchor, onChanged, on
       await fn();
       await onChanged();
       onClose();
-    } catch (err) {
-      dispatch(showToast({ message: `${what} failed: ${errorText(err)}`, type: 'error' }));
+    } catch (err: any) {
+      // Bill, 2026-10-16: an email another contact has opens that contact in another
+      // browser window; this card stays open to abandon the entry or change it.
+      const error = err?.response?.data?.error;
+      const owner = error?.code === 'email_in_use' ? error?.details?.contact_id : null;
+      if (owner) window.open(`/contact/${owner}`, `contact-${owner}`);
+      dispatch(showToast({ message: owner ? errorText(err) : `${what} failed: ${errorText(err)}`, type: 'error' }));
     }
     setBusy(false);
   };
@@ -83,6 +94,7 @@ const CommunicationCard: React.FC<Props> = ({ comm, owner, anchor, onChanged, on
     for (const inp of comm.inputs) {
       if (inp.choices) filled[inp.field] = splitChoices(filled[inp.field]).filter(c => inp.choices!.includes(c)).join(',');
     }
+    if (signinChange && !confirmSignin) { setConfirmSignin(true); return; }
     if (!comm.inputs.some(i => !i.choices && filled[i.field])) { dispatch(showToast({ message: `Enter a ${comm.label}`, type: 'error' })); return; }
     return run('Save', () => editing === 'new'
       ? createRecord(comm.model, { ...filled, contact_id: owner.id })
@@ -145,9 +157,16 @@ const CommunicationCard: React.FC<Props> = ({ comm, owner, anchor, onChanged, on
             {comm.preview(values) || <span className="text-[var(--db-text-muted,#6c757d)]">full address</span>}
           </div>
         )}
+        {signinChange && (
+          <div role="alert" className="mt-2 px-1.5 py-1 text-xs rounded border border-amber-400 bg-amber-50 text-amber-900 dark:bg-amber-900/30 dark:text-amber-200">
+            {[owner?.name_first, owner?.name_last].filter(Boolean).join(' ') || 'This contact'} signs in with{' '}
+            <b>{original.email}</b>. After saving, they must sign in with <b>{(values.email || '').trim() || '(blank)'}</b>{' '}
+            (same password).{confirmSignin ? ' Click again to confirm.' : ''}
+          </div>
+        )}
         <div className="flex items-center gap-2 mt-2">
           <button type="button" className={`${btn} bg-blue-600 text-white border-blue-600`} onClick={save} disabled={busy}>
-            {editing === 'new' ? `Add ${comm.label}` : 'Save'}
+            {editing === 'new' ? `Add ${comm.label}` : signinChange && confirmSignin ? 'Confirm sign-in change' : 'Save'}
           </button>
           <button type="button" className={btn} disabled={busy} onClick={onClose}>Cancel</button>
           {editing !== 'new' && (

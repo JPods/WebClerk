@@ -1175,6 +1175,7 @@ _ACTION_DISPATCH = {
     "get_rep_summary": lambda p: __import__('apps.core.services.dashboard.dashboard_rep', fromlist=['get_rep_summary']).get_rep_summary(p),
     "get_pending_summary": lambda p: __import__('apps.core.services.dashboard.dashboard_pending', fromlist=['get_pending_summary']).get_pending_summary(p),
     "get_dbsr_health": lambda p: __import__('apps.core.services.dashboard.dashboard_dbsr', fromlist=['get_dbsr_health']).get_dbsr_health(p),
+    "get_email_health": lambda p: __import__('apps.core.services.dashboard.dashboard_email', fromlist=['get_email_health']).get_email_health(p),
     # ── Commerce Dashboard ──
     "get_sales_dashboard": lambda p: __import__('apps.core.services.dashboard.dashboard_commerce', fromlist=['get_sales_dashboard']).get_sales_dashboard(p),
     "get_purchasing_dashboard": lambda p: __import__('apps.core.services.dashboard.dashboard_commerce', fromlist=['get_purchasing_dashboard']).get_purchasing_dashboard(p),

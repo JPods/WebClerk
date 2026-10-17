@@ -8,7 +8,7 @@ import { formatAddress } from '@/utils/fieldFormatters';
  * the server rebuilds when either side saves. Clicking the field opens the card; one
  * way to edit, so the two cannot drift.
  *
- * The login email stays on the contact: it flows one way into its Email record.
+ * The email works the same way; its primary record is also the contact's sign-in.
  */
 
 /** One input in the card: the record's field, and its key in the contact's cache
@@ -41,6 +41,17 @@ export type CommunicationField = {
 
 export const COMMUNICATION_FIELDS: Record<string, Record<string, CommunicationField>> = {
   contact: {
+    // The primary email is also the sign-in (Bill, 2026-10-16): staff enter it here before
+    // the customer has signed in; the server moves the login with it and refuses an
+    // address another contact signs in with.
+    email: {
+      model: 'email', pointer: 'email_id', kind: 'email', label: 'email',
+      inputs: [
+        { field: 'email', label: 'email (sign-in only once invited)', wide: true },
+        { field: 'name', label: 'label (billing, marketing…)', wide: true },
+      ],
+      line: r => r.email || '',
+    },
     phone: {
       model: 'phone', pointer: 'phone_id', kind: 'phone', label: 'phone',
       inputs: [

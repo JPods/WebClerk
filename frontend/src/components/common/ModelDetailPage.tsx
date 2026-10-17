@@ -261,7 +261,8 @@ const ModelDetailPage: React.FC<ModelDetailPageProps> = ({
     if (communicationField(modelName, field)) setCommCard({ field, anchor: el.getBoundingClientRect() });
   };
 
-  // Re-read only the cache and pointers, so unsaved edits here survive a card save.
+  // A card save saves this record on the server too (Bill, 2026-10-16). Take what that
+  // save changed — cache, pointers, login email, version — and keep unsaved edits here.
   const refreshCommunications = useCallback(async () => {
     if (!recordId) return;
     const response = await getRecord(modelName, recordId);
@@ -269,6 +270,7 @@ const ModelDetailPage: React.FC<ModelDetailPageProps> = ({
     const pointers = Object.values(COMMUNICATION_FIELDS[modelName] || {}).map(c => c.pointer);
     const pick = (prev: any) => prev && ({
       ...prev, refs: record.refs, ...Object.fromEntries(pointers.map(p => [p, record[p]])),
+      email: record.email, version: record.version, dt_modified: record.dt_modified,
     });
     setData(pick);
     setEditData(pick);

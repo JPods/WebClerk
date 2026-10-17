@@ -289,6 +289,13 @@ DD_CARD_CONFIG = {
                 "term", "currency", "document", "connection",
             ],
         },
+        # Bill, 2026-10-16: emails with no contact, for admins to assign by hand.
+        "email": {
+            "label": "Unassigned Emails",
+            "link": "/databrowser?model=email&contact__isnull=true",
+            "server_action": "get_email_health",
+            "metrics": [],
+        },
         "project": {
             "label": "Projects",
             "link": "/project",
@@ -346,6 +353,7 @@ DD_CARD_CONFIG = {
             "rows": [
                 ["document", "gl_journal", "connection", "campaign"],
                 ["audit", "report", "pending", "dbsr_health"],
+                ["email"],
             ],
             "default_model": "action",
         },

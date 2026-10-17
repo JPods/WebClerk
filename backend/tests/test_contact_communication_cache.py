@@ -79,3 +79,104 @@ def test_login_email_flows_one_way_into_its_email_record():
     c = _fresh(c)
     assert c.email_id
     assert [e['email'] for e in c.refs['links']['email']] == ['susy@example.com']
+
+
+def test_staff_enter_an_email_in_its_card_and_it_becomes_the_login():
+    from apps.communications.models import Email
+    c = Contact.objects.create(name_first='Never', name_last='Signedin')   # record-only
+    assert _fresh(c).email is None
+    rec = Email.objects.create(contact=c, email='never@example.com')
+    c = _fresh(c)
+    assert c.email_id == rec.id
+    assert c.email == 'never@example.com'
+    rec.email = 'changed@example.com'
+    rec.save()
+    assert _fresh(c).email == 'changed@example.com'
+
+
+def test_a_second_email_does_not_change_the_login():
+    from apps.communications.models import Email
+    c = _fresh(_contact())
+    Email.objects.create(contact=c, email='billing@example.com')
+    assert _fresh(c).email == 'susy@example.com'
+
+
+def test_an_email_another_contact_has_is_refused_naming_that_contact():
+    from apps.communications.models import Email
+    from apps.core.services.door import Refused
+    owner = _contact(email='taken@example.com')
+    Email.objects.create(contact=owner, email='shared@example.com')      # not the login
+    c = Contact.objects.create(name_first='New', name_last='Person')
+    for address in ('Taken@example.com', 'shared@example.com'):
+        with pytest.raises(Refused) as refused:
+            Email.objects.create(contact=c, email=address)
+        assert refused.value.code == 'email_in_use'
+        assert refused.value.details['contact_id'] == owner.id
+
+
+def test_deleting_the_login_email_moves_the_login_to_the_next_one():
+    from apps.communications.models import Email
+    c = _fresh(_contact())
+    second = Email.objects.create(contact=c, email='second@example.com')
+    Email.objects.get(pk=c.email_id).delete()
+    c = _fresh(c)
+    assert c.email_id == second.id
+    assert c.email == 'second@example.com'
+
+
+def test_the_card_save_is_refused_over_http_with_the_owner_id():
+    from rest_framework.test import APIClient
+    from apps.communications.models import Email
+    owner = _contact(email='taken@example.com')
+    staff = Contact.objects.create(email='staff@example.com', is_superuser=True, is_staff=True)
+    c = Contact.objects.create(name_first='New', name_last='Person')
+    rec = Email.objects.create(contact=c, email='new@example.com')
+    client = APIClient()
+    client.force_authenticate(staff)
+    r = client.put(f'/wcapi/email/{rec.id}/', {'email': 'taken@example.com'}, format='json',
+                   HTTP_HOST='localhost')
+    body = r.json()
+    assert r.status_code == 409, body
+    assert body['error']['code'] == 'email_in_use'
+    assert body['error']['details']['contact_id'] == owner.id
+
+
+def test_saving_a_communication_record_saves_its_contact():
+    c = _fresh(_contact())
+    version, modified = c.version, c.dt_modified
+    phone = Phone.objects.create(contact=c, number='555-0100')
+    c = _fresh(c)
+    assert c.version > version and c.dt_modified >= modified
+    version = c.version
+    phone.number = '555-0199'
+    phone.save()
+    c = _fresh(c)
+    assert c.version == version + 1                    # one save, not a cascade
+    assert c.phone == '555-0199'
+
+
+def test_changing_the_contact_email_through_the_contact_keeps_the_new_address():
+    c = _fresh(_contact())
+    c.email = 'renamed@example.com'
+    c.save()
+    c = _fresh(c)
+    assert c.email == 'renamed@example.com'
+    assert c.primary_communication('email')['email'] == 'renamed@example.com'
+
+
+def test_no_response_carries_the_password_hash():
+    """FAULT 20261017T023030: the contact GET served pbkdf2 hashes to the browser."""
+    from rest_framework.test import APIClient
+    import secrets
+    staff = Contact.objects.create_superuser(email='staff@example.com',
+                                             password=secrets.token_urlsafe(16))
+    client = APIClient()
+    client.force_authenticate(staff)
+    detail = client.get(f'/wcapi/contact/{staff.id}/', HTTP_HOST='localhost').json()['data']
+    record = detail.get('record', detail)
+    assert 'password' not in record and record.get('last_login', 'missing') != 'missing'
+    rows = client.get('/wcapi/contact/?limit=5', HTTP_HOST='localhost').json()['data']['results']
+    assert rows and not any('password' in r for r in rows)
+    saved = client.put(f'/wcapi/contact/{staff.id}/', {'title': 'Owner'}, format='json',
+                       HTTP_HOST='localhost').json()['data']
+    assert 'password' not in (saved.get('record') or {})
