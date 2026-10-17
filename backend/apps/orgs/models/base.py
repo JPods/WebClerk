@@ -131,6 +131,17 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 			'domain': domain,
 		}
 
+	#: Values read through the org's pointers (to its contact's own records), served
+	#: to a role that may view the pointer (field_projection.filter_response_data).
+	#: Bill, 2026-10-16: a customer made from a contact showed blank phone/address.
+	COMPUTED_FIELDS = ["phone", "address_full", "domain", "display_name"]
+	COMPUTED_FROM = {"phone": "phone_id", "address_full": "address_id",
+	                 "domain": "domain_id", "display_name": "company"}
+
+	@property
+	def display_name(self):
+		return self.company or ''
+
 	@property
 	def address_full(self):
 		"""Read from primary address record via FK pointer."""

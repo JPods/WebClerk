@@ -90,7 +90,27 @@ def filter_response_data(actor, model_name: str, data: dict) -> dict:
     actor = as_actor(actor)
     if access.is_open_read(model_name):
         return data if actor.role else {}
-    return filter_data_by_fields(data, get_allowed_fields(actor, model_name, mode="view"))
+    allowed = get_allowed_fields(actor, model_name, mode="view")
+    out = filter_data_by_fields(data, allowed)
+    # A computed value (Contact.phone, OrgBase.address_full, …) is not a column a Setting
+    # names; it is served to a role that may view the field it is derived from.
+    derived = _computed_from(model_name)
+    if derived and out is not None:
+        allowed = set(allowed)
+        for name, source in derived.items():
+            if source in allowed and name in data:
+                out[name] = data[name]
+    return out
+
+
+def _computed_from(model_name: str) -> dict:
+    from apps.core.services import access
+    from apps.core.utils import registry
+    try:
+        model_cls = registry.resolve(access.model_key(model_name))
+    except Exception:  # noqa: BLE001 — an unknown model has nothing derived
+        return {}
+    return getattr(model_cls, 'COMPUTED_FROM', None) or {}
 
 
 def filter_lines_data(lines: list, allowed_line_fields: Iterable[str]) -> list:

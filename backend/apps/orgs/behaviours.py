@@ -32,6 +32,10 @@ class OrgBehaviour(ModelBehaviour):
         if role and getattr(source, f'{role}_id') != ctx.obj.pk:
             setattr(source, f'{role}_id', ctx.obj.pk)
             source.save()                         # Contact.save takes the company name
+            source.save_after({})                 # the org lists the contact (refs.links)
+            # …written to the row; the save's later steps write from this instance.
+            ctx.obj.refs = type(ctx.obj).objects.filter(pk=ctx.obj.pk).values_list(
+                'refs', flat=True).first()
         # Populated, not naked: nothing for Alice's sweep of untouched new records.
         config = dict(ctx.obj.config or {})
         if config.pop('is_new', None) is not None:

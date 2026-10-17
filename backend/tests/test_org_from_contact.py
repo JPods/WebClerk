@@ -48,6 +48,9 @@ def test_an_individual_customer_from_a_contact():
     assert not (org.config or {}).get('is_new')              # populated, not for the sweep
     susy = Contact.objects.get(pk=susy.pk)
     assert susy.customer_id == org.id
+    org.refresh_from_db()
+    assert [c['id'] for c in org.refs['links']['contact']] == [susy.id]   # CONTACTS panel
+    assert org.display_name == 'Susy Que' and org.address_full.startswith('3941 60th PL')
 
 
 def test_what_staff_typed_is_the_company():

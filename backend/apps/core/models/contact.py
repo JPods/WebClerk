@@ -95,6 +95,10 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
 
     # Properties to include in API serialization (not DB fields, but computed from FK pointers)
     COMPUTED_FIELDS = ["phone", "address_full", "domain", "display_name"]
+    #: Each computed value and the field it is derived from: a role that may view the
+    #: source is served the value (field_projection.filter_response_data).
+    COMPUTED_FROM = {"phone": "phone_id", "address_full": "address_id",
+                     "domain": "domain_id", "display_name": "name_first"}
 
     # FK fields to expand into {id, ida, name} objects for display
     EXPAND_FK_FIELDS = ["customer", "vendor", "manufacturer", "rep"]
