@@ -218,9 +218,12 @@ export interface FieldRowProps {
    *  and a click opens that record's card beside this button — the one place it is edited
    *  (Bill, 2026-10-16). */
   onOpen?: (anchor: HTMLElement) => void;
+  /** An org search that found nothing offers to make one from this record (a contact):
+   *  the backend saves it populated and links it (Bill, 2026-10-16). */
+  onCreateOrg?: (field: string, typed: string) => void;
 }
 
-const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, options, fieldType, lockedFields, help, onChange, onOpen }) => {
+const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, options, fieldType, lockedFields, help, onChange, onOpen, onCreateOrg }) => {
   const [showHelp, setShowHelp] = useState(false);
   const [copyNote, setCopyNote] = useState<string | null>(null);
   const [refUnlocked, setRefUnlocked] = useState(false);
@@ -403,9 +406,17 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
                 </div>
               )}
               {orgQuery.length >= 2 && !orgSearching && orgResults.length === 0 && (
-                <div className="absolute top-7 left-0 w-48 rounded shadow-lg z-50 px-3 py-1.5 db-font-sm"
+                <div className="absolute top-7 left-0 w-56 rounded shadow-lg z-50 px-3 py-1.5 db-font-sm"
                   style={{ background: 'var(--db-surface)', border: '1px solid var(--db-border)', color: 'var(--db-text-muted)' }}>
                   No results
+                  {onCreateOrg && (
+                    <button type="button" className="block w-full text-left mt-1 hover:underline"
+                      style={{ color: 'var(--db-accent, #2563eb)' }}
+                      onMouseDown={e => e.preventDefault()}
+                      onClick={() => { onCreateOrg(leafName, orgQuery.trim()); setOrgQuery(''); setOrgResults([]); setRefUnlocked(false); }}>
+                      + new {leafName} "{orgQuery.trim()}"
+                    </button>
+                  )}
                 </div>
               )}
             </div>

@@ -277,6 +277,31 @@ const ModelDetailPage: React.FC<ModelDetailPageProps> = ({
     window.dispatchEvent(new CustomEvent(RECORD_SAVED_EVENT, { detail: { model: modelName, id: recordId } }));
   }, [modelName, recordId]);
 
+  // Bill, 2026-10-16: a contact whose org search finds nothing makes the org. The backend
+  // saves it populated from this contact and links it; it opens in another browser window
+  // (opened now, inside the click, so no pop-up blocker stops it) and this form takes the
+  // link, company and version without losing unsaved edits.
+  const createOrg = async (field: string, typed: string) => {
+    if (!recordId) return;
+    const win = window.open('about:blank', '_blank');
+    try {
+      const made = await newRecord(field, { _from_contact: recordId, ...(typed ? { _company: typed } : {}) });
+      const id = (made as any)?.id ?? (made as any)?.record?.id;
+      if (win && id) win.location.href = `/${field}/${id}`;
+      const response = await getRecord(modelName, recordId);
+      const record = response?.record || response;
+      const pick = (prev: any) => prev && ({ ...prev, [field]: record[field], company: record.company,
+        version: record.version, dt_modified: record.dt_modified });
+      setData(pick);
+      setEditData(pick);
+      dispatch(showToast({ message: `${field} "${typed || record.attention || ''}" made and linked`, type: 'success' }));
+    } catch (err: any) {
+      win?.close();
+      const resp = err?.response?.data;
+      dispatch(showToast({ message: `Could not make ${field}: ${resp?.message || err?.message || err}`, type: 'error' }));
+    }
+  };
+
   // When that card saves, show the server's refreshed cache (unless mid-edit here).
   useEffect(() => {
     const onSaved = (e: Event) => {
@@ -381,6 +406,7 @@ const ModelDetailPage: React.FC<ModelDetailPageProps> = ({
                     help={f.help}
                     onChange={handleFieldChange}
                     onOpen={communicationField(modelName, f.field) ? (el: HTMLElement) => openCommunication(f.field, el) : undefined}
+                    onCreateOrg={modelName === 'contact' ? createOrg : undefined}
                   />
                 ))}
                 {col.action_summary && data.actions?.items?.[0] && (
