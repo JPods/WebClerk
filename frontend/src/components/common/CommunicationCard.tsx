@@ -16,7 +16,7 @@ import { createPortal } from 'react-dom';
 import { useDispatch } from 'react-redux';
 import { showToast } from '@/store/slices/toastSlice';
 import { createRecord, deleteRecord, saveRecord } from '@/api/wcapi';
-import type { CommunicationField } from '@/utils/communicationFields';
+import { splitChoices, type CommunicationField } from '@/utils/communicationFields';
 
 interface Props {
   comm: CommunicationField;
@@ -43,8 +43,9 @@ const CommunicationCard: React.FC<Props> = ({ comm, owner, anchor, onChanged, on
   const primaryId: number | null = owner?.[comm.pointer] || null;
   const editing: number | 'new' = primaryId ?? 'new';
   const [values, setValues] = useState<Record<string, string>>(() => {
-    const row = rows.find(r => r.id === primaryId) || {};
-    return Object.fromEntries(comm.inputs.map(i => [i.field, row[i.cache || i.field] ?? '']));
+    const row = rows.find(r => r.id === primaryId);
+    return Object.fromEntries(comm.inputs.map(i => [i.field,
+      row ? row[i.cache || i.field] ?? '' : (rows.length === 0 && i.firstDefault ? i.firstDefault.join(',') : '')]));
   });
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -79,7 +80,10 @@ const CommunicationCard: React.FC<Props> = ({ comm, owner, anchor, onChanged, on
 
   const save = () => {
     const filled = Object.fromEntries(Object.entries(values).map(([k, v]) => [k, String(v).trim()]));
-    if (!Object.values(filled).some(Boolean)) { dispatch(showToast({ message: `Enter a ${comm.label}`, type: 'error' })); return; }
+    for (const inp of comm.inputs) {
+      if (inp.choices) filled[inp.field] = splitChoices(filled[inp.field]).filter(c => inp.choices!.includes(c)).join(',');
+    }
+    if (!comm.inputs.some(i => !i.choices && filled[i.field])) { dispatch(showToast({ message: `Enter a ${comm.label}`, type: 'error' })); return; }
     return run('Save', () => editing === 'new'
       ? createRecord(comm.model, { ...filled, contact_id: owner.id })
       : saveRecord(comm.model, { ...filled, id: editing }));
@@ -103,7 +107,30 @@ const CommunicationCard: React.FC<Props> = ({ comm, owner, anchor, onChanged, on
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          {comm.inputs.map((inp, i) => (
+          {comm.inputs.map((inp, i) => inp.choices ? (
+            <fieldset key={inp.field} className="col-span-2 text-[10px] text-[var(--db-text-muted,#6c757d)]">
+              {inp.label}
+              <div className="flex flex-wrap gap-x-3 gap-y-1 mt-0.5 text-xs text-[var(--db-text,#212529)] dark:text-slate-200">
+                {inp.choices.map(c => {
+                  const picked = splitChoices(values[inp.field]);
+                  return (
+                    <label key={c} className="inline-flex items-center gap-1">
+                      <input type="checkbox" checked={picked.includes(c)} disabled={busy}
+                        onChange={e => setValues(v => ({ ...v, [inp.field]: (e.target.checked
+                          ? [...picked, c] : picked.filter(p => p !== c))
+                          .filter(p => inp.choices!.includes(p))
+                          .sort((x, y) => inp.choices!.indexOf(x) - inp.choices!.indexOf(y)).join(',') }))} />
+                      {c}
+                    </label>
+                  );
+                })}
+                {splitChoices(values[inp.field]).filter(p => !inp.choices!.includes(p)).map(p => (
+                  <span key={p} className="line-through text-[var(--db-text-muted,#6c757d)]"
+                    title={`"${p}" is not a use; it is dropped when you save`}>{p}</span>
+                ))}
+              </div>
+            </fieldset>
+          ) : (
             <label key={inp.field} className={`text-[10px] text-[var(--db-text-muted,#6c757d)] ${inp.wide ? 'col-span-2' : ''}`}>
               {inp.label}
               <input autoFocus={i === 0 || undefined} value={values[inp.field] ?? ''} disabled={busy}

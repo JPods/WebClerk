@@ -13,7 +13,18 @@ import { formatAddress } from '@/utils/fieldFormatters';
 
 /** One input in the card: the record's field, and its key in the contact's cache
  *  (refs.links.<kind>[]) when the two differ. */
-export type CommunicationInput = { field: string; label: string; cache?: string; wide?: boolean };
+export type CommunicationInput = {
+  field: string; label: string; cache?: string; wide?: boolean;
+  /** Checkboxes; the value is stored as a comma list ("primary,billing,shipping"). */
+  choices?: string[];
+  /** Checked on a contact's first record. */
+  firstDefault?: string[];
+};
+
+/** Split a stored comma list. */
+export function splitChoices(value: unknown): string[] {
+  return String(value ?? '').split(',').map(v => v.trim()).filter(Boolean);
+}
 
 export type CommunicationField = {
   model: string;
@@ -48,7 +59,11 @@ export const COMMUNICATION_FIELDS: Record<string, Record<string, CommunicationFi
         { field: 'state', label: 'state' },
         { field: 'zip', label: 'zip' },
         { field: 'country', label: 'country (US, GB…)' },
-        { field: 'address_type', label: 'type (billing, shipping…)', cache: 'name', wide: true },
+        // Bill, 2026-10-16: an address can be several of these; a lone address is all three
+        // of primary, billing and shipping. No "business" — it is billing or shipping.
+        { field: 'address_type', label: 'use', cache: 'name', wide: true,
+          choices: ['primary', 'billing', 'shipping', 'home', 'other'],
+          firstDefault: ['primary', 'billing', 'shipping'] },
       ],
       line: r => r.full || formatAddress(r).replace(/\n/g, ', '),
       preview: v => formatAddress(v).replace(/\n/g, ', '),
