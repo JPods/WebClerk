@@ -98,11 +98,12 @@ def test_labor_rolls_up_at_its_rate_not_zero():
     BillOfMaterial.objects.create(parent_item=kit, child_item=part, quantity=Decimal('4'))
     hours = BillOfMaterial.objects.create(parent_item=kit, child_item=labor, quantity=Decimal('0.5'))
     assert hours.cost_snapshot == Decimal('45')   # standard, not the $0 avg
-    assert BillOfMaterial._rollup_cost(kit.pk, max_depth=1, current_depth=0) == Decimal('30.5')
+    # The part costs at the company basis (resolve_cost: last, none here → standard 3).
+    assert BillOfMaterial._rollup_cost(kit.pk, max_depth=1, current_depth=0) == Decimal('34.5')
 
     # The user changes the rate: labor re-reads it; a stocked part keeps its snapshot.
     labor.cost = {'avg': 0, 'standard': 50}
     labor.save()
     part.cost = {'avg': 9, 'standard': 9}
     part.save()
-    assert BillOfMaterial._rollup_cost(kit.pk, max_depth=1, current_depth=0) == Decimal('33')
+    assert BillOfMaterial._rollup_cost(kit.pk, max_depth=1, current_depth=0) == Decimal('37')
