@@ -278,7 +278,8 @@ def _sting_action(action_id=None, receipt_id=None):
     if action_id in (None, ''):
         raise Refused(400, 'sting_required', 'Name the sting: "action_id" (its STING- Action) or '
                       '"receipt_id" (its payable).')
-    action = Action.objects.filter(pk=action_id).first()
+    # Locked: an approve and a reject that race see one review, not both (callers are atomic).
+    action = Action.objects.select_for_update().filter(pk=action_id).first()
     if action is None or (action.metadata or {}).get('type') != 'small_sting':
         raise Refused(404, 'sting_not_found', f'Action {action_id} is not a Small-Sting.')
     return action
