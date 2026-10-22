@@ -210,7 +210,7 @@ def test_an_installed_chart_gets_the_sting_accounts_and_roles_from_the_migration
     from django.apps import apps
     from apps.accounts.models import GlAccount
     from apps.core.models import Setting
-    migration = importlib.import_module('apps.accounts.migrations.0018_ledger_contact_small_sting_accounts')
+    migration = importlib.import_module('apps.accounts.migrations.0019_ledger_contact_small_sting_accounts')
     GlAccount.objects.filter(ida__in=(STING_EXPENSE, STING_PAYABLE)).delete()
     company = Setting.objects.get(purpose='wc:company_profile')
     gl = {k: v for k, v in company.config['gl_defaults'].items()

@@ -43,9 +43,9 @@ def add_sting_accounts_and_roles(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('accounts', '0017_gl_event_and_reversal_of'),
+        ('accounts', '0018_terms_text'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('core', '0024_dd_card_unassigned_emails'),
+        ('core', '0025_terms_text_setting_leaves'),
     ]
 
     operations = [
