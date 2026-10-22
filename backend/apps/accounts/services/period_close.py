@@ -48,12 +48,15 @@ def _period_range_ms(year: int, month: int):
     return int(start.timestamp() * 1000), int(end.timestamp() * 1000)
 
 
-def _compute_aging_for_source(source: str, as_of: date) -> int:
+def _compute_aging_for_source(source: str, as_of: date, contact_aging: Optional[dict] = None) -> int:
     """Recalculate aging buckets for all orgs with open ledger entries.
 
     Args:
         source: 'AR' for customers, 'AP' for vendors
         as_of: date to compute aging against
+        contact_aging: when given, filled with {contact_id: buckets} for the payables owed to
+            a contact rather than an org (a Small-Sting's filer, Bill 2026-10-22). A contact
+            carries no financial envelope, so the close records these on its EOM document.
 
     Returns:
         Number of orgs aged.
@@ -69,18 +72,22 @@ def _compute_aging_for_source(source: str, as_of: date) -> int:
         .filter(source=source)
         .exclude(value_available=0)
         .exclude(value_available__isnull=True)
-        .values("org_id", "dt_due", "value_available")
+        .values("org_id", "contact_id", "dt_due", "value_available")
     )
 
-    # Build per-org aging buckets
+    # Build per-org aging buckets (per-contact for a payable owed to a person)
     org_buckets: Dict[int, Dict[str, Decimal]] = {}
+    contact_buckets: Dict[int, Dict[str, Decimal]] = {}
     for rec in entries:
         oid = rec["org_id"]
+        target = org_buckets
         if oid is None:
-            continue
+            if contact_aging is None or rec["contact_id"] is None:
+                continue
+            oid, target = rec["contact_id"], contact_buckets
 
-        if oid not in org_buckets:
-            org_buckets[oid] = {
+        if oid not in target:
+            target[oid] = {
                 "current": Decimal("0"),
                 "past_30": Decimal("0"),
                 "past_60": Decimal("0"),
@@ -88,7 +95,7 @@ def _compute_aging_for_source(source: str, as_of: date) -> int:
                 "total": Decimal("0"),
             }
 
-        bucket = org_buckets[oid]
+        bucket = target[oid]
         value = Decimal(str(rec["value_available"] or 0))
         bucket["total"] += value
 
@@ -108,6 +115,10 @@ def _compute_aging_for_source(source: str, as_of: date) -> int:
             bucket["past_60"] += value
         else:
             bucket["past_90"] += value
+
+    if contact_aging is not None:
+        for cid, buckets in contact_buckets.items():
+            contact_aging[str(cid)] = {k: float(v) for k, v in buckets.items()}
 
     # Update org financial data with aging
     aging_key = "customer" if source == "AR" else "vendor"
@@ -308,7 +319,8 @@ def run_eom_close(
     customers_aged = _compute_aging_for_source("AR", as_of_end)
 
     # 2. Vendor aging
-    vendors_aged = _compute_aging_for_source("AP", as_of_end)
+    contact_payables: Dict[str, Any] = {}
+    vendors_aged = _compute_aging_for_source("AP", as_of_end, contact_aging=contact_payables)
 
     # 3. GL balance verification
     gl_result = _verify_gl_balance(period_year, period_month)
@@ -344,6 +356,7 @@ def run_eom_close(
                 "cash_count": summary["cash_count"],
                 "customers_aged": customers_aged,
                 "vendors_aged": vendors_aged,
+                "contact_payables": contact_payables,
                 "transactions_locked": transactions_locked,
                 "dt_closed": _now_ms(),
                 "closed_by_contact_id": contact_id,
@@ -367,6 +380,8 @@ def run_eom_close(
         "total_commissions": summary["total_commissions"],
         "customers_aged": customers_aged,
         "vendors_aged": vendors_aged,
+        "contacts_aged": len(contact_payables),
+        "contact_payables": contact_payables,
         "transactions_locked": transactions_locked,
     }
 

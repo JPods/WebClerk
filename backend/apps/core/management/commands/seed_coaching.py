@@ -239,6 +239,7 @@ COACHING = {
         'tips': [
             {'id': 'pay-01', 'title': 'Two types of cash_entries', 'body': "cash_in = money in (customer pays us, applied to Invoice). cash_out = money out (we pay vendor, applied to Receipt). Same model, different type.", 'type': 'concept', 'level': 'beginner'},
             {'id': 'pay-02', 'title': 'Cash reduces balance', 'body': 'Applying cash to an invoice reduces its balance. When balance = 0, invoice is paid.', 'type': 'concept', 'level': 'beginner'},
+            {'id': 'pay-03', 'title': 'Paying a Small-Sting', 'body': "A sting is paid in cash to the person who filed it, like any payable — never credited against their invoices; we want it seen. Open the small_sting receipt and add cash: POST /wcapi/receipt/<id>/add_cash/ {amount, method: 'cash'}. It posts Dr 2230 Small-Stings Payable / Cr cash. Open stings age in Aged Payables under the filer's name.", 'type': 'workflow', 'level': 'beginner'},
         ],
         'field_help': {
             'type': 'cash_in = AR (customer pays us → Invoice). cash_out = AP (we pay vendor → Receipt).',
@@ -336,6 +337,7 @@ COACHING = {
     'action': {
         'tips': [
             {'id': 'act-01', 'title': 'Actions are tasks', 'body': 'Track to-dos, assign work, manage projects. Actions have kanban columns, priorities, and deadlines.', 'type': 'concept', 'level': 'beginner'},
+            {'id': 'act-02', 'title': 'Filing a Small-Sting', 'body': 'A customer fines us for a problem we left unresolved: POST /wcapi/_manage/ {action: "file_small_sting", params: {complaint, severity, amount?}}. It is $1.72 unless you name its value, owed to you (the person filing, not your company). The complaint is an Action (STING-...); the fine is a payable — a small_sting Receipt — posted Dr 6550 Small-Sting Expense / Cr 2230 Small-Stings Payable.', 'type': 'workflow', 'level': 'beginner'},
         ],
         'field_help': {
             'ida': 'Action identifier — unique across all actions.',

@@ -51,9 +51,14 @@ class Receipt(TransactionBaseModel):
     # Source type for this receipt
     SOURCE_PURCHASE = 'purchase_receipt'
     SOURCE_ADJUSTMENT = 'inventory_adjustment'
+    # A Small-Sting is a fine a customer assesses on us; it is owed to the person who filed it
+    # (contact, no vendor) and paid in cash like any payable (Bill, 2026-10-22). One line, no
+    # item: the sting's ida and complaint, at its amount. Its parent is the Action (the complaint).
+    SOURCE_SMALL_STING = 'small_sting'
     SOURCE_CHOICES = [
         (SOURCE_PURCHASE, 'Purchase Receipt'),
         (SOURCE_ADJUSTMENT, 'Inventory Adjustment'),
+        (SOURCE_SMALL_STING, 'Small-Sting'),
     ]
     # Workorder output is not received from anyone — it is a WorkOrderCompletion on the
     # workorder itself, and can never become a payable (Bill, 2026-09-20).
@@ -61,6 +66,7 @@ class Receipt(TransactionBaseModel):
     SOURCE_PARENT = {
         SOURCE_PURCHASE: 'purchase',
         SOURCE_ADJUSTMENT: None,
+        SOURCE_SMALL_STING: 'action',
     }
     ALLOCATION_CHOICES = ALLOCATION_CHOICES
 

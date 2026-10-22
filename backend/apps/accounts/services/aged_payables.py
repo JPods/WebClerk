@@ -4,8 +4,13 @@ Aged Payables Report Service
 
 Mirror of aged_receivables.py for the AP side.
 
-Produces vendor aging by bucket from Ledger records where model_name='purchase'.
+Produces payee aging by bucket from the payable Ledger rows (source='AP').
 Data comes from Ledger records (single source of truth for payables).
+
+It read model_name='purchase' until 2026-10-22, but payables are written by the receipt
+(model_name='receipt'), so the report never showed a payable (Bill: fix on the Small-Sting
+branch). A payee is the vendor org, else the contact a payable is owed to (a Small-Sting's
+filer); each section says which (payee_model 'org' or 'contact').
 """
 from __future__ import annotations
 
@@ -71,32 +76,29 @@ def aged_payables_report(
     """
     Ledger = dj_apps.get_model('accounts', 'Ledger')
     OrgBase = dj_apps.get_model('orgs', 'OrgBase')
+    Contact = dj_apps.get_model('core', 'Contact')
     Purchase = dj_apps.get_model('transactions', 'Purchase')
 
     if as_of_date is None:
         as_of_date = date.today()
 
-    # Query payable ledgers (purchase-sourced, non-zero balance)
-    ledger_qs = Ledger.objects.filter(
-        model_name='purchase',
-        value_available__isnull=False,
-        org_id__isnull=False,
-    ).exclude(value_available=0)
+    # The open payables: every AP row with a balance and a payee.
+    ledger_qs = (Ledger.objects.filter(source='AP', value_available__isnull=False)
+                 .exclude(value_available=0)
+                 .filter(models.Q(org_id__isnull=False) | models.Q(contact_id__isnull=False)))
 
     if vendor_ids:
         ledger_qs = ledger_qs.filter(org_id__in=vendor_ids)
 
-    # Group by vendor
-    vendor_ledgers: dict[int, list] = {}
+    # Group by payee: the org when there is one, else the contact.
+    vendor_ledgers: dict[tuple, list] = {}
     for ledger in ledger_qs.values(
-        'id', 'org_id', 'model_name', 'parent_id',
+        'id', 'org_id', 'contact_id', 'model_name', 'parent_id',
         'value_original', 'value_available', 'dt_due', 'dt_recorded',
         'ida',
     ):
-        org_id = ledger['org_id']
-        if org_id not in vendor_ledgers:
-            vendor_ledgers[org_id] = []
-        vendor_ledgers[org_id].append(ledger)
+        payee = ('org', ledger['org_id']) if ledger['org_id'] else ('contact', ledger['contact_id'])
+        vendor_ledgers.setdefault(payee, []).append(ledger)
 
     # Build vendor sections
     vendors = []
@@ -106,15 +108,17 @@ def aged_payables_report(
         'period_2': Decimal('0'), 'period_3': Decimal('0'),
     }
 
-    org_ids = list(vendor_ledgers.keys())
-    if not org_ids:
+    if not vendor_ledgers:
         return {
             'as_of_date': as_of_date.isoformat(),
             'vendors': [],
             'grand_totals': {k: float(v) for k, v in grand.items()},
         }
 
-    orgs = {o.id: o for o in OrgBase.objects.filter(id__in=org_ids)}
+    org_ids = [pid for kind, pid in vendor_ledgers if kind == 'org']
+    contact_ids = [pid for kind, pid in vendor_ledgers if kind == 'contact']
+    payees = {('org', o.id): o for o in OrgBase.objects.filter(id__in=org_ids)}
+    payees.update({('contact', c.id): c for c in Contact.objects.filter(id__in=contact_ids)})
 
     # Open purchase totals per vendor
     open_po_qs = Purchase.objects.filter(
@@ -128,12 +132,13 @@ def aged_payables_report(
         for row in open_po_qs
     }
 
-    for org_id in sorted(org_ids):
-        org = orgs.get(org_id)
+    for payee_key in sorted(vendor_ledgers, key=lambda k: (k[0], k[1])):
+        payee_model, payee_id = payee_key
+        org = payees.get(payee_key)
         if not org:
             continue
 
-        ledgers = vendor_ledgers[org_id]
+        ledgers = vendor_ledgers[payee_key]
         lines = []
         vend_aging = {
             'future': Decimal('0'), 'current': Decimal('0'),
@@ -165,7 +170,8 @@ def aged_payables_report(
             vend_balance += val_available
 
             lines.append({
-                'type': 'PO',
+                'type': {'receipt': 'RC'}.get(led['model_name'], 'PO'),
+                'parent_id': led['parent_id'],
                 'number': led.get('ida', ''),
                 'date': rec_date.isoformat() if rec_date else '',
                 'original': float(val_original),
@@ -182,11 +188,16 @@ def aged_payables_report(
             continue
 
         lines.sort(key=lambda x: x['date'])
-        vend_open_po = open_po_map.get(org_id, Decimal('0'))
+        vend_open_po = open_po_map.get(payee_id, Decimal('0')) if payee_model == 'org' else Decimal('0')
 
+        if payee_model == 'org':
+            name = getattr(org, 'display_name', '') or getattr(org, 'company', '')
+        else:
+            name = (' '.join(p for p in (org.name_first, org.name_last) if p) or org.email or '')
         vendor_data = {
-            'id': org_id,
-            'name': getattr(org, 'display_name', '') or getattr(org, 'company', ''),
+            'id': payee_id,
+            'payee_model': payee_model,
+            'name': name,
             'balance_due': float(vend_balance),
             'open_purchases': float(vend_open_po),
             'aging': {k: float(v) for k, v in vend_aging.items()},

@@ -54,6 +54,10 @@ class Ledger(BaseModel):
     parent_id = models.BigIntegerField(blank=True, null=True, db_index=True, help_text="Parent primary key for fast lookup")
     # Org linkage for indexed aging queries
     org = models.ForeignKey('orgs.OrgBase', blank=True, null=True, on_delete=models.SET_NULL, db_column='org_id', related_name='ledger_entries', help_text="Org (customer/vendor) for fast aging queries")
+    # The payee when the payable names no vendor org: a Small-Sting is owed to the person
+    # who filed it, not to their org (Bill, 2026-10-22). AP aging and period close group by
+    # org when there is one, else by this contact.
+    contact = models.ForeignKey('core.Contact', blank=True, null=True, on_delete=models.SET_NULL, db_column='contact_id', related_name='ledger_entries', help_text="Payee contact when the payable names no vendor org (a Small-Sting's filer)")
     invoice = models.ForeignKey('transactions.Invoice', blank=True, null=True, on_delete=models.SET_NULL, db_column='invoice_id')
     terms = models.CharField(max_length=40, blank=True, default='', help_text="Term ida the schedule was computed from (N30, 2pct10N30, ...)")
     gl_account = models.ForeignKey('accounts.GlAccount', blank=True, null=True, on_delete=models.SET_NULL, db_column='gl_account_id', help_text="GL account for FX gain/loss applied to this entry, if any")

@@ -4284,6 +4284,8 @@
           "undeposited_funds": "1000-cash",
           "commission_expense": "6100-commission_expense",
           "commission_payable": "2210-commissions_payable",
+          "small_stings_payable": "2230-small_stings_payable",
+          "small_sting_expense": "6550-small_sting_expense",
           "cost_of_goods_sold": "5000-cost_of_goods_sold",
           "accounts_receivable": "1100-accounts_receivable",
           "small_balance_writeoff": "4930-small_balance_writeoff",
@@ -152611,6 +152613,298 @@
         "account_debit": null,
         "used_for": "sales",
         "division": null
+      },
+      {
+        "id": 59,
+        "uuid": "ad3a46fe-c301-4910-9fe8-f2ed18517295",
+        "ida": "2230-small_stings_payable",
+        "dt_created": 0,
+        "dt_modified": 0,
+        "version": 1,
+        "is_active": true,
+        "security_level": 0,
+        "dt_approved": 0,
+        "times_used": 0,
+        "dt_last_used": 0,
+        "purpose": null,
+        "status": "",
+        "config": {},
+        "is_deleted": false,
+        "is_archived": false,
+        "metadata": {
+          "flow": {},
+          "temp": [],
+          "flags": {
+            "schema_rev": 1,
+            "keywords_pending": false
+          },
+          "access": {
+            "edit": [],
+            "view": []
+          },
+          "health": {
+            "rating": 0,
+            "accuracy": 0,
+            "freshness": 0,
+            "consistency": 0,
+            "completeness": 0
+          },
+          "images": {
+            "hr": false,
+            "md": false,
+            "tn": false,
+            "source": "",
+            "gallery": [],
+            "primary": "",
+            "thumbnail": ""
+          },
+          "source": {},
+          "history": {
+            "synced": {
+              "dt": 0,
+              "contact_id": 0
+            },
+            "created": {
+              "dt": 1773544867096,
+              "contact_id": 0
+            },
+            "accessed": {
+              "dt": 1773544867096,
+              "contact_id": 0
+            },
+            "modified": {
+              "dt": 1789579248545,
+              "contact_id": 0
+            },
+            "verified": {
+              "dt": 0,
+              "contact_id": 0
+            }
+          },
+          "publish": "",
+          "version": "1.0",
+          "erosions": [],
+          "priority": "",
+          "security": "",
+          "documents": [],
+          "resources": {
+            "required": {},
+            "allocated": {}
+          },
+          "versioning": {
+            "changed_fields": [],
+            "keywords_dt_refreshed": 0
+          },
+          "audit_trail": [],
+          "explanation": "",
+          "import_data": null,
+          "userdefined": {},
+          "small_stings": []
+        },
+        "refs": {
+          "tags": [],
+          "links": {
+            "item": [],
+            "contact": []
+          },
+          "source": null,
+          "parents": [],
+          "keywords": [
+            "2230-small_stings_payable",
+            "2230smallstingspayable",
+            "ad3a46fe-c301-4910-9fe8-f2ed18517295",
+            "liability",
+            "payable",
+            "payables",
+            "small",
+            "stings"
+          ],
+          "categories": [],
+          "depends_on": {},
+          "related_ids": []
+        },
+        "prefs": {
+          "tags": [],
+          "pinned": false,
+          "search": [],
+          "userdefined": {}
+        },
+        "actions": {},
+        "comments": {
+          "notes": [],
+          "public": "",
+          "general": {
+            "public": [],
+            "foreign": [],
+            "process": []
+          },
+          "partner": "",
+          "process": [
+            {
+              "by": "seed_gl_accounts",
+              "dt": "2026-10-22T00:00:00Z",
+              "text": "What we owe customers for Small-Stings they assessed on us. Filing a sting credits it (debit 6550-small_sting_expense); paying the filing contact in cash debits it. Its own account so the open stings report on their own. Role: small_stings_payable.",
+              "kind": "account_use",
+              "capacity": "ops",
+              "replaces": null
+            }
+          ],
+          "records": {}
+        },
+        "health_rating": 50,
+        "name": "Small-Stings Payable",
+        "type": "liability",
+        "category": "current_liabilities",
+        "type_id": null,
+        "account_credit": "2230-small_stings_payable",
+        "account_debit": "1000-cash",
+        "used_for": "payables",
+        "division": 0
+      },
+      {
+        "id": 60,
+        "uuid": "3c6b145c-f8ce-48ba-9980-bb8026709ba7",
+        "ida": "6550-small_sting_expense",
+        "dt_created": 0,
+        "dt_modified": 0,
+        "version": 1,
+        "is_active": true,
+        "security_level": 0,
+        "dt_approved": 0,
+        "times_used": 0,
+        "dt_last_used": 0,
+        "purpose": null,
+        "status": "",
+        "config": {},
+        "is_deleted": false,
+        "is_archived": false,
+        "metadata": {
+          "flow": {},
+          "temp": [],
+          "flags": {
+            "schema_rev": 1,
+            "keywords_pending": false
+          },
+          "access": {
+            "edit": [],
+            "view": []
+          },
+          "health": {
+            "rating": 0,
+            "accuracy": 0,
+            "freshness": 0,
+            "consistency": 0,
+            "completeness": 0
+          },
+          "images": {
+            "hr": false,
+            "md": false,
+            "tn": false,
+            "source": "",
+            "gallery": [],
+            "primary": "",
+            "thumbnail": ""
+          },
+          "source": {},
+          "history": {
+            "synced": {
+              "dt": 0,
+              "contact_id": 0
+            },
+            "created": {
+              "dt": 1773544867096,
+              "contact_id": 0
+            },
+            "accessed": {
+              "dt": 1773544867096,
+              "contact_id": 0
+            },
+            "modified": {
+              "dt": 1789579248545,
+              "contact_id": 0
+            },
+            "verified": {
+              "dt": 0,
+              "contact_id": 0
+            }
+          },
+          "publish": "",
+          "version": "1.0",
+          "erosions": [],
+          "priority": "",
+          "security": "",
+          "documents": [],
+          "resources": {
+            "required": {},
+            "allocated": {}
+          },
+          "versioning": {
+            "changed_fields": [],
+            "keywords_dt_refreshed": 0
+          },
+          "audit_trail": [],
+          "explanation": "",
+          "import_data": null,
+          "userdefined": {},
+          "small_stings": []
+        },
+        "refs": {
+          "tags": [],
+          "links": {
+            "item": [],
+            "contact": []
+          },
+          "source": null,
+          "parents": [],
+          "keywords": [
+            "3c6b145c-f8ce-48ba-9980-bb8026709ba7",
+            "6550-small_sting_expense",
+            "6550smallstingexpense",
+            "expense",
+            "small",
+            "sting"
+          ],
+          "categories": [],
+          "depends_on": {},
+          "related_ids": []
+        },
+        "prefs": {
+          "tags": [],
+          "pinned": false,
+          "search": [],
+          "userdefined": {}
+        },
+        "actions": {},
+        "comments": {
+          "notes": [],
+          "public": "",
+          "general": {
+            "public": [],
+            "foreign": [],
+            "process": []
+          },
+          "partner": "",
+          "process": [
+            {
+              "by": "seed_gl_accounts",
+              "dt": "2026-10-22T00:00:00Z",
+              "text": "Fines customers assess on us for unresolved problems (Small-Stings): $1.72 unless the sting names its value. Each filing debits it and credits 2230-small_stings_payable. The cost of our errors, in plain sight. Role: small_sting_expense.",
+              "kind": "account_use",
+              "capacity": "ops",
+              "replaces": null
+            }
+          ],
+          "records": {}
+        },
+        "health_rating": 50,
+        "name": "Small-Sting Expense",
+        "type": "expense",
+        "category": "operating_expenses",
+        "type_id": null,
+        "account_credit": "2230-small_stings_payable",
+        "account_debit": "6550-small_sting_expense",
+        "used_for": "expense",
+        "division": 0
       }
     ],
     "products.Warehouse": [

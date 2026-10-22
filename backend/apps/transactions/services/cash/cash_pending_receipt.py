@@ -97,10 +97,22 @@ def _check_receipt_application(cash, receipt, amount: Decimal) -> None:
     from apps.transactions.services.cash.cash_pending import _check_application
 
     # The cash's spend, both sides, is counted inside the one check (B-5).
+    # The payee is the vendor, else the receipt's contact: a Small-Sting is owed to the person
+    # who filed it (Bill, 2026-10-22), and a payment to someone else does not pay it.
+    if receipt.vendor_id:
+        party_attr, party_label = 'vendor_id', 'vendor'
+    else:
+        party_attr, party_label = 'contact_id', 'payee contact'
+        if not cash.contact_id or cash.contact_id != receipt.contact_id:
+            raise ValueError(
+                f"cannot apply cash {cash.pk} to receipt {receipt.pk}: the receipt is owed to "
+                f"contact {receipt.contact_id} and the payment names "
+                f"{'contact ' + str(cash.contact_id) if cash.contact_id else 'no contact'}. "
+                f"Pay the payee named on the receipt.")
     _check_application(
         cash, receipt, amount,
         target_applied=_committed(receipt_id=receipt.pk),
-        party_attr='vendor_id', party_label='vendor')
+        party_attr=party_attr, party_label=party_label)
 
 
 @transaction.atomic                      # locks, checks and writes together, as AR does (Fable L2 H-4)

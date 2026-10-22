@@ -169,7 +169,11 @@ def add_cash(ctx) -> Dict[str, Any]:
     amount = _d(ctx.data.get('amount'))
     if amount == 0:
         raise Refused(400, 'amount_required', 'Say how much: "amount" (+ pays the document, − credits it).')
-    party_id = getattr(doc, side['party'], None)
+    party_key = side['party']
+    party_id = getattr(doc, party_key, None)
+    if not party_id and model_key == 'receipt' and getattr(doc, 'contact_id', None):
+        # No vendor: the payee is the receipt's contact (a Small-Sting's filer, Bill 2026-10-22).
+        party_key, party_id = 'contact_id', doc.contact_id
     if not party_id:
         who = 'customer' if side['party'] == 'customer_id' else 'vendor'
         raise Refused(400, f'{who}_required', f'{model_key.title()} {doc.pk} names no {who}; '
@@ -181,7 +185,7 @@ def add_cash(ctx) -> Dict[str, Any]:
                           f'{model_key.title()} {doc.pk} has {balance} open; {amount} was asked. '
                           f'Nothing was added.', {'balance': float(balance), 'amount': float(amount)})
     reason = (ctx.data.get('reason') or '').strip()
-    cash_data = {'model_name': 'cash', side['party']: party_id,
+    cash_data = {'model_name': 'cash', party_key: party_id,
                  'amount': str(amount * side['cash_sign']),
                  'method': ctx.data.get('method') or 'manual',
                  'reference_number': ctx.data.get('reference') or '',

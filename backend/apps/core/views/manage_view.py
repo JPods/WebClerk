@@ -706,69 +706,26 @@ def _get_orphan_detail(params: dict) -> dict:
 
 
 def _file_small_sting(params: dict) -> dict:
-    """File a Small-Sting complaint. Alice logs it and reports to WCHQ.
+    """File a Small-Sting: a fine a customer assesses on us for an unresolved problem.
 
-    A Small-Sting is a customer-assessed fine for an unresolved problem.
-    Creates an Action record (the complaint), logs to alice_log, and
-    marks for WCHQ reporting so patterns of complaints improve the
-    system for all installations.
+    The complaint (an Action, as the person filing), its payable (a small_sting Receipt owed
+    to the filer, $1.72 unless ``amount`` is given) and its journal (Dr 6550 / Cr 2230), in
+    one transaction — apps/accounts/services/small_sting.py (Bill, 2026-10-22).
 
     Params:
         complaint: text description of the problem
         severity: 1-5 (1=minor annoyance, 5=business-stopping)
+        amount: the sting's value (optional, default 1.72)
         model_name: which model/area the complaint is about (optional)
         record_id: specific record ID if applicable (optional)
-        contact_id: who is filing the complaint (optional, defaults to current user)
+        contact_id: who is filing (optional, defaults to the signed-in person) — the payee
     """
-    from django.utils import timezone
-    from apps.core.models import Action, Setting, Pending
-
-    complaint = params.get('complaint', '').strip()
-    if not complaint:
-        raise ValueError("complaint text is required")
-
-    severity = int(params.get('severity', 3))
-    model_name = params.get('model_name', '')
-    record_id = params.get('record_id', '')
-    contact_id = params.get('contact_id')
-
-    ts = timezone.now()
-    ts_str = ts.strftime('%Y%m%dT%H%M%S')
-
-    # 1. Create Action record — the formal complaint
-    action = Action.objects.create(
-        ida=f'STING-{ts_str}',
-        status='open',
-        priority=min(severity, 5),
-        action={'en': f'Small-Sting: {complaint[:100]}'},
-        description={'en': complaint},
-        metadata={
-            'type': 'small_sting',
-            'severity': severity,
-            'model_name': model_name,
-            'record_id': str(record_id) if record_id else '',
-            'dt_filed': ts.isoformat(),
-            'source': {'type': 'user_complaint'},
-        },
-    )
-    if contact_id:
-        action.contact_id = int(contact_id)
-        action.save(update_fields=['contact_id'])
-
-    # 2. Log to alice_log via Pending (Alice's observation pipeline)
-    Pending.objects.create(
-        model_name='alice_log',
-        record_id=str(action.pk),
-        purpose='small_sting',
-        name=f'STING: {complaint[:80]}',  # the facts live on the Action (record_id points at it)
-    )
-
-    return {
-        'success': True,
-        'action_id': action.pk,
-        'action_ida': action.ida,
-        'message': f'Small-Sting filed: {action.ida}. Alice is tracking this.',
-    }
+    from apps.accounts.services.small_sting import file_small_sting
+    return file_small_sting(
+        _acting_actor(params), complaint=params.get('complaint', ''),
+        severity=params.get('severity', 3), model_name=params.get('model_name', ''),
+        record_id=params.get('record_id', ''), contact_id=params.get('contact_id'),
+        amount=params.get('amount'))
 
 
 def _acting_actor(params):

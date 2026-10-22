@@ -83,7 +83,7 @@ def test_a_receipt_can_no_longer_claim_to_be_a_workorder():
     from apps.transactions.models import Receipt
     assert not hasattr(Receipt, 'SOURCE_WORKORDER')
     assert [code for code, _label in Receipt.SOURCE_CHOICES] == [
-        Receipt.SOURCE_PURCHASE, Receipt.SOURCE_ADJUSTMENT]
+        Receipt.SOURCE_PURCHASE, Receipt.SOURCE_ADJUSTMENT, Receipt.SOURCE_SMALL_STING]
 
 
 # ── a count is a workorder used as an audit tool (Bill, 2026-09-20) ──────

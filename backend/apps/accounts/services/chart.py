@@ -68,6 +68,7 @@ ROLES = (
     'labor_applied',
     'sales_tax_payable',
     'commission_payable',
+    'small_stings_payable',
     'retained_earnings',
     'opening_balance_equity',
     'sales_revenue',
@@ -82,6 +83,7 @@ ROLES = (
     'labor_variance',
     'scrap',
     'commission_expense',
+    'small_sting_expense',
     'default_expense',
     'fx_gain_loss',
 )

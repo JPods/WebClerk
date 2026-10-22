@@ -4283,6 +4283,8 @@
           "undeposited_funds": "1000-cash",
           "commission_expense": "6100-commission_expense",
           "commission_payable": "2210-commissions_payable",
+          "small_stings_payable": "2230-small_stings_payable",
+          "small_sting_expense": "6550-small_sting_expense",
           "cost_of_goods_sold": "5000-cost_of_goods_sold",
           "accounts_receivable": "1100-accounts_receivable",
           "finance_charge_income": "4200-finance_charge_income",

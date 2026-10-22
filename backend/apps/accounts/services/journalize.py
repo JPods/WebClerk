@@ -293,6 +293,32 @@ ADJUSTMENT_ROLES = {
 }
 
 
+def _paid_receipt(cash):
+    """The payable a payment out settles: the receipt it names, else the one receipt its
+    applications are on. None when it pays no payable (a direct expense)."""
+    Receipt = dj_apps.get_model('transactions', 'Receipt')
+    receipt_id = getattr(cash, 'receipt_id', None)
+    if not receipt_id:
+        from apps.core.models.pending import Pending
+        from apps.transactions.services.cash.cash_pending_receipt import RECEIPT_CASH_PURPOSE
+        ids = {(p.changes or {}).get('receipt_id') for p in Pending.objects.filter(
+            purpose=RECEIPT_CASH_PURPOSE, changes__cash_id=cash.pk, changes__state='applied').only('changes')}
+        ids.discard(None)
+        if len(ids) > 1:
+            raise ValueError(f'cash {cash.ida or cash.pk} pays {len(ids)} receipts; journalize it per '
+                             f'receipt (one payment, one payable).')
+        receipt_id = ids.pop() if ids else None
+    return Receipt.objects.filter(pk=receipt_id).first() if receipt_id else None
+
+
+def _payable_account(receipt, used_by: str) -> tuple:
+    """(account, purpose) a payable credits when it posts and its payment debits when it is
+    paid: small_stings_payable for a Small-Sting, else accounts_payable."""
+    if getattr(receipt, 'source_type', None) == 'small_sting':
+        return _role('small_stings_payable', used_by), 'small_stings_payable'
+    return _role('accounts_payable', used_by), 'accounts_payable'
+
+
 def _posted_and_not_reversed(GlJournal, source_id: int, source_model: str) -> bool:
     """A record is journalized when it has more posted rows than reversal rows, so a
     reversed record can be corrected and posted again (Bite 2 #4)."""
@@ -629,9 +655,21 @@ def journalize_cash(cash_id: int, ida_prefix: str = '') -> dict:
             debit_account = _role(ADJUSTMENT_ROLES[method], f'cash {cash.ida} {method}')
             debit_purpose = method
     else:
-        # Disbursement: Expense debit (from category bucket), Cash credit
-        # Category → GL mapping lives in Setting select_lists
-        offset_account = _get_category_gl(getattr(cash, 'category', ''))
+        # Disbursement. A payment of a payable settles the liability the payable credited:
+        # Dr accounts_payable (Dr small_stings_payable for a Small-Sting) / Cr cash (Bill,
+        # 2026-10-22 — it debited an expense, so every paid bill was expensed twice: once by
+        # the receipt's journal through AP, once here). Cash that pays no payable is a
+        # direct expense: Dr the category's account / Cr cash.
+        try:
+            receipt = _paid_receipt(cash)
+        except ValueError as e:
+            return {'created': 0, 'status': 'exception', 'error': str(e),
+                    'source_id': cash_id, 'source_model': 'cash', 'postings': []}
+        if receipt is not None:
+            debit_account, debit_purpose = _payable_account(receipt, f'cash {cash.ida}')
+        else:
+            # Category → GL mapping lives in Setting select_lists
+            debit_account, debit_purpose = _get_category_gl(getattr(cash, 'category', '')), 'expense'
         purchase_id = getattr(cash, 'purchase_id', None)
         if purchase_id:
             try:
@@ -643,7 +681,6 @@ def journalize_cash(cash_id: int, ida_prefix: str = '') -> dict:
                         cash_account = cash_override
             except Exception:
                 pass
-        debit_account, debit_purpose = offset_account, 'expense'
         credit_account, credit_purpose = cash_account, 'cash_disbursement'
 
     try:
@@ -899,8 +936,14 @@ def journalize_receipt(receipt_id: int, ida_prefix: str = '') -> dict:
 
     payable = sum((Decimal(str((l.totals or {}).get('amount', 0) or 0)) for l in received), Decimal('0'))
     payable = payable.quantize(Decimal('0.01'))
-    if payable:
-        ap_account = _role('accounts_payable', used_by=f'receipt {receipt.ida}')
+    if payable and receipt.source_type == 'small_sting':
+        # A Small-Sting received nothing: it is a fine we owe the person who filed it (Bill,
+        # 2026-10-22). A P&L event — Dr small_sting_expense / Cr small_stings_payable.
+        used_by = f'small-sting receipt {receipt.ida}'
+        rows.append((_role('small_sting_expense', used_by), payable, Decimal('0'), 'general', ''))
+        rows.append((_payable_account(receipt, used_by)[0], Decimal('0'), payable, 'general', ''))
+    elif payable:
+        ap_account = _payable_account(receipt, f'receipt {receipt.ida}')[0]
         rows.append((rnb, payable, Decimal('0'), 'purchase', ''))
         rows.append((ap_account, Decimal('0'), payable, 'purchase', ''))
 

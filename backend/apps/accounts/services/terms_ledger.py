@@ -542,13 +542,19 @@ def apply_terms_for_payable(receipt, total=None, replace: bool = True):
     # A receipt is a transaction: it carries its own vendor and terms (inherited from
     # the purchase it receives against when it is created).
     vendor_id = getattr(receipt, 'vendor_id', None)
-    if not vendor_id:
-        # Nothing is owed to nobody. A receipt with no vendor is an internal movement
-        # (or an unfinished draft), and an AP row with no org hides in every report
-        # that groups by vendor (Bill, 2026-09-20).
-        logger.info("[terms_ledger] receipt %s has no vendor — no payable",
+    # The payee: the vendor org, else the receipt's contact (Bill, 2026-10-22: a Small-Sting is
+    # owed to the person who filed it, not their org). An inventory adjustment is never owed.
+    contact_id = None
+    if not vendor_id and getattr(receipt, 'source_type', None) != 'inventory_adjustment':
+        contact_id = getattr(receipt, 'contact_id', None)
+    if not vendor_id and not contact_id:
+        # Nothing is owed to nobody. A receipt with no payee is an internal movement
+        # (or an unfinished draft), and an AP row with no payee hides in every report
+        # that groups by payee (Bill, 2026-09-20).
+        logger.info("[terms_ledger] receipt %s has no vendor or payee contact — no payable",
                     getattr(receipt, 'ida', None) or getattr(receipt, 'pk', None))
         return []
+    payee = {'org': {'id': vendor_id}} if vendor_id else {'contact': {'id': contact_id}}
     dt = getattr(receipt, 'dt_received', None) or getattr(receipt, 'dt_created', None)
     from datetime import datetime, timezone as _tz
     if isinstance(dt, int):
@@ -565,10 +571,11 @@ def apply_terms_for_payable(receipt, total=None, replace: bool = True):
             source='AP',
             parent_id=receipt.pk,
             org_id=vendor_id,
+            contact_id=contact_id,
             value_original=float(value),
             value_available=float(value),
             refs={'links': {'parent': {'model': 'receipt', 'id': receipt.pk},
-                            'org': {'id': vendor_id},
+                            **payee,
                             getattr(receipt, 'parent_model', None) or 'source':
                                 {'id': getattr(receipt, 'parent_id', None)}}},
         )
