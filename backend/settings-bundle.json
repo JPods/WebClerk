@@ -3672,12 +3672,6 @@
           }
         },
         "pricing": {
-          "price_levels": {
-            "A": "Retail",
-            "B": "Wholesale",
-            "C": "Distributor",
-            "D": "Sample"
-          },
           "minimum_margin": 0,
           "total_precision": 2,
           "use_price_matrix": true,
@@ -4677,10 +4671,6 @@
             {
               "label": "Distributor",
               "value": "distributor"
-            },
-            {
-              "label": "Employee",
-              "value": "employee"
             },
             {
               "label": "Sample",
@@ -5768,10 +5758,6 @@
                 "value": "distributor"
               },
               {
-                "label": "Employee",
-                "value": "employee"
-              },
-              {
                 "label": "Sample",
                 "value": "sample"
               }
@@ -6288,10 +6274,6 @@
         },
         "userdefined": {},
         "price_levels": {
-          "A": "Retail",
-          "B": "Wholesale",
-          "C": "Distributor",
-          "D": "Sample",
           "use_price_matrix": true
         },
         "document_text": {
@@ -23390,10 +23372,6 @@
                 "value": "manufacturer"
               },
               {
-                "label": "Employee",
-                "value": "employee"
-              },
-              {
                 "label": "Rep",
                 "value": "rep"
               }
@@ -23643,10 +23621,6 @@
             {
               "label": "Manufacturer",
               "value": "manufacturer"
-            },
-            {
-              "label": "Employee",
-              "value": "employee"
             },
             {
               "label": "Rep",
@@ -28755,10 +28729,6 @@
                 "value": "manufacturer"
               },
               {
-                "label": "Employee",
-                "value": "employee"
-              },
-              {
                 "label": "Rep",
                 "value": "rep"
               }
@@ -28996,10 +28966,6 @@
             {
               "label": "Manufacturer",
               "value": "manufacturer"
-            },
-            {
-              "label": "Employee",
-              "value": "employee"
             },
             {
               "label": "Rep",
@@ -46559,10 +46525,6 @@
                 "value": "manufacturer"
               },
               {
-                "label": "Employee",
-                "value": "employee"
-              },
-              {
                 "label": "Rep",
                 "value": "rep"
               }
@@ -46812,10 +46774,6 @@
             {
               "label": "Manufacturer",
               "value": "manufacturer"
-            },
-            {
-              "label": "Employee",
-              "value": "employee"
             },
             {
               "label": "Rep",
@@ -52265,10 +52223,6 @@
                 "value": "manufacturer"
               },
               {
-                "label": "Employee",
-                "value": "employee"
-              },
-              {
                 "label": "Rep",
                 "value": "rep"
               }
@@ -52502,10 +52456,6 @@
             {
               "label": "Manufacturer",
               "value": "manufacturer"
-            },
-            {
-              "label": "Employee",
-              "value": "employee"
             },
             {
               "label": "Rep",
@@ -67870,10 +67820,6 @@
                 "value": "manufacturer"
               },
               {
-                "label": "Employee",
-                "value": "employee"
-              },
-              {
                 "label": "Rep",
                 "value": "rep"
               }
@@ -68111,10 +68057,6 @@
             {
               "label": "Manufacturer",
               "value": "manufacturer"
-            },
-            {
-              "label": "Employee",
-              "value": "employee"
             },
             {
               "label": "Rep",
@@ -82066,10 +82008,6 @@
                 "value": "manufacturer"
               },
               {
-                "label": "Employee",
-                "value": "employee"
-              },
-              {
                 "label": "Rep",
                 "value": "rep"
               }
@@ -82319,10 +82257,6 @@
             {
               "label": "Manufacturer",
               "value": "manufacturer"
-            },
-            {
-              "label": "Employee",
-              "value": "employee"
             },
             {
               "label": "Rep",

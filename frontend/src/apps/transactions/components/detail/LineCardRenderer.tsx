@@ -1,5 +1,5 @@
 /* LastChecked: 2026-08-03 | WhereUsed: UiDetail | WhoCreated: Claude */
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useAppSelector } from '@/store/hooks';
 import DataGrid from '@/components/common/DataGrid';
@@ -11,7 +11,8 @@ import MarginPanel from '../panels/MarginPanel';
 import SpecPanel from '../panels/SpecPanel';
 import XRefPanel from '../panels/XRefPanel';
 import CommissionPanel from '../panels/CommissionPanel';
-import { TransactionItemSearch, resolveItemCode, resolveItemDescription, resolveUnitPrice, resolveUnitCost, resolveQtyOnHand, DEFAULT_UNIT_COST_BASIS } from '../TransactionItemSearch';
+import { TransactionItemSearch, resolveItemCode, resolveItemDescription, resolveQtyOnHand } from '../TransactionItemSearch';
+import { priceLines } from '../../services/linePricing';
 import type { ItemSearchResult } from '../TransactionItemSearch';
 import { getNextLineNumber } from '../../utils/lineHelpers';
 import type { LineCardSection } from '@/hooks/useDetailLayout';
@@ -45,19 +46,19 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
   const [showItemSearch, setShowItemSearch] = useState(false);
   const isSellSide = section.family === 'sell';
   const companyInventory = useSelector((s: any) => s.company?.inventory) || {};
-  const unitCostBasis: string = useSelector((s: any) => s.company?.costing?.unit_cost_default) || DEFAULT_UNIT_COST_BASIS;
   const authUser = useAppSelector((s) => s.auth.user);
   const isStaff = authUser?.is_staff || authUser?.is_superuser || false;
 
-  const handleAddItem = useCallback((item: ItemSearchResult, quantity: number) => {
+  const pricingContext = useMemo(
+    () => ({ customerId: data?.customer_id, priceLevel: data?.price_level }),
+    [data?.customer_id, data?.price_level],
+  );
+
+  const handleAddItem = useCallback(async (item: ItemSearchResult, quantity: number) => {
     const itemId = item.id || item.item_id || item.itemId || 0;
     const itemCode = resolveItemCode(item);
     const description = resolveItemDescription(item);
-
-    // 1. Price level resolution — use order's price level, resolve from item's price matrix
     const priceLevel = data?.price_level || '';
-    const unitPrice = resolveUnitPrice(item, priceLevel);
-    const unitCost = resolveUnitCost(item, unitCostBasis);
 
     // 2. Minimum qty — enforce item's minimum order quantity
     const minQty = Number((item as any).qty_sale_default || (item as any).qtySaleDefault || (item as any).min_order_qty || 0);
@@ -65,6 +66,26 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
     if (minQty > 0 && quantity < minQty) {
       effectiveQty = minQty;
       dispatch(showToast({ message: `Minimum quantity for ${itemCode} is ${minQty}. Adjusted.`, type: 'info' }));
+    }
+
+    // 1. Price and cost — the server resolves both at this quantity (resolve_price /
+    //    resolve_cost); each carries the other's figure. The browser chooses neither.
+    let unitPrice = 0;
+    let unitCost = 0;
+    try {
+      const priced = await priceLines([{ item_id: Number(itemId), qty: effectiveQty }], pricingContext);
+      const figures = priced.lines[0];
+      unitPrice = figures.price.price;
+      unitCost = isSellSide ? figures.price.unit_cost : figures.cost.unit;
+      if (isSellSide && figures.price.below_margin_floor) {
+        dispatch(showToast({
+          message: `${itemCode}: $${unitPrice.toFixed(2)} is ${figures.price.margin_pct}% margin, below the ${figures.price.margin_floor}% floor`,
+          type: 'info', duration: 5000,
+        }));
+      }
+    } catch (err: any) {
+      dispatch(showToast({ message: `${itemCode}: could not price this line — ${err?.message || 'server error'}`, type: 'error' }));
+      return;
     }
 
     // 3. Available qty alert — warn if ordering more than available
@@ -136,7 +157,7 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
     };
 
     onLinesChange([...lines, newLine]);
-  }, [lines, data?.price_level, onLinesChange, dispatch, companyInventory, unitCostBasis]);
+  }, [lines, data?.price_level, pricingContext, isSellSide, onLinesChange, dispatch, companyInventory]);
 
   const lc = useLineCard({
     lines,
@@ -341,6 +362,7 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
           <TransactionItemSearch
             onAddItem={handleAddItem}
             useCost={!isSellSide}
+            pricing={pricingContext}
             defaultQuantity={1}
           />
         </div>

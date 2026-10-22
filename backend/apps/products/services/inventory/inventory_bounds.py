@@ -277,13 +277,9 @@ def _get_margin_factor(item_id: int) -> float:
 
     margin_pct = _safe_float(getattr(item, 'margin_pct', 0))
     if margin_pct <= 0:
-        # Try to compute from price/cost
-        price = item.price if isinstance(item.price, dict) else {}
-        cost = item.cost if isinstance(item.cost, dict) else {}
-        base_price = _safe_float(price.get('base'))
-        std_cost = _safe_float(cost.get('standard') or cost.get('avg') or cost.get('last'))
-        if base_price > 0 and std_cost > 0:
-            margin_pct = ((base_price - std_cost) / base_price) * 100
+        # Margin left at list price, at the company's cost basis (one costing behavior)
+        from apps.products.services.price_resolver import resolve_cost
+        margin_pct = _safe_float(resolve_cost(item).margin_pct)
 
     # Scale: 0% margin → 1.0x, 25% → 1.125x, 50% → 1.25x, 75% → 1.375x
     # Capped at 1.5x to avoid over-stocking even high-margin items

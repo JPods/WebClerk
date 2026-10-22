@@ -131,8 +131,8 @@ class BootstrapView(APIView):
             'order_defaults': prefs.get('order_defaults', {}),
             'price_levels': prefs.get('price_levels', {}),
             'inventory': prefs.get('inventory', {}),
-            # System costing defaults live in config.inventory; the line editor
-            # needs unit_cost_default to start a new line at the right cost.
+            # System costing defaults live in config.inventory, shown in settings. A new
+            # line's cost comes from the server (price_lines → resolve_cost), not from here.
             'costing': {
                 k: (config.get('inventory') or {}).get(k)
                 for k in ('costing_method', 'unit_cost_default', 'unit_cost_precision')

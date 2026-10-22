@@ -375,9 +375,10 @@ def user_price_level(user: AbstractUser) -> str:
     A customer sees their own price, not every tier — so a role's view_fields can
     say price.$user.price_level (Bill, 2026-09-17).
     """
+    from apps.products.services.price_resolver import named_price_level
     try:
         org = getattr(user, 'customer', None) or getattr(user, 'vendor', None)
-        return (getattr(org, 'price_level', '') or '').strip()
+        return named_price_level(getattr(org, 'price_level', '') or '')
     except Exception:
         return ''
 

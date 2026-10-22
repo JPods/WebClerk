@@ -5,9 +5,9 @@ import * as wcapi from '../../wcapi.js';
 import { read, format } from '../../pjpv.js';
 
 export async function renderCatalog(el) {
-  const user = wcapi.getUser();
-  // Determine price level from user prefs or default to retail
-  const priceLevel = read(user, 'prefs.price_level') || read(user, 'config.price_level') || 'retail';
+  // The server serves each item at this customer's price level (price.$user.price_level)
+  // and prices the order lines itself when the order is saved — catalog and quantity
+  // breaks included. The browser shows what it was given; it never chooses a price.
 
   el.innerHTML = `
     <div class="toolbar">
@@ -25,13 +25,13 @@ export async function renderCatalog(el) {
   let debounce = null;
   searchInput.addEventListener('input', () => {
     clearTimeout(debounce);
-    debounce = setTimeout(() => loadItems(resultsEl, searchInput.value, priceLevel), 300);
+    debounce = setTimeout(() => loadItems(resultsEl, searchInput.value), 300);
   });
 
-  await loadItems(resultsEl, '', priceLevel);
+  await loadItems(resultsEl, '');
 }
 
-async function loadItems(container, query, priceLevel) {
+async function loadItems(container, query) {
   try {
     const params = { limit: 50, is_active: true };
     if (query) params.search = query;
@@ -45,7 +45,7 @@ async function loadItems(container, query, priceLevel) {
     }
 
     container.innerHTML = items.map(item => {
-      const price = resolvePrice(item, priceLevel);
+      const [priceLevel, price] = servedPrice(item);
       const desc = read(item, 'catalog.web.short') || read(item, 'description') || '';
 
       return `
@@ -78,14 +78,13 @@ async function loadItems(container, query, priceLevel) {
 }
 
 /**
- * Resolve the price at the customer's level.
- * Cascade: requested level → retail → base → msrp
+ * The one price the server served for this customer: [level, amount], or ['', null]
+ * when the customer has no price level (the order is still priced on save).
  */
-function resolvePrice(item, level) {
-  return read(item, `price.${level}`)
-    || read(item, 'price.retail')
-    || read(item, 'price.base')
-    || read(item, 'price.msrp');
+function servedPrice(item) {
+  const price = item.price && typeof item.price === 'object' ? item.price : {};
+  const level = Object.keys(price).find(k => typeof price[k] === 'number' || typeof price[k] === 'string');
+  return level ? [level, Number(price[level])] : ['', null];
 }
 
 // --- Simple in-memory cart (shared with reorder view) ---

@@ -452,6 +452,22 @@ def _terms_are_named(obj, snapshot: Dict[str, Any]) -> None:
         obj.terms = ida
 
 
+def _price_level_is_named(obj, snapshot: Dict[str, Any]) -> None:
+    """Price levels are retail, wholesale, distributor and sample — only those (Bill,
+    2026-10-22). Orgs, documents and lines carry ``price_level``; when it changes, one of
+    the four in another case is stored lowercase, anything else is refused naming the four
+    (the invalid_terms pattern). A value already stored is left alone until rewritten."""
+    if 'price_level' not in {f.name for f in obj._meta.concrete_fields}:
+        return
+    if obj.price_level == snapshot.get('price_level'):
+        return
+    from apps.products.services.price_resolver import named_price_level
+    try:
+        obj.price_level = named_price_level(obj.price_level)
+    except ValueError as e:
+        raise Refused(400, 'invalid_price_level', str(e), [f'price_level: {e}'])
+
+
 # ── what this save changed ────────────────────────────────────────────
 
 def _snapshot(obj) -> Dict[str, Any]:
@@ -615,6 +631,7 @@ def _write(actor: Actor, obj, model_cls, model_key: str, norm_key: str, data: di
     snapshot = _snapshot(obj)
     size_warnings = _assign(obj, data, model_cls, model_key, norm_key, is_update)
     _terms_are_named(obj, snapshot)
+    _price_level_is_named(obj, snapshot)
     # After the payload, before the hooks: the hooks see the mark, and no payload sets it.
     _mark_new(obj, model_key, data, new)
 
@@ -732,7 +749,7 @@ def _portal_priced_lines(actor: Actor, lines: list, customer_id: int) -> list:
     sets the price at their price level. Nothing else they send reaches a line (no price, no
     pk). An item they cannot see (unpublished, or not in their catalog) is refused."""
     from apps.core.services.record_serialize import visible_queryset
-    from apps.products.services.price_resolver import resolve_price_legacy
+    from apps.products.services.price_resolver import flag_below_margin, resolve_price
     items = visible_queryset('item', actor=actor)[1]
     rebuilt = []
     for line in lines:
@@ -756,8 +773,9 @@ def _portal_priced_lines(actor: Actor, lines: list, customer_id: int) -> list:
         if item is None:
             raise Refused(400, 'item_not_available', f'Item {item_id} is not in your catalog.',
                           {'item_id': item_id})
-        unit = resolve_price_legacy(item.pk, customer_id=customer_id, qty=qty)['unit_price']
-        out.update(_dirty=True, quantity={'active': qty}, price={'unit': unit},
+        priced = resolve_price(item, customer_id=customer_id, qty=qty)
+        flag_below_margin(item, priced, customer_id)
+        out.update(_dirty=True, quantity={'active': qty}, price={'unit': float(priced.price)},
                    item={'item_id': item.pk, 'ida_item': item.ida, 'description': item.name or ''})
         rebuilt.append(out)
     return rebuilt

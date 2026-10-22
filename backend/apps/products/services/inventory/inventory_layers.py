@@ -446,12 +446,12 @@ def compute_margin_velocity(
         ).values_list('item_id', 'total_issued')
     )
 
+    from apps.products.services.price_resolver import list_price
     results = {}
     for item in qs:
         cost = item.cost if isinstance(item.cost, dict) else {}
-        price = item.price if isinstance(item.price, dict) else {}
         cost_avg = Decimal(str(cost.get('avg', 0) or 0))
-        sale_price = Decimal(str(price.get('base', 0) or price.get('retail', 0) or 0))
+        sale_price = list_price(item)
 
         if cost_avg <= 0 or sale_price <= 0:
             continue
@@ -588,44 +588,6 @@ def _get_costing_method(item: Item) -> str:
         pass
 
     return 'average'
-
-
-UNIT_COST_DEFAULT_OPTIONS = ('last', 'standard', 'avg', 'landed')
-
-
-def get_unit_cost_default() -> str:
-    """Which item cost a new line starts from: company profile
-    config.inventory.unit_cost_default, one of UNIT_COST_DEFAULT_OPTIONS.
-
-    Separate from costing_method, which values COGS. A missing or unknown value
-    is 'last' — what the company actually paid most recently.
-    """
-    try:
-        from apps.core.models import Setting
-        company = Setting.objects.filter(purpose='wc:company_profile', is_active=True).first()
-        inv = company.config.get('inventory', {}) if company and isinstance(company.config, dict) else {}
-        basis = inv.get('unit_cost_default') if isinstance(inv, dict) else None
-        if basis in UNIT_COST_DEFAULT_OPTIONS:
-            return basis
-    except Exception:
-        logger.exception('unit_cost_default: company profile unreadable')
-    return 'last'
-
-
-def item_unit_cost(item_cost, basis: Optional[str] = None) -> Decimal:
-    """Unit cost from an item.cost envelope at the given basis (company default
-    when None). An item with no cost at that basis yet falls to standard — a new
-    item has a standard cost before it has ever been bought."""
-    basis = basis or get_unit_cost_default()
-    cost = item_cost if isinstance(item_cost, dict) else {}
-    for key in (basis, 'standard'):
-        try:
-            value = Decimal(str(cost.get(key)))
-        except Exception:
-            continue
-        if value > 0:
-            return value
-    return Decimal('0')
 
 
 def _create_deficit_alert(item: Item, deficit_qty: Decimal, batch_id: str, reason: str):

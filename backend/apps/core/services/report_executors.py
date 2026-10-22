@@ -362,14 +362,11 @@ def _resolve_inventory_unit_cost(movement) -> Decimal:
             if cost != Decimal("0"):
                 return cost
 
+    # No layer actual: the item's cost from the one buy-side costing behavior.
     item = getattr(movement, "item", None)
     if item is not None:
-        item_cost = getattr(item, "cost", {}) or {}
-        for key in ("landed", "avg", "last", "standard"):
-            value = item_cost.get(key)
-            cost = _as_decimal(value)
-            if cost != Decimal("0"):
-                return cost
+        from apps.products.services.price_resolver import resolve_cost
+        return resolve_cost(item).unit
 
     return Decimal("0")
 

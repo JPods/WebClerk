@@ -4,11 +4,12 @@
  * Configurable to show price (for sales) or cost (for purchases) as the primary value
  */
 import { FormEvent, useCallback, useMemo, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 
 import { showToast } from "../../../store/slices/toastSlice";
 import { searchItems as searchItemsApi } from "@/api/wcapi";
 import { useItemCard } from "@/components/common/ItemCard";
+import { priceLines, type LineFigures, type LinePricingContext } from "../services/linePricing";
 
 // Generic item search result - supports various field naming conventions
 export interface ItemSearchResult {
@@ -67,83 +68,6 @@ export function resolveItemKey(item: ItemSearchResult): string {
   return id ? `item-${id}` : "";
 }
 
-/**
- * Resolve unit price based on price level
- * If item.price is an object with price levels (base, wholesale, distributor, sample),
- * looks up item.price[priceLevel], falling back to item.price.base if level not found.
- * priceLevel defaults to "retail" if null/undefined.
- * Note: "retail" and "base" are treated as equivalent.
- */
-export function resolveUnitPrice(
-  item: ItemSearchResult,
-  priceLevel?: string | null,
-): number {
-  // Default price level to "retail" if not provided ("retail" and "base" are equivalent)
-  const level = priceLevel || "retail";
-
-  // Check if item.price is an object with price levels
-  if (item.price && typeof item.price === "object") {
-    const priceObj = item.price as Record<string, unknown>;
-    // Try the requested price level first
-    // For "retail" also check "base", and vice versa (they are equivalent)
-    let levelValue = priceObj[level];
-    if (levelValue === undefined || levelValue === null) {
-      if (level === "retail") {
-        levelValue = priceObj.base;
-      } else if (level === "base") {
-        levelValue = priceObj.retail;
-      } else {
-        // Fall back to base/retail for other levels not found
-        levelValue = priceObj.base ?? priceObj.retail;
-      }
-    }
-    if (typeof levelValue === "number" && levelValue >= 0) return levelValue;
-    if (typeof levelValue === "string") {
-      const parsed = Number.parseFloat(levelValue);
-      if (!Number.isNaN(parsed) && parsed >= 0) return parsed;
-    }
-  }
-
-  // Fallback for non-object price fields
-  const candidates = [item.unit_price, item.price, item.priceA, item.price_a];
-  for (const candidate of candidates) {
-    if (typeof candidate === "number" && candidate >= 0) return candidate;
-    if (typeof candidate === "string") {
-      const parsed = Number.parseFloat(candidate);
-      if (!Number.isNaN(parsed) && parsed >= 0) return parsed;
-    }
-  }
-  return 0;
-}
-
-/** Which item cost a new line starts from. The company chooses it in the company
- *  profile (config.inventory.unit_cost_default, sent as company.costing); callers
- *  pass it in. Mirrors item_unit_cost() in inventory_layers.py. */
-export const DEFAULT_UNIT_COST_BASIS = "last";
-
-export function resolveUnitCost(item: ItemSearchResult, basis: string = DEFAULT_UNIT_COST_BASIS): number {
-  // item.cost is an object ({last, standard, avg, landed, ...}). A line starts
-  // from the company's chosen basis; standard only when that basis has no cost yet.
-  if (item.cost && typeof item.cost === "object") {
-    const costObj = item.cost as Record<string, unknown>;
-    for (const key of [basis, "standard"]) {
-      const v = costObj[key];
-      const n = typeof v === "number" ? v : typeof v === "string" ? Number.parseFloat(v) : NaN;
-      if (!Number.isNaN(n) && n > 0) return n;
-    }
-  }
-
-  const candidates = [item.unit_cost, item.cost, item.costA];
-  for (const candidate of candidates) {
-    if (typeof candidate === "number" && candidate >= 0) return candidate;
-    if (typeof candidate === "string") {
-      const parsed = Number.parseFloat(candidate);
-      if (!Number.isNaN(parsed) && parsed >= 0) return parsed;
-    }
-  }
-  return 0;
-}
-
 export function resolveQtyOnHand(item: ItemSearchResult): number {
   const candidates = [item.qty_on_hand, item.qtyOnHand];
   for (const candidate of candidates) {
@@ -165,6 +89,8 @@ interface TransactionItemSearchProps {
   valueLabel?: string;
   /** Default quantity for new items (defaults to 1) */
   defaultQuantity?: number;
+  /** The document's customer and price level — the server prices the results for them */
+  pricing?: LinePricingContext;
   /** Custom search function if not using default */
   searchFn?: (
     query: string,
@@ -178,6 +104,7 @@ export function TransactionItemSearch({
   onAddItem,
   useCost = false,
   valueLabel,
+  pricing,
   defaultQuantity = 1,
   searchFn,
 }: TransactionItemSearchProps) {
@@ -193,7 +120,8 @@ export function TransactionItemSearch({
 
   // Determine column header
   const priceHeader = valueLabel ?? (useCost ? "Unit Cost" : "Unit Price");
-  const unitCostBasis: string = useSelector((s: any) => s.company?.costing?.unit_cost_default) || DEFAULT_UNIT_COST_BASIS;
+  // Both figures per result, from the server (resolve_price / resolve_cost).
+  const [figures, setFigures] = useState<Record<number, LineFigures>>({});
 
   const handleSearch = useCallback(
     async (event?: FormEvent) => {
@@ -217,6 +145,15 @@ export function TransactionItemSearch({
         }
         const nextResults = res.data.results ?? [];
         setResults(nextResults);
+        const ids = nextResults
+          .map((r) => Number(r.id || r.item_id || r.itemId || 0))
+          .filter((id) => id > 0);
+        setFigures({});
+        if (ids.length) {
+          const priced = await priceLines(
+            ids.map((item_id) => ({ item_id, qty: defaultQuantity })), pricing);
+          setFigures(Object.fromEntries(priced.lines.map((l) => [l.item_id, l])));
+        }
         setQuantities((prev) => {
           const next: Record<string, number> = {};
           nextResults.forEach((result) => {
@@ -236,7 +173,7 @@ export function TransactionItemSearch({
         setLoading(false);
       }
     },
-    [dispatch, query, searchFn, defaultQuantity],
+    [dispatch, query, searchFn, defaultQuantity, pricing],
   );
 
   const handleQuantityChange = useCallback((key: string, value: string) => {
@@ -284,9 +221,24 @@ export function TransactionItemSearch({
     [dispatch, onAddItem, quantities, defaultQuantity],
   );
 
-  // Get unit value based on useCost flag
-  const getUnitValue = (item: ItemSearchResult): number => {
-    return useCost ? resolveUnitCost(item, unitCostBasis) : resolveUnitPrice(item);
+  // Each side shows the other's figure — the control (Bill, 2026-10-22).
+  const otherFigure = (item: ItemSearchResult): string => {
+    const f = figures[Number(item.id || item.item_id || item.itemId || 0)];
+    if (!f) return "";
+    const margin = (m: number | null) => (m === null ? "no margin (no cost)" : `${m.toFixed(1)}% margin`);
+    return useCost
+      ? `List $${f.cost.list_price.toFixed(2)} · ${margin(f.cost.margin_pct)} at list`
+      : `${f.price.resolved_by.replace("_", " ")}${f.price.price_level ? ` (${f.price.price_level})` : ""}` +
+        ` · cost $${f.price.unit_cost.toFixed(2)} (${f.price.cost_basis}) · ${margin(f.price.margin_pct)}` +
+        (f.price.below_margin_floor ? ` — below the ${f.price.margin_floor}% floor` : "");
+  };
+
+  // The server's figure for this result: price on the sell side, cost on the buy side.
+  // The line itself is repriced at its quantity when added.
+  const getUnitValue = (item: ItemSearchResult): number | null => {
+    const f = figures[Number(item.id || item.item_id || item.itemId || 0)];
+    if (!f) return null;
+    return useCost ? f.cost.unit : f.price.price;
   };
 
   return (
@@ -401,12 +353,16 @@ export function TransactionItemSearch({
                     <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-300">
                       {resolveQtyOnHand(item).toLocaleString()}
                     </td>
-                    <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-300">
-                      $
-                      {getUnitValue(item).toLocaleString(undefined, {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
+                    <td
+                      className="px-3 py-2 text-right text-gray-600 dark:text-gray-300"
+                      title={otherFigure(item)}
+                    >
+                      {getUnitValue(item) === null
+                        ? "…"
+                        : `$${getUnitValue(item)!.toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}`}
                     </td>
                     <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-300">
                       <input

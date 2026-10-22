@@ -159,11 +159,11 @@ export const DYNAMIC_LISTS: SelectListDef[] = [
     label: 'Price Level',
     editable: true,
     options: toOptions([
-      ['retail', 'Retail'],
-      ['wholesale', 'Wholesale'],
-      ['distributor', 'Distributor'],
-      ['employee', 'Employee'],
-      ['sample', 'Sample'],
+      // The four price levels; the word is the label (Bill, 2026-10-22).
+      ['retail', 'retail'],
+      ['wholesale', 'wholesale'],
+      ['distributor', 'distributor'],
+      ['sample', 'sample'],
     ]),
   },
   {

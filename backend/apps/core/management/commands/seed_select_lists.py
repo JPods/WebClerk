@@ -139,8 +139,10 @@ SELECT_LISTS = {
         },
         'price_level': {
             'label': 'Price Level',
-            'choices': ['A', 'B', 'C', 'D'],
-            'allow_custom': True,
+            # The four price levels (Bill, 2026-10-22); anything else is refused on save
+            # (save._price_level_is_named).
+            'choices': ['retail', 'wholesale', 'distributor', 'sample'],
+            'allow_custom': False,
         },
     },
 

@@ -67,13 +67,13 @@ class TrainingFlow:
 
     def _get_item_price(self) -> float:
         """Get item's base price."""
-        price = getattr(self.item, 'price', {}) or {}
-        return float(price.get('base', 0) or price.get('retail', 0) or 0)
+        from apps.products.services.price_resolver import resolve_price
+        return float(resolve_price(self.item).price)
 
     def _get_item_cost(self) -> float:
-        """Get item's standard cost."""
-        cost = getattr(self.item, 'cost', {}) or {}
-        return float(cost.get('standard', 0) or cost.get('avg', 0) or 0)
+        """The item's cost — resolve_cost, the one buy-side costing behavior."""
+        from apps.products.services.price_resolver import resolve_cost
+        return float(resolve_cost(self.item).unit)
 
     def _snapshot_inventory(self) -> Dict[str, float]:
         """Current inventory state for this item."""

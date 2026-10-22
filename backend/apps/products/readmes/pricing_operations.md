@@ -1,146 +1,189 @@
-# Pricing & Catalogs — Operations Guide
-**Built:** 2026-07-04 | **Source:** WC2 SpecialDiscount/PriceMatrix mining (27 files)
+# Pricing and Costing — One Behavior Each
+**Rebuilt:** 2026-10-22 (Bill: "Merge into one behavior … these should reference each other
+so users can see control.") | **Code:** `apps/products/services/price_resolver.py`
 
 ---
 
-## Overview
+## The rule
 
-One function resolves any price: `resolve_price(item, contact, qty, date)`. Returns the price, which cascade step determined it, margin %, and whether it's below floor. Below-margin prices never block shipment — flag and ship, review in dashboard.
+There is **one** sell-side pricing behavior, `resolve_price()`, and **one** buy-side
+costing behavior, `resolve_cost()`. Each result names the other's figure:
 
----
+| | Answers | Carries the other side's figure |
+|---|---|---|
+| `resolve_price(item, customer_id, qty, level)` → `PriceResolution` | What does this customer pay? | `unit_cost`, `cost_basis`, `margin_pct`, `margin_floor`, `below_margin_floor` |
+| `resolve_cost(item, basis)` → `CostResolution` | What does a new line cost us? | `list_price`, `margin_pct` (left at list) |
 
-## The Cascade (first match wins, no stacking)
+The browser never chooses a price level or a cost basis. It asks: manage action
+`price_lines` returns both figures per item, and the screens show them. The other side's
+figure is in the tooltip on the value, so a seller sees the cost under the price and a
+buyer sees the price over the cost.
 
-```
-1. price_locked          → manual override on the line — skip everything
-2. Catalog rule          → highest-priority matching catalog:
-   a. Universal %        → blanket % off all items
-   b. CatalogLine match  → by specific item, category, or vendor scope
-                            (a customer's negotiated price is a CatalogLine scoped to them)
-   c. Qty break          → min_qty/max_qty range on CatalogLine
-3. Contact price level   → wholesale/distributor/retail tier
-4. Item base price       → fallback
-```
-
-One path wins. The `resolved_by` field on PriceResolution tells you which step.
-
----
-
-## PriceResolution (what resolve_price returns)
-
-```python
-PriceResolution(
-    price=Decimal('59.49'),          # final unit price
-    base_price=Decimal('69.99'),     # item's base before adjustments
-    discount_pct=Decimal('15.0'),    # total discount applied
-    discount_amount=Decimal('10.50'),
-    resolved_by='catalog_line',      # which cascade step
-    catalog_id=5,                    # which catalog matched
-    catalog_name='Summer Sale 2026',
-    margin_pct=Decimal('51.53'),     # (price - cost) / cost × 100
-    below_margin_floor=False,
-    price_locked=False,
-)
-```
+The rule for what folds in is about behavior, not files. Code that **chooses** a cost basis
+or a price goes through these two functions. Code that only **reads** an actual stays a
+reader: inventory layers (FIFO/LIFO/avg valuation), landed cost on receipts, COGS, and the
+average cost in margin velocity.
 
 ---
 
-## Catalog Model
+## Flowchart
 
-```
-Catalog (the promotion/agreement)
-  ├── name                          "Summer Sale 2026"
-  ├── dt_effective_start / end      auto-expires, no cleanup needed
-  ├── priority                      higher wins when multiple match
-  ├── applies_to                    JSON: {contacts: [id], contact_types: ['wholesale'], all: false}
-  ├── is_universal_pct              true = blanket % on all items
-  ├── universal_pct                 the blanket % (when universal)
-  ├── margin_floor                  minimum margin % — below creates Action alert
-  ├── orgbase FK                    vendor/manufacturer who publishes
-  ├── customer_orgbase FK           target customer org (optional)
-  ├── connection FK                 sync connection for Ingrid integration
-  │
-  └── CatalogLine[] (the rules)
-       ├── item FK                  specific item (or null for scope-based)
-       ├── scope                    JSON: {items: [id], categories: [], vendors: [], all_items: false}
-       ├── adjustment_type          percent_off | fixed_price | amount_off | price_level
-       ├── adjustment_value         15.0 (meaning depends on type)
-       ├── min_qty / max_qty        qty break range (null = any)
-       ├── price_unit               fixed price override
-       ├── discount_percent         % off
-       └── discount_amount          $ off
-```
+```mermaid
+flowchart TD
+    subgraph SELL["Sell side: resolve_price"]
+        S0([item, customer, qty, level]) --> L{price_locked?}
+        L -- yes --> P1[manual price]
+        L -- no --> LV[level = line/header level<br/>else customer.price_level]
+        LV --> C{catalog assigned to customer<br/>with a line for this item?}
+        C -- yes --> P2[catalog line price<br/>tiers, fixed, % or amount off]
+        C -- no --> IL{item.price at level?}
+        IL -- yes --> P3[level price]
+        IL -- no --> P4[list price<br/>retail, else base]
+        P3 --> QB{qty break below it?}
+        P4 --> QB
+        QB -- yes --> P5[break price]
+        QB -- no --> U
+        P5 --> U{universal-% catalog<br/>assigned?}
+        U -- yes --> P6[% off]
+        U -- no --> M
+        P6 --> M
+        P1 --> M
+        P2 --> M
+        M[margin vs cost] --> F{below floor?<br/>catalog floor, else company<br/>profile minimum margin}
+        F -- yes --> FL[flag: Action when committed<br/>never blocks]
+        F -- no --> OUT1([PriceResolution])
+        FL --> OUT1
+    end
 
----
+    subgraph BUY["Buy side: resolve_cost"]
+        B0([item, basis]) --> NT{not tracked?<br/>labor, freight}
+        NT -- yes --> STD[cost.standard]
+        NT -- no --> BS[basis = given<br/>else company unit_cost_default<br/>last, standard, avg or landed]
+        BS --> HAS{cost at basis?}
+        HAS -- yes --> CB[that cost]
+        HAS -- no --> STD2{cost.standard?}
+        STD2 -- yes --> STD
+        STD2 -- no --> ANY[any cost it has<br/>avg, last, landed<br/>e.g. a BOM rollup]
+        CB --> OUT2([CostResolution])
+        STD --> OUT2
+        ANY --> OUT2
+    end
 
-## PO Line Default Cost (purchasing side)
-
-When creating a PO line, the default cost cascades:
-
-```
-1. ItemXRef.cost (this vendor's price for this item)
-2. Setting rule (last, avg, lowest_vendor, landed)
+    M -. unit_cost .-> OUT2
+    OUT2 -. list_price .-> P4
 ```
 
-The buying flow: Item → ItemXRef (vendor's part# and price) → PO line.
+---
 
-OrgItem, which once held the vendor×item price, was removed 2026-09-18.
+## Sell side in detail
 
-JSON viewer on PO lines shows ALL vendors for the item — not just this PO's vendor — plus the cost layer stack.
+1. **price_locked** — a manual price on the line. Nothing else runs.
+2. **Catalog line** — catalogs that are active, inside their dates, and **assigned to this
+   customer**, highest priority first. Assigned means `customer_orgbase` is the customer,
+   or `applies_to` holds `all: true`, the customer's id in `customers`, or the customer's
+   level in `price_levels`. A catalog assigned to no one prices for no one; a vendor's
+   catalog is not a customer's price list. The line matches the item directly, then by
+   scope (`all_items`, `categories`, `vendors`), within its `min_qty`/`max_qty`. Its price
+   comes from `items.pricing.tiers` by quantity if present, else its adjustment:
+   `fixed_price`, or `percent_off`/`amount_off` taken off the line's `price_unit` or the
+   level price.
+3. **Price level** — the level is the line's, else the header's, else the customer's.
+   `item.price[level]`. A level with no price sells at list.
+   - **Quantity break** — `item.price.qty_breaks` is `{min_qty, unit_price}` or
+     `{min_qty, variant_item_id}` (Item.save keeps only those keys). The highest break
+     the quantity reaches applies **when it is lower** than the level price. A break
+     never raises a customer's price.
+   - **Universal %** — a universal-% catalog assigned to the customer comes off last.
+4. **List price** — `item.price.retail`, else `item.price.base`.
+
+**Margin** is on price: `(price − cost) / price`. The floor is the catalog's
+`margin_floor`, else the company profile's `config.pricing.minimum_margin` (15 when
+unset). A floor of 0 still flags a sale below cost.
+`resolve_price` never writes. The callers that commit a price (portal order save, wcapi
+order, `apply_line_pricing`) call `flag_below_margin()`, which writes an informational
+Action. Shipment is never blocked.
+
+## Buy side in detail
+
+- A **not-tracked** item (labor, freight) is its `cost.standard` rate.
+- Otherwise the basis given, else the company profile `inventory.unit_cost_default`
+  (`last` when missing). An item with nothing at that basis falls to `standard`, since a
+  new item has a standard cost before it has ever been bought. Then it falls to any cost
+  it has (avg, last, landed), because a built item's BOM rollup lands in `cost.avg` and a
+  figure on the item should never be priced as zero. With nothing at all the cost is 0
+  and the basis is `none`. A BOM rollup reads that as "missing", not as zero.
+- `costing_method` (FIFO/LIFO/avg) is a different question. It values COGS from the
+  layers and is not a cost pick.
+
+## Price levels
+
+**retail, wholesale, distributor, sample** are the only levels (Bill, 2026-10-22). They are
+the `Item.price` keys. A save of any other value on an org, header or line is refused
+naming the four (`save._price_level_is_named`, the `invalid_terms` pattern). One in
+another case is stored lowercase. Migration `transactions/0052_price_level_words`
+rewrote the letters and case variants already stored.
 
 ---
 
-## Ingrid Integration (future — Stage 5)
+## Who calls what
 
-Manufacturer creates a Catalog → Ingrid pushes to resellers via Connection/Bundle sync → reseller's price_resolver picks it up automatically → catalog expires when period ends.
-
-The Catalog model already has the connection FK. Needs Connection execution layer to activate.
-
----
-
-## Margin Floor
-
-When `price_resolver` returns a price below the catalog's `margin_floor`:
-- Creates an informational Action (priority=low)
-- **Does NOT block shipment** — flag and ship, review in Commerce Dashboard
-- The Action says: "BB005 priced at $3.50 produces 12% margin, below floor of 20%"
-
----
-
-## Key Differences from WC2
-
-| WC2 | WC3 |
+| Caller | Calls |
 |---|---|
-| SpecialDiscount + ItemDiscount + PriceMatrix (3 separate mechanisms) | One Catalog model with CatalogLine rules |
-| TypeSale string matching for customer→catalog | Explicit applies_to JSON + customer_orgbase FK |
-| Five price columns (A/B/C/D/MSRP) on Item | price.tiers[] array with named levels |
-| Console warning for below-margin | Action alert (informational, never blocks) |
-| 36 pricing methods scattered | One `resolve_price()` function |
+| Staff line card, adding a line (`LineCardRenderer.tsx`) | `price_lines` → both figures at the line's quantity |
+| Staff item search, result column and tooltip (`TransactionItemSearch.tsx`) | `price_lines` for the results |
+| Portal order save (`core/services/save.py` `_portal_priced_lines`) | `resolve_price` + `flag_below_margin` |
+| wcapi order (`transactions/views/wcapi.py`) | `resolve_price` + `flag_below_margin` |
+| Clone, repricing a line (`record_clone.py` → `apply_line_pricing`) | `resolve_price` + `flag_below_margin` |
+| Server line service (`line_manage.LineItemService`) | `resolve_price` / `resolve_cost` when no explicit figure |
+| Convert order→purchase, purchase→receipt (`convert.py`) | `resolve_cost` |
+| BOM component cost (`component_unit_cost`) | `resolve_cost` |
+| BOM tree, user-chosen basis (`bom_ops.expand_tree`, BOMPanel) | `resolve_cost(basis=…)`; `min` = lower of avg and last |
+| Inventory report, movement without a layer actual (`report_executors.py`) | `resolve_cost` |
+| Reorder bounds margin (`inventory_bounds.py`) | `resolve_cost().margin_pct` |
+| Margin velocity (`inventory_layers.py`) | `list_price` (cost stays the layers' avg actual) |
+| Training flow | `resolve_price` / `resolve_cost` |
+| Portal catalog page (`portal/js/views/customer/catalog.js`) | shows the one level price the server serves (`price.$user.price_level`); the order is priced on save |
+
+Manage actions: `price_lines`, `resolve_price`, `resolve_cost`, `get_price_matrix`,
+`apply_line_pricing`.
+
+Out of scope: JPods ticketing (`apps/jpods/services/pricing.py`, its own fare levels).
 
 ---
 
-## Price Level Propagation
+## Alice coaching
 
-```
-Customer (OrgBase.price_level = "wholesale")
-  → Order.price_level = "wholesale" (inherited on create)
-    → OrderLine.price_level = "wholesale" (inherited from header)
-      → price_resolver uses Item.price.wholesale = $62.99
-```
+Seeded by `seed_coaching` (tips `cust-03/04`, `ord-03/04`, `po-03/04`, `item-03/04`, the
+`price_level` field help, and the "Pricing Architecture" document). What Alice says:
 
-- Prices are set at line creation — they do NOT auto-update when passing between transactions (quote→order→invoice) unless the user commands it.
-- Lines can be individually adjusted: discount, price_point change, manual override.
-- We are guides, not policemen. Users know what they are doing to stay in business.
-- We report on margins and margins by salesperson so management has visibility.
-
-No PriceLevel or PriceMatrix models needed — Item.price.tiers[] handles named levels, CatalogLine.min_qty/max_qty handles qty breaks.
+- *Price levels are retail, wholesale, distributor, sample — the only four. The customer's
+  level prices every line unless the document or line names another.*
+- *A catalog is a customer's price list. Assign it, and its prices beat the level for the
+  items it lists. A catalog assigned to no one prices for no one.*
+- *Hover a price: it names how it was reached, the cost under it, and the margin. That is
+  your control.*
+- *Below the margin floor is a flag, not a stop. It saves and ships, and an Action asks
+  whether the price was meant.*
+- *A new purchase line starts at the company cost basis. With nothing there it starts at
+  standard; labor and freight are always their standard rate.*
+- *Hover a cost: it names the list price it feeds and the margin left at list.*
+- *Quantity breaks only lower a price.*
 
 ---
 
-## Files
+## What changed (2026-10-22)
 
-| File | Purpose |
-|------|---------|
-| `apps/products/services/price_resolver.py` | resolve_price() + cascade logic |
-| `apps/products/models/catalog.py` | Catalog + CatalogLine models |
-| `apps/products/models/item_xref.py` | ItemXRef (vendor part number and price) |
+Seven sales paths and eight cost pickers became two functions. Gone:
+`resolve_price_legacy`, `get_price_for_line`, `resolve_price_level`, `resolve_unit_price`,
+the `_legacy_*` catalog helpers, `inventory_layers.item_unit_cost`/`get_unit_cost_default`,
+the browser's `resolveUnitPrice`/`resolveUnitCost`, `LineItemService.addItem` (frontend),
+and the item-picking in `line_manage`, `training_flow`, `report_executors` and the BOM.
+
+Behavior changes to know:
+- **Staff lines now get catalogs, quantity breaks and the customer's level.** Before,
+  the browser priced them, and item search ignored the level entirely.
+- **An unassigned catalog no longer applies to everyone.**
+- **Margin is on price everywhere.** One path used markup on cost.
+- **A quantity break no longer overrides a catalog price** and never raises a price.
+- **BOM component cost uses the company basis** (was avg → standard → last → landed);
+  the BOM tree's chosen basis falls to standard, then any cost (was: to avg).

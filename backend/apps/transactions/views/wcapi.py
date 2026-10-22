@@ -246,7 +246,7 @@ def _transaction_save_denial(actor, model_key: str, record_data: dict, lines_dat
     from apps.core.services.door import as_actor
     from apps.core.services.record_serialize import visible_queryset
     from apps.core.services.role_filter import get_user_filter_config
-    from apps.products.services.price_resolver import resolve_price_legacy
+    from apps.products.services.price_resolver import flag_below_margin, resolve_price
 
     actor = as_actor(actor)
     if actor.kind == 'public':
@@ -331,12 +331,13 @@ def _transaction_save_denial(actor, model_key: str, record_data: dict, lines_dat
         item = Item.objects.filter(pk=item_id, is_active=True).first()
         if item is None:
             return status.HTTP_400_BAD_REQUEST, f"Item {item_id} is not available"
-        quote = resolve_price_legacy(item_id, customer_id=customer_id, qty=qty)
+        quote = resolve_price(item, customer_id=customer_id, qty=qty)
+        flag_below_margin(item, quote, customer_id)
         priced_lines.append({
             "_dirty": True,
             "item": {"item_id": item.pk, "ida_item": item.ida, "description": getattr(item, "name", "") or ""},
             "quantity": {"active": qty},
-            "price": {"unit": quote["unit_price"]},
+            "price": {"unit": float(quote.price)},
         })
     if not priced_lines:
         return status.HTTP_400_BAD_REQUEST, "Order has no lines"

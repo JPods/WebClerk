@@ -8,15 +8,11 @@
  * Key behaviors:
  * - Sales transactions: price.unit is the primary value
  * - Purchase transactions: cost.unit is the primary value
+ * - A new line's price and cost come from the server (priceLines → resolve_price /
+ *   resolve_cost); nothing here chooses a price level or a cost basis.
  */
 
 import type { TransactionLine } from '../types/transactionTypes';
-import {
-  ItemSearchResult,
-  resolveItemDescription,
-  resolveUnitPrice,
-  resolveUnitCost,
-} from '../components/TransactionItemSearch';
 import { round } from './calculationUtils';
 
 // ============================================================================
@@ -36,14 +32,6 @@ export interface LineItemServiceConfig {
   transactionType: TransactionType;
   useCost: boolean;  // false for sales, true for purchase
   priceField: 'price' | 'cost';
-}
-
-export interface AddItemOptions {
-  quantity?: number;
-  unitPrice?: number;
-  unitCost?: number;
-  priceLevel?: string;
-  discountPercent?: number;
 }
 
 export interface LineCalculation {
@@ -141,26 +129,6 @@ function getDefaultCost(unitCost: number = 0, quantity: number = 0): Record<stri
   };
 }
 
-/**
- * Get default item envelope
- */
-function getDefaultItem(): Record<string, unknown> {
-  return {
-    item_id: null,
-    ida_item: '',
-    uuid_item: '',
-    description: '',
-    description_text: '',
-    time_lead: null,
-    locations: [],
-    unit_measure: 'EA',
-    sequence: 0,
-    line_number: 0,
-    is_active: true,
-    is_archived: false,
-  };
-}
-
 // ============================================================================
 // Line Item Service Class
 // ============================================================================
@@ -174,59 +142,6 @@ export class LineItemService {
       useCost: config.useCost ?? !isSalesTransaction(config.transactionType ?? 'order'),
       priceField: config.priceField ?? (isSalesTransaction(config.transactionType ?? 'order') ? 'price' : 'cost'),
     };
-  }
-
-  /**
-   * Create a new line from a catalog item search result
-   */
-  addItem(item: ItemSearchResult, quantity: number, options: AddItemOptions = {}): TransactionLine {
-    const description = resolveItemDescription(item);
-    const unitPrice = options.unitPrice ?? resolveUnitPrice(item);
-    const unitCost = options.unitCost ?? resolveUnitCost(item);
-    const itemId = item.id ?? item.item_id ?? item.itemId ?? null;
-    const unitMeasure = String(item.unit_of_measure ?? item.unitOfMeasure ?? item.unit_measure ?? 'EA');
-
-    // Build item envelope
-    const itemEnvelope = {
-      ...getDefaultItem(),
-      item_id: itemId,
-      // The Item's own ida, or blank for the server to fill (it must match the Item).
-      ida_item: String((item as any).ida ?? ''),
-      description: description,
-      description_text: description,
-      unit_measure: unitMeasure,
-    };
-
-    // Build quantity envelope
-    const quantityEnvelope = getDefaultQuantity(this.config.transactionType, quantity);
-
-    // Build price envelope (for sales transactions)
-    let priceEnvelope: Record<string, unknown> | undefined;
-    if (isSalesTransaction(this.config.transactionType)) {
-      priceEnvelope = getDefaultPrice(unitPrice, quantity);
-      
-      // Apply discount if provided
-      if (options.discountPercent) {
-        const gross = unitPrice * quantity;
-        const discountAmount = gross * (options.discountPercent / 100);
-        priceEnvelope.discount_percent = options.discountPercent;
-        priceEnvelope.discount_amount = round(discountAmount);
-      }
-    }
-
-    // Build cost envelope
-    const costEnvelope = getDefaultCost(unitCost, quantity);
-
-    // Construct the line
-    const newLine: TransactionLine = {
-      _dirty: true,
-      item: itemEnvelope,
-      quantity: quantityEnvelope,
-      cost: costEnvelope,
-      ...(priceEnvelope ? { price: priceEnvelope } : {}),
-    } as unknown as TransactionLine;
-
-    return newLine;
   }
 
   /**
@@ -538,21 +453,6 @@ export function createPurchaseLineItemService(transactionType: 'purchase' | 'wor
 // ============================================================================
 // Convenience Functions
 // ============================================================================
-
-/**
- * Add an item to a transaction's lines array (pure function)
- */
-export function addItemToLines(
-  lines: TransactionLine[],
-  item: ItemSearchResult,
-  quantity: number,
-  transactionType: TransactionType,
-  options: AddItemOptions = {}
-): TransactionLine[] {
-  const service = new LineItemService({ transactionType });
-  const newLine = service.addItem(item, quantity, options);
-  return [...lines, newLine];
-}
 
 /**
  * Update a line in an array by index

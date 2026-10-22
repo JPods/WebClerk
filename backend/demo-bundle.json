@@ -3660,12 +3660,6 @@
           "registration_number": ""
         },
         "pricing": {
-          "price_levels": {
-            "A": "Retail",
-            "B": "Wholesale",
-            "C": "Distributor",
-            "D": "Sample"
-          },
           "minimum_margin": 0,
           "total_precision": 2,
           "use_price_matrix": true,
@@ -4657,10 +4651,6 @@
             {
               "label": "Distributor",
               "value": "distributor"
-            },
-            {
-              "label": "Employee",
-              "value": "employee"
             },
             {
               "label": "Sample",
@@ -5748,10 +5738,6 @@
                 "value": "distributor"
               },
               {
-                "label": "Employee",
-                "value": "employee"
-              },
-              {
                 "label": "Sample",
                 "value": "sample"
               }
@@ -6222,10 +6208,6 @@
         },
         "userdefined": {},
         "price_levels": {
-          "A": "Retail",
-          "B": "Wholesale",
-          "C": "Distributor",
-          "D": "Sample",
           "use_price_matrix": true
         },
         "document_text": {
@@ -23324,10 +23306,6 @@
                 "value": "manufacturer"
               },
               {
-                "label": "Employee",
-                "value": "employee"
-              },
-              {
                 "label": "Rep",
                 "value": "rep"
               }
@@ -23577,10 +23555,6 @@
             {
               "label": "Manufacturer",
               "value": "manufacturer"
-            },
-            {
-              "label": "Employee",
-              "value": "employee"
             },
             {
               "label": "Rep",
@@ -28689,10 +28663,6 @@
                 "value": "manufacturer"
               },
               {
-                "label": "Employee",
-                "value": "employee"
-              },
-              {
                 "label": "Rep",
                 "value": "rep"
               }
@@ -28930,10 +28900,6 @@
             {
               "label": "Manufacturer",
               "value": "manufacturer"
-            },
-            {
-              "label": "Employee",
-              "value": "employee"
             },
             {
               "label": "Rep",
@@ -46493,10 +46459,6 @@
                 "value": "manufacturer"
               },
               {
-                "label": "Employee",
-                "value": "employee"
-              },
-              {
                 "label": "Rep",
                 "value": "rep"
               }
@@ -46746,10 +46708,6 @@
             {
               "label": "Manufacturer",
               "value": "manufacturer"
-            },
-            {
-              "label": "Employee",
-              "value": "employee"
             },
             {
               "label": "Rep",
@@ -52199,10 +52157,6 @@
                 "value": "manufacturer"
               },
               {
-                "label": "Employee",
-                "value": "employee"
-              },
-              {
                 "label": "Rep",
                 "value": "rep"
               }
@@ -52436,10 +52390,6 @@
             {
               "label": "Manufacturer",
               "value": "manufacturer"
-            },
-            {
-              "label": "Employee",
-              "value": "employee"
             },
             {
               "label": "Rep",
@@ -67804,10 +67754,6 @@
                 "value": "manufacturer"
               },
               {
-                "label": "Employee",
-                "value": "employee"
-              },
-              {
                 "label": "Rep",
                 "value": "rep"
               }
@@ -68045,10 +67991,6 @@
             {
               "label": "Manufacturer",
               "value": "manufacturer"
-            },
-            {
-              "label": "Employee",
-              "value": "employee"
             },
             {
               "label": "Rep",
@@ -82000,10 +81942,6 @@
                 "value": "manufacturer"
               },
               {
-                "label": "Employee",
-                "value": "employee"
-              },
-              {
                 "label": "Rep",
                 "value": "rep"
               }
@@ -82253,10 +82191,6 @@
             {
               "label": "Manufacturer",
               "value": "manufacturer"
-            },
-            {
-              "label": "Employee",
-              "value": "employee"
             },
             {
               "label": "Rep",
@@ -135801,7 +135735,7 @@
         "email_id": 15018,
         "phone_id": 3063,
         "domain_id": 493,
-        "price_level": "Wholesale",
+        "price_level": "wholesale",
         "terms": "Net 30",
         "contacts": [],
         "addresses": {
@@ -140340,7 +140274,7 @@
         "email_id": null,
         "phone_id": null,
         "domain_id": null,
-        "price_level": "B",
+        "price_level": "wholesale",
         "terms": "N30",
         "contacts": [],
         "addresses": {
@@ -140942,7 +140876,7 @@
         "email_id": null,
         "phone_id": null,
         "domain_id": null,
-        "price_level": "A",
+        "price_level": "retail",
         "terms": "N30",
         "contacts": [],
         "addresses": {
@@ -141544,7 +141478,7 @@
         "email_id": null,
         "phone_id": null,
         "domain_id": null,
-        "price_level": "C",
+        "price_level": "distributor",
         "terms": "N10",
         "contacts": [],
         "addresses": {
@@ -142146,7 +142080,7 @@
         "email_id": null,
         "phone_id": null,
         "domain_id": null,
-        "price_level": "A",
+        "price_level": "retail",
         "terms": "2pct10N30",
         "contacts": [],
         "addresses": {
@@ -142749,7 +142683,7 @@
         "email_id": null,
         "phone_id": null,
         "domain_id": null,
-        "price_level": "B",
+        "price_level": "wholesale",
         "terms": "N30",
         "contacts": [],
         "addresses": {
@@ -177364,7 +177298,7 @@
               "model_name": "quote",
               "dt_modified": 1787080319414,
               "is_archived": false,
-              "price_level": "A",
+              "price_level": "retail",
               "source_name": "",
               "address_full": "",
               "manufacturer": null,
@@ -178411,7 +178345,7 @@
             "phone_id": 3490
           }
         },
-        "price_level": "Wholesale",
+        "price_level": "wholesale",
         "terms": "Net 30",
         "conditions_id": null,
         "conditions_description": null,
@@ -180128,7 +180062,7 @@
             "phone_id": 3490
           }
         },
-        "price_level": "Wholesale",
+        "price_level": "wholesale",
         "terms": "Net 30",
         "conditions_id": null,
         "conditions_description": null,
@@ -181872,7 +181806,7 @@
             "phone_id": 3490
           }
         },
-        "price_level": "Wholesale",
+        "price_level": "wholesale",
         "terms": "Net 30",
         "conditions_id": null,
         "conditions_description": null,
@@ -183604,7 +183538,7 @@
             "phone_id": 3490
           }
         },
-        "price_level": "Wholesale",
+        "price_level": "wholesale",
         "terms": "Net 30",
         "conditions_id": null,
         "conditions_description": null,
@@ -185354,7 +185288,7 @@
             "phone_id": 3490
           }
         },
-        "price_level": "Wholesale",
+        "price_level": "wholesale",
         "terms": "Net 30",
         "conditions_id": null,
         "conditions_description": null,
@@ -187499,7 +187433,7 @@
             "phone_id": 9131
           }
         },
-        "price_level": "B",
+        "price_level": "wholesale",
         "terms": "N30",
         "conditions_id": null,
         "conditions_description": null,
@@ -187765,7 +187699,7 @@
             "phone_id": 7215
           }
         },
-        "price_level": "A",
+        "price_level": "retail",
         "terms": "N30",
         "conditions_id": null,
         "conditions_description": null,
@@ -188034,7 +187968,7 @@
             "phone_id": 3958
           }
         },
-        "price_level": "C",
+        "price_level": "distributor",
         "terms": "N10",
         "conditions_id": null,
         "conditions_description": null,
@@ -188437,7 +188371,7 @@
         "addresses": {},
         "emails": {},
         "phones": {},
-        "price_level": "Wholesale",
+        "price_level": "wholesale",
         "terms": null,
         "conditions_id": null,
         "conditions_description": null,
@@ -188887,7 +188821,7 @@
             "number": "5555550184"
           }
         },
-        "price_level": "B",
+        "price_level": "wholesale",
         "terms": "N30",
         "conditions_id": null,
         "conditions_description": null,
@@ -189337,7 +189271,7 @@
             "number": "5555550184"
           }
         },
-        "price_level": "B",
+        "price_level": "wholesale",
         "terms": "N30",
         "conditions_id": null,
         "conditions_description": null,
@@ -189979,7 +189913,7 @@
             "number": "5555550184"
           }
         },
-        "price_level": "B",
+        "price_level": "wholesale",
         "terms": "N30",
         "conditions_id": null,
         "conditions_description": null,
@@ -190442,7 +190376,7 @@
             "number": "5555550184"
           }
         },
-        "price_level": "B",
+        "price_level": "wholesale",
         "terms": "N30",
         "conditions_id": null,
         "conditions_description": null,
@@ -235783,7 +235717,7 @@
         "health_rating": 0,
         "line_number": 10,
         "line_type": "product",
-        "price_level": "B",
+        "price_level": "wholesale",
         "item_fk_id": 625,
         "item": {
           "item_id": 625,
@@ -235975,7 +235909,7 @@
         "health_rating": 0,
         "line_number": 10,
         "line_type": "product",
-        "price_level": "B",
+        "price_level": "wholesale",
         "item_fk_id": 625,
         "item": {
           "item_id": 625,
@@ -236167,7 +236101,7 @@
         "health_rating": 0,
         "line_number": 10,
         "line_type": "product",
-        "price_level": "B",
+        "price_level": "wholesale",
         "item_fk_id": 625,
         "item": {
           "item_id": 625,
@@ -236359,7 +236293,7 @@
         "health_rating": 0,
         "line_number": 10,
         "line_type": "product",
-        "price_level": "B",
+        "price_level": "wholesale",
         "item_fk_id": 625,
         "item": {
           "item_id": 625,
@@ -236854,7 +236788,7 @@
             "phone_id": 3490
           }
         },
-        "price_level": "Wholesale",
+        "price_level": "wholesale",
         "terms": "Net 30",
         "conditions_id": null,
         "conditions_description": "Standard|505|1",
@@ -238098,7 +238032,7 @@
             "phone_id": 3490
           }
         },
-        "price_level": "Wholesale",
+        "price_level": "wholesale",
         "terms": "Net 30",
         "conditions_id": null,
         "conditions_description": null,
@@ -240477,7 +240411,7 @@
             "phone_id": 3490
           }
         },
-        "price_level": "Wholesale",
+        "price_level": "wholesale",
         "terms": "Net 30",
         "conditions_id": null,
         "conditions_description": null,
@@ -241224,7 +241158,7 @@
             "phone_id": 9131
           }
         },
-        "price_level": "B",
+        "price_level": "wholesale",
         "terms": "N30",
         "conditions_id": null,
         "conditions_description": null,
@@ -241485,7 +241419,7 @@
             "phone_id": 7215
           }
         },
-        "price_level": "A",
+        "price_level": "retail",
         "terms": "N30",
         "conditions_id": null,
         "conditions_description": null,
@@ -242481,7 +242415,7 @@
         "addresses": {},
         "emails": {},
         "phones": {},
-        "price_level": "Wholesale",
+        "price_level": "wholesale",
         "terms": null,
         "conditions_id": null,
         "conditions_description": null,
@@ -242696,7 +242630,7 @@
         "addresses": {},
         "emails": {},
         "phones": {},
-        "price_level": "Wholesale",
+        "price_level": "wholesale",
         "terms": null,
         "conditions_id": null,
         "conditions_description": null,
@@ -242946,7 +242880,7 @@
             "number": "5555550184"
           }
         },
-        "price_level": "B",
+        "price_level": "wholesale",
         "terms": "N30",
         "conditions_id": null,
         "conditions_description": null,
@@ -261670,7 +261604,7 @@
         "health_rating": 0,
         "line_number": 10,
         "line_type": "product",
-        "price_level": "B",
+        "price_level": "wholesale",
         "item_fk_id": 625,
         "item": {
           "item_id": 625,
@@ -261860,7 +261794,7 @@
             "phone_id": 3490
           }
         },
-        "price_level": "Wholesale",
+        "price_level": "wholesale",
         "terms": "Net 30",
         "conditions_id": null,
         "conditions_description": null,
@@ -262158,7 +262092,7 @@
             "phone_id": 3490
           }
         },
-        "price_level": "Wholesale",
+        "price_level": "wholesale",
         "terms": "Net 30",
         "conditions_id": null,
         "conditions_description": null,
@@ -262389,7 +262323,7 @@
             "phone_id": 3490
           }
         },
-        "price_level": "Wholesale",
+        "price_level": "wholesale",
         "terms": "Net 30",
         "conditions_id": null,
         "conditions_description": null,
@@ -263365,7 +263299,7 @@
             "phone_id": 3490
           }
         },
-        "price_level": "Wholesale",
+        "price_level": "wholesale",
         "terms": "Net 30",
         "conditions_id": null,
         "conditions_description": null,
@@ -266098,7 +266032,7 @@
             "phone_id": 3490
           }
         },
-        "price_level": "Wholesale",
+        "price_level": "wholesale",
         "terms": "Net 30",
         "conditions_id": null,
         "conditions_description": null,
@@ -266367,7 +266301,7 @@
             "phone_id": 9131
           }
         },
-        "price_level": "B",
+        "price_level": "wholesale",
         "terms": "N30",
         "conditions_id": null,
         "conditions_description": null,
@@ -266605,7 +266539,7 @@
             "phone_id": 7215
           }
         },
-        "price_level": "A",
+        "price_level": "retail",
         "terms": "N30",
         "conditions_id": null,
         "conditions_description": null,
@@ -268569,7 +268503,7 @@
         "addresses": {},
         "emails": {},
         "phones": {},
-        "price_level": "Wholesale",
+        "price_level": "wholesale",
         "terms": null,
         "conditions_id": null,
         "conditions_description": null,
@@ -268837,7 +268771,7 @@
             "number": "5555550184"
           }
         },
-        "price_level": "B",
+        "price_level": "wholesale",
         "terms": "N30",
         "conditions_id": null,
         "conditions_description": null,
@@ -294896,7 +294830,7 @@
         "health_rating": 0,
         "line_number": 10,
         "line_type": "product",
-        "price_level": "B",
+        "price_level": "wholesale",
         "item_fk_id": 625,
         "item": {
           "item_id": 625,
@@ -297217,7 +297151,7 @@
             "phone_id": 5229
           }
         },
-        "price_level": "B",
+        "price_level": "wholesale",
         "terms": "N30",
         "conditions_id": null,
         "conditions_description": null,
@@ -312329,7 +312263,7 @@
         "health_rating": 0,
         "line_number": 10,
         "line_type": "product",
-        "price_level": "B",
+        "price_level": "wholesale",
         "item_fk_id": 625,
         "item": {
           "item_id": 625,
@@ -363554,10 +363488,6 @@
                   "value": "rep"
                 },
                 {
-                  "label": "Employee",
-                  "value": "employee"
-                },
-                {
                   "label": "Manufacturer",
                   "value": "manufacturer"
                 },
@@ -364086,10 +364016,6 @@
                 {
                   "label": "Rep",
                   "value": "rep"
-                },
-                {
-                  "label": "Employee",
-                  "value": "employee"
                 },
                 {
                   "label": "Manufacturer",
@@ -364622,10 +364548,6 @@
                   "value": "rep"
                 },
                 {
-                  "label": "Employee",
-                  "value": "employee"
-                },
-                {
                   "label": "Manufacturer",
                   "value": "manufacturer"
                 },
@@ -365156,10 +365078,6 @@
                   "value": "rep"
                 },
                 {
-                  "label": "Employee",
-                  "value": "employee"
-                },
-                {
                   "label": "Manufacturer",
                   "value": "manufacturer"
                 },
@@ -365688,10 +365606,6 @@
                 {
                   "label": "Rep",
                   "value": "rep"
-                },
-                {
-                  "label": "Employee",
-                  "value": "employee"
                 },
                 {
                   "label": "Manufacturer",

@@ -1,936 +1,484 @@
-"""Price resolver — single function that returns the correct price for any line.
+"""Pricing and costing — one behavior per side (Bill, 2026-10-22).
 
-Cascade (first match wins, no stacking):
-  1. price_locked (manual override on the line — skip everything)
-  2. Catalog rule match (scope + applies_to + date window, highest priority)
-     a. Universal % (blanket promo on all items)
-     b. CatalogLine match by scope (item, category, vendor)
-     c. Qty-break within a matching CatalogLine
-  3. Contact price level (wholesale/distributor/retail tier)
-  4. Item base price (fallback)
+    resolve_price(item, customer_id, qty, level)  →  PriceResolution   (sell side)
+    resolve_cost(item, basis)                     →  CostResolution    (buy side)
 
-A customer-specific negotiated price is a CatalogLine scoped to that customer
-(OrgItem, which once held it, was removed 2026-09-18).
+Each names the other's figure so users can see control: a price carries the cost it is
+measured against and its margin; a cost carries the list price it feeds and the margin
+left at list. Nothing else picks a price level or a cost basis — the browser asks the
+server (manage action ``price_lines``), and every server path calls these two.
 
-Returns a PriceResolution with full audit trail — which step resolved, catalog_id, discount.
-Below margin_floor triggers an Action for approval.
+Sell cascade (first match wins; quantity breaks and a universal % ride on the level price):
+  1. price_locked     — a manual price on the line; nothing else runs
+  2. catalog line     — a catalog assigned to this customer with a line for this item
+                        (by item, category, vendor or all_items; min/max qty)
+  3. price level      — explicit (line/header) else the customer's price_level:
+                        retail, wholesale, distributor or sample
+       + qty break    — item.price.qty_breaks at the quantity
+       + universal %  — a universal-% catalog assigned to this customer
+  4. list price       — item.price.retail, else item.price.base
+Then the margin floor: the catalog's margin_floor, else the company profile's
+config.pricing.minimum_margin (15 when unset; 0 still flags a sale below cost).
+Below the floor is flagged, never blocked — committing callers call flag_below_margin().
 
-Source: WC2 CalcDiscountedPrice, DscntSetPrice, OrdSetDiscount patterns.
+Cost basis: item.config.costing_method does not choose it (that values COGS); the
+company profile inventory.unit_cost_default does — last, standard, avg or landed. An
+item with nothing at that basis falls to standard, then to whatever cost it has (avg,
+last, landed — a built item's BOM rollup lands in avg). A not-tracked item (labor,
+freight) is always its standard rate.
+
+Readme: apps/products/readmes/pricing_operations.md (flowchart + Alice coaching).
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+import logging
+from dataclasses import asdict, dataclass
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Optional
+
 from django.db.models import Q
 from django.utils import timezone
 
+logger = logging.getLogger(__name__)
+
+CENT = Decimal('0.01')
+
+#: The price levels — the only ones (Bill, 2026-10-22); each is an Item.price key.
+PRICE_LEVELS = ('retail', 'wholesale', 'distributor', 'sample')
+
+#: Which item cost a new line starts from (company profile inventory.unit_cost_default).
+COST_BASES = ('last', 'standard', 'avg', 'landed')
+DEFAULT_COST_BASIS = 'last'
+
+DEFAULT_MINIMUM_MARGIN_PCT = Decimal('15')
+
+
+# ---------------------------------------------------------------------------
+# Price levels
+# ---------------------------------------------------------------------------
+
+def named_price_level(value) -> str:
+    """A price level as stored: one of the four words (in any case, stored lowercase);
+    blank stays blank. Anything else is refused, naming the four."""
+    text = str(value or '').strip()
+    if not text:
+        return ''
+    if text.lower() in PRICE_LEVELS:
+        return text.lower()
+    raise ValueError(f"Price level '{text}' is not a price level. "
+                     f"Use one of: {', '.join(PRICE_LEVELS)} — or leave it blank for "
+                     f"the customer's level.")
+
+
+# ---------------------------------------------------------------------------
+# Results
+# ---------------------------------------------------------------------------
 
 @dataclass
 class PriceResolution:
-    """The result of resolving a price — carries full audit trail."""
+    """A sell price and how it was reached — with the cost it is measured against."""
     price: Decimal                      # final unit price
-    base_price: Decimal                 # item's base price before adjustments
-    discount_pct: Decimal               # total discount applied (0 if none)
-    discount_amount: Decimal            # dollar amount of discount
-    resolved_by: str                    # which cascade step determined the price
-    catalog_id: Optional[int] = None    # catalog that matched (if any)
-    catalog_name: str = ''              # human-readable catalog name
+    list_price: Decimal                 # item's list price (retail, else base)
+    resolved_by: str                    # price_locked | catalog_line | price_level | list_price
+    price_level: str = ''               # level word used ('' when none)
+    qty_break: Optional[dict] = None    # the break applied, if any
+    catalog_id: Optional[int] = None
+    catalog_name: str = ''
     catalog_line_id: Optional[int] = None
-    price_level: str = ''               # price level used (if any)
-    margin_pct: Optional[Decimal] = None
-    below_margin_floor: bool = False    # true = needs approval
+    discount_pct: Decimal = Decimal('0')
+    discount_amount: Decimal = Decimal('0')   # list_price - price, never negative
+    unit_cost: Decimal = Decimal('0')   # the buy side's figure (resolve_cost)
+    cost_basis: str = ''
+    margin_pct: Optional[Decimal] = None      # (price - cost) / price
     margin_floor: Decimal = Decimal('0')
-    price_locked: bool = False          # was this a manual override?
+    below_margin_floor: bool = False
+    price_locked: bool = False
+
+    def as_dict(self) -> dict:
+        return _plain(asdict(self))
+
+
+@dataclass
+class CostResolution:
+    """A buy-side unit cost and its basis — with the list price it feeds."""
+    unit: Decimal                       # unit cost a new line starts from
+    basis: str                          # last | standard | avg | landed | none
+    list_price: Decimal                 # the sell side's figure
+    margin_pct: Optional[Decimal] = None      # margin left at list price
+
+    def as_dict(self) -> dict:
+        return _plain(asdict(self))
+
+
+def _plain(d: dict) -> dict:
+    return {k: (float(v) if isinstance(v, Decimal) else v) for k, v in d.items()}
+
+
+def _dec(value) -> Optional[Decimal]:
+    if value is None or value == '':
+        return None
+    try:
+        return Decimal(str(value))
+    except Exception:
+        return None
+
+
+def _margin(price: Decimal, cost: Decimal) -> Optional[Decimal]:
+    if price <= 0 or cost <= 0:
+        return None
+    return ((price - cost) / price * Decimal('100')).quantize(CENT, rounding=ROUND_HALF_UP)
+
+
+def _item(item):
+    if hasattr(item, 'price'):
+        return item
+    from apps.products.models.item import Item
+    try:
+        return Item.objects.get(pk=item)
+    except Item.DoesNotExist:
+        raise ValueError(f'Item #{item} not found')
+
+
+def list_price(item) -> Decimal:
+    """The item's list price — retail (level A), else base."""
+    price = item.price if isinstance(item.price, dict) else {}
+    for key in ('retail', 'base'):
+        value = _dec(price.get(key))
+        if value is not None and value > 0:
+            return value
+    return Decimal('0')
+
+
+# ---------------------------------------------------------------------------
+# Buy side
+# ---------------------------------------------------------------------------
+
+def _company_config(section: str) -> dict:
+    from apps.core.models import Setting
+    company = Setting.objects.filter(purpose='wc:company_profile', is_active=True).first()
+    out = company.config.get(section, {}) if company and isinstance(company.config, dict) else {}
+    return out if isinstance(out, dict) else {}
+
+
+def cost_basis_default() -> str:
+    """The company's unit_cost_default; a missing or unknown value is 'last' — what the
+    company actually paid most recently."""
+    try:
+        basis = _company_config('inventory').get('unit_cost_default')
+    except Exception:
+        logger.exception('unit_cost_default: company profile unreadable')
+        return DEFAULT_COST_BASIS
+    return basis if basis in COST_BASES else DEFAULT_COST_BASIS
+
+
+def resolve_cost(item, *, basis: Optional[str] = None) -> CostResolution:
+    """The unit cost a line starts from, and the list price it feeds.
+
+    A not-tracked item is its standard rate. Otherwise the basis (company default when
+    None); an item with nothing at that basis falls to standard — a new item has a
+    standard cost before it has ever been bought — then to any cost it has, so a figure
+    on the item is never priced as zero.
+    """
+    item = _item(item)
+    cost = item.cost if isinstance(item.cost, dict) else {}
+    first = basis or cost_basis_default()
+    keys = ('standard',) if item.is_not_tracked else (
+        first, 'standard', *[k for k in ('avg', 'last', 'landed') if k != first])
+    unit, used = Decimal('0'), 'none'
+    for key in keys:
+        value = _dec(cost.get(key))
+        if value is not None and value > 0:
+            unit, used = value, key
+            break
+    sell = list_price(item)
+    return CostResolution(unit=unit, basis=used, list_price=sell, margin_pct=_margin(sell, unit))
+
+
+# ---------------------------------------------------------------------------
+# Sell side
+# ---------------------------------------------------------------------------
+
+def _customer(customer_id):
+    if not customer_id:
+        return None
+    from apps.orgs.models.customer import Customer
+    return Customer.objects.filter(pk=customer_id).only('id', 'price_level').first()
+
+
+def _assigned_catalogs(customer, level: str, now_ms: int):
+    """Active catalogs, in their window, assigned to this customer — highest priority first.
+
+    Assigned means: the catalog's customer is this customer, or applies_to names it
+    (``all``, ``customers`` [org ids], ``price_levels`` [level words]). A catalog with
+    no assignment applies to no one — a vendor's catalog is not a customer's price list.
+    """
+    if customer is None:
+        return []
+    from apps.products.models.catalog import Catalog
+    catalogs = Catalog.objects.filter(is_active=True, dt_effective_start__lte=now_ms).filter(
+        Q(dt_effective_end__isnull=True) | Q(dt_effective_end__gte=now_ms)).order_by('-priority', 'id')
+    out = []
+    for catalog in catalogs:
+        applies = catalog.applies_to if isinstance(catalog.applies_to, dict) else {}
+        if (catalog.customer_orgbase_id == customer.pk
+                or applies.get('all')
+                or customer.pk in (applies.get('customers') or [])
+                or (level and level in (applies.get('price_levels') or []))):
+            out.append(catalog)
+    return out
+
+
+def _catalog_line(catalog, item, qty: Decimal):
+    """The catalog's line for this item at this quantity: a direct item line first, then
+    a scope line (all_items, categories, vendors)."""
+    from apps.products.models.catalog import CatalogLine
+
+    def fits(line):
+        return ((line.min_qty is None or qty >= line.min_qty)
+                and (line.max_qty is None or qty <= line.max_qty))
+
+    for line in CatalogLine.objects.filter(catalog=catalog, item=item).order_by('id'):
+        if fits(line):
+            return line
+    item_cats = (item.catalog or {}).get('categories', []) if isinstance(item.catalog, dict) else []
+    for line in CatalogLine.objects.filter(catalog=catalog, item__isnull=True).order_by('id'):
+        scope = line.scope if isinstance(line.scope, dict) else {}
+        if not fits(line):
+            continue
+        if (scope.get('all_items')
+                or any(c in (scope.get('categories') or []) for c in item_cats)
+                or (item.vendor_id and item.vendor_id in (scope.get('vendors') or []))):
+            return line
+    return None
+
+
+def _catalog_line_price(line, level_price: Decimal, qty: Decimal) -> tuple[Decimal, Decimal, Optional[dict]]:
+    """(price, discount_pct, qty_break) from a catalog line. Tiers in items.pricing win;
+    otherwise the adjustment, taken off the line's price_unit or the level price."""
+    pricing = (line.items or {}).get('pricing', {}) if isinstance(line.items, dict) else {}
+    tier = None
+    for t in sorted(pricing.get('tiers') or [], key=lambda t: t.get('min_qty', 0) or 0):
+        if qty >= Decimal(str(t.get('min_qty', 0) or 0)) and _dec(t.get('price')) is not None:
+            tier = t
+    if tier is not None:
+        return _dec(tier['price']), Decimal('0'), {'min_qty': tier.get('min_qty', 0), 'catalog_tier': True}
+
+    adj_type = line.adjustment_type or 'percent_off'
+    adj_value = _dec(line.adjustment_value) or Decimal('0')
+    start = _dec(line.price_unit) or level_price
+    if adj_type == 'fixed_price':
+        return (_dec(line.price_unit) or adj_value), Decimal('0'), None
+    if adj_type == 'amount_off':
+        amount = _dec(line.discount_amount) or adj_value
+        return max(Decimal('0'), start - amount), Decimal('0'), None
+    if adj_type == 'percent_off':
+        pct = _dec(line.discount_percent) or adj_value
+        return start * (Decimal('100') - pct) / Decimal('100'), pct, None
+    return start, Decimal('0'), None
+
+
+def _level_price(item, level: str, qty: Decimal) -> tuple[Decimal, str, Optional[dict]]:
+    """(price, resolved_by, qty_break) at a level: the item's price for the level, else
+    list price; then the highest quantity break the quantity reaches, when it is lower.
+
+    A break is {min_qty, unit_price} or {min_qty, variant_item_id} (whose list price
+    applies) — Item.save keeps only those keys, so a break is one price for every level,
+    and it never raises a customer's price above their level's."""
+    price = item.price if isinstance(item.price, dict) else {}
+    at_level = _dec(price.get(level)) if level else None
+    unit, by = (at_level, 'price_level') if at_level is not None and at_level > 0 else (list_price(item), 'list_price')
+    best, applied = unit, None
+    for brk in sorted([b for b in price.get('qty_breaks') or [] if isinstance(b, dict)],
+                      key=lambda b: b.get('min_qty', 0) or 0):
+        if qty < Decimal(str(brk.get('min_qty', 0) or 0)):
+            break
+        value = _dec(brk.get('unit_price'))
+        if value is None and brk.get('variant_item_id'):
+            from apps.products.models.item import Item
+            variant = Item.objects.filter(pk=brk['variant_item_id']).first()
+            value = list_price(variant) if variant else None
+        if value is not None:
+            best = value
+            applied = {k: brk[k] for k in brk}
+    if applied is not None and best < unit:
+        return best, by, applied
+    return unit, by, None
+
+
+def _minimum_margin_pct() -> Decimal:
+    """The company floor: company profile config.pricing.minimum_margin (15 when unset)."""
+    value = _dec(_company_config('pricing').get('minimum_margin'))
+    return DEFAULT_MINIMUM_MARGIN_PCT if value is None else value
 
 
 def resolve_price(
-    item_id: int,
+    item,
     *,
-    contact_id: Optional[int] = None,
-    qty: Decimal = Decimal('1'),
-    date_ms: Optional[int] = None,
-    price_locked_value: Optional[Decimal] = None,
+    customer_id: Optional[int] = None,
+    qty=1,
+    level: Optional[str] = None,
+    as_of_ms: Optional[int] = None,
+    price_locked_value=None,
 ) -> PriceResolution:
-    """Resolve the correct price for an item+contact+qty combination.
+    """The unit price for an item, to a customer, at a quantity — and the cost under it.
 
-    This is the single entry point for all pricing decisions.
+    ``level`` is an explicit level (the line's, else the header's); when blank the
+    customer's price_level applies. Never writes: below-floor results are flagged by
+    the caller that commits the price (flag_below_margin).
     """
-    from apps.products.models.item import Item
-    from apps.products.models.catalog import Catalog, CatalogLine
+    item = _item(item)
+    qty = Decimal(str(qty or 1))
+    now_ms = as_of_ms or int(timezone.now().timestamp() * 1000)
+    cost = resolve_cost(item)
+    listed = list_price(item)
+    customer = _customer(customer_id)
+    company_floor = _minimum_margin_pct()
+    level = named_price_level(level) or named_price_level(getattr(customer, 'price_level', '') or '')
 
-    item = Item.objects.get(id=item_id)
-    now_ms = date_ms or int(timezone.now().timestamp() * 1000)
+    def done(price, resolved_by, *, floor=None, **kw) -> PriceResolution:
+        price = Decimal(str(price)).quantize(CENT, rounding=ROUND_HALF_UP)
+        margin = _margin(price, cost.unit)
+        floor = floor if floor else company_floor
+        return PriceResolution(
+            price=price, list_price=listed, resolved_by=resolved_by, price_level=level,
+            discount_amount=max(Decimal('0'), listed - price) if listed > 0 else Decimal('0'),
+            unit_cost=cost.unit, cost_basis=cost.basis, margin_pct=margin, margin_floor=floor,
+            below_margin_floor=margin is not None and margin < floor, **kw)
 
-    # Item base price
-    price_data = item.price if isinstance(item.price, dict) else {}
-    base_price = Decimal(str(price_data.get('base') or price_data.get('retail') or 0))
-    cost_avg = Decimal(str((item.cost or {}).get('avg', 0) or 0))
-
-    # --- Step 1: Manual override ---
     if price_locked_value is not None:
-        return _build_result(price_locked_value, base_price, cost_avg, 'price_locked',
-                             price_locked=True)
+        return done(price_locked_value, 'price_locked', price_locked=True)
 
-    # --- Step 2: Catalog rules ---
-    catalog_result = _check_catalogs(item, contact_id, qty, now_ms, base_price)
-    if catalog_result is not None:
-        result = _build_result(catalog_result['price'], base_price, cost_avg, catalog_result['resolved_by'],
-                               catalog_id=catalog_result.get('catalog_id'),
-                               catalog_name=catalog_result.get('catalog_name', ''),
-                               catalog_line_id=catalog_result.get('catalog_line_id'),
-                               discount_pct=catalog_result.get('discount_pct', Decimal('0')))
-        # Check margin floor
-        if catalog_result.get('margin_floor') and result.margin_pct is not None:
-            if result.margin_pct < catalog_result['margin_floor']:
-                result.below_margin_floor = True
-                result.margin_floor = catalog_result['margin_floor']
-                _create_margin_approval(item, result, contact_id)
-        return result
-
-    # --- Step 3: Contact price level ---
-    if contact_id:
-        level_price = _check_contact_price_level(item, contact_id, price_data)
-        if level_price is not None:
-            return _build_result(level_price['price'], base_price, cost_avg, 'contact_price_level',
-                                 price_level=level_price['level'])
-
-    # --- Step 4: Item base price (fallback) ---
-    return _build_result(base_price, base_price, cost_avg, 'base_price')
-
-
-# ---------------------------------------------------------------------------
-# Cascade helpers
-# ---------------------------------------------------------------------------
-
-
-def _check_catalogs(item, contact_id, qty, now_ms, base_price) -> Optional[dict]:
-    """Check active catalogs for matching rules. Highest priority wins."""
-    from apps.products.models.catalog import Catalog, CatalogLine
-
-    # Find active catalogs within date window
-    catalogs = Catalog.objects.filter(
-        is_active=True,
-        dt_effective_start__lte=now_ms,
-    ).filter(
-        Q(dt_effective_end__isnull=True) | Q(dt_effective_end__gte=now_ms)
-    ).order_by('-priority')
+    catalogs = _assigned_catalogs(customer, level, now_ms)
+    level_unit, by, qty_break = _level_price(item, level, qty)
 
     for catalog in catalogs:
-        # Check if catalog applies to this contact
-        if not _catalog_applies_to_contact(catalog, contact_id):
+        if catalog.is_universal_pct:
             continue
+        line = _catalog_line(catalog, item, qty)
+        if line is not None:
+            price, pct, tier = _catalog_line_price(line, level_unit, qty)
+            return done(price, 'catalog_line', floor=_dec(catalog.margin_floor),
+                        catalog_id=catalog.pk, catalog_name=catalog.name,
+                        catalog_line_id=line.pk, discount_pct=pct, qty_break=tier)
 
-        # Universal % mode
-        if catalog.is_universal_pct and catalog.universal_pct:
-            pct = Decimal(str(catalog.universal_pct))
-            price = (base_price * (Decimal('100') - pct) / Decimal('100')).quantize(Decimal('0.01'))
-            return {
-                'price': price,
-                'resolved_by': 'catalog_universal_pct',
-                'catalog_id': catalog.id,
-                'catalog_name': catalog.name,
-                'discount_pct': pct,
-                'margin_floor': Decimal(str(catalog.margin_floor)) if catalog.margin_floor else None,
-            }
-
-        # Per-line rules
-        line = _find_matching_catalog_line(catalog, item, qty)
-        if line:
-            price = _apply_catalog_line(line, base_price, qty)
-            return {
-                'price': price,
-                'resolved_by': 'catalog_line',
-                'catalog_id': catalog.id,
-                'catalog_name': catalog.name,
-                'catalog_line_id': line.id,
-                'discount_pct': Decimal(str(line.discount_percent or line.adjustment_value or 0)),
-                'margin_floor': Decimal(str(catalog.margin_floor)) if catalog.margin_floor else None,
-            }
-
-    return None
+    universal = next((c for c in catalogs if c.is_universal_pct and (c.universal_pct or 0) > 0), None)
+    if universal is not None:
+        pct = Decimal(str(universal.universal_pct))
+        return done(level_unit * (Decimal('100') - pct) / Decimal('100'), by,
+                    floor=_dec(universal.margin_floor), qty_break=qty_break, discount_pct=pct,
+                    catalog_id=universal.pk, catalog_name=universal.name)
+    return done(level_unit, by, qty_break=qty_break)
 
 
-def _catalog_applies_to_contact(catalog, contact_id) -> bool:
-    """Check if a catalog's applies_to scope includes this contact."""
-    applies = catalog.applies_to if isinstance(catalog.applies_to, dict) else {}
+def flag_below_margin(item, result: PriceResolution, customer_id: Optional[int] = None) -> None:
+    """An informational Action when a committed price is below its margin floor.
 
-    # If applies_to is empty or all=true, catalog applies to everyone
-    if not applies or applies.get('all', False):
-        return True
-
-    # Check specific contact IDs
-    contact_ids = applies.get('contacts', [])
-    if contact_id and contact_id in contact_ids:
-        return True
-
-    # Check contact types (requires DB lookup)
-    contact_types = applies.get('contact_types', [])
-    if contact_types and contact_id:
-        try:
-            from apps.core.models.contact import Contact
-            contact = Contact.objects.filter(id=contact_id).values_list('metadata', flat=True).first()
-            if isinstance(contact, dict):
-                ctype = contact.get('customer_type', '')
-                if ctype in contact_types:
-                    return True
-        except Exception:
-            pass
-
-    # Check by customer org FK on catalog
-    if catalog.customer_orgbase_id and contact_id:
-        try:
-            from apps.orgs.models.base import OrgBase
-            org = OrgBase.objects.filter(contacts__id=contact_id, id=catalog.customer_orgbase_id).exists()
-            if org:
-                return True
-        except Exception:
-            pass
-
-    return False
-
-
-def _find_matching_catalog_line(catalog, item, qty):
-    """Find the best matching CatalogLine for an item within a catalog."""
-    from apps.products.models.catalog import CatalogLine
-
-    # Direct item match first
-    line = CatalogLine.objects.filter(catalog=catalog, item=item).first()
-    if line and _qty_in_range(line, qty):
-        return line
-
-    # Scope-based match (category, vendor, all_items)
-    lines = CatalogLine.objects.filter(catalog=catalog, item__isnull=True).order_by('id')
-    for line in lines:
-        scope = line.scope if isinstance(line.scope, dict) else {}
-        if scope.get('all_items', False) and _qty_in_range(line, qty):
-            return line
-        # Check category match
-        categories = scope.get('categories', [])
-        if categories:
-            item_cats = (item.catalog or {}).get('categories', []) if isinstance(item.catalog, dict) else []
-            if any(c in categories for c in item_cats) and _qty_in_range(line, qty):
-                return line
-        # Check vendor match
-        vendors = scope.get('vendors', [])
-        if vendors and item.vendor_id and item.vendor_id in vendors and _qty_in_range(line, qty):
-            return line
-
-    return None
-
-
-def _qty_in_range(line, qty) -> bool:
-    """Check if qty falls within a CatalogLine's min/max range."""
-    if line.min_qty is not None and qty < line.min_qty:
-        return False
-    if line.max_qty is not None and qty > line.max_qty:
-        return False
-    return True
-
-
-def _apply_catalog_line(line, base_price, qty) -> Decimal:
-    """Apply a CatalogLine's adjustment to the base price."""
-    adj_type = line.adjustment_type or 'percent_off'
-    adj_value = Decimal(str(line.adjustment_value or 0))
-
-    if adj_type == 'fixed_price':
-        return Decimal(str(line.price_unit or adj_value))
-    elif adj_type == 'percent_off':
-        pct = Decimal(str(line.discount_percent or adj_value or 0))
-        return (base_price * (Decimal('100') - pct) / Decimal('100')).quantize(Decimal('0.01'))
-    elif adj_type == 'amount_off':
-        amt = Decimal(str(line.discount_amount or adj_value or 0))
-        return max(Decimal('0'), base_price - amt)
-    elif adj_type == 'price_level':
-        # adj_value names the level: 'wholesale', 'distributor', etc.
-        # Handled by _check_contact_price_level pattern
-        return base_price
-
-    return base_price
-
-
-def _check_contact_price_level(item, contact_id, price_data) -> Optional[dict]:
-    """Check if the contact has a price level that maps to an item price tier."""
-    try:
-        from apps.core.models.contact import Contact
-        contact = Contact.objects.filter(id=contact_id).first()
-        if not contact:
-            return None
-
-        # Get price level from contact metadata or prefs
-        meta = contact.metadata if isinstance(contact.metadata, dict) else {}
-        level = meta.get('price_level', '')
-
-        if not level:
-            prefs = contact.prefs if isinstance(contact.prefs, dict) else {}
-            level = prefs.get('price_level', '')
-
-        if not level:
-            return None
-
-        # Map level to item price
-        level_lower = level.lower()
-        tiers = price_data.get('tiers', [])
-        for tier in tiers:
-            if isinstance(tier, dict) and tier.get('level', '').lower() == level_lower:
-                tier_price = tier.get('price')
-                if tier_price is not None:
-                    return {'price': Decimal(str(tier_price)), 'level': level}
-
-        # Check named price fields
-        level_map = {'wholesale': 'wholesale', 'distributor': 'distributor',
-                     'retail': 'retail', 'sample': 'sample', 'msrp': 'msrp'}
-        field = level_map.get(level_lower)
-        if field and price_data.get(field):
-            return {'price': Decimal(str(price_data[field])), 'level': level}
-
-    except Exception:
-        pass
-    return None
-
-
-# ---------------------------------------------------------------------------
-# Result builder + margin check
-# ---------------------------------------------------------------------------
-
-def _build_result(
-    price: Decimal,
-    base_price: Decimal,
-    cost_avg: Decimal,
-    resolved_by: str,
-    **kwargs,
-) -> PriceResolution:
-    """Build a PriceResolution with computed margin and discount."""
-    discount_pct = kwargs.pop('discount_pct', Decimal('0'))
-    discount_amount = base_price - price if base_price > 0 else Decimal('0')
-
-    margin_pct = None
-    if cost_avg > 0:
-        margin_pct = ((price - cost_avg) / cost_avg * Decimal('100')).quantize(Decimal('0.01'))
-
-    return PriceResolution(
-        price=price.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP),
-        base_price=base_price,
-        discount_pct=discount_pct,
-        discount_amount=max(Decimal('0'), discount_amount),
-        resolved_by=resolved_by,
-        margin_pct=margin_pct,
-        **kwargs,
-    )
-
-
-def _create_margin_approval(item, result: PriceResolution, contact_id: Optional[int]):
-    """Create an informational Action when price falls below margin floor.
-
-    Does NOT block shipment — flag and ship, review in the sales dashboard.
+    Never blocks the price or the shipment — flag and ship, review in the sales dashboard.
     """
+    if not result.below_margin_floor:
+        return
+    item = _item(item)
     try:
         from apps.core.models.action import Action
+        source = f'Catalog: {result.catalog_name} (#{result.catalog_id}). ' if result.catalog_id else ''
         Action.objects.create(
             action={'en': f'Below-margin price: {item.ida or item.name}'},
             description={'en': (
-                f'{item.ida} priced at ${result.price} produces {result.margin_pct}% margin, '
-                f'below floor of {result.margin_floor}%. '
-                f'Catalog: {result.catalog_name} (#{result.catalog_id}). '
-                f'Contact: #{contact_id}. Review in sales dashboard.'
+                f'{item.ida} priced at ${result.price} ({result.resolved_by}) against cost '
+                f'${result.unit_cost} ({result.cost_basis}) is {result.margin_pct}% margin, '
+                f'below the {result.margin_floor}% floor. {source}'
+                f'Customer: #{customer_id}. Review in sales dashboard.'
             )},
             status='Backlog',
             priority=1,            # low
         )
     except Exception:
-        # Never blocks the price; said out loud (Axiom 6) — it was silently failing
-        # on a field Action does not have (title) and no alert was ever made.
-        import logging
-        logging.getLogger(__name__).error('below-margin alert Action not created', exc_info=True)
+        # Never blocks the price; said out loud (Axiom 6).
+        logger.error('below-margin alert Action not created', exc_info=True)
 
 
 # ---------------------------------------------------------------------------
-# Legacy price helpers (merged from pricing.py)
+# Callers' doors
 # ---------------------------------------------------------------------------
 
-# Default price level when no level is set anywhere in the chain
-DEFAULT_PRICE_LEVEL = 'base'
+def price_lines(items: list, *, customer_id: Optional[int] = None, level: Optional[str] = None) -> dict:
+    """Both figures for a set of items — what the browser shows before a line is saved.
 
-# Valid price levels (keys in Item.price JSON)
-VALID_PRICE_LEVELS = ('base', 'msrp', 'retail', 'wholesale', 'distributor', 'sample')
-
-
-def resolve_price_level(
-    customer_level: Optional[str] = None,
-    header_level: Optional[str] = None,
-    line_level: Optional[str] = None,
-) -> str:
-    """Determine the effective price level from the chain.
-
-    Priority: line > header > customer > default.
-    Returns a valid price level key.
+    items: [{item_id, qty}]. Returns {level, lines: [{item_id, qty, price, cost}]}.
     """
-    for level in (line_level, header_level, customer_level):
-        if level and level.strip():
-            cleaned = level.strip().lower()
-            if cleaned in VALID_PRICE_LEVELS:
-                return cleaned
-    return DEFAULT_PRICE_LEVEL
-
-
-def resolve_unit_price(
-    item_price: dict,
-    price_level: str,
-    quantity: float = 1.0,
-) -> Decimal:
-    """Resolve the unit price for an item at a given level and quantity.
-
-    Args:
-        item_price: The Item.price JSON dict (has keys: base, retail, wholesale, etc.)
-        price_level: Resolved price level key (from resolve_price_level)
-        quantity: Order quantity — used for quantity break lookup
-
-    Returns:
-        Decimal unit price. Falls back through: level -> base -> 0.
-    """
-    if not isinstance(item_price, dict):
-        return Decimal('0')
-
-    # Try the requested level
-    level_price = item_price.get(price_level)
-    if level_price is not None and level_price != '':
-        try:
-            unit = Decimal(str(level_price))
-        except Exception:
-            unit = Decimal('0')
-    else:
-        # Fallback to base
-        base = item_price.get('base')
-        if base is not None and base != '':
-            try:
-                unit = Decimal(str(base))
-            except Exception:
-                unit = Decimal('0')
-        else:
-            return Decimal('0')
-
-    # Apply quantity breaks if defined
-    qty_breaks = item_price.get('qty_breaks')
-    if isinstance(qty_breaks, list) and qty_breaks:
-        for brk in reversed(qty_breaks):
-            if not isinstance(brk, dict):
-                continue
-            min_qty = brk.get('min_qty', 0)
-            try:
-                if float(quantity) >= float(min_qty):
-                    level_price = brk.get(price_level)
-                    if level_price is not None and level_price != '':
-                        return Decimal(str(level_price))
-                    level_pct_key = f'{price_level}_pct'
-                    level_pct = brk.get(level_pct_key)
-                    if level_pct is not None:
-                        break_base = brk.get('base')
-                        if break_base is None:
-                            break_base = item_price.get('base', 0)
-                        if break_base:
-                            return Decimal(str(break_base)) * (1 - Decimal(str(level_pct)) / 100)
-                    generic = brk.get('unit_price')
-                    if generic is not None:
-                        return Decimal(str(generic))
-                    break
-            except (TypeError, ValueError):
-                continue
-
-    return unit
-
-
-def get_price_for_line(
-    item,
-    customer=None,
-    header_price_level: Optional[str] = None,
-    line_price_level: Optional[str] = None,
-    quantity: float = 1.0,
-) -> dict:
-    """Full price resolution for an order/invoice line.
-
-    Args:
-        item: Item model instance (or dict with 'price' key)
-        customer: OrgBase instance (or dict with 'price_level' key), optional
-        header_price_level: Transaction header's price_level, optional
-        line_price_level: Line-level override, optional
-        quantity: Order quantity for break calculation
-
-    Returns:
-        Dict with resolved_level, unit_price, amount (unit * qty),
-        and the fallback chain for transparency.
-    """
-    if hasattr(item, 'price'):
-        item_price = getattr(item, 'price', {}) or {}
-    elif isinstance(item, dict):
-        item_price = item.get('price', {}) or {}
-    else:
-        item_price = {}
-
-    customer_level = None
-    if customer:
-        if hasattr(customer, 'price_level'):
-            customer_level = getattr(customer, 'price_level', None)
-        elif isinstance(customer, dict):
-            customer_level = customer.get('price_level')
-
-    effective_level = resolve_price_level(
-        customer_level=customer_level,
-        header_level=header_price_level,
-        line_level=line_price_level,
-    )
-
-    unit_price = resolve_unit_price(item_price, effective_level, quantity)
-    extended = unit_price * Decimal(str(quantity))
-
-    return {
-        'price_level': effective_level,
-        'unit_price': float(unit_price),
-        'amount': float(extended),
-        'quantity': quantity,
-        'chain': {
-            'line': line_price_level or None,
-            'header': header_price_level or None,
-            'customer': customer_level or None,
-            'resolved': effective_level,
-        },
-    }
-
-
-def _legacy_resolve_catalog_price(
-    item_id: int,
-    customer_id: int,
-    qty: int = 1,
-) -> Optional[dict]:
-    """Check if this item has special catalog pricing for this customer.
-
-    Legacy helper — finds active catalogs that contain this item, apply to this
-    customer, and are within their effective date range. Highest priority wins.
-    """
-    import time
-    from django.apps import apps as dj_apps
-    from django.db import models as dj_models
-
-    now_ms = int(time.time() * 1000)
-    CatalogLine = dj_apps.get_model('products', 'CatalogLine')
-
-    lines = CatalogLine.objects.filter(
-        item_id=item_id,
-        catalog__is_active=True,
-        catalog__dt_effective_start__lte=now_ms,
-    ).filter(
-        dj_models.Q(catalog__dt_effective_end__isnull=True) |
-        dj_models.Q(catalog__dt_effective_end__gte=now_ms)
-    ).select_related('catalog').order_by('-catalog__priority')
-
-    for cl in lines:
-        catalog = cl.catalog
-        if not _legacy_catalog_applies_to_customer(catalog, customer_id):
-            continue
-        price = _legacy_get_catalog_line_price(cl, qty)
-        if price is not None:
-            return {
-                'price': price,
-                'catalog_id': catalog.pk,
-                'catalog_name': catalog.name,
-                'level': f'catalog:{catalog.code}',
-                'qty_break': None,
-            }
-
-    Catalog = dj_apps.get_model('products', 'Catalog')
-    universal_catalogs = Catalog.objects.filter(
-        is_active=True,
-        is_universal_pct=True,
-        universal_pct__gt=0,
-        dt_effective_start__lte=now_ms,
-    ).filter(
-        dj_models.Q(dt_effective_end__isnull=True) |
-        dj_models.Q(dt_effective_end__gte=now_ms)
-    ).order_by('-priority')
-
-    for catalog in universal_catalogs:
-        if not _legacy_catalog_applies_to_customer(catalog, customer_id):
-            continue
-        return {
-            'price': None,
-            'universal_pct': float(catalog.universal_pct),
-            'catalog_id': catalog.pk,
-            'catalog_name': catalog.name,
-            'level': f'catalog:{catalog.code}',
-            'qty_break': None,
-        }
-
-    return None
-
-
-def _legacy_catalog_applies_to_customer(catalog, customer_id: int) -> bool:
-    """Check if a catalog's scope includes this customer (legacy helper)."""
-    if catalog.customer_orgbase_id and catalog.customer_orgbase_id == customer_id:
-        return True
-
-    applies_to = catalog.applies_to if isinstance(catalog.applies_to, dict) else {}
-
-    if not applies_to and not catalog.customer_orgbase_id:
-        return True
-    if applies_to.get('all'):
-        return True
-
-    contacts = applies_to.get('contacts', [])
-    if isinstance(contacts, list) and customer_id in contacts:
-        return True
-
-    contact_types = applies_to.get('contact_types', [])
-    if isinstance(contact_types, list) and contact_types:
-        try:
-            from django.apps import apps as dj_apps
-            OrgBase = dj_apps.get_model('orgs', 'OrgBase')
-            customer = OrgBase.objects.filter(pk=customer_id).only('price_level').first()
-            if customer and getattr(customer, 'price_level', '') in contact_types:
-                return True
-        except Exception:
-            pass
-
-    return False
-
-
-def _legacy_get_catalog_line_price(cl, qty: int = 1) -> Optional[Decimal]:
-    """Extract the effective price from a CatalogLine for a quantity (legacy helper)."""
-    items_data = cl.items if isinstance(cl.items, dict) else {}
-    pricing = items_data.get('pricing', {})
-    tiers = pricing.get('tiers', [])
-    if isinstance(tiers, list) and tiers:
-        tiers_sorted = sorted(tiers, key=lambda t: t.get('min_qty', 0))
-        tier_price = None
-        for t in tiers_sorted:
-            if qty >= (t.get('min_qty', 0) or 0):
-                tp = t.get('price')
-                if tp is not None:
-                    tier_price = Decimal(str(tp))
-        if tier_price is not None:
-            return tier_price
-
-    if cl.price_unit is not None:
-        base = Decimal(str(cl.price_unit))
-        if cl.discount_percent and cl.discount_percent > 0:
-            base = base * (1 - cl.discount_percent / 100)
-        elif cl.discount_amount and cl.discount_amount > 0:
-            base = base - cl.discount_amount
-        return base.quantize(Decimal('0.01'))
-
-    return None
-
-
-def _legacy_get_pricing_config() -> dict:
-    """Load pricing_config Setting (legacy helper). Returns defaults if not found."""
-    defaults = {
-        'minimum_margin_pct': 15,
-        'default_price_level': 'base',
-        'allow_below_cost': False,
-        'require_margin_override_reason': True,
-    }
-    try:
-        from apps.core.models.setting import Setting
-        setting = Setting.objects.filter(
-            name='pricing_config', is_active=True, ).first()
-        if setting and isinstance(setting.config, dict):
-            merged = dict(defaults)
-            merged.update(setting.config)
-            return merged
-    except Exception:
-        import logging
-        logging.getLogger(__name__).warning("Could not load pricing_config Setting, using defaults")
-    return defaults
-
-
-def resolve_price_legacy(
-    item_id: int,
-    customer_id: Optional[int] = None,
-    qty: int = 1,
-    price_level: Optional[str] = None,
-) -> dict:
-    """Legacy price resolution chain (from pricing.py).
-
-    Resolution chain (first non-empty wins):
-      1. Customer's price_level on the item
-      2. Explicit price_level parameter
-      3. Item base price
-      4. Fallback -- 0
-
-    After level resolution, quantity breaks are applied.
-    Then margin floor is enforced via pricing_config Setting.
-    """
-    from django.apps import apps as dj_apps
-
-    Item = dj_apps.get_model('products', 'Item')
-
-    try:
-        item = Item.objects.get(pk=item_id)
-    except Item.DoesNotExist:
-        raise ValueError(f"Item #{item_id} not found")
-
-    item_price = item.price if isinstance(item.price, dict) else {}
-    item_cost = item.cost if isinstance(item.cost, dict) else {}
-    config = _legacy_get_pricing_config()
-
-    resolved_price = Decimal('0')
-    source = 'fallback'
-    level_used = None
-    qty_break_applied = None
-
-    # Step 0: Catalog price
-    catalog_universal_pct = None
-    if customer_id:
-        catalog_result = _legacy_resolve_catalog_price(item_id, customer_id, qty)
-        if catalog_result:
-            if catalog_result.get('price') is not None:
-                resolved_price = catalog_result['price']
-                source = 'catalog'
-                level_used = catalog_result.get('level')
-                qty_break_applied = catalog_result.get('qty_break')
-            elif catalog_result.get('universal_pct'):
-                catalog_universal_pct = Decimal(str(catalog_result['universal_pct']))
-
-    # Step 1: Customer price_level
-    if source == 'fallback' and customer_id:
-        try:
-            OrgBase = dj_apps.get_model('orgs', 'OrgBase')
-            customer = OrgBase.objects.filter(pk=customer_id).first()
-            if customer:
-                cust_level = getattr(customer, 'price_level', None)
-                if cust_level and cust_level.strip():
-                    cust_level = cust_level.strip().lower()
-                    level_val = item_price.get(cust_level)
-                    if level_val is not None and level_val != '':
-                        try:
-                            resolved_price = Decimal(str(level_val))
-                            source = 'customer_level'
-                            level_used = cust_level
-                        except Exception:
-                            pass
-        except Exception:
-            pass
-
-    # Step 2: Explicit price_level param
-    if source == 'fallback' and price_level:
-        cleaned = price_level.strip().lower()
-        level_val = item_price.get(cleaned)
-        if level_val is not None and level_val != '':
-            try:
-                resolved_price = Decimal(str(level_val))
-                source = 'explicit_level'
-                level_used = cleaned
-            except Exception:
-                pass
-
-    # Step 3: Item base price
-    if source == 'fallback':
-        base_val = item_price.get('base')
-        if base_val is not None and base_val != '':
-            try:
-                resolved_price = Decimal(str(base_val))
-                source = 'base'
-                level_used = 'base'
-            except Exception:
-                pass
-
-    # Quantity breaks
-    effective_level = level_used or 'base'
-    qty_breaks = item_price.get('qty_breaks')
-    if isinstance(qty_breaks, list) and qty_breaks:
-        for brk in reversed(qty_breaks):
-            if not isinstance(brk, dict):
-                continue
-            min_qty = brk.get('min_qty', 0)
-            try:
-                if float(qty) >= float(min_qty):
-                    lp = brk.get(effective_level)
-                    if lp is not None and lp != '':
-                        resolved_price = Decimal(str(lp))
-                        qty_break_applied = {'min_qty': min_qty, 'level': effective_level, 'unit_price': float(lp)}
-                        source = f"{source}+qty_break"
-                        break
-                    level_pct = brk.get(f'{effective_level}_pct')
-                    if level_pct is not None:
-                        break_base = brk.get('base') or item_price.get('base', 0)
-                        if break_base:
-                            resolved_price = Decimal(str(break_base)) * (1 - Decimal(str(level_pct)) / 100)
-                            qty_break_applied = {'min_qty': min_qty, 'level': effective_level, 'pct': float(level_pct)}
-                            source = f"{source}+qty_break_pct"
-                            break
-                    generic = brk.get('unit_price')
-                    if generic is not None:
-                        resolved_price = Decimal(str(generic))
-                        qty_break_applied = {'min_qty': min_qty, 'unit_price': float(generic)}
-                        source = f"{source}+qty_break"
-                        break
-                    variant_id = brk.get('variant_item_id')
-                    if variant_id is not None:
-                        try:
-                            variant_item = Item.objects.only('price').get(pk=variant_id)
-                            v_price = variant_item.price if isinstance(variant_item.price, dict) else {}
-                            v_base = v_price.get('base')
-                            if v_base is not None:
-                                resolved_price = Decimal(str(v_base))
-                                qty_break_applied = {'min_qty': min_qty, 'variant_item_id': variant_id}
-                                source = f"{source}+variant_break"
-                        except Item.DoesNotExist:
-                            pass
-                    break
-            except (TypeError, ValueError):
-                continue
-
-    # Universal catalog % discount
-    if catalog_universal_pct and catalog_universal_pct > 0 and resolved_price > 0:
-        resolved_price = resolved_price * (1 - catalog_universal_pct / 100)
-        source = f"{source}+catalog_universal_{catalog_universal_pct}pct"
-
-    # Margin floor
-    cost_value = Decimal('0')
-    for cost_key in ('standard', 'avg', 'last'):
-        cv = item_cost.get(cost_key)
-        if cv is not None and cv != '':
-            try:
-                cost_value = Decimal(str(cv))
-                break
-            except Exception:
-                continue
-
-    below_margin_floor = False
-    margin_pct = None
-    min_margin = Decimal(str(config.get('minimum_margin_pct', 15)))
-
-    if cost_value > 0 and resolved_price > 0:
-        margin_pct = float(((resolved_price - cost_value) / resolved_price) * 100)
-        floor_price = cost_value / (1 - min_margin / 100)
-        if resolved_price < floor_price:
-            below_margin_floor = True
-
-    return {
-        'unit_price': float(resolved_price),
-        'price_level_used': level_used,
-        'qty_break_applied': qty_break_applied,
-        'below_margin_floor': below_margin_floor,
-        'margin_pct': margin_pct,
-        'cost': float(cost_value),
-        'source': source,
-    }
+    lines = []
+    resolved_level = ''
+    for entry in items or []:
+        item = _item(int(entry['item_id']))
+        price = resolve_price(item, customer_id=customer_id, qty=entry.get('qty') or 1, level=level)
+        resolved_level = resolved_level or price.price_level
+        lines.append({'item_id': item.pk, 'qty': float(entry.get('qty') or 1),
+                      'price': price.as_dict(), 'cost': resolve_cost(item).as_dict()})
+    return {'level': resolved_level, 'lines': lines}
 
 
 def get_price_matrix(item_id: int) -> dict:
-    """Return all price levels and qty breaks for an item.
-
-    Used by the UI to show the full pricing grid.
-    """
-    from django.apps import apps as dj_apps
-    Item = dj_apps.get_model('products', 'Item')
-
-    try:
-        item = Item.objects.get(pk=item_id)
-    except Item.DoesNotExist:
-        raise ValueError(f"Item #{item_id} not found")
-
-    item_price = item.price if isinstance(item.price, dict) else {}
-    item_cost = item.cost if isinstance(item.cost, dict) else {}
-
-    levels: dict = {}
-    for lvl in VALID_PRICE_LEVELS:
-        val = item_price.get(lvl)
-        if val is not None and val != '':
-            try:
-                levels[lvl] = float(Decimal(str(val)))
-            except Exception:
-                levels[lvl] = None
-        else:
-            levels[lvl] = None
-
-    qty_breaks = item_price.get('qty_breaks', [])
-    if not isinstance(qty_breaks, list):
-        qty_breaks = []
-
-    cost_info: dict = {}
-    for ck in ('standard', 'avg', 'last', 'landed'):
-        cv = item_cost.get(ck)
-        if cv is not None and cv != '':
-            try:
-                cost_info[ck] = float(Decimal(str(cv)))
-            except Exception:
-                cost_info[ck] = None
-        else:
-            cost_info[ck] = None
-
+    """Every level's price, the qty breaks, and the cost envelope — the item's pricing grid."""
+    item = _item(item_id)
+    price = item.price if isinstance(item.price, dict) else {}
+    cost = item.cost if isinstance(item.cost, dict) else {}
+    resolved = resolve_cost(item)
     return {
-        'item_id': item_id,
+        'item_id': item.pk,
         'item_name': str(item),
-        'currency': item_price.get('currency', 'USD'),
-        'levels': levels,
-        'qty_breaks': qty_breaks,
-        'cost': cost_info,
+        'currency': price.get('currency', 'USD'),
+        'levels': [{'level': w,
+                    'price': float(p) if (p := _dec(price.get(w))) is not None else None,
+                    'margin_pct': float(m) if (m := _margin(p or Decimal('0'), resolved.unit)) is not None else None}
+                   for w in PRICE_LEVELS],
+        'list_price': float(resolved.list_price),
+        'qty_breaks': price.get('qty_breaks') or [],
+        'cost': {k: float(v) if (v := _dec(cost.get(k))) is not None else None for k in COST_BASES},
+        'unit_cost': resolved.as_dict(),
     }
 
 
-def apply_line_pricing(
-    line_model_name: str,
-    line_id: int,
-    customer_id: Optional[int] = None,
-    qty: Optional[int] = None,
-) -> dict:
-    """Resolve price for a specific transaction line and update it.
+def apply_line_pricing(line_model_name: str, line_id: int, customer_id: Optional[int] = None,
+                       qty=None) -> dict:
+    """Reprice a saved sell line: resolve, write price.unit, flag below margin.
 
-    Reads item from line.item_fk_id, qty from line.quantity.active,
-    customer from parent transaction. Updates line.price.unit and
-    line.totals.amount (via the totals engine). Returns the pricing result.
+    Item from item_fk, quantity from quantity.active, customer from the parent document,
+    level from the line else the header. The totals engine writes line.totals on save.
     """
-    from django.apps import apps as dj_apps
     from apps.core.constants.model_registry import get_model_meta
 
     meta = get_model_meta(line_model_name)
     if not meta:
-        raise ValueError(f"Unknown line model: {line_model_name}")
-
+        raise ValueError(f'Unknown line model: {line_model_name}')
     LineModel = meta.import_model()
+    line = LineModel.objects.filter(pk=line_id).first()
+    if line is None:
+        raise ValueError(f'{line_model_name} #{line_id} not found')
 
-    try:
-        line = LineModel.objects.get(pk=line_id)
-    except LineModel.DoesNotExist:
-        raise ValueError(f"{line_model_name} #{line_id} not found")
-
-    item_id = getattr(line, 'item_fk_id', None)
+    item_id = getattr(line, 'item_fk_id', None) or (getattr(line, 'item', None) or {}).get('item_id')
     if not item_id:
-        item_json = getattr(line, 'item', None) or {}
-        item_id = item_json.get('item_id')
-    if not item_id:
-        raise ValueError(f"Line #{line_id} has no item reference")
+        raise ValueError(f'Line #{line_id} has no item reference')
+    qty = qty or (getattr(line, 'quantity', None) or {}).get('active') or 1
+    parent = getattr(line, 'parent', None)
+    if customer_id is None and parent is not None:
+        customer_id = getattr(parent, 'customer_id', None)
+    level = getattr(line, 'price_level', None) or getattr(parent, 'price_level', None)
 
-    if qty is None:
-        line_qty = getattr(line, 'quantity', None) or {}
-        qty = line_qty.get('active', 1) or 1
-    qty = int(qty) if qty else 1
-
-    if customer_id is None:
-        parent = getattr(line, 'parent', None)
-        if parent:
-            customer_id = getattr(parent, 'customer_id', None)
-
-    result = resolve_price_legacy(
-        item_id=item_id,
-        customer_id=customer_id,
-        qty=qty,
-        price_level=getattr(line, 'price_level', None),
-    )
-
+    result = resolve_price(item_id, customer_id=customer_id, qty=qty, level=level)
+    flag_below_margin(item_id, result, customer_id)
     if not isinstance(line.price, dict):
         line.price = {}
-    line.price['unit'] = result['unit_price']
+    line.price['unit'] = float(result.price)
+    line.save(update_fields=['price'])
 
-    line.save(update_fields=['price'])      # the totals engine writes line.totals
-
-    result['line_id'] = line_id
-    result['quantity'] = qty
-    result['amount'] = (line.totals or {}).get('amount', 0)
-    return result
+    out = result.as_dict()
+    out.update(line_id=line_id, quantity=float(qty), amount=(line.totals or {}).get('amount', 0))
+    return out
 
 
 __all__ = [
-    'resolve_price', 'PriceResolution',
-    'resolve_price_level', 'resolve_unit_price', 'get_price_for_line',
-    'get_price_matrix', 'apply_line_pricing', 'resolve_price_legacy',
+    'PRICE_LEVELS', 'COST_BASES', 'named_price_level',
+    'PriceResolution', 'CostResolution', 'list_price',
+    'resolve_price', 'resolve_cost', 'cost_basis_default', 'flag_below_margin',
+    'price_lines', 'get_price_matrix', 'apply_line_pricing',
 ]

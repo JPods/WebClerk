@@ -121,15 +121,15 @@ BOM_ENTRIES = [
 # ─── Customers ───────────────────────────────────────────────────────────
 CUSTOMERS = [
     {'ida': 'CUST-01', 'company': 'Riverside Sports',
-     'org_type': 'customer', 'price_level': 'B', 'terms': 'N30'},
+     'org_type': 'customer', 'price_level': 'wholesale', 'terms': 'N30'},
     {'ida': 'CUST-02', 'company': 'Metro Baseball Academy',
-     'org_type': 'customer', 'price_level': 'A', 'terms': 'N30'},
+     'org_type': 'customer', 'price_level': 'retail', 'terms': 'N30'},
     {'ida': 'CUST-03', 'company': 'Eastside Little League',
-     'org_type': 'customer', 'price_level': 'C', 'terms': 'N10'},
+     'org_type': 'customer', 'price_level': 'distributor', 'terms': 'N10'},
     {'ida': 'CUST-04', 'company': 'Diamond Pro Equipment',
-     'org_type': 'customer', 'price_level': 'A', 'terms': '2pct10N30'},
+     'org_type': 'customer', 'price_level': 'retail', 'terms': '2pct10N30'},
     {'ida': 'CUST-05', 'company': 'Lincoln High School Athletics',
-     'org_type': 'customer', 'price_level': 'B', 'terms': 'N30'},
+     'org_type': 'customer', 'price_level': 'wholesale', 'terms': 'N30'},
 ]
 
 # ─── Contacts (one per customer + 2 at vendor) ──────────────────────────

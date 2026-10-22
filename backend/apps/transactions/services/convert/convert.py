@@ -157,10 +157,10 @@ def _carry_document_discount(source, target) -> None:
 
 
 def _item_unit_cost_for_line(src_line) -> Decimal:
-    """The line's item cost at the company unit_cost_default."""
-    from apps.products.services.inventory.inventory_layers import item_unit_cost
+    """The line's item cost — the one buy-side costing behavior (resolve_cost)."""
+    from apps.products.services.price_resolver import resolve_cost
     item = getattr(src_line, "item_fk", None)
-    return item_unit_cost(getattr(item, "cost", None) if item else None)
+    return resolve_cost(item).unit if item else Decimal("0")
 
 
 def _copy_commission(source_commission: Optional[dict]) -> dict:

@@ -30,13 +30,14 @@ COACHING = {
         'tips': [
             {'id': 'cust-01', 'title': 'Customers are the center', 'body': 'Every order, invoice, quote, and cash links to a customer. Start here.', 'type': 'concept', 'level': 'beginner'},
             {'id': 'cust-02', 'title': 'A customer can also be a vendor', 'body': 'The same contact can have multiple org relationships. Check the contact record to see all hats.', 'type': 'concept', 'level': 'intermediate'},
-            {'id': 'cust-03', 'title': 'Price levels matter', 'body': 'Retail, wholesale, distributor, sample — the price level on the customer flows to orders and invoices automatically.', 'type': 'workflow', 'level': 'beginner'},
+            {'id': 'cust-03', 'title': 'Price levels matter', 'body': 'Retail, wholesale, distributor, sample — the only four. The customer\'s level prices every line on their quotes, orders and invoices unless the document or line names another.', 'type': 'workflow', 'level': 'beginner'},
+            {'id': 'cust-04', 'title': 'A catalog is a customer\'s price list', 'body': 'Assign a catalog to this customer and its prices beat their level for the items it lists. A catalog assigned to no one prices for no one.', 'type': 'concept', 'level': 'intermediate'},
         ],
         'field_help': {
             'ida': 'Short identifier — unique across all customers. Auto-generated or manually set.',
             'company': 'The primary name shown in lists and on printed documents.',
             'status': 'active = doing business. prospect = potential. inactive = paused. retired = closed.',
-            'price_level': 'Determines which price tier is used on orders/invoices for this customer.',
+            'price_level': 'retail, wholesale, distributor or sample — prices every line for this customer. Blank = list price (retail). Any other value is refused.',
             'terms': 'Cash terms (N30, COD, 2/10 Net 30). Sets when cash is due.',
             'email': 'Primary email. Cmd+click label to compose. Synced from communications.',
             'phone': 'Primary phone. Cmd+click label to dial. Synced from communications.',
@@ -82,7 +83,7 @@ COACHING = {
             'balance': 'Total minus cash received. Read-only. Updated when cash are applied.',
             'status': 'planned = draft. released = sent to customer. complete = paid and closed.',
             'terms': 'Cash terms — determines due date on the ledger record.',
-            'price_level': 'Price tier used for line item pricing on this invoice.',
+            'price_level': 'retail, wholesale, distributor or sample. Blank = the customer\'s level. Changing it does not reprice lines already on the invoice.',
             'dt_needed': 'When customer needs delivery. Drives warehouse priority.',
             'priority': 'Processing priority. Higher number = pick/ship first.',
             'attention': 'Contact name at the customer for this invoice.',
@@ -125,6 +126,8 @@ COACHING = {
         'tips': [
             {'id': 'ord-01', 'title': 'Orders drive fulfillment', 'body': 'An order is a commitment to deliver. It can generate pick lists, packing slips, and invoices.', 'type': 'concept', 'level': 'beginner'},
             {'id': 'ord-02', 'title': 'Order → Invoice flow', 'body': 'When an order is fulfilled, convert it to an invoice. Lines carry over automatically.', 'type': 'workflow', 'level': 'beginner'},
+            {'id': 'ord-03', 'title': 'The price shows its cost', 'body': 'Hover a price in item search: it names how it was reached (catalog, price level, list), the cost it is measured against, and the margin. That is your control — the price and the cost come from one place.', 'type': 'concept', 'level': 'beginner'},
+            {'id': 'ord-04', 'title': 'Below the margin floor is a flag, not a stop', 'body': 'A line under the margin floor (the catalog\'s, else the company profile minimum margin) still saves and ships. An Action lands in the sales dashboard so someone decides whether the price was meant.', 'type': 'warning', 'level': 'intermediate'},
         ],
         'field_help': {
             'ida': 'Order number — unique identifier.',
@@ -139,7 +142,7 @@ COACHING = {
             'phone': 'Order contact phone. Cmd+click label to dial.',
             'address_full': 'Ship-to address. Cmd+click label to open in maps.',
             'ship_via': 'Shipping carrier or method for this order.',
-            'price_level': 'Price tier — flows from customer unless overridden here.',
+            'price_level': 'retail, wholesale, distributor or sample. Blank = the customer\'s level; set it here to price this order\'s new lines at another level.',
             'terms': 'Cash terms — flows from customer unless overridden.',
             'conditions_description': 'Special order conditions printed on documents.',
             'source_name': 'Where this order came from — web, phone, quote conversion.',
@@ -172,7 +175,7 @@ COACHING = {
             'total': 'Proposed total — what the customer would pay if they accept.',
             'status': 'planned = draft. released = sent to customer. complete = accepted or expired.',
             'dt_needed': 'Quote expiration or decision-needed date.',
-            'price_level': 'Price tier for this quote — may differ from customer default.',
+            'price_level': 'retail, wholesale, distributor or sample. Blank = the customer\'s level; a quote may offer another.',
             'attention': 'Who at the customer receives this quote.',
             'company': 'Customer company name.',
             'email': 'Contact email. Cmd+click label to compose.',
@@ -200,6 +203,8 @@ COACHING = {
         'tips': [
             {'id': 'po-01', 'title': 'Purchases go to vendors', 'body': 'A purchase order is sent to a vendor to buy goods. It tracks what you ordered vs what you received.', 'type': 'concept', 'level': 'beginner'},
             {'id': 'po-02', 'title': 'PO → Receiving → Cash', 'body': 'Receive goods against the PO, then create a disbursement (cash type=disbursed) to pay the vendor.', 'type': 'workflow', 'level': 'beginner'},
+            {'id': 'po-03', 'title': 'A new line starts at the company cost basis', 'body': 'Last, standard, average or landed — the company profile chooses (inventory.unit_cost_default). An item with nothing at that basis starts at its standard cost; labor and freight are always their standard rate.', 'type': 'concept', 'level': 'beginner'},
+            {'id': 'po-04', 'title': 'The cost shows its price', 'body': 'Hover a cost in item search: it names the list price this cost feeds and the margin left at list. A cost that leaves no margin is the buyer\'s cue before it is the seller\'s problem.', 'type': 'concept', 'level': 'intermediate'},
         ],
         'field_help': {
             'ida': 'PO number — unique identifier.',
@@ -300,6 +305,8 @@ COACHING = {
         'tips': [
             {'id': 'item-01', 'title': 'Items are what you sell and buy', 'body': 'Every line on an order, invoice, or PO references an item. Items have prices, costs, and inventory.', 'type': 'concept', 'level': 'beginner'},
             {'id': 'item-02', 'title': 'Margin velocity', 'body': 'The real metric: (margin × annual turns) ÷ carry cost. High velocity = productive inventory.', 'type': 'concept', 'level': 'advanced'},
+            {'id': 'item-03', 'title': 'Four prices and a list', 'body': 'price.retail, wholesale, distributor, sample — one per price level. Retail is the list price (base when retail is blank). A level with no price sells at list.', 'type': 'concept', 'level': 'beginner'},
+            {'id': 'item-04', 'title': 'Quantity breaks only lower a price', 'body': 'A break is a unit price from a minimum quantity, the same for every level. It applies only when it is below the customer\'s level price.', 'type': 'concept', 'level': 'intermediate'},
         ],
         'field_help': {
             'ida': 'Item identifier — unique across all items.',
@@ -709,36 +716,27 @@ Every request requires JWT auth. Role-based query scoping restricts external use
     {
         'name': 'Pricing Architecture',
         'slug': 'pricing-architecture',
-        'description': 'How WC3 resolves prices: catalogs, price levels, qty breaks, margin warnings. The full chain explained.',
+        'description': 'One pricing behavior, one costing behavior, each showing the other: catalogs, price levels, qty breaks, cost basis, margin floor.',
         'body': '''# Pricing Architecture
 
-## The Chain
-Every line item resolves its price through this chain (first match wins):
+One behavior on each side, and each shows the other's figure.
 
-1. **Catalog item-specific** — item listed in an active catalog for this customer (a customer's negotiated price lives here)
-2. **Customer price_level** — retail, wholesale, distributor, or sample
-3. **Explicit level** — line or header override
-4. **Item base price** — fallback
+## Sell side — resolve_price
+First match wins:
+1. **Price locked** — a manual price on the line.
+2. **Catalog line** — a catalog assigned to this customer lists the item (directly, or by category, vendor or all items).
+3. **Price level** — the line's or header's level, else the customer's: retail, wholesale, distributor, sample. A quantity break applies when it is lower; a universal-% catalog assigned to the customer comes off after.
+4. **List price** — retail, else base.
 
-After the price resolves: quantity breaks adjust it, then universal catalog % discounts apply.
+Every price carries its cost (resolve_cost) and margin. Below the margin floor — the catalog's, else the company profile's minimum margin — is flagged with an Action, never blocked.
 
-## Price Levels
-Four levels stored on each item: retail, wholesale, distributor, sample. Plus base (list) and msrp.
+## Buy side — resolve_cost
+The company profile's unit_cost_default (last, standard, avg, landed) chooses; an item with nothing there falls to standard; a not-tracked item is its standard rate. Every cost carries the list price it feeds and the margin left at list.
 
-## Quantity Breaks
-JSON on the item — each break row has per-level columns (dollar and/or percentage):
-```json
-{"min_qty": 25, "base": 14.00, "retail": 11.00, "wholesale_pct": 33.3}
-```
-Dollar wins. Percentage calculates from base. Alice recalculates when base changes.
+## Price levels
+retail, wholesale, distributor, sample — only these. Any other value is refused on save.
 
-## Catalogs
-Two modes: item-specific (CatalogLine with fixed price) or universal % (blanket discount on all products). Catalogs target customers by org FK, contact list, contact type, or "all."
-
-## Margin Warning
-If the resolved price falls below the margin floor (default 15%), `below_margin_floor` is flagged. **The system warns — it never overrides the user's price.**
-
-Full readme: readmes/topics/transactions/pricing-architecture.md
+Full readme: apps/products/readmes/pricing_operations.md
 ''',
         'status': 'published',
         'target_model': 'system',

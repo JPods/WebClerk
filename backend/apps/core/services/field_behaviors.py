@@ -54,12 +54,9 @@ TX_STATUS_OPTIONS = [
     {'value': 'complete', 'label': 'Complete'},
     {'value': 'canceled', 'label': 'Canceled'},
 ]
-PRICE_LEVEL_OPTIONS = [
-    {'value': 'retail', 'label': 'Retail'},
-    {'value': 'wholesale', 'label': 'Wholesale'},
-    {'value': 'distributor', 'label': 'Distributor'},
-    {'value': 'sample', 'label': 'Sample'},
-]
+# The four price levels, the word is the label (price_resolver.PRICE_LEVELS).
+PRICE_LEVEL_OPTIONS = [{'value': w, 'label': w}
+                       for w in ('retail', 'wholesale', 'distributor', 'sample')]
 KANBAN_OPTIONS = [
     {'value': 'backlog', 'label': 'Backlog'},
     {'value': 'todo', 'label': 'To Do'},

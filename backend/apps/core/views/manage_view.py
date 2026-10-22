@@ -18,9 +18,11 @@ Actions:
     execute_report — execute a report by report_key and params
     export_report — export report output as JSON
   Pricing Engine:
-    resolve_price              — resolve effective unit price for item (contract→level→base→floor)
-    get_price_matrix           — return all price levels and qty breaks for UI grid
-    apply_line_pricing         — resolve and update price on a transaction line
+    price_lines                — both figures (price + cost) for items, as the browser shows them
+    resolve_price              — sell price for item+customer+qty+level, with its cost and margin
+    resolve_cost               — buy-side unit cost for item, with the list price it feeds
+    get_price_matrix           — every level's price, qty breaks and cost for the item grid
+    apply_line_pricing         — resolve and write price on a saved sell line
   Tax Calculation:
     calculate_line_tax         — compute tax for a single line extended price
     calculate_transaction_tax  — compute and update tax for all lines of a transaction
@@ -1034,7 +1036,9 @@ _ACTION_DISPATCH = {
     "check_order_map_violations": lambda p: __import__('apps.products.services.price_map_enforce', fromlist=['check_order_map_violations']).check_order_map_violations(p['order_id']),
     "get_map_violations_report": lambda p: __import__('apps.products.services.price_map_enforce', fromlist=['get_map_violations_report']).get_map_violations_report(p.get('period_days', 30)),
     # ── Pricing Engine ──
-    "resolve_price": lambda p: __import__('apps.products.services.price_resolver', fromlist=['resolve_price_legacy']).resolve_price_legacy(p['item_id'], p.get('customer_id'), p.get('qty', 1), p.get('price_level')),
+    "price_lines": lambda p: __import__('apps.products.services.price_resolver', fromlist=['price_lines']).price_lines(p['items'], customer_id=p.get('customer_id'), level=p.get('price_level')),
+    "resolve_price": lambda p: __import__('apps.products.services.price_resolver', fromlist=['resolve_price']).resolve_price(p['item_id'], customer_id=p.get('customer_id'), qty=p.get('qty', 1), level=p.get('price_level')).as_dict(),
+    "resolve_cost": lambda p: __import__('apps.products.services.price_resolver', fromlist=['resolve_cost']).resolve_cost(p['item_id'], basis=p.get('basis')).as_dict(),
     "get_price_matrix": lambda p: __import__('apps.products.services.price_resolver', fromlist=['get_price_matrix']).get_price_matrix(p['item_id']),
     "apply_line_pricing": lambda p: __import__('apps.products.services.price_resolver', fromlist=['apply_line_pricing']).apply_line_pricing(p['model_name'], p['line_id'], p.get('customer_id'), p.get('qty')),
     # ── Tax Calculation ──

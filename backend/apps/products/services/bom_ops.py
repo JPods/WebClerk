@@ -119,25 +119,18 @@ def expand_tree(
             # Check if this child is itself an assembly
             has_children = BillOfMaterial.objects.filter(parent_item_id=line.child_item_id).exists()
 
-            # Load costs from child item
-            cost_avg = Decimal("0")
-            cost_last = Decimal("0")
+            # The child's cost at the chosen basis — resolve_cost, the one buy-side
+            # costing behavior. 'min' is the lower of avg and last (conservative quoting).
+            from apps.products.services.price_resolver import resolve_cost
             child_cost = getattr(line.child_item, 'cost', None)
-            if isinstance(child_cost, dict):
-                cost_avg = Decimal(str(child_cost.get('avg') or 0))
-                cost_last = Decimal(str(child_cost.get('last') or child_cost.get('landed') or 0))
-
-            # Select cost for extended calculation based on cost_basis
-            if cost_basis == 'last' and cost_last > 0:
-                use_cost = cost_last
-            elif cost_basis == 'min':
-                candidates = [c for c in (cost_avg, cost_last) if c > 0]
-                use_cost = min(candidates) if candidates else cost_avg
-            elif cost_basis == 'landed':
-                landed = Decimal(str((child_cost or {}).get('landed') or 0))
-                use_cost = landed if landed > 0 else cost_avg
+            child_cost = child_cost if isinstance(child_cost, dict) else {}
+            cost_avg = Decimal(str(child_cost.get('avg') or 0))
+            cost_last = Decimal(str(child_cost.get('last') or 0))
+            if cost_basis == 'min':
+                use_cost = min(resolve_cost(line.child_item, basis='avg').unit,
+                               resolve_cost(line.child_item, basis='last').unit)
             else:
-                use_cost = cost_avg
+                use_cost = resolve_cost(line.child_item, basis=cost_basis).unit
 
             row = BOMTreeRow(
                 item_id=line.child_item_id,

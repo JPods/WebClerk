@@ -9,26 +9,14 @@ from .item import Item
 
 
 def component_unit_cost(item) -> Decimal | None:
-    """The unit cost a BOM line carries for one component.
-
-    A not-tracked component (labor, freight) has no layers and no average; its
-    cost is the rate the user set in cost.standard. A stocked component takes
-    the first populated of avg → standard → last → landed: avg reflects rolling
-    actuals, standard is policy, last is the latest receipt, landed may be noisy
-    with freight allocations.
-    """
-    cost = getattr(item, 'cost', None)
-    if not isinstance(cost, dict):
+    """The unit cost a BOM line carries for one component — resolve_cost, the one
+    buy-side costing behavior (a not-tracked component is its standard rate). None
+    when the component has no cost at all, so a rollup can tell missing from zero."""
+    if item is None:
         return None
-    keys = ("standard",) if item.is_not_tracked else ("avg", "standard", "last", "landed")
-    for key in keys:
-        raw = cost.get(key)
-        if raw is not None:
-            try:
-                return Decimal(str(raw))
-            except Exception:
-                continue
-    return None
+    from apps.products.services.price_resolver import resolve_cost
+    resolved = resolve_cost(item)
+    return None if resolved.basis == 'none' else resolved.unit
 
 
 class BillOfMaterial(BaseModel):

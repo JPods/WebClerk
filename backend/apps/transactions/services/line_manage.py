@@ -188,6 +188,18 @@ def _receipt_layer(line, receipt, *, create: bool) -> dict:
     }
 
 
+def _explicit_amount(value) -> Optional[float]:
+    """A number the caller typed (int, float or numeric string); anything else is None."""
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return float(value)
+    if isinstance(value, str):
+        try:
+            return float(value)
+        except ValueError:
+            return None
+    return None
+
+
 def _should_track_inventory(transaction_type: str) -> bool:
     """
     Determine if a transaction type should create pending inventory records.
@@ -292,7 +304,8 @@ class LineItemService:
                 item, 
                 quantity=quantity, 
                 unit_price=unit_price,
-                price_level=price_level or getattr(transaction, 'price_level', None)
+                price_level=price_level or getattr(transaction, 'price_level', None),
+                customer_id=getattr(transaction, 'customer_id', None),
             )
         
         # Build cost envelope
@@ -732,43 +745,18 @@ class LineItemService:
         item: Item,
         quantity: Union[int, float, Decimal],
         unit_price: Optional[Union[float, Decimal]] = None,
-        price_level: Optional[str] = None
+        price_level: Optional[str] = None,
+        customer_id: Optional[int] = None,
     ) -> Dict[str, Any]:
-        """Build the price JSON envelope for sales transactions."""
+        """Build the price JSON envelope for sales transactions — an explicit unit price,
+        else resolve_price (the one sell-side pricing behavior)."""
         envelope = default_price()
-        
-        # Determine unit price
-        if unit_price is not None:
-            envelope['unit'] = float(unit_price)
-            envelope['unit_base'] = float(unit_price)
-        else:
-            # Get from item
-            item_record = getattr(item, 'record', {}) or {}
-            item_price = item_record.get('price', {}) if isinstance(item_record, dict) else {}
-            
-            # Check price level tiers first
-            if price_level and isinstance(item_price, dict):
-                tiers = item_price.get('tiers', [])
-                for tier in tiers:
-                    if isinstance(tier, dict) and tier.get('level') == price_level:
-                        tier_price = tier.get('price')
-                        if tier_price is not None:
-                            envelope['unit'] = float(tier_price)
-                            envelope['unit_base'] = float(item_price.get('base', tier_price))
-                            break
-            
-            # Fall back to base price
-            if envelope['unit'] == 0 and isinstance(item_price, dict):
-                base_price = item_price.get('base', 0)
-                envelope['unit'] = float(base_price)
-                envelope['unit_base'] = float(base_price)
-        
-        # Calculate extended — apply UOM divisor for count-based units
-        # e.g., if UOM is DZ (dozen), unit price is per dozen, qty is in dozens
-        # The divisor adjusts unit price from per-each to per-UOM when the item's
-        # base price is stored per-each but sold in multiples.
+        if unit_price is None:
+            from apps.products.services.price_resolver import resolve_price
+            unit_price = resolve_price(item, customer_id=customer_id, qty=quantity, level=price_level).price
+        envelope['unit'] = float(unit_price)
+        envelope['unit_base'] = float(unit_price)
         envelope['amount'] = float(Decimal(str(quantity)) * Decimal(str(envelope['unit'])))
-
         return envelope
 
     def _build_cost_envelope(
@@ -778,32 +766,17 @@ class LineItemService:
         unit_cost: Optional[Union[float, Decimal]] = None,
         is_primary: bool = False
     ) -> Dict[str, Any]:
-        """Build the cost JSON envelope."""
+        """Build the cost JSON envelope — an explicit unit cost, else resolve_cost (the one
+        buy-side costing behavior)."""
         envelope = default_cost()
-        
-        # Determine unit cost
-        if unit_cost is not None:
-            envelope['unit'] = float(unit_cost)
-            envelope['unit_base'] = float(unit_cost)
-        else:
-            # Get from item
-            item_record = getattr(item, 'record', {}) or {}
-            item_cost = item_record.get('cost', {}) if isinstance(item_record, dict) else {}
-            
-            if isinstance(item_cost, dict):
-                # Try standard, last, avg in order
-                for key in ('standard', 'last', 'avg'):
-                    val = item_cost.get(key)
-                    if val is not None and val != 0:
-                        envelope['unit'] = float(val)
-                        envelope['unit_base'] = float(val)
-                        break
-        
-        # Calculate extended
+        if unit_cost is None:
+            from apps.products.services.price_resolver import resolve_cost
+            unit_cost = resolve_cost(item).unit
+        envelope['unit'] = float(unit_cost)
+        envelope['unit_base'] = float(unit_cost)
         envelope['amount'] = float(Decimal(str(quantity)) * Decimal(str(envelope['unit'])))
-        
         return envelope
-    
+
     def _get_next_line_number(self, transaction) -> int:
         """Get the next available line number for a transaction."""
         existing_lines = transaction.lines.all()
@@ -826,65 +799,12 @@ class LineItemService:
         line.ensure_json_defaults()
     
     def _extract_price_from_search(self, search_result: Dict[str, Any]) -> Optional[float]:
-        """Extract unit price from a search result dict."""
-        candidates = [
-            search_result.get('unit_price'),
-            search_result.get('price'),
-            search_result.get('priceA'),
-            search_result.get('price_a'),
-        ]
-        
-        for candidate in candidates:
-            if candidate is None:
-                continue
-            if isinstance(candidate, (int, float)):
-                return float(candidate)
-            if isinstance(candidate, str):
-                try:
-                    return float(candidate)
-                except ValueError:
-                    continue
-            if isinstance(candidate, dict):
-                # Handle nested price object
-                for key in ('base', 'retail', 'sell', 'unit'):
-                    val = candidate.get(key)
-                    if val is not None:
-                        try:
-                            return float(val)
-                        except (TypeError, ValueError):
-                            continue
-        
-        return None
-    
+        """An explicit unit price the caller set, else None — resolve_price chooses."""
+        return _explicit_amount(search_result.get('unit_price'))
+
     def _extract_cost_from_search(self, search_result: Dict[str, Any]) -> Optional[float]:
-        """Extract unit cost from a search result dict."""
-        candidates = [
-            search_result.get('unit_cost'),
-            search_result.get('cost'),
-            search_result.get('costA'),
-        ]
-        
-        for candidate in candidates:
-            if candidate is None:
-                continue
-            if isinstance(candidate, (int, float)):
-                return float(candidate)
-            if isinstance(candidate, str):
-                try:
-                    return float(candidate)
-                except ValueError:
-                    continue
-            if isinstance(candidate, dict):
-                # Handle nested cost object
-                for key in ('avg', 'last', 'standard', 'unit'):
-                    val = candidate.get(key)
-                    if val is not None:
-                        try:
-                            return float(val)
-                        except (TypeError, ValueError):
-                            continue
-        
-        return None
+        """An explicit unit cost the caller set, else None — resolve_cost chooses."""
+        return _explicit_amount(search_result.get('unit_cost'))
 
     # -------------------------------------------------------------------------
     # Pending Inventory Methods
