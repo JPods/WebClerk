@@ -120,7 +120,7 @@ Action. Shipment is never blocked.
 **retail, wholesale, distributor, sample** are the only levels (Bill, 2026-10-22). They are
 the `Item.price` keys. A save of any other value on an org, header or line is refused
 naming the four (`save._price_level_is_named`, the `invalid_terms` pattern). One in
-another case is stored lowercase. Migration `transactions/0052_price_level_words`
+another case is stored lowercase. Migration `transactions/0053_price_level_words`
 rewrote the letters and case variants already stored.
 
 ---

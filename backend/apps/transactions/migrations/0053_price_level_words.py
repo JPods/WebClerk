@@ -37,7 +37,7 @@ def forwards(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('transactions', '0051_terms_text'),
+        ('transactions', '0052_receipt_source_small_sting'),
         ('orgs', '0011_terms_text'),
     ]
 
