@@ -15,9 +15,6 @@ class OrgBaseSerializer(serializers.ModelSerializer):
     Validation delegates to core.serializers.behaviors.
     """
 
-    # FK-first: terms_fk is the model field; expose as terms_id in API.
-    terms_id = serializers.IntegerField(source="terms_fk_id", required=False, allow_null=True)
-
     def validate_contact_id(self, value):
         """Validate primary contact FK — shared behavior."""
         return _validate_contact_id(value)
@@ -43,7 +40,6 @@ class OrgBaseSerializer(serializers.ModelSerializer):
             "phone",
             "price_level",
             "terms",
-            "terms_id",
             "contacts",
             "addresses",
             "phones",

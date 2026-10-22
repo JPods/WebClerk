@@ -434,6 +434,24 @@ def _normalize_contact_id(obj, data: dict) -> None:
     setattr(obj, 'contact_id', resolved or 0)
 
 
+def _terms_are_named(obj, snapshot: Dict[str, Any]) -> None:
+    """Terms are text — a Term ida (Bill, 2026-10-22). Every record that carries
+    ``terms`` (orgs, documents, ledger, cash) is checked here when the value changes:
+    an ida in another case is stored in the Term's spelling, an unknown one is refused
+    with the valid idas. A value already stored is left alone until it is rewritten."""
+    if 'terms' not in {f.name for f in obj._meta.concrete_fields}:
+        return
+    if obj.terms == snapshot.get('terms'):
+        return
+    from apps.accounts.services.terms_ledger import named_term_ida
+    try:
+        ida = named_term_ida(obj.terms)
+    except ValueError as e:
+        raise Refused(400, 'invalid_terms', str(e), [f'terms: {e}'])
+    if obj.terms:
+        obj.terms = ida
+
+
 # ── what this save changed ────────────────────────────────────────────
 
 def _snapshot(obj) -> Dict[str, Any]:
@@ -596,6 +614,7 @@ def _write(actor: Actor, obj, model_cls, model_key: str, norm_key: str, data: di
     _results_are_computed(model_key, data)
     snapshot = _snapshot(obj)
     size_warnings = _assign(obj, data, model_cls, model_key, norm_key, is_update)
+    _terms_are_named(obj, snapshot)
     # After the payload, before the hooks: the hooks see the mark, and no payload sets it.
     _mark_new(obj, model_key, data, new)
 

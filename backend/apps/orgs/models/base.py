@@ -77,12 +77,7 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 	domain_id = models.IntegerField(blank=True, null=True)  # optional FK to a Domain record for the primary domain
 	# address_full, phone, domain removed — read from FK pointer records (PJPV)
 	price_level = models.CharField(max_length=30, blank=True, null=True)  # e.g. retail, wholesale; optional for future use
-	terms = models.CharField(max_length=30, blank=True, null=True)  # e.g. retail, wholesale; optional for future use
-	terms_fk = models.ForeignKey(
-		'accounts.Term', on_delete=models.SET_NULL,
-		blank=True, null=True,
-		db_column='terms_id', related_name='orgs_with_terms',
-	)
+	terms = models.CharField(max_length=30, blank=True, null=True)  # a Term ida (N30, 2pct10N30, COD); empty = company default
 	# status — inherited from CoreModel
 
 	def build_company_snapshot(self, contact=None) -> dict:

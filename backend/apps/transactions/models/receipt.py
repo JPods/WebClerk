@@ -115,12 +115,13 @@ class Receipt(TransactionBaseModel):
         no payable ledger, so this runs before every save."""
         if self.SOURCE_PARENT.get(self.source_type) != 'purchase' or not self.parent_id:
             return
-        if self.vendor_id and self.terms_fk_id:
+        fields = ('vendor_id', 'contact_id', 'terms')
+        if all(getattr(self, field, None) for field in fields):
             return
         parent = self.parent
         if parent is None:
             return
-        for field in ('vendor_id', 'contact_id', 'terms', 'terms_fk_id'):
+        for field in fields:
             if not getattr(self, field, None):
                 setattr(self, field, getattr(parent, field, None))
 

@@ -380,14 +380,14 @@ for _header_model in (Quote, Order, Invoice, Purchase, WorkOrder, Receipt):
 # through the recompute; a change of terms or customer with the same total rebuilt nothing
 # once /wcapi/transaction/save/ (which rebuilt on every save) was deleted. Bill, 2026-09-24:
 # rebuild when any of them changes. The rebuild is marked, so it happens once per save.
-_LEDGER_INPUTS = ('terms', 'terms_fk_id', 'customer_id')
+_LEDGER_INPUTS = ('terms', 'customer_id')
 
 
 @receiver(pre_save, sender=Invoice)
 def remember_ledger_inputs(sender, instance, **kwargs):
     update_fields = kwargs.get('update_fields')
     if not instance.pk or (update_fields is not None and not
-                           {'terms', 'terms_fk', 'terms_fk_id', 'customer', 'customer_id'}
+                           {'terms', 'customer', 'customer_id'}
                            & set(update_fields)):
         instance._ledger_inputs_before = None
         return

@@ -16306,7 +16306,7 @@
                 "change",
                 "dt_cash",
                 "method",
-                "term",
+                "terms",
                 "category",
                 "reference_number",
                 "notes",
@@ -16350,7 +16350,7 @@
                 "change",
                 "dt_cash",
                 "method",
-                "term",
+                "terms",
                 "category",
                 "reference_number",
                 "notes",
@@ -16391,7 +16391,7 @@
                 "change",
                 "dt_cash",
                 "method",
-                "term",
+                "terms",
                 "reference_number",
                 "notes",
                 "gateway",
@@ -16435,7 +16435,7 @@
                 "change",
                 "dt_cash",
                 "method",
-                "term",
+                "terms",
                 "category",
                 "reference_number",
                 "notes",
@@ -16487,7 +16487,7 @@
                 "change",
                 "dt_cash",
                 "method",
-                "term",
+                "terms",
                 "category",
                 "reference_number",
                 "notes",
@@ -16564,7 +16564,7 @@
                 "change",
                 "dt_cash",
                 "method",
-                "term",
+                "terms",
                 "category",
                 "reference_number",
                 "notes",
@@ -16721,8 +16721,8 @@
                   "label": "parent_model"
                 },
                 {
-                  "field": "term",
-                  "label": "term"
+                  "field": "terms",
+                  "label": "terms"
                 },
                 {
                   "field": "purchase",
@@ -16878,8 +16878,8 @@
                           "label": "reference_number"
                         },
                         {
-                          "field": "term",
-                          "label": "term"
+                          "field": "terms",
+                          "label": "terms"
                         },
                         {
                           "field": "fee_amount",
@@ -17407,12 +17407,6 @@
             "type": "text",
             "label": "parent model"
           },
-          "term": {
-            "type": "lookup",
-            "label": "cash term",
-            "model": "term",
-            "display": "name"
-          },
           "health_rating": {
             "type": "readonly",
             "label": "health rating"
@@ -17595,7 +17589,7 @@
               "tendered",
               "change",
               "method",
-              "term",
+              "terms",
               "category",
               "reference_number",
               "notes",
@@ -22435,7 +22429,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -22481,7 +22474,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -22522,7 +22514,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "config",
                 "tax_jurisdiction",
                 "tax_exempt_code"
@@ -22563,7 +22554,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -22617,7 +22607,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "config",
                 "tax_jurisdiction",
                 "tax_exempt_code"
@@ -22684,7 +22673,6 @@
                 "email_id",
                 "phone_id",
                 "domain_id",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -22849,10 +22837,6 @@
                 {
                   "field": "terms",
                   "label": "terms"
-                },
-                {
-                  "field": "terms_fk",
-                  "label": "terms_fk"
                 },
                 {
                   "field": "type",
@@ -23275,8 +23259,7 @@
                 "address_id",
                 "email_id",
                 "phone_id",
-                "domain_id",
-                "terms_fk"
+                "domain_id"
               ]
             }
           }
@@ -23320,49 +23303,6 @@
           "stats": {
             "type": "json",
             "label": "stats"
-          },
-          "terms": {
-            "type": "select",
-            "label": "terms",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Due on Receipt",
-                "value": "due_on_receipt"
-              },
-              {
-                "label": "Net 10",
-                "value": "net_10"
-              },
-              {
-                "label": "Net 15",
-                "value": "net_15"
-              },
-              {
-                "label": "Net 30",
-                "value": "net_30"
-              },
-              {
-                "label": "Net 45",
-                "value": "net_45"
-              },
-              {
-                "label": "Net 60",
-                "value": "net_60"
-              },
-              {
-                "label": "2/10 Net 30",
-                "value": "2_10_net_30"
-              },
-              {
-                "label": "Prepaid",
-                "value": "prepaid"
-              },
-              {
-                "label": "COD",
-                "value": "cod"
-              }
-            ]
           },
           "config": {
             "type": "json-tree",
@@ -23484,12 +23424,6 @@
           "phone_id": {
             "type": "number",
             "label": "phone id"
-          },
-          "terms_fk": {
-            "type": "lookup",
-            "label": "terms fk",
-            "model": "term",
-            "display": "name"
           },
           "addresses": {
             "type": "json",
@@ -23826,8 +23760,7 @@
               "address_id",
               "email_id",
               "phone_id",
-              "domain_id",
-              "terms_fk"
+              "domain_id"
             ]
           },
           {
@@ -27932,7 +27865,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -27978,7 +27910,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -28019,7 +27950,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "config",
                 "tax_jurisdiction",
                 "tax_exempt_code"
@@ -28060,7 +27990,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -28114,7 +28043,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "config",
                 "tax_jurisdiction",
                 "tax_exempt_code"
@@ -28162,7 +28090,6 @@
                 "email_id",
                 "phone_id",
                 "domain_id",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -28308,10 +28235,6 @@
                 {
                   "field": "terms",
                   "label": "terms"
-                },
-                {
-                  "field": "terms_fk",
-                  "label": "terms_fk"
                 },
                 {
                   "field": "type",
@@ -28726,8 +28649,7 @@
                 "address_id",
                 "email_id",
                 "phone_id",
-                "domain_id",
-                "terms_fk"
+                "domain_id"
               ]
             }
           }
@@ -28771,49 +28693,6 @@
           "stats": {
             "type": "json",
             "label": "stats"
-          },
-          "terms": {
-            "type": "select",
-            "label": "terms",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Due on Receipt",
-                "value": "due_on_receipt"
-              },
-              {
-                "label": "Net 10",
-                "value": "net_10"
-              },
-              {
-                "label": "Net 15",
-                "value": "net_15"
-              },
-              {
-                "label": "Net 30",
-                "value": "net_30"
-              },
-              {
-                "label": "Net 45",
-                "value": "net_45"
-              },
-              {
-                "label": "Net 60",
-                "value": "net_60"
-              },
-              {
-                "label": "2/10 Net 30",
-                "value": "2_10_net_30"
-              },
-              {
-                "label": "Prepaid",
-                "value": "prepaid"
-              },
-              {
-                "label": "COD",
-                "value": "cod"
-              }
-            ]
           },
           "config": {
             "type": "json-tree",
@@ -28935,12 +28814,6 @@
           "phone_id": {
             "type": "number",
             "label": "phone id"
-          },
-          "terms_fk": {
-            "type": "lookup",
-            "label": "terms fk",
-            "model": "term",
-            "display": "name"
           },
           "addresses": {
             "type": "json",
@@ -29265,8 +29138,7 @@
               "address_id",
               "email_id",
               "phone_id",
-              "domain_id",
-              "terms_fk"
+              "domain_id"
             ]
           },
           {
@@ -36036,7 +35908,6 @@
                 "phones",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -36084,7 +35955,6 @@
                 "phones",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -36129,7 +35999,6 @@
                 "attention",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -36175,7 +36044,6 @@
                 "phones",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -36230,7 +36098,6 @@
                 "attention",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -36307,7 +36174,6 @@
                 "addresses",
                 "emails",
                 "phones",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -36473,10 +36339,6 @@
                 {
                   "field": "terms",
                   "label": "terms"
-                },
-                {
-                  "field": "terms_fk",
-                  "label": "terms_fk"
                 },
                 {
                   "field": "vendor",
@@ -37041,65 +36903,6 @@
             "type": "json-tree",
             "label": "prefs"
           },
-          "terms": {
-            "type": "select",
-            "label": "terms",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Fake Term for DataBrowser testing",
-                "value": "Fake Term for DataBrowser testing"
-              },
-              {
-                "label": "Cash in Advance",
-                "value": "Cash in Advance"
-              },
-              {
-                "label": "Due on Receipt",
-                "value": "Due on Receipt"
-              },
-              {
-                "label": "50% Deposit, Balance on Receipt",
-                "value": "50% Deposit, Balance on Receipt"
-              },
-              {
-                "label": "Credit Card Cash",
-                "value": "Credit Card Cash"
-              },
-              {
-                "label": "Cash on Delivery",
-                "value": "Cash on Delivery"
-              },
-              {
-                "label": "Net 10 Days",
-                "value": "Net 10 Days"
-              },
-              {
-                "label": "Net 20 Days",
-                "value": "Net 20 Days"
-              },
-              {
-                "label": "2% 10, Net 30 Days",
-                "value": "2% 10, Net 30 Days"
-              },
-              {
-                "label": "Net 30 Days",
-                "value": "Net 30 Days"
-              },
-              {
-                "label": "Net 60 Days",
-                "value": "Net 60 Days"
-              },
-              {
-                "label": "Net 90 Days",
-                "value": "Net 90 Days"
-              },
-              {
-                "label": "3 Cash Every 30 Days",
-                "value": "3 Cash Every 30 Days"
-              }
-            ]
-          },
           "config": {
             "type": "json-tree",
             "label": "config"
@@ -37242,12 +37045,6 @@
           "shipping": {
             "type": "json",
             "label": "shipping"
-          },
-          "terms_fk": {
-            "type": "lookup",
-            "label": "terms fk",
-            "model": "term",
-            "display": "name"
           },
           "addresses": {
             "type": "json",
@@ -38064,7 +37861,6 @@
               "line_increment",
               "parent_id",
               "parent_model",
-              "terms_fk",
               "conditions_id"
             ]
           },
@@ -43951,7 +43747,7 @@
                 "parent_id",
                 "org",
                 "invoice",
-                "term",
+                "terms",
                 "gl_account",
                 "value_available",
                 "value_original"
@@ -43986,7 +43782,7 @@
                 "parent_id",
                 "org",
                 "invoice",
-                "term",
+                "terms",
                 "gl_account",
                 "value_available",
                 "value_original"
@@ -44016,7 +43812,7 @@
                 "parent_id",
                 "org",
                 "invoice",
-                "term",
+                "terms",
                 "gl_account",
                 "value_available",
                 "value_original"
@@ -44057,7 +43853,7 @@
                 "parent_id",
                 "org",
                 "invoice",
-                "term",
+                "terms",
                 "gl_account",
                 "value_available",
                 "value_original"
@@ -44097,7 +43893,7 @@
                 "parent_id",
                 "org",
                 "invoice",
-                "term",
+                "terms",
                 "gl_account",
                 "value_available",
                 "value_original"
@@ -44145,7 +43941,7 @@
                 "parent_id",
                 "org",
                 "invoice",
-                "term",
+                "terms",
                 "gl_account",
                 "value_available",
                 "value_original"
@@ -44246,8 +44042,8 @@
                   ]
                 },
                 {
-                  "field": "term",
-                  "label": "term"
+                  "field": "terms",
+                  "label": "terms"
                 },
                 {
                   "field": "value_available",
@@ -44534,12 +44330,6 @@
             "type": "json-tree",
             "label": "refs"
           },
-          "term": {
-            "type": "lookup",
-            "label": "term",
-            "model": "term",
-            "display": "name"
-          },
           "uuid": {
             "type": "readonly",
             "label": "uuid"
@@ -44784,7 +44574,7 @@
               "model_name",
               "org",
               "invoice",
-              "term",
+              "terms",
               "gl_account",
               "value_available",
               "value_original"
@@ -45897,7 +45687,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -45943,7 +45732,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -45984,7 +45772,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "config",
                 "tax_jurisdiction",
                 "tax_exempt_code"
@@ -46025,7 +45812,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -46079,7 +45865,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "config",
                 "tax_jurisdiction",
                 "tax_exempt_code"
@@ -46127,7 +45912,6 @@
                 "email_id",
                 "phone_id",
                 "domain_id",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -46273,10 +46057,6 @@
                 {
                   "field": "terms",
                   "label": "terms"
-                },
-                {
-                  "field": "terms_fk",
-                  "label": "terms_fk"
                 },
                 {
                   "field": "type",
@@ -46698,8 +46478,7 @@
                 "address_id",
                 "email_id",
                 "phone_id",
-                "domain_id",
-                "terms_fk"
+                "domain_id"
               ]
             }
           }
@@ -46743,49 +46522,6 @@
           "stats": {
             "type": "json",
             "label": "stats"
-          },
-          "terms": {
-            "type": "select",
-            "label": "terms",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Due on Receipt",
-                "value": "due_on_receipt"
-              },
-              {
-                "label": "Net 10",
-                "value": "net_10"
-              },
-              {
-                "label": "Net 15",
-                "value": "net_15"
-              },
-              {
-                "label": "Net 30",
-                "value": "net_30"
-              },
-              {
-                "label": "Net 45",
-                "value": "net_45"
-              },
-              {
-                "label": "Net 60",
-                "value": "net_60"
-              },
-              {
-                "label": "2/10 Net 30",
-                "value": "2_10_net_30"
-              },
-              {
-                "label": "Prepaid",
-                "value": "prepaid"
-              },
-              {
-                "label": "COD",
-                "value": "cod"
-              }
-            ]
           },
           "config": {
             "type": "json-tree",
@@ -46907,12 +46643,6 @@
           "phone_id": {
             "type": "number",
             "label": "phone id"
-          },
-          "terms_fk": {
-            "type": "lookup",
-            "label": "terms fk",
-            "model": "term",
-            "display": "name"
           },
           "addresses": {
             "type": "json",
@@ -47249,8 +46979,7 @@
               "address_id",
               "email_id",
               "phone_id",
-              "domain_id",
-              "terms_fk"
+              "domain_id"
             ]
           },
           {
@@ -48344,7 +48073,6 @@
                 "phones",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -48391,7 +48119,6 @@
                 "phones",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -48433,7 +48160,6 @@
                 "attention",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -48480,7 +48206,6 @@
                 "phones",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -48532,7 +48257,6 @@
                 "attention",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -48623,7 +48347,6 @@
                 "addresses",
                 "emails",
                 "phones",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -48788,10 +48511,6 @@
                 {
                   "field": "terms",
                   "label": "terms"
-                },
-                {
-                  "field": "terms_fk",
-                  "label": "terms_fk"
                 },
                 {
                   "field": "vendor",
@@ -49346,65 +49065,6 @@
             "type": "json-tree",
             "label": "prefs"
           },
-          "terms": {
-            "type": "select",
-            "label": "terms",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Fake Term for DataBrowser testing",
-                "value": "Fake Term for DataBrowser testing"
-              },
-              {
-                "label": "Cash in Advance",
-                "value": "Cash in Advance"
-              },
-              {
-                "label": "Due on Receipt",
-                "value": "Due on Receipt"
-              },
-              {
-                "label": "50% Deposit, Balance on Receipt",
-                "value": "50% Deposit, Balance on Receipt"
-              },
-              {
-                "label": "Credit Card Cash",
-                "value": "Credit Card Cash"
-              },
-              {
-                "label": "Cash on Delivery",
-                "value": "Cash on Delivery"
-              },
-              {
-                "label": "Net 10 Days",
-                "value": "Net 10 Days"
-              },
-              {
-                "label": "Net 20 Days",
-                "value": "Net 20 Days"
-              },
-              {
-                "label": "2% 10, Net 30 Days",
-                "value": "2% 10, Net 30 Days"
-              },
-              {
-                "label": "Net 30 Days",
-                "value": "Net 30 Days"
-              },
-              {
-                "label": "Net 60 Days",
-                "value": "Net 60 Days"
-              },
-              {
-                "label": "Net 90 Days",
-                "value": "Net 90 Days"
-              },
-              {
-                "label": "3 Cash Every 30 Days",
-                "value": "3 Cash Every 30 Days"
-              }
-            ]
-          },
           "config": {
             "type": "json-tree",
             "label": "config"
@@ -49547,12 +49207,6 @@
           "shipping": {
             "type": "json",
             "label": "shipping"
-          },
-          "terms_fk": {
-            "type": "lookup",
-            "label": "terms fk",
-            "model": "term",
-            "display": "name"
           },
           "addresses": {
             "type": "json",
@@ -50364,7 +50018,6 @@
               "line_increment",
               "parent_id",
               "parent_model",
-              "terms_fk",
               "conditions_id"
             ]
           },
@@ -51888,7 +51541,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -51934,7 +51586,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -51975,7 +51626,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "config",
                 "tax_jurisdiction",
                 "tax_exempt_code"
@@ -52016,7 +51666,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -52070,7 +51719,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "config",
                 "tax_jurisdiction",
                 "tax_exempt_code"
@@ -52118,7 +51766,6 @@
                 "email_id",
                 "phone_id",
                 "domain_id",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -52257,10 +51904,6 @@
                 {
                   "field": "terms",
                   "label": "terms"
-                },
-                {
-                  "field": "terms_fk",
-                  "label": "terms_fk"
                 },
                 {
                   "field": "type",
@@ -52566,8 +52209,7 @@
                 "address_id",
                 "email_id",
                 "phone_id",
-                "domain_id",
-                "terms_fk"
+                "domain_id"
               ]
             }
           }
@@ -52611,49 +52253,6 @@
           "stats": {
             "type": "json",
             "label": "stats"
-          },
-          "terms": {
-            "type": "select",
-            "label": "terms",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Due on Receipt",
-                "value": "due_on_receipt"
-              },
-              {
-                "label": "Net 10",
-                "value": "net_10"
-              },
-              {
-                "label": "Net 15",
-                "value": "net_15"
-              },
-              {
-                "label": "Net 30",
-                "value": "net_30"
-              },
-              {
-                "label": "Net 45",
-                "value": "net_45"
-              },
-              {
-                "label": "Net 60",
-                "value": "net_60"
-              },
-              {
-                "label": "2/10 Net 30",
-                "value": "2_10_net_30"
-              },
-              {
-                "label": "Prepaid",
-                "value": "prepaid"
-              },
-              {
-                "label": "COD",
-                "value": "cod"
-              }
-            ]
           },
           "config": {
             "type": "json-tree",
@@ -52771,12 +52370,6 @@
           "phone_id": {
             "type": "number",
             "label": "phone id"
-          },
-          "terms_fk": {
-            "type": "lookup",
-            "label": "terms fk",
-            "model": "term",
-            "display": "name"
           },
           "addresses": {
             "type": "json",
@@ -53097,8 +52690,7 @@
               "address_id",
               "email_id",
               "phone_id",
-              "domain_id",
-              "terms_fk"
+              "domain_id"
             ]
           },
           {
@@ -57150,7 +56742,6 @@
                 "phones",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -57198,7 +56789,6 @@
                 "phones",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -57241,7 +56831,6 @@
                 "attention",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -57289,7 +56878,6 @@
                 "phones",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -57342,7 +56930,6 @@
                 "attention",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -57421,7 +57008,6 @@
                 "addresses",
                 "emails",
                 "phones",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -57574,10 +57160,6 @@
                 {
                   "field": "terms",
                   "label": "terms"
-                },
-                {
-                  "field": "terms_fk",
-                  "label": "terms_fk"
                 },
                 {
                   "field": "vendor",
@@ -58138,65 +57720,6 @@
             "type": "json-tree",
             "label": "prefs"
           },
-          "terms": {
-            "type": "select",
-            "label": "terms",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Fake Term for DataBrowser testing",
-                "value": "Fake Term for DataBrowser testing"
-              },
-              {
-                "label": "Cash in Advance",
-                "value": "Cash in Advance"
-              },
-              {
-                "label": "Due on Receipt",
-                "value": "Due on Receipt"
-              },
-              {
-                "label": "50% Deposit, Balance on Receipt",
-                "value": "50% Deposit, Balance on Receipt"
-              },
-              {
-                "label": "Credit Card Cash",
-                "value": "Credit Card Cash"
-              },
-              {
-                "label": "Cash on Delivery",
-                "value": "Cash on Delivery"
-              },
-              {
-                "label": "Net 10 Days",
-                "value": "Net 10 Days"
-              },
-              {
-                "label": "Net 20 Days",
-                "value": "Net 20 Days"
-              },
-              {
-                "label": "2% 10, Net 30 Days",
-                "value": "2% 10, Net 30 Days"
-              },
-              {
-                "label": "Net 30 Days",
-                "value": "Net 30 Days"
-              },
-              {
-                "label": "Net 60 Days",
-                "value": "Net 60 Days"
-              },
-              {
-                "label": "Net 90 Days",
-                "value": "Net 90 Days"
-              },
-              {
-                "label": "3 Cash Every 30 Days",
-                "value": "3 Cash Every 30 Days"
-              }
-            ]
-          },
           "config": {
             "type": "json-tree",
             "label": "config"
@@ -58343,12 +57866,6 @@
           "shipping": {
             "type": "json",
             "label": "shipping"
-          },
-          "terms_fk": {
-            "type": "lookup",
-            "label": "terms fk",
-            "model": "term",
-            "display": "name"
           },
           "addresses": {
             "type": "json",
@@ -59161,7 +58678,6 @@
               "line_increment",
               "parent_id",
               "parent_model",
-              "terms_fk",
               "conditions_id"
             ]
           },
@@ -60727,7 +60243,6 @@
                 "phones",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -60774,7 +60289,6 @@
                 "phones",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -60816,7 +60330,6 @@
                 "attention",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -60863,7 +60376,6 @@
                 "phones",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -60915,7 +60427,6 @@
                 "attention",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -60968,7 +60479,6 @@
                 "addresses",
                 "emails",
                 "phones",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -61095,10 +60605,6 @@
                 {
                   "field": "terms",
                   "label": "terms"
-                },
-                {
-                  "field": "terms_fk",
-                  "label": "terms_fk"
                 },
                 {
                   "field": "vendor",
@@ -61640,65 +61146,6 @@
             "type": "json-tree",
             "label": "prefs"
           },
-          "terms": {
-            "type": "select",
-            "label": "terms",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Fake Term for DataBrowser testing",
-                "value": "Fake Term for DataBrowser testing"
-              },
-              {
-                "label": "Cash in Advance",
-                "value": "Cash in Advance"
-              },
-              {
-                "label": "Due on Receipt",
-                "value": "Due on Receipt"
-              },
-              {
-                "label": "50% Deposit, Balance on Receipt",
-                "value": "50% Deposit, Balance on Receipt"
-              },
-              {
-                "label": "Credit Card Cash",
-                "value": "Credit Card Cash"
-              },
-              {
-                "label": "Cash on Delivery",
-                "value": "Cash on Delivery"
-              },
-              {
-                "label": "Net 10 Days",
-                "value": "Net 10 Days"
-              },
-              {
-                "label": "Net 20 Days",
-                "value": "Net 20 Days"
-              },
-              {
-                "label": "2% 10, Net 30 Days",
-                "value": "2% 10, Net 30 Days"
-              },
-              {
-                "label": "Net 30 Days",
-                "value": "Net 30 Days"
-              },
-              {
-                "label": "Net 60 Days",
-                "value": "Net 60 Days"
-              },
-              {
-                "label": "Net 90 Days",
-                "value": "Net 90 Days"
-              },
-              {
-                "label": "3 Cash Every 30 Days",
-                "value": "3 Cash Every 30 Days"
-              }
-            ]
-          },
           "config": {
             "type": "json-tree",
             "label": "config"
@@ -61841,12 +61288,6 @@
           "shipping": {
             "type": "json",
             "label": "shipping"
-          },
-          "terms_fk": {
-            "type": "lookup",
-            "label": "terms fk",
-            "model": "term",
-            "display": "name"
           },
           "addresses": {
             "type": "json",
@@ -62658,7 +62099,6 @@
               "line_increment",
               "parent_id",
               "parent_model",
-              "terms_fk",
               "conditions_id"
             ]
           },
@@ -67607,7 +67047,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -67653,7 +67092,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -67694,7 +67132,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "config",
                 "tax_jurisdiction",
                 "tax_exempt_code"
@@ -67735,7 +67172,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -67789,7 +67225,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "config",
                 "tax_jurisdiction",
                 "tax_exempt_code"
@@ -67837,7 +67272,6 @@
                 "email_id",
                 "phone_id",
                 "domain_id",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -67983,10 +67417,6 @@
                 {
                   "field": "terms",
                   "label": "terms"
-                },
-                {
-                  "field": "terms_fk",
-                  "label": "terms_fk"
                 },
                 {
                   "field": "type",
@@ -68405,8 +67835,7 @@
                 "address_id",
                 "email_id",
                 "phone_id",
-                "domain_id",
-                "terms_fk"
+                "domain_id"
               ]
             }
           }
@@ -68450,49 +67879,6 @@
           "stats": {
             "type": "json",
             "label": "stats"
-          },
-          "terms": {
-            "type": "select",
-            "label": "terms",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Due on Receipt",
-                "value": "due_on_receipt"
-              },
-              {
-                "label": "Net 10",
-                "value": "net_10"
-              },
-              {
-                "label": "Net 15",
-                "value": "net_15"
-              },
-              {
-                "label": "Net 30",
-                "value": "net_30"
-              },
-              {
-                "label": "Net 45",
-                "value": "net_45"
-              },
-              {
-                "label": "Net 60",
-                "value": "net_60"
-              },
-              {
-                "label": "2/10 Net 30",
-                "value": "2_10_net_30"
-              },
-              {
-                "label": "Prepaid",
-                "value": "prepaid"
-              },
-              {
-                "label": "COD",
-                "value": "cod"
-              }
-            ]
           },
           "config": {
             "type": "json-tree",
@@ -68614,12 +68000,6 @@
           "phone_id": {
             "type": "number",
             "label": "phone id"
-          },
-          "terms_fk": {
-            "type": "lookup",
-            "label": "terms fk",
-            "model": "term",
-            "display": "name"
           },
           "addresses": {
             "type": "json",
@@ -68944,8 +68324,7 @@
               "address_id",
               "email_id",
               "phone_id",
-              "domain_id",
-              "terms_fk"
+              "domain_id"
             ]
           },
           {
@@ -81880,7 +81259,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -81926,7 +81304,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -81967,7 +81344,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "config",
                 "tax_jurisdiction",
                 "tax_exempt_code"
@@ -82008,7 +81384,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -82067,7 +81442,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "config",
                 "tax_jurisdiction",
                 "tax_exempt_code"
@@ -82115,7 +81489,6 @@
                 "email_id",
                 "phone_id",
                 "domain_id",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -82261,10 +81634,6 @@
                 {
                   "field": "terms",
                   "label": "terms"
-                },
-                {
-                  "field": "terms_fk",
-                  "label": "terms_fk"
                 },
                 {
                   "field": "type",
@@ -82687,8 +82056,7 @@
                 "address_id",
                 "email_id",
                 "phone_id",
-                "domain_id",
-                "terms_fk"
+                "domain_id"
               ]
             }
           }
@@ -82732,49 +82100,6 @@
           "stats": {
             "type": "json",
             "label": "stats"
-          },
-          "terms": {
-            "type": "select",
-            "label": "terms",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Due on Receipt",
-                "value": "due_on_receipt"
-              },
-              {
-                "label": "Net 10",
-                "value": "net_10"
-              },
-              {
-                "label": "Net 15",
-                "value": "net_15"
-              },
-              {
-                "label": "Net 30",
-                "value": "net_30"
-              },
-              {
-                "label": "Net 45",
-                "value": "net_45"
-              },
-              {
-                "label": "Net 60",
-                "value": "net_60"
-              },
-              {
-                "label": "2/10 Net 30",
-                "value": "2_10_net_30"
-              },
-              {
-                "label": "Prepaid",
-                "value": "prepaid"
-              },
-              {
-                "label": "COD",
-                "value": "cod"
-              }
-            ]
           },
           "config": {
             "type": "json-tree",
@@ -82896,12 +82221,6 @@
           "phone_id": {
             "type": "number",
             "label": "phone id"
-          },
-          "terms_fk": {
-            "type": "lookup",
-            "label": "terms fk",
-            "model": "term",
-            "display": "name"
           },
           "addresses": {
             "type": "json",
@@ -83238,8 +82557,7 @@
               "address_id",
               "email_id",
               "phone_id",
-              "domain_id",
-              "terms_fk"
+              "domain_id"
             ]
           },
           {
@@ -85167,7 +84485,6 @@
                 "phones",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -85214,7 +84531,6 @@
                 "phones",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -85256,7 +84572,6 @@
                 "attention",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -85303,7 +84618,6 @@
                 "phones",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -85355,7 +84669,6 @@
                 "attention",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -85408,7 +84721,6 @@
                 "addresses",
                 "emails",
                 "phones",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -85535,10 +84847,6 @@
                 {
                   "field": "terms",
                   "label": "terms"
-                },
-                {
-                  "field": "terms_fk",
-                  "label": "terms_fk"
                 },
                 {
                   "field": "vendor",
@@ -86042,65 +85350,6 @@
             "type": "json-tree",
             "label": "prefs"
           },
-          "terms": {
-            "type": "select",
-            "label": "terms",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Fake Term for DataBrowser testing",
-                "value": "Fake Term for DataBrowser testing"
-              },
-              {
-                "label": "Cash in Advance",
-                "value": "Cash in Advance"
-              },
-              {
-                "label": "Due on Receipt",
-                "value": "Due on Receipt"
-              },
-              {
-                "label": "50% Deposit, Balance on Receipt",
-                "value": "50% Deposit, Balance on Receipt"
-              },
-              {
-                "label": "Credit Card Cash",
-                "value": "Credit Card Cash"
-              },
-              {
-                "label": "Cash on Delivery",
-                "value": "Cash on Delivery"
-              },
-              {
-                "label": "Net 10 Days",
-                "value": "Net 10 Days"
-              },
-              {
-                "label": "Net 20 Days",
-                "value": "Net 20 Days"
-              },
-              {
-                "label": "2% 10, Net 30 Days",
-                "value": "2% 10, Net 30 Days"
-              },
-              {
-                "label": "Net 30 Days",
-                "value": "Net 30 Days"
-              },
-              {
-                "label": "Net 60 Days",
-                "value": "Net 60 Days"
-              },
-              {
-                "label": "Net 90 Days",
-                "value": "Net 90 Days"
-              },
-              {
-                "label": "3 Cash Every 30 Days",
-                "value": "3 Cash Every 30 Days"
-              }
-            ]
-          },
           "config": {
             "type": "json-tree",
             "label": "config"
@@ -86243,12 +85492,6 @@
           "shipping": {
             "type": "json",
             "label": "shipping"
-          },
-          "terms_fk": {
-            "type": "lookup",
-            "label": "terms fk",
-            "model": "term",
-            "display": "name"
           },
           "addresses": {
             "type": "json",
@@ -87056,7 +86299,6 @@
               "line_increment",
               "parent_id",
               "parent_model",
-              "terms_fk",
               "conditions_id"
             ]
           },

@@ -554,7 +554,7 @@ def _build_columns(model_key, field_map):
         'action', 'description',
     }
     FK_ID_FIELDS = {'email_id', 'phone_id', 'domain_id', 'address_id',
-                    'conditions_id', 'terms_fk', 'specification_id'}
+                    'conditions_id', 'specification_id'}
 
     all_fields = list(field_map.keys())
     human = [f for f in all_fields if f not in SYSTEM and f not in JSON_ENVELOPES and f not in FK_ID_FIELDS]

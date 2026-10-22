@@ -355,8 +355,8 @@ def check_ledger_rows(org_id=None) -> list:
     terms = {t.ida.lower(): t for t in Term.objects.filter(is_active=True)}
 
     def term_of(doc):
-        # One Term query for the whole check; resolve_term only for the rest (fallback
-        # to terms_fk or the company default, and its refusal when nothing resolves).
+        # One Term query for the whole check; resolve_term only for the rest (the
+        # company default, and its refusal when nothing resolves).
         return terms.get((getattr(doc, 'terms', '') or '').strip().lower()) or resolve_term(doc)
     Invoice = dj_apps.get_model('transactions', 'Invoice')
     Receipt = dj_apps.get_model('transactions', 'Receipt')

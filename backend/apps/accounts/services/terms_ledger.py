@@ -32,7 +32,7 @@ KEY CONCEPTS:
 
 AUDIT TRAIL:
 - Each ledger links to source invoice via invoice_id FK and parent_id
-- Each ledger links to term via term_id FK
+- Each ledger names its term by ida in `terms` (text, not an FK — Bill, 2026-10-22)
 - value_original captures initial amount (never changes)
 - value_available tracks current unpaid balance (decreases with cash)
 - refs JSON captures additional relationship metadata
@@ -216,7 +216,7 @@ def compute_schedule(invoice_dt: datetime, total: Decimal, term) -> List[Schedul
     return entries
 
 
-def create_ledger_records(invoice_id, total: Decimal, term_id, strategy: str = 'records'):
+def create_ledger_records(invoice_id, total: Decimal, term, strategy: str = 'records'):
     """
     Create ledgers for an invoice based on a term.
     
@@ -233,7 +233,7 @@ def create_ledger_records(invoice_id, total: Decimal, term_id, strategy: str = '
       - value_available: Same initially (decreases with cash)
       - parent_id: Invoice ID for audit trail
       - invoice_id: FK to Invoice for joins
-      - term_id: FK to Term for audit trail
+      - terms: the Term's ida, for the audit trail
       - model_name: 'invoice' for type identification
       - source: 'AR' (Accounts Receivable)
       - refs: JSON with link metadata
@@ -249,7 +249,8 @@ def create_ledger_records(invoice_id, total: Decimal, term_id, strategy: str = '
     Args:
         invoice_id: Invoice instance to create ledgers for
         total: Invoice total in Decimal
-        term_id: Term instance defining installment schedule
+        term: Term instance (or its ida) defining the installment schedule; None = one
+            instalment due now (a credit memo)
         strategy: 'records' to create Ledgers, 'metadata' to store in JSON
     
     Returns:
@@ -260,8 +261,10 @@ def create_ledger_records(invoice_id, total: Decimal, term_id, strategy: str = '
 
     # AUDIT: Calculate invoice date from invoice or use current time
     # Accept epoch ms from API calls; normalize to UTC datetime
+    if isinstance(term, str):
+        term = term_by_ida(term)
     inv_dt = getattr(invoice_id, 'dt_created', None)
-    schedule = compute_schedule(inv_dt if inv_dt is not None else datetime.now(timezone.utc), total, term_id)
+    schedule = compute_schedule(inv_dt if inv_dt is not None else datetime.now(timezone.utc), total, term)
     created = []
     
     if strategy == 'metadata':
@@ -312,7 +315,7 @@ def create_ledger_records(invoice_id, total: Decimal, term_id, strategy: str = '
             parent_id=inv_id,                      # Source document ID
             org_id=org_id,                         # Org FK for indexed queries
             invoice=invoice_id,                    # FK for joins
-            term=term_id,                          # FK for audit trail
+            terms=term.ida if term else '',        # Term ida for audit trail
             value_original=float(value),           # Initial amount (immutable)
             value_available=float(value),          # Current unpaid (mutable)
             refs=refs,                             # Additional metadata
@@ -332,6 +335,31 @@ def company_default_term_ida() -> str:
     return (receivables or {}).get('default_term') or ''
 
 
+def term_by_ida(ida: str):
+    """The active Term named by ``ida`` (case-insensitive), or None."""
+    from django.apps import apps as dj_apps
+    return dj_apps.get_model('accounts', 'Term').objects.filter(
+        ida__iexact=(ida or '').strip(), is_active=True).first()
+
+
+def named_term_ida(value) -> str:
+    """The ida a record's ``terms`` should store for ``value`` — the active Term's own
+    spelling (n30 → N30). Empty stays empty: the company default applies. Anything else
+    raises ValueError with the coaching the save door hands back (Bill, 2026-10-22: terms
+    are text, so the text is checked where it is written)."""
+    ida = (value or '').strip()
+    if not ida:
+        return ''
+    term = term_by_ida(ida)
+    if term is None:
+        from django.apps import apps as dj_apps
+        valid = list(dj_apps.get_model('accounts', 'Term').objects.filter(is_active=True)
+                     .order_by('ida').values_list('ida', flat=True))
+        raise ValueError(f'"{ida}" is not a term. Terms are named by ida: '
+                         f'{", ".join(valid) or "(no active Term records — add one first)"}.')
+    return term.ida
+
+
 def resolve_term(document):
     """The Term a document's money is due under — one resolver for AR and AP.
 
@@ -339,28 +367,20 @@ def resolve_term(document):
     2pct10N30, ...), as WC2 did (Bill, 2026-09-20). The name is what is populated (31
     invoices to 2 in wc_demo) and the only key that survives moving between databases:
     an id is local to one, while N30 means N30 on the desktop and in the cloud alike.
-    ``terms_fk`` is read only as a fallback for records that carry it and no name. No
-    name and no default raises: a document never silently gets no due date.
+    There is no FK (Bill, 2026-10-22: "Users will not think in terms of FK for terms").
+    No name and no default raises: a document never silently gets no due date.
 
     Both sides must read the same fields or the same document ages differently depending
     on which one you ask. AP was reading only the FK and AR only the ida (mine, 4f538b6,
     2026-09-20), and in wc_demo the ida is the populated one — 31 invoices to 2 — so
     every AP schedule was quietly falling back to a default.
     """
-    from django.apps import apps as dj_apps
-    Term = dj_apps.get_model('accounts', 'Term')
-
-    ida = (getattr(document, 'terms', None) or '').strip()
-    if not ida:
-        fk = getattr(document, 'terms_fk', None)      # fallback: a record with only an id
-        if fk is not None and getattr(fk, 'is_active', True):
-            return fk
-        ida = company_default_term_ida()
+    ida = (getattr(document, 'terms', None) or '').strip() or company_default_term_ida()
     label = getattr(document, 'ida', None) or getattr(document, 'pk', '?')
     if not ida:
         raise ValueError(
             f'{label} has no terms and the company profile has no config.receivables.default_term.')
-    resolved = Term.objects.filter(ida__iexact=ida, is_active=True).first()
+    resolved = term_by_ida(ida)
     if resolved is None:
         raise ValueError(f'{label} terms "{ida}" is not an active Term record.')
     return resolved
@@ -461,7 +481,6 @@ def apply_terms_for_invoice(invoice, total: Optional[Decimal] = None, term=None,
     from django.apps import apps as dj_apps
     from decimal import Decimal as D
     Ledger = dj_apps.get_model('accounts', 'Ledger')
-    Term = dj_apps.get_model('accounts', 'Term')
 
     if term is None:
         term = resolve_term(invoice)
@@ -491,7 +510,7 @@ def apply_terms_for_invoice(invoice, total: Optional[Decimal] = None, term=None,
     if total < 0:
         # Credit memo: one ledger, available immediately — no schedule to wait on
         term = None
-    records = create_ledger_records(invoice_id=invoice, total=total, term_id=term, strategy=strategy)
+    records = create_ledger_records(invoice_id=invoice, total=total, term=term, strategy=strategy)
     allocate_received(invoice)
     return records
 
@@ -582,14 +601,6 @@ def allocate_paid(receipt) -> None:
         if ledger.value_available != available:
             ledger.value_available = available
             ledger.save(update_fields=['value_available'])
-
-
-def _resolve_term(term_id):
-    """A Term instance from its id, or None (compute_schedule then uses the default)."""
-    if term_id is None:
-        return None
-    from django.apps import apps as dj_apps
-    return dj_apps.get_model('accounts', 'Term').objects.filter(pk=term_id).first()
 
 
 def allocate_received(invoice) -> None:
@@ -696,7 +707,6 @@ def record_cash(invoice, amount: Decimal, dt_paid, cash=None, gl_account_id=None
         parent_id=pid,                             # Cash record ID
         org_id=org_id,                             # Org FK for indexed queries
         invoice=invoice,                           # FK to Invoice for allocation
-        term_id=None,                              # Cash don't have terms
         value_original=float(-original_amount),  # Original cash amount, sign flipped (refund cash → positive)
         value_available=float(-val),             # Current unapplied, sign flipped (tracks applications)
         refs=refs,                                 # Additional metadata

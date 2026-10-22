@@ -647,7 +647,7 @@ LAYOUTS = {
                 {"title": "details", "fields": [
                     _f("dt_cash"),
                     _f("reference_number"),
-                    _f("term"),
+                    _f("terms"),
                     _f("fee_amount", format="currency"),
                     _f("reconciled"),
                     _f("dt_reconciliation"),

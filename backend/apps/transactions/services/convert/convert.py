@@ -53,7 +53,7 @@ _HEADER_COPY_FIELDS_SELL = (
     # Party blocks shown in bill_to / ship_to. The JSON aspects are the source
     # of truth; address_full/email/phone are read-only properties derived from them.
     "addresses", "emails", "phones",
-    "price_level", "terms", "terms_fk_id",
+    "price_level", "terms",
     "is_commission", "conditions_id", "conditions_description",
     # Tax jurisdiction and rate: the same sale is taxed the same way at every step.
     "finance",

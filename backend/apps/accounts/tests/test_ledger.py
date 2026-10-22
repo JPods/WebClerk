@@ -169,7 +169,7 @@ class TestCreateLedgerRecords:
         assert db_ledger.source == 'AR'
         assert db_ledger.parent_id == invoice.id
         assert db_ledger.invoice_id == invoice.id
-        assert db_ledger.term_id == term_net30.id
+        assert db_ledger.terms == term_net30.ida
         assert float(db_ledger.value_original) == 1000.0
         assert float(db_ledger.value_available) == 1000.0
         assert db_ledger.org_id == invoice.customer_id

@@ -11,7 +11,7 @@ from apps.core.services import report_hooks as rh
 
 
 POINTS = {
-    'invoice.save_pre': {'may_set': ['terms_id'], 'may_block': True},
+    'invoice.save_pre': {'may_set': ['terms'], 'may_block': True},
     'invoice.save_post': {'may_set': ['metadata.review.*', 'comments.*'], 'may_create': ['action'],
                           'may_run': ['RPT-B']},
     'invoice.report_after': {'may_set': ['metadata.review.*'], 'may_run': ['*']},
@@ -62,7 +62,7 @@ def clear(report):
 def test_hooks_need_authorization(db, registry):
     report = Report(ida='RPT-X', name='X', category='function',
                     config={'hooks': {'point': 'invoice.save_pre',
-                                      'before': [{'require': 'terms_id'}]}})
+                                      'before': [{'require': 'terms'}]}})
     with pytest.raises(ValidationError):
         report.save()
 
@@ -73,7 +73,7 @@ def test_report_without_hooks_saves_freely(db):
 
 
 def test_authorization_does_not_persist(db, registry):
-    report = make_report('RPT-ONCE', {'point': 'invoice.save_pre', 'before': [{'require': 'terms_id'}]})
+    report = make_report('RPT-ONCE', {'point': 'invoice.save_pre', 'before': [{'require': 'terms'}]})
     report.config['hooks']['before'].append({'require': 'customer_id'})
     report.config = dict(report.config)
     with pytest.raises(ValidationError):
@@ -154,9 +154,9 @@ def test_when_condition_skips(db, registry, invoice):
 
 
 def test_require_blocks_when_point_may_block(db, registry, invoice):
-    invoice.terms_id = None
+    invoice.terms = ''
     report = make_report('RPT-REQ', {'point': 'invoice.save_pre',
-                                     'before': [{'require': 'terms_id',
+                                     'before': [{'require': 'terms',
                                                  'message': 'Released invoices need terms'}]})
     with pytest.raises(rh.HookBlocked) as caught:
         rh.run_phase(report, 'before', record=invoice)
@@ -431,7 +431,7 @@ def test_dry_run_writes_nothing(db, log_registry, tmp_path, settings):
 
 def test_dry_run_reports_a_block(db, registry):
     outcome = rh.dry_run({'point': 'invoice.save_pre',
-                          'before': [{'require': 'terms_id', 'message': 'needs terms'}]},
+                          'before': [{'require': 'terms', 'message': 'needs terms'}]},
                          model_key='invoice', phase='before')
     assert outcome['blocked'] == 'needs terms'
 
@@ -468,7 +468,7 @@ def test_blocking_hook_is_held_for_a_person(db, log_registry, quiet_advisers):
     payload = {'kind': hr.KIND_REQUEST, 'instance_uuid': 'inst-1', 'report_ida': 'RPT-HQ2',
                'hook_hash': 'def456',
                'hooks': {'point': 'invoice.save_pre',
-                         'before': [{'require': 'terms_id', 'message': 'needs terms'}]}}
+                         'before': [{'require': 'terms', 'message': 'needs terms'}]}}
     answer = hq.review_request(payload)
     assert answer['status'] == 'held'
     assert any(q['kind'] == 'blocks_saves' for q in answer['questions'])
@@ -572,7 +572,7 @@ def test_only_a_superuser_may_clear_locally(db, log_registry):
 
 def test_concerns_are_named_and_recorded(db, registry):
     report = make_report('RPT-ATH4', {'point': 'invoice.save_pre',
-                                      'before': [{'require': 'terms_id', 'message': 'needs terms'}]},
+                                      'before': [{'require': 'terms', 'message': 'needs terms'}]},
                          cleared=False)
     offered = ah.offer(report)
     assert any(c['kind'] == 'blocks_saves' for c in offered['concerns'])

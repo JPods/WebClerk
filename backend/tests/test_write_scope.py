@@ -155,7 +155,7 @@ def test_the_rep_travels_quote_to_order_to_invoice(world):
                                                             convert_quote_to_order)
 
     quote = Quote.objects.create(customer_id=world['her_customer'].pk, rep_id=world['mine'].pk,
-                                 attention_rep='Jane', terms='Net 30',
+                                 attention_rep='Jane', terms='N30',
                                  finance={'tax': {'rate': 7.5}})
     QuoteLine.objects.create(quote=quote, status='OPEN', item={"id_num": 1},
                              quantity={"active": 1}, price={"amount": 1})
@@ -169,7 +169,7 @@ def test_the_rep_travels_quote_to_order_to_invoice(world):
     invoice = Invoice.objects.get(pk=convert_order_to_invoice(order.pk)['invoice_id'])
     assert (invoice.rep_id, invoice.attention_rep) == (world['mine'].pk, 'Jane')
     # The one engine carries the sale's terms and tax setup; the old invoice builder did not.
-    assert invoice.terms == 'Net 30'
+    assert invoice.terms == 'N30'
     assert (invoice.finance or {}).get('tax', {}).get('rate') == 7.5
 
 

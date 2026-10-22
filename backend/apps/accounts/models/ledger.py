@@ -55,7 +55,7 @@ class Ledger(BaseModel):
     # Org linkage for indexed aging queries
     org = models.ForeignKey('orgs.OrgBase', blank=True, null=True, on_delete=models.SET_NULL, db_column='org_id', related_name='ledger_entries', help_text="Org (customer/vendor) for fast aging queries")
     invoice = models.ForeignKey('transactions.Invoice', blank=True, null=True, on_delete=models.SET_NULL, db_column='invoice_id')
-    term = models.ForeignKey('accounts.Term', blank=True, null=True, on_delete=models.SET_NULL, db_column='term_id')
+    terms = models.CharField(max_length=40, blank=True, default='', help_text="Term ida the schedule was computed from (N30, 2pct10N30, ...)")
     gl_account = models.ForeignKey('accounts.GlAccount', blank=True, null=True, on_delete=models.SET_NULL, db_column='gl_account_id', help_text="GL account for FX gain/loss applied to this entry, if any")
     value_available = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True, help_text="Current unpaid balance (changed as cash is applied)")
     value_original = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True, help_text="Initial amount when created (immutable)")

@@ -61,7 +61,7 @@ export interface Cash {
   invoice_id?: number | null;
   contact_id?: number | null;
   cash_method_id?: number | null;
-  term_id?: number | null;
+  terms?: string;  // a Term ida (N30, COD, ...)
 
   // Denormalized display fields (from API)
   contact_name?: string;
@@ -108,7 +108,7 @@ export interface CreateCashRequest {
   contact_id: number;
   dt_cash?: string;
   cash_method_id?: number | null;
-  term_id?: number | null;
+  terms?: string;  // a Term ida (N30, COD, ...)
   invoice_id?: number | null;
   reference_number?: string;
   notes?: string;

@@ -52,7 +52,6 @@ class OrgBaseAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
     list_filter = ("org_type", "status", "is_active", "is_archived")
     search_fields = ("company", "domains", "contacts", "email", "phone")
     readonly_fields = ("id", "uuid", "dt_created", "dt_modified", "version")
-    raw_id_fields = ("terms_fk",)
     actions = ("mark_as_primary_organization",)
     
     # Scalar fields alphabetical, then JSONB fields alphabetical
@@ -62,7 +61,7 @@ class OrgBaseAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
             "contact_id", "company", "domain", "domain_id",
             "email", "email_id", "health_rating",
             "is_active", "is_archived", "org_type", "phone", "phone_id", "price_level",
-            "security_level", "status", "terms", "terms_fk",
+            "security_level", "status", "terms",
         )}),
         ("JSONB fields", {
             "fields": (

@@ -214,7 +214,6 @@ export interface OrgFinancialCommon {
     tax_exempt_exp?: string | null;
     tax_exempt_verified_by?: string;
     tax_exempt_verified_dt?: string | null;
-    terms_id?: number | null;
     notes?: string;
   };
 }

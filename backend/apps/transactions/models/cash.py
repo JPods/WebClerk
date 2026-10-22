@@ -126,15 +126,7 @@ class Cash(HardDeleteOnly, BaseModel):
         blank=True,
         help_text="How they paid: visa_3425, check-WellsFargo, cash, etc. Freehand or select list."
     )
-    term = models.ForeignKey(
-        'accounts.Term',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='cash_entries',
-        db_column='term_id',
-        help_text="Term applied"
-    )
+    terms = models.CharField(max_length=40, blank=True, default='', help_text="Term ida applied (N30, COD, ...)")
     category = models.CharField(
         max_length=100,
         blank=True,

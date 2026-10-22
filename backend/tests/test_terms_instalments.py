@@ -21,12 +21,11 @@ def _term(ida='3Pay30Days', period_count=3, days_in_period=30, days_due=90):
                                discount_rate=0, days_discount=0, is_active=True)
 
 
-def _invoice(total, terms_ida=None, terms_fk=None):
+def _invoice(total, terms_ida=None):
     from apps.orgs.models import Customer
     from apps.transactions.models import Invoice, InvoiceLine
     customer = Customer.objects.create(company='C')
-    invoice = Invoice.objects.create(customer_id=customer.pk, terms=terms_ida or '',
-                                     terms_fk=terms_fk)
+    invoice = Invoice.objects.create(customer_id=customer.pk, terms=terms_ida or '')
     InvoiceLine.objects.create(invoice=invoice, item={'item_id': 1},
                                quantity={'active': 1},
                                price={'unit': total, 'precision': 2})
@@ -69,14 +68,17 @@ def test_instalments_add_up_to_the_document_exactly():
 
 
 def test_ap_and_ar_resolve_the_same_term_the_same_way():
-    """AP read terms_fk and AR read the terms ida, so one document aged two ways."""
+    """AP read terms_fk and AR read the terms ida, so one document aged two ways. There
+    is no FK now (Bill, 2026-10-22): both read the ida, whatever its case."""
+    from apps.orgs.models import Vendor
+    from apps.transactions.models import Receipt
     from apps.accounts.services.terms_ledger import resolve_term
     term = _term()
-    by_ida = _invoice(Decimal('90.00'), terms_ida='3Pay30Days')
-    by_fk = _invoice(Decimal('90.00'), terms_fk=term)
+    invoice = _invoice(Decimal('90.00'), terms_ida='3Pay30Days')
+    receipt = Receipt.objects.create(vendor_id=Vendor.objects.create(company='V').pk, terms='3pay30days')
 
-    assert resolve_term(by_ida).pk == term.pk      # the ida resolves
-    assert resolve_term(by_fk).pk == term.pk       # and so does the FK
+    assert resolve_term(invoice).pk == term.pk
+    assert resolve_term(receipt).pk == term.pk
 
 
 def test_a_payable_splits_into_parts_like_a_receivable():
@@ -97,3 +99,33 @@ def test_a_payable_splits_into_parts_like_a_receivable():
     assert len(rows) == 3
     assert sum(Decimal(str(r.value_original)) for r in rows) == Decimal('300.00')
     assert all(r.source == 'AP' and r.org_id == vendor.pk for r in rows)
+
+
+# ── terms are text (Bill, 2026-10-22) ────────────────────────────────
+
+def test_the_terms_dropdown_offers_idas():
+    """It offered the description as the value, so a pick never resolved to a Term."""
+    from apps.core.services.field_behaviors import _get_terms_options
+    _term()
+    assert {'value': '3Pay30Days', 'label': '3Pay30Days'} in _get_terms_options()
+
+
+def test_the_save_door_stores_the_terms_own_spelling_and_refuses_an_unknown_one():
+    from apps.core.services.door import Actor, Refused
+    from apps.core.services.save import save_record
+    from apps.orgs.models import Customer
+    _term()
+    customer = Customer.objects.create(company='C')
+
+    save_record(Actor.system(), {'model_name': 'customer', 'id': customer.pk, 'terms': '3pay30days'})
+    customer.refresh_from_db()
+    assert customer.terms == '3Pay30Days'
+
+    with pytest.raises(Refused) as refused:
+        save_record(Actor.system(), {'model_name': 'customer', 'id': customer.pk, 'terms': 'Net 30'})
+    assert refused.value.code == 'invalid_terms'
+    assert '3Pay30Days' in refused.value.message          # the coaching names the valid idas
+
+    save_record(Actor.system(), {'model_name': 'customer', 'id': customer.pk, 'terms': ''})
+    customer.refresh_from_db()
+    assert customer.terms == ''                           # empty: the company default applies

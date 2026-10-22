@@ -171,10 +171,11 @@ class TransactionEmailService:
         if not recipient_emails:
             return False
 
-        # Get cash terms if available
-        terms = "Net 30"  # Default
-        if hasattr(invoice, 'term') and invoice.term:
-            terms = invoice.term.name
+        # The invoice's terms as its ledger reads them (its ida, else the company default).
+        # It read invoice.term — a field no invoice had — so every email said "Net 30".
+        from apps.accounts.services.terms_ledger import resolve_term
+        term = resolve_term(invoice)
+        terms = term.description or term.ida
 
         context = {
             'invoice': invoice,

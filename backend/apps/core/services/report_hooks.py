@@ -15,7 +15,7 @@ Rule shape (every key optional except the verb):
 
     {"when": {"status": "released"},        # condition — field equals value
      "when_changed": "status",              # condition — field changed this save
-     "require": "terms_id",                 # validate — present and non-empty
+     "require": "terms",                    # validate — present and non-empty
      "match": {"email": "^[^@]+@[^@]+$"},   # validate — regex
      "range": {"margin_pct": [0, 100]},     # validate — inclusive bounds
      "block": "Released invoices need terms",   # stop the save (pre only)

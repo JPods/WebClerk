@@ -1,18 +1,17 @@
 from rest_framework import serializers
 from apps.transactions.models import Cash, Invoice
-from apps.accounts.models import Term
 from apps.core.models import Contact
 
 
 class CashSerializer(serializers.ModelSerializer):
     """Serializer for Cash (formerly Cash) transactions.
 
-    Full CRUD with FK resolution for invoice, contact, term (accounts.Term).
+    Full CRUD with FK resolution for invoice and contact. terms is a Term ida (text),
+    checked where every record's terms is checked — the save.
     Gateway fields hidden from non-staff users.
     """
     invoice_id = serializers.IntegerField(required=False, allow_null=True)
     contact_id = serializers.IntegerField(required=True)
-    term_id = serializers.IntegerField(required=False, allow_null=True)
     refs = serializers.JSONField(required=False, allow_null=True)
     metadata = serializers.JSONField(required=False, allow_null=True)
 
@@ -21,7 +20,7 @@ class CashSerializer(serializers.ModelSerializer):
         fields = [
             "id", "invoice_id", "contact_id", "amount", "available", "tendered", "change",
             "dt_cash",
-            "method", "term_id", "reference_number",
+            "method", "terms", "reference_number",
             "gateway", "gateway_transaction_id", "gateway_payment_intent_id", "status",
             "gateway_response", "dt_processed", "reconciled", "dt_reconciliation", "fee_amount",
             "refs", "metadata",
@@ -42,7 +41,6 @@ class CashSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         invoice_id = validated_data.pop("invoice_id", None)
         contact_id = validated_data.pop("contact_id", None)
-        term_id = validated_data.pop("term_id", None)
 
         # invoice_id is optional (for order-level deposits)
         if invoice_id:
@@ -60,19 +58,11 @@ class CashSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({"contact_id": "Invalid contact id"})
             validated_data["contact_id"] = contact_id
 
-        if term_id:
-            try:
-                term = Term.objects.get(pk=term_id)
-                validated_data["term"] = term
-            except Term.DoesNotExist:
-                raise serializers.ValidationError({"term_id": "Invalid term id"})
-
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
         invoice_id = validated_data.pop("invoice_id", None)
         contact_id = validated_data.pop("contact_id", None)
-        term_id = validated_data.pop("term_id", None)
 
         if invoice_id:
             try:
@@ -85,16 +75,6 @@ class CashSerializer(serializers.ModelSerializer):
             if not Contact.objects.filter(pk=contact_id).exists():
                 raise serializers.ValidationError({"contact_id": "Invalid contact id"})
             validated_data["contact_id"] = contact_id
-
-        if term_id is not None:
-            if term_id:
-                try:
-                    term = Term.objects.get(pk=term_id)
-                    validated_data["term"] = term
-                except Term.DoesNotExist:
-                    raise serializers.ValidationError({"term_id": "Invalid term id"})
-            else:
-                validated_data["term"] = None
 
         return super().update(instance, validated_data)
 

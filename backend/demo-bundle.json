@@ -16240,7 +16240,7 @@
                 "change",
                 "dt_cash",
                 "method",
-                "term",
+                "terms",
                 "category",
                 "reference_number",
                 "notes",
@@ -16284,7 +16284,7 @@
                 "change",
                 "dt_cash",
                 "method",
-                "term",
+                "terms",
                 "category",
                 "reference_number",
                 "notes",
@@ -16325,7 +16325,7 @@
                 "change",
                 "dt_cash",
                 "method",
-                "term",
+                "terms",
                 "reference_number",
                 "notes",
                 "gateway",
@@ -16369,7 +16369,7 @@
                 "change",
                 "dt_cash",
                 "method",
-                "term",
+                "terms",
                 "category",
                 "reference_number",
                 "notes",
@@ -16421,7 +16421,7 @@
                 "change",
                 "dt_cash",
                 "method",
-                "term",
+                "terms",
                 "category",
                 "reference_number",
                 "notes",
@@ -16498,7 +16498,7 @@
                 "change",
                 "dt_cash",
                 "method",
-                "term",
+                "terms",
                 "category",
                 "reference_number",
                 "notes",
@@ -16655,8 +16655,8 @@
                   "label": "parent_model"
                 },
                 {
-                  "field": "term",
-                  "label": "term"
+                  "field": "terms",
+                  "label": "terms"
                 },
                 {
                   "field": "purchase",
@@ -16812,8 +16812,8 @@
                           "label": "reference_number"
                         },
                         {
-                          "field": "term",
-                          "label": "term"
+                          "field": "terms",
+                          "label": "terms"
                         },
                         {
                           "field": "fee_amount",
@@ -17341,12 +17341,6 @@
             "type": "text",
             "label": "parent model"
           },
-          "term": {
-            "type": "lookup",
-            "label": "cash term",
-            "model": "term",
-            "display": "name"
-          },
           "health_rating": {
             "type": "readonly",
             "label": "health rating"
@@ -17529,7 +17523,7 @@
               "tendered",
               "change",
               "method",
-              "term",
+              "terms",
               "category",
               "reference_number",
               "notes",
@@ -22369,7 +22363,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -22415,7 +22408,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -22456,7 +22448,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "config",
                 "tax_jurisdiction",
                 "tax_exempt_code"
@@ -22497,7 +22488,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -22551,7 +22541,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "config",
                 "tax_jurisdiction",
                 "tax_exempt_code"
@@ -22618,7 +22607,6 @@
                 "email_id",
                 "phone_id",
                 "domain_id",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -22783,10 +22771,6 @@
                 {
                   "field": "terms",
                   "label": "terms"
-                },
-                {
-                  "field": "terms_fk",
-                  "label": "terms_fk"
                 },
                 {
                   "field": "type",
@@ -23209,8 +23193,7 @@
                 "address_id",
                 "email_id",
                 "phone_id",
-                "domain_id",
-                "terms_fk"
+                "domain_id"
               ]
             }
           }
@@ -23254,49 +23237,6 @@
           "stats": {
             "type": "json",
             "label": "stats"
-          },
-          "terms": {
-            "type": "select",
-            "label": "terms",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Due on Receipt",
-                "value": "due_on_receipt"
-              },
-              {
-                "label": "Net 10",
-                "value": "net_10"
-              },
-              {
-                "label": "Net 15",
-                "value": "net_15"
-              },
-              {
-                "label": "Net 30",
-                "value": "net_30"
-              },
-              {
-                "label": "Net 45",
-                "value": "net_45"
-              },
-              {
-                "label": "Net 60",
-                "value": "net_60"
-              },
-              {
-                "label": "2/10 Net 30",
-                "value": "2_10_net_30"
-              },
-              {
-                "label": "Prepaid",
-                "value": "prepaid"
-              },
-              {
-                "label": "COD",
-                "value": "cod"
-              }
-            ]
           },
           "config": {
             "type": "json-tree",
@@ -23418,12 +23358,6 @@
           "phone_id": {
             "type": "number",
             "label": "phone id"
-          },
-          "terms_fk": {
-            "type": "lookup",
-            "label": "terms fk",
-            "model": "term",
-            "display": "name"
           },
           "addresses": {
             "type": "json",
@@ -23760,8 +23694,7 @@
               "address_id",
               "email_id",
               "phone_id",
-              "domain_id",
-              "terms_fk"
+              "domain_id"
             ]
           },
           {
@@ -27866,7 +27799,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -27912,7 +27844,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -27953,7 +27884,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "config",
                 "tax_jurisdiction",
                 "tax_exempt_code"
@@ -27994,7 +27924,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -28048,7 +27977,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "config",
                 "tax_jurisdiction",
                 "tax_exempt_code"
@@ -28096,7 +28024,6 @@
                 "email_id",
                 "phone_id",
                 "domain_id",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -28242,10 +28169,6 @@
                 {
                   "field": "terms",
                   "label": "terms"
-                },
-                {
-                  "field": "terms_fk",
-                  "label": "terms_fk"
                 },
                 {
                   "field": "type",
@@ -28660,8 +28583,7 @@
                 "address_id",
                 "email_id",
                 "phone_id",
-                "domain_id",
-                "terms_fk"
+                "domain_id"
               ]
             }
           }
@@ -28705,49 +28627,6 @@
           "stats": {
             "type": "json",
             "label": "stats"
-          },
-          "terms": {
-            "type": "select",
-            "label": "terms",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Due on Receipt",
-                "value": "due_on_receipt"
-              },
-              {
-                "label": "Net 10",
-                "value": "net_10"
-              },
-              {
-                "label": "Net 15",
-                "value": "net_15"
-              },
-              {
-                "label": "Net 30",
-                "value": "net_30"
-              },
-              {
-                "label": "Net 45",
-                "value": "net_45"
-              },
-              {
-                "label": "Net 60",
-                "value": "net_60"
-              },
-              {
-                "label": "2/10 Net 30",
-                "value": "2_10_net_30"
-              },
-              {
-                "label": "Prepaid",
-                "value": "prepaid"
-              },
-              {
-                "label": "COD",
-                "value": "cod"
-              }
-            ]
           },
           "config": {
             "type": "json-tree",
@@ -28869,12 +28748,6 @@
           "phone_id": {
             "type": "number",
             "label": "phone id"
-          },
-          "terms_fk": {
-            "type": "lookup",
-            "label": "terms fk",
-            "model": "term",
-            "display": "name"
           },
           "addresses": {
             "type": "json",
@@ -29199,8 +29072,7 @@
               "address_id",
               "email_id",
               "phone_id",
-              "domain_id",
-              "terms_fk"
+              "domain_id"
             ]
           },
           {
@@ -35970,7 +35842,6 @@
                 "phones",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -36018,7 +35889,6 @@
                 "phones",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -36063,7 +35933,6 @@
                 "attention",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -36109,7 +35978,6 @@
                 "phones",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -36164,7 +36032,6 @@
                 "attention",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -36241,7 +36108,6 @@
                 "addresses",
                 "emails",
                 "phones",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -36407,10 +36273,6 @@
                 {
                   "field": "terms",
                   "label": "terms"
-                },
-                {
-                  "field": "terms_fk",
-                  "label": "terms_fk"
                 },
                 {
                   "field": "vendor",
@@ -36975,65 +36837,6 @@
             "type": "json-tree",
             "label": "prefs"
           },
-          "terms": {
-            "type": "select",
-            "label": "terms",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Fake Term for DataBrowser testing",
-                "value": "Fake Term for DataBrowser testing"
-              },
-              {
-                "label": "Cash in Advance",
-                "value": "Cash in Advance"
-              },
-              {
-                "label": "Due on Receipt",
-                "value": "Due on Receipt"
-              },
-              {
-                "label": "50% Deposit, Balance on Receipt",
-                "value": "50% Deposit, Balance on Receipt"
-              },
-              {
-                "label": "Credit Card Cash",
-                "value": "Credit Card Cash"
-              },
-              {
-                "label": "Cash on Delivery",
-                "value": "Cash on Delivery"
-              },
-              {
-                "label": "Net 10 Days",
-                "value": "Net 10 Days"
-              },
-              {
-                "label": "Net 20 Days",
-                "value": "Net 20 Days"
-              },
-              {
-                "label": "2% 10, Net 30 Days",
-                "value": "2% 10, Net 30 Days"
-              },
-              {
-                "label": "Net 30 Days",
-                "value": "Net 30 Days"
-              },
-              {
-                "label": "Net 60 Days",
-                "value": "Net 60 Days"
-              },
-              {
-                "label": "Net 90 Days",
-                "value": "Net 90 Days"
-              },
-              {
-                "label": "3 Cash Every 30 Days",
-                "value": "3 Cash Every 30 Days"
-              }
-            ]
-          },
           "config": {
             "type": "json-tree",
             "label": "config"
@@ -37176,12 +36979,6 @@
           "shipping": {
             "type": "json",
             "label": "shipping"
-          },
-          "terms_fk": {
-            "type": "lookup",
-            "label": "terms fk",
-            "model": "term",
-            "display": "name"
           },
           "addresses": {
             "type": "json",
@@ -37998,7 +37795,6 @@
               "line_increment",
               "parent_id",
               "parent_model",
-              "terms_fk",
               "conditions_id"
             ]
           },
@@ -43885,7 +43681,7 @@
                 "parent_id",
                 "org",
                 "invoice",
-                "term",
+                "terms",
                 "gl_account",
                 "value_available",
                 "value_original"
@@ -43920,7 +43716,7 @@
                 "parent_id",
                 "org",
                 "invoice",
-                "term",
+                "terms",
                 "gl_account",
                 "value_available",
                 "value_original"
@@ -43950,7 +43746,7 @@
                 "parent_id",
                 "org",
                 "invoice",
-                "term",
+                "terms",
                 "gl_account",
                 "value_available",
                 "value_original"
@@ -43991,7 +43787,7 @@
                 "parent_id",
                 "org",
                 "invoice",
-                "term",
+                "terms",
                 "gl_account",
                 "value_available",
                 "value_original"
@@ -44031,7 +43827,7 @@
                 "parent_id",
                 "org",
                 "invoice",
-                "term",
+                "terms",
                 "gl_account",
                 "value_available",
                 "value_original"
@@ -44079,7 +43875,7 @@
                 "parent_id",
                 "org",
                 "invoice",
-                "term",
+                "terms",
                 "gl_account",
                 "value_available",
                 "value_original"
@@ -44180,8 +43976,8 @@
                   ]
                 },
                 {
-                  "field": "term",
-                  "label": "term"
+                  "field": "terms",
+                  "label": "terms"
                 },
                 {
                   "field": "value_available",
@@ -44468,12 +44264,6 @@
             "type": "json-tree",
             "label": "refs"
           },
-          "term": {
-            "type": "lookup",
-            "label": "term",
-            "model": "term",
-            "display": "name"
-          },
           "uuid": {
             "type": "readonly",
             "label": "uuid"
@@ -44718,7 +44508,7 @@
               "model_name",
               "org",
               "invoice",
-              "term",
+              "terms",
               "gl_account",
               "value_available",
               "value_original"
@@ -45831,7 +45621,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -45877,7 +45666,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -45918,7 +45706,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "config",
                 "tax_jurisdiction",
                 "tax_exempt_code"
@@ -45959,7 +45746,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -46013,7 +45799,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "config",
                 "tax_jurisdiction",
                 "tax_exempt_code"
@@ -46061,7 +45846,6 @@
                 "email_id",
                 "phone_id",
                 "domain_id",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -46207,10 +45991,6 @@
                 {
                   "field": "terms",
                   "label": "terms"
-                },
-                {
-                  "field": "terms_fk",
-                  "label": "terms_fk"
                 },
                 {
                   "field": "type",
@@ -46632,8 +46412,7 @@
                 "address_id",
                 "email_id",
                 "phone_id",
-                "domain_id",
-                "terms_fk"
+                "domain_id"
               ]
             }
           }
@@ -46677,49 +46456,6 @@
           "stats": {
             "type": "json",
             "label": "stats"
-          },
-          "terms": {
-            "type": "select",
-            "label": "terms",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Due on Receipt",
-                "value": "due_on_receipt"
-              },
-              {
-                "label": "Net 10",
-                "value": "net_10"
-              },
-              {
-                "label": "Net 15",
-                "value": "net_15"
-              },
-              {
-                "label": "Net 30",
-                "value": "net_30"
-              },
-              {
-                "label": "Net 45",
-                "value": "net_45"
-              },
-              {
-                "label": "Net 60",
-                "value": "net_60"
-              },
-              {
-                "label": "2/10 Net 30",
-                "value": "2_10_net_30"
-              },
-              {
-                "label": "Prepaid",
-                "value": "prepaid"
-              },
-              {
-                "label": "COD",
-                "value": "cod"
-              }
-            ]
           },
           "config": {
             "type": "json-tree",
@@ -46841,12 +46577,6 @@
           "phone_id": {
             "type": "number",
             "label": "phone id"
-          },
-          "terms_fk": {
-            "type": "lookup",
-            "label": "terms fk",
-            "model": "term",
-            "display": "name"
           },
           "addresses": {
             "type": "json",
@@ -47183,8 +46913,7 @@
               "address_id",
               "email_id",
               "phone_id",
-              "domain_id",
-              "terms_fk"
+              "domain_id"
             ]
           },
           {
@@ -48278,7 +48007,6 @@
                 "phones",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -48325,7 +48053,6 @@
                 "phones",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -48367,7 +48094,6 @@
                 "attention",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -48414,7 +48140,6 @@
                 "phones",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -48466,7 +48191,6 @@
                 "attention",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -48557,7 +48281,6 @@
                 "addresses",
                 "emails",
                 "phones",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -48722,10 +48445,6 @@
                 {
                   "field": "terms",
                   "label": "terms"
-                },
-                {
-                  "field": "terms_fk",
-                  "label": "terms_fk"
                 },
                 {
                   "field": "vendor",
@@ -49280,65 +48999,6 @@
             "type": "json-tree",
             "label": "prefs"
           },
-          "terms": {
-            "type": "select",
-            "label": "terms",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Fake Term for DataBrowser testing",
-                "value": "Fake Term for DataBrowser testing"
-              },
-              {
-                "label": "Cash in Advance",
-                "value": "Cash in Advance"
-              },
-              {
-                "label": "Due on Receipt",
-                "value": "Due on Receipt"
-              },
-              {
-                "label": "50% Deposit, Balance on Receipt",
-                "value": "50% Deposit, Balance on Receipt"
-              },
-              {
-                "label": "Credit Card Cash",
-                "value": "Credit Card Cash"
-              },
-              {
-                "label": "Cash on Delivery",
-                "value": "Cash on Delivery"
-              },
-              {
-                "label": "Net 10 Days",
-                "value": "Net 10 Days"
-              },
-              {
-                "label": "Net 20 Days",
-                "value": "Net 20 Days"
-              },
-              {
-                "label": "2% 10, Net 30 Days",
-                "value": "2% 10, Net 30 Days"
-              },
-              {
-                "label": "Net 30 Days",
-                "value": "Net 30 Days"
-              },
-              {
-                "label": "Net 60 Days",
-                "value": "Net 60 Days"
-              },
-              {
-                "label": "Net 90 Days",
-                "value": "Net 90 Days"
-              },
-              {
-                "label": "3 Cash Every 30 Days",
-                "value": "3 Cash Every 30 Days"
-              }
-            ]
-          },
           "config": {
             "type": "json-tree",
             "label": "config"
@@ -49481,12 +49141,6 @@
           "shipping": {
             "type": "json",
             "label": "shipping"
-          },
-          "terms_fk": {
-            "type": "lookup",
-            "label": "terms fk",
-            "model": "term",
-            "display": "name"
           },
           "addresses": {
             "type": "json",
@@ -50298,7 +49952,6 @@
               "line_increment",
               "parent_id",
               "parent_model",
-              "terms_fk",
               "conditions_id"
             ]
           },
@@ -51822,7 +51475,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -51868,7 +51520,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -51909,7 +51560,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "config",
                 "tax_jurisdiction",
                 "tax_exempt_code"
@@ -51950,7 +51600,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -52004,7 +51653,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "config",
                 "tax_jurisdiction",
                 "tax_exempt_code"
@@ -52052,7 +51700,6 @@
                 "email_id",
                 "phone_id",
                 "domain_id",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -52191,10 +51838,6 @@
                 {
                   "field": "terms",
                   "label": "terms"
-                },
-                {
-                  "field": "terms_fk",
-                  "label": "terms_fk"
                 },
                 {
                   "field": "type",
@@ -52500,8 +52143,7 @@
                 "address_id",
                 "email_id",
                 "phone_id",
-                "domain_id",
-                "terms_fk"
+                "domain_id"
               ]
             }
           }
@@ -52545,49 +52187,6 @@
           "stats": {
             "type": "json",
             "label": "stats"
-          },
-          "terms": {
-            "type": "select",
-            "label": "terms",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Due on Receipt",
-                "value": "due_on_receipt"
-              },
-              {
-                "label": "Net 10",
-                "value": "net_10"
-              },
-              {
-                "label": "Net 15",
-                "value": "net_15"
-              },
-              {
-                "label": "Net 30",
-                "value": "net_30"
-              },
-              {
-                "label": "Net 45",
-                "value": "net_45"
-              },
-              {
-                "label": "Net 60",
-                "value": "net_60"
-              },
-              {
-                "label": "2/10 Net 30",
-                "value": "2_10_net_30"
-              },
-              {
-                "label": "Prepaid",
-                "value": "prepaid"
-              },
-              {
-                "label": "COD",
-                "value": "cod"
-              }
-            ]
           },
           "config": {
             "type": "json-tree",
@@ -52705,12 +52304,6 @@
           "phone_id": {
             "type": "number",
             "label": "phone id"
-          },
-          "terms_fk": {
-            "type": "lookup",
-            "label": "terms fk",
-            "model": "term",
-            "display": "name"
           },
           "addresses": {
             "type": "json",
@@ -53031,8 +52624,7 @@
               "address_id",
               "email_id",
               "phone_id",
-              "domain_id",
-              "terms_fk"
+              "domain_id"
             ]
           },
           {
@@ -57084,7 +56676,6 @@
                 "phones",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -57132,7 +56723,6 @@
                 "phones",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -57175,7 +56765,6 @@
                 "attention",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -57223,7 +56812,6 @@
                 "phones",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -57276,7 +56864,6 @@
                 "attention",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -57355,7 +56942,6 @@
                 "addresses",
                 "emails",
                 "phones",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -57508,10 +57094,6 @@
                 {
                   "field": "terms",
                   "label": "terms"
-                },
-                {
-                  "field": "terms_fk",
-                  "label": "terms_fk"
                 },
                 {
                   "field": "vendor",
@@ -58072,65 +57654,6 @@
             "type": "json-tree",
             "label": "prefs"
           },
-          "terms": {
-            "type": "select",
-            "label": "terms",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Fake Term for DataBrowser testing",
-                "value": "Fake Term for DataBrowser testing"
-              },
-              {
-                "label": "Cash in Advance",
-                "value": "Cash in Advance"
-              },
-              {
-                "label": "Due on Receipt",
-                "value": "Due on Receipt"
-              },
-              {
-                "label": "50% Deposit, Balance on Receipt",
-                "value": "50% Deposit, Balance on Receipt"
-              },
-              {
-                "label": "Credit Card Cash",
-                "value": "Credit Card Cash"
-              },
-              {
-                "label": "Cash on Delivery",
-                "value": "Cash on Delivery"
-              },
-              {
-                "label": "Net 10 Days",
-                "value": "Net 10 Days"
-              },
-              {
-                "label": "Net 20 Days",
-                "value": "Net 20 Days"
-              },
-              {
-                "label": "2% 10, Net 30 Days",
-                "value": "2% 10, Net 30 Days"
-              },
-              {
-                "label": "Net 30 Days",
-                "value": "Net 30 Days"
-              },
-              {
-                "label": "Net 60 Days",
-                "value": "Net 60 Days"
-              },
-              {
-                "label": "Net 90 Days",
-                "value": "Net 90 Days"
-              },
-              {
-                "label": "3 Cash Every 30 Days",
-                "value": "3 Cash Every 30 Days"
-              }
-            ]
-          },
           "config": {
             "type": "json-tree",
             "label": "config"
@@ -58277,12 +57800,6 @@
           "shipping": {
             "type": "json",
             "label": "shipping"
-          },
-          "terms_fk": {
-            "type": "lookup",
-            "label": "terms fk",
-            "model": "term",
-            "display": "name"
           },
           "addresses": {
             "type": "json",
@@ -59095,7 +58612,6 @@
               "line_increment",
               "parent_id",
               "parent_model",
-              "terms_fk",
               "conditions_id"
             ]
           },
@@ -60661,7 +60177,6 @@
                 "phones",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -60708,7 +60223,6 @@
                 "phones",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -60750,7 +60264,6 @@
                 "attention",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -60797,7 +60310,6 @@
                 "phones",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -60849,7 +60361,6 @@
                 "attention",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -60902,7 +60413,6 @@
                 "addresses",
                 "emails",
                 "phones",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -61029,10 +60539,6 @@
                 {
                   "field": "terms",
                   "label": "terms"
-                },
-                {
-                  "field": "terms_fk",
-                  "label": "terms_fk"
                 },
                 {
                   "field": "vendor",
@@ -61574,65 +61080,6 @@
             "type": "json-tree",
             "label": "prefs"
           },
-          "terms": {
-            "type": "select",
-            "label": "terms",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Fake Term for DataBrowser testing",
-                "value": "Fake Term for DataBrowser testing"
-              },
-              {
-                "label": "Cash in Advance",
-                "value": "Cash in Advance"
-              },
-              {
-                "label": "Due on Receipt",
-                "value": "Due on Receipt"
-              },
-              {
-                "label": "50% Deposit, Balance on Receipt",
-                "value": "50% Deposit, Balance on Receipt"
-              },
-              {
-                "label": "Credit Card Cash",
-                "value": "Credit Card Cash"
-              },
-              {
-                "label": "Cash on Delivery",
-                "value": "Cash on Delivery"
-              },
-              {
-                "label": "Net 10 Days",
-                "value": "Net 10 Days"
-              },
-              {
-                "label": "Net 20 Days",
-                "value": "Net 20 Days"
-              },
-              {
-                "label": "2% 10, Net 30 Days",
-                "value": "2% 10, Net 30 Days"
-              },
-              {
-                "label": "Net 30 Days",
-                "value": "Net 30 Days"
-              },
-              {
-                "label": "Net 60 Days",
-                "value": "Net 60 Days"
-              },
-              {
-                "label": "Net 90 Days",
-                "value": "Net 90 Days"
-              },
-              {
-                "label": "3 Cash Every 30 Days",
-                "value": "3 Cash Every 30 Days"
-              }
-            ]
-          },
           "config": {
             "type": "json-tree",
             "label": "config"
@@ -61775,12 +61222,6 @@
           "shipping": {
             "type": "json",
             "label": "shipping"
-          },
-          "terms_fk": {
-            "type": "lookup",
-            "label": "terms fk",
-            "model": "term",
-            "display": "name"
           },
           "addresses": {
             "type": "json",
@@ -62592,7 +62033,6 @@
               "line_increment",
               "parent_id",
               "parent_model",
-              "terms_fk",
               "conditions_id"
             ]
           },
@@ -67541,7 +66981,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -67587,7 +67026,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -67628,7 +67066,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "config",
                 "tax_jurisdiction",
                 "tax_exempt_code"
@@ -67669,7 +67106,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -67723,7 +67159,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "config",
                 "tax_jurisdiction",
                 "tax_exempt_code"
@@ -67771,7 +67206,6 @@
                 "email_id",
                 "phone_id",
                 "domain_id",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -67917,10 +67351,6 @@
                 {
                   "field": "terms",
                   "label": "terms"
-                },
-                {
-                  "field": "terms_fk",
-                  "label": "terms_fk"
                 },
                 {
                   "field": "type",
@@ -68339,8 +67769,7 @@
                 "address_id",
                 "email_id",
                 "phone_id",
-                "domain_id",
-                "terms_fk"
+                "domain_id"
               ]
             }
           }
@@ -68384,49 +67813,6 @@
           "stats": {
             "type": "json",
             "label": "stats"
-          },
-          "terms": {
-            "type": "select",
-            "label": "terms",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Due on Receipt",
-                "value": "due_on_receipt"
-              },
-              {
-                "label": "Net 10",
-                "value": "net_10"
-              },
-              {
-                "label": "Net 15",
-                "value": "net_15"
-              },
-              {
-                "label": "Net 30",
-                "value": "net_30"
-              },
-              {
-                "label": "Net 45",
-                "value": "net_45"
-              },
-              {
-                "label": "Net 60",
-                "value": "net_60"
-              },
-              {
-                "label": "2/10 Net 30",
-                "value": "2_10_net_30"
-              },
-              {
-                "label": "Prepaid",
-                "value": "prepaid"
-              },
-              {
-                "label": "COD",
-                "value": "cod"
-              }
-            ]
           },
           "config": {
             "type": "json-tree",
@@ -68548,12 +67934,6 @@
           "phone_id": {
             "type": "number",
             "label": "phone id"
-          },
-          "terms_fk": {
-            "type": "lookup",
-            "label": "terms fk",
-            "model": "term",
-            "display": "name"
           },
           "addresses": {
             "type": "json",
@@ -68878,8 +68258,7 @@
               "address_id",
               "email_id",
               "phone_id",
-              "domain_id",
-              "terms_fk"
+              "domain_id"
             ]
           },
           {
@@ -81814,7 +81193,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -81860,7 +81238,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -81901,7 +81278,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "config",
                 "tax_jurisdiction",
                 "tax_exempt_code"
@@ -81942,7 +81318,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -82001,7 +81376,6 @@
                 "domain_id",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "config",
                 "tax_jurisdiction",
                 "tax_exempt_code"
@@ -82049,7 +81423,6 @@
                 "email_id",
                 "phone_id",
                 "domain_id",
-                "terms_fk",
                 "contacts",
                 "addresses",
                 "domains",
@@ -82195,10 +81568,6 @@
                 {
                   "field": "terms",
                   "label": "terms"
-                },
-                {
-                  "field": "terms_fk",
-                  "label": "terms_fk"
                 },
                 {
                   "field": "type",
@@ -82621,8 +81990,7 @@
                 "address_id",
                 "email_id",
                 "phone_id",
-                "domain_id",
-                "terms_fk"
+                "domain_id"
               ]
             }
           }
@@ -82666,49 +82034,6 @@
           "stats": {
             "type": "json",
             "label": "stats"
-          },
-          "terms": {
-            "type": "select",
-            "label": "terms",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Due on Receipt",
-                "value": "due_on_receipt"
-              },
-              {
-                "label": "Net 10",
-                "value": "net_10"
-              },
-              {
-                "label": "Net 15",
-                "value": "net_15"
-              },
-              {
-                "label": "Net 30",
-                "value": "net_30"
-              },
-              {
-                "label": "Net 45",
-                "value": "net_45"
-              },
-              {
-                "label": "Net 60",
-                "value": "net_60"
-              },
-              {
-                "label": "2/10 Net 30",
-                "value": "2_10_net_30"
-              },
-              {
-                "label": "Prepaid",
-                "value": "prepaid"
-              },
-              {
-                "label": "COD",
-                "value": "cod"
-              }
-            ]
           },
           "config": {
             "type": "json-tree",
@@ -82830,12 +82155,6 @@
           "phone_id": {
             "type": "number",
             "label": "phone id"
-          },
-          "terms_fk": {
-            "type": "lookup",
-            "label": "terms fk",
-            "model": "term",
-            "display": "name"
           },
           "addresses": {
             "type": "json",
@@ -83172,8 +82491,7 @@
               "address_id",
               "email_id",
               "phone_id",
-              "domain_id",
-              "terms_fk"
+              "domain_id"
             ]
           },
           {
@@ -85101,7 +84419,6 @@
                 "phones",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -85148,7 +84465,6 @@
                 "phones",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -85190,7 +84506,6 @@
                 "attention",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -85237,7 +84552,6 @@
                 "phones",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -85289,7 +84603,6 @@
                 "attention",
                 "price_level",
                 "terms",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -85342,7 +84655,6 @@
                 "addresses",
                 "emails",
                 "phones",
-                "terms_fk",
                 "conditions_id",
                 "conditions_description",
                 "dt_journaled",
@@ -85469,10 +84781,6 @@
                 {
                   "field": "terms",
                   "label": "terms"
-                },
-                {
-                  "field": "terms_fk",
-                  "label": "terms_fk"
                 },
                 {
                   "field": "vendor",
@@ -85976,65 +85284,6 @@
             "type": "json-tree",
             "label": "prefs"
           },
-          "terms": {
-            "type": "select",
-            "label": "terms",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Fake Term for DataBrowser testing",
-                "value": "Fake Term for DataBrowser testing"
-              },
-              {
-                "label": "Cash in Advance",
-                "value": "Cash in Advance"
-              },
-              {
-                "label": "Due on Receipt",
-                "value": "Due on Receipt"
-              },
-              {
-                "label": "50% Deposit, Balance on Receipt",
-                "value": "50% Deposit, Balance on Receipt"
-              },
-              {
-                "label": "Credit Card Cash",
-                "value": "Credit Card Cash"
-              },
-              {
-                "label": "Cash on Delivery",
-                "value": "Cash on Delivery"
-              },
-              {
-                "label": "Net 10 Days",
-                "value": "Net 10 Days"
-              },
-              {
-                "label": "Net 20 Days",
-                "value": "Net 20 Days"
-              },
-              {
-                "label": "2% 10, Net 30 Days",
-                "value": "2% 10, Net 30 Days"
-              },
-              {
-                "label": "Net 30 Days",
-                "value": "Net 30 Days"
-              },
-              {
-                "label": "Net 60 Days",
-                "value": "Net 60 Days"
-              },
-              {
-                "label": "Net 90 Days",
-                "value": "Net 90 Days"
-              },
-              {
-                "label": "3 Cash Every 30 Days",
-                "value": "3 Cash Every 30 Days"
-              }
-            ]
-          },
           "config": {
             "type": "json-tree",
             "label": "config"
@@ -86177,12 +85426,6 @@
           "shipping": {
             "type": "json",
             "label": "shipping"
-          },
-          "terms_fk": {
-            "type": "lookup",
-            "label": "terms fk",
-            "model": "term",
-            "display": "name"
           },
           "addresses": {
             "type": "json",
@@ -86990,7 +86233,6 @@
               "line_increment",
               "parent_id",
               "parent_model",
-              "terms_fk",
               "conditions_id"
             ]
           },
@@ -132978,7 +132220,6 @@
         "domain_id": 492,
         "price_level": null,
         "terms": null,
-        "terms_fk_id": null,
         "contacts": [],
         "addresses": {
           "prime": {
@@ -133102,7 +132343,6 @@
             "currency": "USD",
             "settings": {
               "notes": "",
-              "terms_id": null,
               "tax_exempt": false,
               "discount_pct": 0,
               "tax_exempt_id": ""
@@ -133585,7 +132825,6 @@
         "domain_id": null,
         "price_level": null,
         "terms": null,
-        "terms_fk_id": null,
         "contacts": [],
         "addresses": {
           "prime": {
@@ -133709,7 +132948,6 @@
             "currency": "USD",
             "settings": {
               "notes": "",
-              "terms_id": null,
               "tax_exempt": false,
               "discount_pct": 0,
               "tax_exempt_id": ""
@@ -134190,7 +133428,6 @@
         "domain_id": null,
         "price_level": null,
         "terms": null,
-        "terms_fk_id": null,
         "contacts": [],
         "addresses": {
           "prime": {
@@ -134314,7 +133551,6 @@
             "currency": "USD",
             "settings": {
               "notes": "",
-              "terms_id": null,
               "tax_exempt": false,
               "discount_pct": 0,
               "tax_exempt_id": ""
@@ -134796,7 +134032,6 @@
         "domain_id": null,
         "price_level": null,
         "terms": null,
-        "terms_fk_id": null,
         "contacts": [],
         "addresses": {
           "prime": {
@@ -134920,7 +134155,6 @@
             "currency": "USD",
             "settings": {
               "notes": "",
-              "terms_id": null,
               "tax_exempt": false,
               "discount_pct": 0,
               "tax_exempt_id": ""
@@ -135402,7 +134636,6 @@
         "domain_id": null,
         "price_level": null,
         "terms": null,
-        "terms_fk_id": null,
         "contacts": [],
         "addresses": {
           "prime": {
@@ -135526,7 +134759,6 @@
             "currency": "USD",
             "settings": {
               "notes": "",
-              "terms_id": null,
               "tax_exempt": false,
               "discount_pct": 0,
               "tax_exempt_id": ""
@@ -136026,7 +135258,6 @@
         "domain_id": null,
         "price_level": null,
         "terms": null,
-        "terms_fk_id": null,
         "contacts": [],
         "addresses": {
           "prime": {
@@ -136150,7 +135381,6 @@
             "currency": "USD",
             "settings": {
               "notes": "",
-              "terms_id": null,
               "tax_exempt": false,
               "discount_pct": 0,
               "tax_exempt_id": "",
@@ -136724,7 +135954,6 @@
         "domain_id": 493,
         "price_level": "Wholesale",
         "terms": "Net 30",
-        "terms_fk_id": null,
         "contacts": [],
         "addresses": {
           "prime": {
@@ -137035,7 +136264,6 @@
         "domain_id": 495,
         "price_level": null,
         "terms": null,
-        "terms_fk_id": null,
         "contacts": [],
         "addresses": {
           "prime": {
@@ -137338,7 +136566,6 @@
         "domain_id": 494,
         "price_level": null,
         "terms": null,
-        "terms_fk_id": null,
         "contacts": [],
         "addresses": {
           "prime": {
@@ -137605,7 +136832,6 @@
         "domain_id": null,
         "price_level": null,
         "terms": null,
-        "terms_fk_id": null,
         "contacts": [],
         "addresses": {
           "prime": {
@@ -137862,7 +137088,6 @@
         "domain_id": null,
         "price_level": null,
         "terms": null,
-        "terms_fk_id": null,
         "contacts": [],
         "addresses": {
           "prime": {
@@ -138126,7 +137351,6 @@
         "domain_id": null,
         "price_level": null,
         "terms": null,
-        "terms_fk_id": null,
         "contacts": [],
         "addresses": {
           "prime": {
@@ -138383,7 +137607,6 @@
         "domain_id": null,
         "price_level": null,
         "terms": null,
-        "terms_fk_id": null,
         "contacts": [],
         "addresses": {
           "prime": {
@@ -138507,7 +137730,6 @@
             "currency": "USD",
             "settings": {
               "notes": "",
-              "terms_id": null,
               "tax_exempt": false,
               "discount_pct": 0,
               "tax_exempt_id": "",
@@ -139050,7 +138272,6 @@
         "domain_id": 490,
         "price_level": "wholesale",
         "terms": null,
-        "terms_fk_id": null,
         "contacts": [],
         "addresses": {
           "prime": {
@@ -139174,7 +138395,6 @@
             "currency": "USD",
             "settings": {
               "notes": "",
-              "terms_id": null,
               "tax_exempt": false,
               "discount_pct": 0,
               "tax_exempt_id": "",
@@ -139725,7 +138945,6 @@
         "domain_id": 470,
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "contacts": {},
         "addresses": {
           "prime": {
@@ -139981,7 +139200,6 @@
         "domain_id": 474,
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "contacts": {},
         "addresses": {
           "prime": {
@@ -140232,7 +139450,6 @@
         "domain_id": 478,
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "contacts": {},
         "addresses": {
           "prime": {
@@ -140451,7 +139668,6 @@
         "domain_id": null,
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "contacts": {},
         "addresses": {
           "prime": {
@@ -140687,7 +139903,6 @@
         "domain_id": null,
         "price_level": null,
         "terms": "N30",
-        "terms_fk_id": null,
         "contacts": [],
         "addresses": {
           "prime": {
@@ -140811,7 +140026,6 @@
             "currency": "USD",
             "settings": {
               "notes": "",
-              "terms_id": null,
               "tax_exempt": false,
               "discount_pct": 0,
               "tax_exempt_id": "",
@@ -141292,7 +140506,6 @@
         "domain_id": null,
         "price_level": "B",
         "terms": "N30",
-        "terms_fk_id": null,
         "contacts": [],
         "addresses": {
           "prime": {
@@ -141416,7 +140629,6 @@
             "currency": "USD",
             "settings": {
               "notes": "",
-              "terms_id": null,
               "tax_exempt": false,
               "discount_pct": 0,
               "tax_exempt_id": "",
@@ -141897,7 +141109,6 @@
         "domain_id": null,
         "price_level": "A",
         "terms": "N30",
-        "terms_fk_id": null,
         "contacts": [],
         "addresses": {
           "prime": {
@@ -142021,7 +141232,6 @@
             "currency": "USD",
             "settings": {
               "notes": "",
-              "terms_id": null,
               "tax_exempt": false,
               "discount_pct": 0,
               "tax_exempt_id": "",
@@ -142502,7 +141712,6 @@
         "domain_id": null,
         "price_level": "C",
         "terms": "N10",
-        "terms_fk_id": null,
         "contacts": [],
         "addresses": {
           "prime": {
@@ -142626,7 +141835,6 @@
             "currency": "USD",
             "settings": {
               "notes": "",
-              "terms_id": null,
               "tax_exempt": false,
               "discount_pct": 0,
               "tax_exempt_id": "",
@@ -143107,7 +142315,6 @@
         "domain_id": null,
         "price_level": "A",
         "terms": "2pct10N30",
-        "terms_fk_id": null,
         "contacts": [],
         "addresses": {
           "prime": {
@@ -143231,7 +142438,6 @@
             "currency": "USD",
             "settings": {
               "notes": "",
-              "terms_id": null,
               "tax_exempt": false,
               "discount_pct": 0,
               "tax_exempt_id": "",
@@ -143713,7 +142919,6 @@
         "domain_id": null,
         "price_level": "B",
         "terms": "N30",
-        "terms_fk_id": null,
         "contacts": [],
         "addresses": {
           "prime": {
@@ -143837,7 +143042,6 @@
             "currency": "USD",
             "settings": {
               "notes": "",
-              "terms_id": null,
               "tax_exempt": false,
               "discount_pct": 0,
               "tax_exempt_id": "",
@@ -177801,7 +177005,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": "",
         "dt_journaled": 0,
@@ -178125,7 +177328,6 @@
         },
         "price_level": "wholesale",
         "terms": "Net 30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": "",
         "dt_journaled": 0,
@@ -178352,7 +177554,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -178594,7 +177795,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": "",
         "dt_journaled": 0,
@@ -178848,7 +178048,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": "",
         "dt_journaled": 0,
@@ -179090,7 +178289,6 @@
         },
         "price_level": "Wholesale",
         "terms": "Net 30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -179332,7 +178530,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -179577,7 +178774,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -179828,7 +179024,6 @@
         },
         "price_level": "wholesale",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -180073,7 +179268,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -180324,7 +179518,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -180569,7 +179762,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -180814,7 +180006,6 @@
         },
         "price_level": "Wholesale",
         "terms": "Net 30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -181071,7 +180262,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -181319,7 +180509,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -181561,7 +180750,6 @@
         },
         "price_level": "wholesale",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -181815,7 +181003,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -182066,7 +181253,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -182317,7 +181503,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -182565,7 +181750,6 @@
         },
         "price_level": "Wholesale",
         "terms": "Net 30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -182819,7 +182003,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -183061,7 +182244,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -183315,7 +182497,6 @@
         },
         "price_level": "wholesale",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -183563,7 +182744,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -183805,7 +182985,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -184059,7 +183238,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -184304,7 +183482,6 @@
         },
         "price_level": "Wholesale",
         "terms": "Net 30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -184549,7 +183726,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -184803,7 +183979,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -185060,7 +184235,6 @@
         },
         "price_level": "wholesale",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -185311,7 +184485,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -185559,7 +184732,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -185807,7 +184979,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -186061,7 +185232,6 @@
         },
         "price_level": "Wholesale",
         "terms": "Net 30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -186315,7 +185485,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -186566,7 +185735,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -186817,7 +185985,6 @@
         },
         "price_level": "wholesale",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -187068,7 +186235,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -187313,7 +186479,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -187508,7 +186673,6 @@
         "phones": {},
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -187728,7 +186892,6 @@
         "phones": {},
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -187951,7 +187114,6 @@
         "phones": {},
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -188215,7 +187377,6 @@
         },
         "price_level": "B",
         "terms": "N30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -188482,7 +187643,6 @@
         },
         "price_level": "A",
         "terms": "N30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -188752,7 +187912,6 @@
         },
         "price_level": "C",
         "terms": "N10",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -188963,7 +188122,6 @@
         "phones": {},
         "price_level": "retail",
         "terms": null,
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -189157,7 +188315,6 @@
         "phones": {},
         "price_level": "Wholesale",
         "terms": null,
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -189350,7 +188507,6 @@
         "phones": {},
         "price_level": "retail",
         "terms": null,
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -189609,7 +188765,6 @@
         },
         "price_level": "B",
         "terms": "N30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -189802,7 +188957,6 @@
         "phones": {},
         "price_level": "retail",
         "terms": null,
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -190061,7 +189215,6 @@
         },
         "price_level": "B",
         "terms": "N30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -190254,7 +189407,6 @@
         "phones": {},
         "price_level": "retail",
         "terms": null,
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -190447,7 +189599,6 @@
         "phones": {},
         "price_level": "retail",
         "terms": null,
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -190706,7 +189857,6 @@
         },
         "price_level": "B",
         "terms": "N30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -190899,7 +190049,6 @@
         "phones": {},
         "price_level": "retail",
         "terms": null,
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -191171,7 +190320,6 @@
         },
         "price_level": "B",
         "terms": "N30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -237584,7 +236732,6 @@
         },
         "price_level": "Wholesale",
         "terms": "Net 30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": "Standard|505|1",
         "dt_journaled": 0,
@@ -237860,7 +237007,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -238110,7 +237256,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -238354,7 +237499,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -238595,7 +237739,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -238833,7 +237976,6 @@
         },
         "price_level": "Wholesale",
         "terms": "Net 30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -239074,7 +238216,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -239316,7 +238457,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -239567,7 +238707,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -239855,7 +238994,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -240136,7 +239274,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -240400,7 +239537,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -240689,7 +239825,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -240970,7 +240105,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -241221,7 +240355,6 @@
         },
         "price_level": "Wholesale",
         "terms": "Net 30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -241488,7 +240621,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -241743,7 +240875,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -241971,7 +241102,6 @@
         },
         "price_level": "B",
         "terms": "N30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -242233,7 +241363,6 @@
         },
         "price_level": "A",
         "terms": "N30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -242450,7 +241579,6 @@
         "phones": {},
         "price_level": "retail",
         "terms": null,
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -242644,7 +241772,6 @@
         "phones": {},
         "price_level": "retail",
         "terms": null,
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -242838,7 +241965,6 @@
         "phones": {},
         "price_level": "retail",
         "terms": null,
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -243032,7 +242158,6 @@
         "phones": {},
         "price_level": "retail",
         "terms": null,
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -243234,7 +242359,6 @@
         "phones": {},
         "price_level": "Wholesale",
         "terms": null,
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -243450,7 +242574,6 @@
         "phones": {},
         "price_level": "Wholesale",
         "terms": null,
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -243701,7 +242824,6 @@
         },
         "price_level": "B",
         "terms": "N30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -262616,7 +261738,6 @@
         },
         "price_level": "Wholesale",
         "terms": "Net 30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 1789594434500,
@@ -262915,7 +262036,6 @@
         },
         "price_level": "Wholesale",
         "terms": "Net 30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 1789594434785,
@@ -263147,7 +262267,6 @@
         },
         "price_level": "Wholesale",
         "terms": "Net 30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 1789594435117,
@@ -263389,7 +262508,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 1789594435443,
@@ -263637,7 +262755,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 1789594435728,
@@ -263876,7 +262993,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 1789594436021,
@@ -264127,7 +263243,6 @@
         },
         "price_level": "Wholesale",
         "terms": "Net 30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 1789594436301,
@@ -264389,7 +263504,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 1789594436592,
@@ -264680,7 +263794,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 1789594436881,
@@ -264969,7 +264082,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 1789594437179,
@@ -265204,7 +264316,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 1789594437473,
@@ -265494,7 +264605,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 1789594437762,
@@ -265788,7 +264898,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 1789594438052,
@@ -266050,7 +265159,6 @@
         },
         "price_level": "wholesale",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 1789594438340,
@@ -266331,7 +265439,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 1789594438629,
@@ -266590,7 +265697,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 1789594438921,
@@ -266870,7 +265976,6 @@
         },
         "price_level": "Wholesale",
         "terms": "Net 30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 1789594439203,
@@ -267140,7 +266245,6 @@
         },
         "price_level": "B",
         "terms": "N30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 1789594439487,
@@ -267379,7 +266483,6 @@
         },
         "price_level": "A",
         "terms": "N30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 1789594439771,
@@ -267627,7 +266730,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 1789594440052,
@@ -267841,7 +266943,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 1789594440344,
@@ -268055,7 +267156,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 1789594440634,
@@ -268278,7 +267378,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 1789594440930,
@@ -268472,7 +267571,6 @@
         "phones": {},
         "price_level": "retail",
         "terms": null,
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 1789594441238,
@@ -268647,7 +267745,6 @@
         "phones": {},
         "price_level": "retail",
         "terms": null,
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 1789594441614,
@@ -268900,7 +267997,6 @@
         "phones": {},
         "price_level": "retail",
         "terms": null,
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -269140,7 +268236,6 @@
         "phones": {},
         "price_level": "retail",
         "terms": null,
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -269352,7 +268447,6 @@
         "phones": {},
         "price_level": "Wholesale",
         "terms": null,
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 1789594441959,
@@ -269621,7 +268715,6 @@
         },
         "price_level": "B",
         "terms": "N30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -295976,7 +295069,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -296227,7 +295319,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -296476,7 +295567,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -296722,7 +295812,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -296968,7 +296057,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -297236,7 +296324,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -297498,7 +296585,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -297725,7 +296811,6 @@
         },
         "price_level": "wholesale",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -298010,7 +297095,6 @@
         },
         "price_level": "B",
         "terms": "N30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -298260,7 +297344,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -298502,7 +297585,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -298753,7 +297835,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -299007,7 +298088,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -299200,7 +298280,6 @@
         "phones": {},
         "price_level": "retail",
         "terms": null,
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 1789594442116,
@@ -299394,7 +298473,6 @@
         "phones": {},
         "price_level": "retail",
         "terms": null,
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 1789594442264,
@@ -299654,7 +298732,6 @@
         },
         "price_level": "retail",
         "terms": "net30",
-        "terms_fk_id": null,
         "conditions_id": null,
         "conditions_description": null,
         "dt_journaled": 0,
@@ -313256,7 +312333,6 @@
         "change": "0.00",
         "dt_cash": null,
         "method": "",
-        "term_id": null,
         "category": "",
         "reference_number": "",
         "gateway": "manual",
@@ -313382,7 +312458,8 @@
           },
           "processing_fees": [],
           "gateway_metadata": {}
-        }
+        },
+        "terms": ""
       },
       {
         "id": 36,
@@ -313441,7 +312518,6 @@
         "change": "0.00",
         "dt_cash": "2026-08-02T01:12:46.741127+00:00",
         "method": "",
-        "term_id": null,
         "category": "",
         "reference_number": "",
         "gateway": "manual",
@@ -313566,7 +312642,8 @@
           },
           "processing_fees": [],
           "gateway_metadata": {}
-        }
+        },
+        "terms": ""
       },
       {
         "id": 37,
@@ -313616,7 +312693,6 @@
         "change": "0.00",
         "dt_cash": "2026-08-05T16:51:42.839704+00:00",
         "method": "",
-        "term_id": null,
         "category": "",
         "reference_number": "",
         "gateway": "manual",
@@ -313716,7 +312792,8 @@
           "import_data": null,
           "userdefined": {},
           "small_stings": []
-        }
+        },
+        "terms": ""
       },
       {
         "id": 58,
@@ -313766,7 +312843,6 @@
         "change": "0.00",
         "dt_cash": "2026-08-21T20:53:16.221531+00:00",
         "method": "check",
-        "term_id": null,
         "category": "",
         "reference_number": "CHK-5501",
         "gateway": "manual",
@@ -313887,7 +312963,8 @@
           },
           "processing_fees": [],
           "gateway_metadata": {}
-        }
+        },
+        "terms": ""
       },
       {
         "id": 59,
@@ -313939,7 +313016,6 @@
         "change": "0.00",
         "dt_cash": "2026-08-22T00:00:00+00:00",
         "method": "",
-        "term_id": null,
         "category": "",
         "reference_number": "",
         "gateway": "manual",
@@ -314072,7 +313148,8 @@
           },
           "processing_fees": [],
           "gateway_metadata": {}
-        }
+        },
+        "terms": ""
       },
       {
         "id": 60,
@@ -314122,7 +313199,6 @@
         "change": "0.00",
         "dt_cash": "2026-08-22T01:46:22.960920+00:00",
         "method": "check",
-        "term_id": null,
         "category": "",
         "reference_number": "TEST-PENDING",
         "gateway": "manual",
@@ -314243,7 +313319,8 @@
           },
           "processing_fees": [],
           "gateway_metadata": {}
-        }
+        },
+        "terms": ""
       },
       {
         "id": 61,
@@ -314293,7 +313370,6 @@
         "change": "20.00",
         "dt_cash": "2026-08-22T02:10:23.566877+00:00",
         "method": "cash",
-        "term_id": null,
         "category": "",
         "reference_number": "CASH-FS-001",
         "gateway": "manual",
@@ -314414,7 +313490,8 @@
           },
           "processing_fees": [],
           "gateway_metadata": {}
-        }
+        },
+        "terms": ""
       },
       {
         "id": 62,
@@ -314464,7 +313541,6 @@
         "change": "0.00",
         "dt_cash": "2026-08-22T02:11:29.895533+00:00",
         "method": "cash",
-        "term_id": null,
         "category": "",
         "reference_number": "",
         "gateway": "manual",
@@ -314585,7 +313661,8 @@
           },
           "processing_fees": [],
           "gateway_metadata": {}
-        }
+        },
+        "terms": ""
       },
       {
         "id": 63,
@@ -314635,7 +313712,6 @@
         "change": "0.00",
         "dt_cash": "2026-08-22T02:40:34.499739+00:00",
         "method": "check",
-        "term_id": null,
         "category": "",
         "reference_number": "",
         "gateway": "manual",
@@ -314756,7 +313832,8 @@
           },
           "processing_fees": [],
           "gateway_metadata": {}
-        }
+        },
+        "terms": ""
       },
       {
         "id": 65,
@@ -314806,7 +313883,6 @@
         "change": "0.00",
         "dt_cash": "2026-08-22T02:52:56.991122+00:00",
         "method": "check",
-        "term_id": null,
         "category": "",
         "reference_number": "1234",
         "gateway": "manual",
@@ -314927,7 +314003,8 @@
           },
           "processing_fees": [],
           "gateway_metadata": {}
-        }
+        },
+        "terms": ""
       },
       {
         "id": 66,
@@ -314977,7 +314054,6 @@
         "change": "0.00",
         "dt_cash": "2026-08-22T02:57:13.179343+00:00",
         "method": "check",
-        "term_id": null,
         "category": "",
         "reference_number": "CHK-7890",
         "gateway": "manual",
@@ -315098,7 +314174,8 @@
           },
           "processing_fees": [],
           "gateway_metadata": {}
-        }
+        },
+        "terms": ""
       },
       {
         "id": 67,
@@ -315148,7 +314225,6 @@
         "change": "0.00",
         "dt_cash": "2026-08-22T03:05:24.297160+00:00",
         "method": "check",
-        "term_id": null,
         "category": "",
         "reference_number": "CHK-9999",
         "gateway": "manual",
@@ -315269,7 +314345,8 @@
           },
           "processing_fees": [],
           "gateway_metadata": {}
-        }
+        },
+        "terms": ""
       },
       {
         "id": 68,
@@ -315319,7 +314396,6 @@
         "change": "0.00",
         "dt_cash": "2026-08-22T03:05:24.428728+00:00",
         "method": "discount",
-        "term_id": null,
         "category": "",
         "reference_number": "DISCOUNT-100",
         "gateway": "manual",
@@ -315437,7 +314513,8 @@
           "userdefined": {},
           "small_stings": [],
           "source_cash_id": 67
-        }
+        },
+        "terms": ""
       },
       {
         "id": 69,
@@ -315487,7 +314564,6 @@
         "change": "0.00",
         "dt_cash": "2026-08-22T03:05:25.662748+00:00",
         "method": "write_off",
-        "term_id": null,
         "category": "",
         "reference_number": "WRITE_OFF-100",
         "gateway": "manual",
@@ -315605,7 +314681,8 @@
           "userdefined": {},
           "small_stings": [],
           "source_cash_id": 67
-        }
+        },
+        "terms": ""
       },
       {
         "id": 70,
@@ -315657,7 +314734,6 @@
         "change": "0.00",
         "dt_cash": "2026-08-22T00:00:00+00:00",
         "method": "",
-        "term_id": null,
         "category": "",
         "reference_number": "",
         "gateway": "manual",
@@ -315800,7 +314876,8 @@
           },
           "processing_fees": [],
           "gateway_metadata": {}
-        }
+        },
+        "terms": ""
       },
       {
         "id": 71,
@@ -315852,7 +314929,6 @@
         "change": "0.00",
         "dt_cash": "2026-08-22T00:00:00+00:00",
         "method": "",
-        "term_id": null,
         "category": "",
         "reference_number": "111",
         "gateway": "manual",
@@ -315998,7 +315074,8 @@
           },
           "processing_fees": [],
           "gateway_metadata": {}
-        }
+        },
+        "terms": ""
       },
       {
         "id": 78,
@@ -316048,7 +315125,6 @@
         "change": "0.00",
         "dt_cash": "2026-09-16T00:49:27.092633+00:00",
         "method": "check",
-        "term_id": null,
         "category": "",
         "reference_number": "AUDIT-OPUS-1",
         "gateway": "manual",
@@ -316146,7 +315222,8 @@
           },
           "processing_fees": [],
           "gateway_metadata": {}
-        }
+        },
+        "terms": ""
       },
       {
         "id": 79,
@@ -316196,7 +315273,6 @@
         "change": "0.00",
         "dt_cash": "2026-09-16T00:49:27.421941+00:00",
         "method": "check",
-        "term_id": null,
         "category": "",
         "reference_number": "AUDIT-OPUS-2",
         "gateway": "manual",
@@ -316294,7 +315370,8 @@
           },
           "processing_fees": [],
           "gateway_metadata": {}
-        }
+        },
+        "terms": ""
       },
       {
         "id": 80,
@@ -316344,7 +315421,6 @@
         "change": "0.00",
         "dt_cash": "2026-09-16T00:49:56.585659+00:00",
         "method": "check",
-        "term_id": null,
         "category": "",
         "reference_number": "AUDIT-OPUS-AP",
         "gateway": "manual",
@@ -316442,7 +315518,8 @@
           },
           "processing_fees": [],
           "gateway_metadata": {}
-        }
+        },
+        "terms": ""
       },
       {
         "id": 81,
@@ -316492,7 +315569,6 @@
         "change": "0.00",
         "dt_cash": "2026-09-16T00:52:28.204047+00:00",
         "method": "check",
-        "term_id": null,
         "category": "",
         "reference_number": "audit-fable-1",
         "gateway": "manual",
@@ -316590,7 +315666,8 @@
           "import_data": null,
           "userdefined": {},
           "small_stings": []
-        }
+        },
+        "terms": ""
       },
       {
         "id": 82,
@@ -316640,7 +315717,6 @@
         "change": "0.00",
         "dt_cash": "2026-09-16T00:52:28.395357+00:00",
         "method": "check",
-        "term_id": null,
         "category": "",
         "reference_number": "audit-fable-2",
         "gateway": "manual",
@@ -316738,7 +315814,8 @@
           "import_data": null,
           "userdefined": {},
           "small_stings": []
-        }
+        },
+        "terms": ""
       },
       {
         "id": 83,
@@ -316788,7 +315865,6 @@
         "change": "0.00",
         "dt_cash": "2026-09-16T00:53:54.914202+00:00",
         "method": "check",
-        "term_id": null,
         "category": "",
         "reference_number": "audit-fable-3",
         "gateway": "manual",
@@ -316890,7 +315966,8 @@
           "import_data": null,
           "userdefined": {},
           "small_stings": []
-        }
+        },
+        "terms": ""
       },
       {
         "id": 84,
@@ -316940,7 +316017,6 @@
         "change": "0.00",
         "dt_cash": "2026-09-16T00:53:55.665143+00:00",
         "method": "check",
-        "term_id": null,
         "category": "",
         "reference_number": "audit-fable-4",
         "gateway": "manual",
@@ -317042,7 +316118,8 @@
           "import_data": null,
           "userdefined": {},
           "small_stings": []
-        }
+        },
+        "terms": ""
       },
       {
         "id": 85,
@@ -317092,7 +316169,6 @@
         "change": "0.00",
         "dt_cash": "2026-09-16T00:53:56.526385+00:00",
         "method": "check",
-        "term_id": null,
         "category": "",
         "reference_number": "audit-fable-5",
         "gateway": "manual",
@@ -317190,7 +316266,8 @@
           "import_data": null,
           "userdefined": {},
           "small_stings": []
-        }
+        },
+        "terms": ""
       },
       {
         "id": 86,
@@ -317240,7 +316317,6 @@
         "change": "0.00",
         "dt_cash": "2026-09-16T00:58:57.098236+00:00",
         "method": "check",
-        "term_id": null,
         "category": "",
         "reference_number": "AUDIT-OPUS-WO1",
         "gateway": "manual",
@@ -317338,7 +316414,8 @@
           },
           "processing_fees": [],
           "gateway_metadata": {}
-        }
+        },
+        "terms": ""
       },
       {
         "id": 87,
@@ -317388,7 +316465,6 @@
         "change": "0.00",
         "dt_cash": "2026-09-16T00:58:57.407821+00:00",
         "method": "check",
-        "term_id": null,
         "category": "",
         "reference_number": "AUDIT-OPUS-WO2",
         "gateway": "manual",
@@ -317490,7 +316566,8 @@
           },
           "processing_fees": [],
           "gateway_metadata": {}
-        }
+        },
+        "terms": ""
       },
       {
         "id": 88,
@@ -317540,7 +316617,6 @@
         "change": "0.00",
         "dt_cash": "2026-09-16T00:58:58.131176+00:00",
         "method": "write_off",
-        "term_id": null,
         "category": "",
         "reference_number": "WRITE_OFF-115",
         "gateway": "manual",
@@ -317645,7 +316721,8 @@
           "userdefined": {},
           "small_stings": [],
           "source_cash_id": 87
-        }
+        },
+        "terms": ""
       },
       {
         "id": 89,
@@ -317695,7 +316772,6 @@
         "change": "0.00",
         "dt_cash": "2026-09-16T01:00:27.115464+00:00",
         "method": "check",
-        "term_id": null,
         "category": "",
         "reference_number": "audit-fable-7",
         "gateway": "manual",
@@ -317797,7 +316873,8 @@
           "import_data": null,
           "userdefined": {},
           "small_stings": []
-        }
+        },
+        "terms": ""
       },
       {
         "id": 90,
@@ -317847,7 +316924,6 @@
         "change": "0.00",
         "dt_cash": "2026-09-16T01:00:27.728384+00:00",
         "method": "write_off",
-        "term_id": null,
         "category": "",
         "reference_number": "WRITE_OFF-121",
         "gateway": "manual",
@@ -317952,7 +317028,8 @@
           "userdefined": {},
           "small_stings": [],
           "source_cash_id": 89
-        }
+        },
+        "terms": ""
       }
     ],
     "accounts.GlJournal": [
@@ -359165,8 +358242,7 @@
             {
               "cols": 2,
               "fields": [
-                "contact",
-                "terms_fk"
+                "contact"
               ]
             },
             {
@@ -359303,10 +358379,6 @@
             "ship_via": {
               "type": "text",
               "label": "Ship Via"
-            },
-            "terms_fk": {
-              "type": "readonly",
-              "label": "Terms Fk"
             },
             "attention": {
               "type": "text",
@@ -360074,8 +359146,7 @@
             {
               "cols": 2,
               "fields": [
-                "contact",
-                "terms_fk"
+                "contact"
               ]
             },
             {
@@ -360208,10 +359279,6 @@
             "ship_via": {
               "type": "text",
               "label": "Ship Via"
-            },
-            "terms_fk": {
-              "type": "readonly",
-              "label": "Terms Fk"
             },
             "attention": {
               "type": "text",
@@ -360985,8 +360052,7 @@
             {
               "cols": 2,
               "fields": [
-                "contact",
-                "terms_fk"
+                "contact"
               ]
             },
             {
@@ -361119,10 +360185,6 @@
             "ship_via": {
               "type": "text",
               "label": "Ship Via"
-            },
-            "terms_fk": {
-              "type": "readonly",
-              "label": "Terms Fk"
             },
             "attention": {
               "type": "text",
@@ -361912,8 +360974,7 @@
             {
               "cols": 2,
               "fields": [
-                "contact",
-                "terms_fk"
+                "contact"
               ]
             },
             {
@@ -362046,10 +361107,6 @@
             "ship_via": {
               "type": "text",
               "label": "Ship Via"
-            },
-            "terms_fk": {
-              "type": "readonly",
-              "label": "Terms Fk"
             },
             "attention": {
               "type": "text",
@@ -362814,7 +361871,7 @@
               "cols": 2,
               "fields": [
                 "vendor",
-                "term"
+                "terms"
               ]
             },
             {
@@ -363006,7 +362063,7 @@
               "type": "date",
               "label": "Dt Processed"
             },
-            "term": {
+            "terms": {
               "type": "readonly",
               "label": "Cash Term"
             },
@@ -364232,8 +363289,7 @@
             {
               "cols": 2,
               "fields": [
-                "contact",
-                "terms_fk"
+                "contact"
               ]
             },
             {
@@ -364390,10 +363446,6 @@
             "phone_id": {
               "type": "number",
               "label": "Phone Id"
-            },
-            "terms_fk": {
-              "type": "readonly",
-              "label": "Terms Fk"
             },
             "addresses": {
               "type": "json-text",
@@ -364771,8 +363823,7 @@
             {
               "cols": 2,
               "fields": [
-                "contact",
-                "terms_fk"
+                "contact"
               ]
             },
             {
@@ -364929,10 +363980,6 @@
             "phone_id": {
               "type": "number",
               "label": "Phone Id"
-            },
-            "terms_fk": {
-              "type": "readonly",
-              "label": "Terms Fk"
             },
             "addresses": {
               "type": "json-text",
@@ -365310,8 +364357,7 @@
             {
               "cols": 2,
               "fields": [
-                "contact",
-                "terms_fk"
+                "contact"
               ]
             },
             {
@@ -365468,10 +364514,6 @@
             "phone_id": {
               "type": "number",
               "label": "Phone Id"
-            },
-            "terms_fk": {
-              "type": "readonly",
-              "label": "Terms Fk"
             },
             "addresses": {
               "type": "json-text",
@@ -365849,8 +364891,7 @@
             {
               "cols": 2,
               "fields": [
-                "contact",
-                "terms_fk"
+                "contact"
               ]
             },
             {
@@ -366007,10 +365048,6 @@
             "phone_id": {
               "type": "number",
               "label": "Phone Id"
-            },
-            "terms_fk": {
-              "type": "readonly",
-              "label": "Terms Fk"
             },
             "addresses": {
               "type": "json-text",
@@ -366388,8 +365425,7 @@
             {
               "cols": 2,
               "fields": [
-                "contact",
-                "terms_fk"
+                "contact"
               ]
             },
             {
@@ -366546,10 +365582,6 @@
             "phone_id": {
               "type": "number",
               "label": "Phone Id"
-            },
-            "terms_fk": {
-              "type": "readonly",
-              "label": "Terms Fk"
             },
             "addresses": {
               "type": "json-text",

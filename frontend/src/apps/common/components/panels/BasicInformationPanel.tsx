@@ -22,7 +22,6 @@ export interface BasicInformationData {
   phone?: string | null;
   price_level?: string | null;
   terms?: string | null;
-  terms_id?: number | null;
   address_full?: string | null;
   contact_id?: number | null;
   status?: string;
@@ -144,8 +143,6 @@ const BasicInformationPanel: React.FC<BasicInformationPanelProps> = ({
         className={`grid grid-cols-1 ${gridCols} gap-x-6 gap-y-2 text-sm pb-2`}
       >
         <Row label="price_level" value={data.price_level} />
-
-        {/* <Row label="terms_id" value={data.terms_id?.toString()} /> */}
 
         {/* <Row label="contact_id" value={data.contact_id?.toString()} /> */}
 

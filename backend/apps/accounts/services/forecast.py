@@ -32,16 +32,10 @@ from django.db.models import Sum
 
 
 def _get_term_days(transaction) -> int:
-    """Get cash delay in days from transaction's terms FK."""
-    try:
-        if transaction.terms_fk_id:
-            Term = dj_apps.get_model('accounts', 'Term')
-            term = Term.objects.filter(pk=transaction.terms_fk_id).values('days_due').first()
-            if term and term['days_due']:
-                return int(term['days_due'])
-    except Exception:
-        pass
-    return 30  # default net 30
+    """Cash delay in days from the transaction's terms (a Term ida, else the company
+    default) — the one resolver AR and AP read. A term with no days_due counts as 30."""
+    from apps.accounts.services.terms_ledger import resolve_term
+    return int(resolve_term(transaction).days_due or 30)
 
 
 def _epoch_ms(d: date) -> int:
@@ -170,7 +164,7 @@ def cash_flow_forecast(
     pipeline_quotes = Quote.objects.filter(
         status__in=['planned', 'signoff_request', 'released', 'in_progress'],
         probability__gt=0,
-    ).values('id', 'probability', 'totals', 'terms_fk_id')
+    ).values('id', 'probability', 'totals')
 
     pipeline_by_month: dict[str, Decimal] = {}
     for prop in pipeline_quotes:
@@ -185,7 +179,7 @@ def cash_flow_forecast(
     # ── Committed inflow: orders expected to collect ──
     open_orders = Order.objects.filter(
         status__in=['planned', 'released', 'in_progress'],
-    ).select_related('terms_fk')
+    )
 
     committed_by_month: dict[str, Decimal] = {}
     for order in open_orders:
@@ -200,7 +194,7 @@ def cash_flow_forecast(
     # ── Purchase outflow: POs expected to pay ──
     open_purchases = Purchase.objects.filter(
         status__in=['planned', 'released', 'in_progress'],
-    ).select_related('terms_fk')
+    )
 
     purchases_by_month: dict[str, Decimal] = {}
     for po in open_purchases:

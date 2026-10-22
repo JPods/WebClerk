@@ -38,7 +38,6 @@ class FinSettings(BaseModel):
     discount_pct: float = 0
     tax_exempt: bool = False
     tax_exempt_id: str = ''
-    terms_id: Optional[int] = None
     statement_interval_days: int = 30    # min days between statement sends
     notes: str = ''
 

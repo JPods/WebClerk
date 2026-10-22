@@ -288,6 +288,8 @@ def test_a_change_of_terms_rebuilds_the_ledger(invoice, monkeypatch):
     rebuilt = []
     monkeypatch.setattr(ledger_balance, 'on_invoice_save',
                         lambda inv, replace_ledgers=True: rebuilt.append(inv.pk))
+    from apps.accounts.models import Term
+    Term.objects.create(ida='NET15', name='NET15', days_due=15, period_count=1, is_active=True)
     save_record(Actor.system(), {'model_name': 'invoice', 'id': invoice.pk, 'terms': 'NET15'})
     assert rebuilt == [invoice.pk], 'once, though the total did not change'
     rebuilt.clear()

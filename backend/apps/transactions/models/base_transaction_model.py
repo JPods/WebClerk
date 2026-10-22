@@ -270,12 +270,7 @@ class TransactionBaseModel(HardDeleteOnly, BaseModel):
     phones = models.JSONField(default=dict, blank=True)
 
     price_level = models.CharField(max_length=30, blank=True, default='retail')
-    terms = models.CharField(max_length=30, blank=True, null=True)  # e.g. retail, wholesale; optional for future use
-    terms_fk = models.ForeignKey(
-        'accounts.Term', on_delete=models.SET_NULL,
-        blank=True, null=True,
-        db_column='terms_id', related_name='%(class)s_with_terms',
-    )
+    terms = models.CharField(max_length=30, blank=True, null=True)  # a Term ida (N30, 2pct10N30, COD); empty = company default
 
     conditions_id = models.IntegerField(blank=True, null=True)
     conditions_description = models.CharField(max_length=255, blank=True, null=True)

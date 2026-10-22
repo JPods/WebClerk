@@ -119,21 +119,11 @@ PRIORITY_OPTIONS = [
     {'value': 'urgent', 'label': 'Urgent'},
 ]
 def _get_terms_options():
-    """Build terms options from Term records. Falls back to static list."""
-    try:
-        from apps.accounts.models.term import Term
-        terms = Term.objects.filter(is_active=True).order_by('days_due')
-        if terms.exists():
-            return [{'value': t.description, 'label': t.description} for t in terms]
-    except Exception:
-        pass
-    return [
-        {'value': 'Due on Receipt', 'label': 'Due on Receipt'},
-        {'value': 'Net 10', 'label': 'Net 10'},
-        {'value': 'Net 30', 'label': 'Net 30'},
-        {'value': 'Net 60', 'label': 'Net 60'},
-        {'value': 'COD', 'label': 'COD'},
-    ]
+    """Terms options from the active Term records. The value is the ida — what a
+    record's ``terms`` stores and resolve_term reads (Bill, 2026-10-22: terms as text)."""
+    from apps.accounts.models.term import Term
+    return [{'value': t.ida, 'label': f"{t.ida} — {t.description}" if t.description else t.ida}
+            for t in Term.objects.filter(is_active=True).order_by('days_due', 'ida')]
 SOURCE_NAME_OPTIONS = [
     {'value': 'direct', 'label': 'Direct'},
     {'value': 'referral', 'label': 'Referral'},
@@ -706,7 +696,7 @@ _SYSTEM_FIELDS = {
 }
 _FK_ID_FIELDS = {
     'email_id', 'phone_id', 'domain_id', 'address_id',
-    'conditions_id', 'terms_fk',
+    'conditions_id',
 }
 _FINANCIAL_FIELDS = {
     'total', 'balance', 'cost', 'totals', 'commission',
