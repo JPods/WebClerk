@@ -264,3 +264,17 @@ def test_a_payment_that_pays_no_payable_is_still_a_direct_expense():
     cash = Cash.objects.create(amount=Decimal('-12.00'), status='completed', category='')
     journalize_cash(cash.pk)
     assert _net('cash', cash.pk, '6950-general_admin') == Decimal('12.00')
+
+
+def test_a_customer_files_a_sting_only_for_themself(filer, django_user_model):
+    from apps.core.services.door import Refused
+    from apps.orgs.models import OrgBase
+    org = OrgBase.objects.create(company='Portal Co', org_type='customer', is_active=True)
+    customer = django_user_model.objects.create_user(email='portal@sting.test', password='x',
+                                                     username='', role='customer', customer=org)
+    with pytest.raises(Refused) as e:
+        _file(customer, contact_id=filer.pk)
+    assert e.value.code == 'sting_payee'
+    assert _file(customer)['payee_contact_id'] == customer.pk
+    # Staff may file one phoned in by someone else.
+    assert _file(filer, contact_id=customer.pk)['payee_contact_id'] == customer.pk

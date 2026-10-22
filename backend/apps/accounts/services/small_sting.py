@@ -70,6 +70,11 @@ def file_small_sting(actor: Actor, *, complaint: str, severity=3, model_name: st
 
     # The payee is always the person who filed it, never their org (Bill, 2026-10-22).
     payee_id = int(contact_id) if contact_id not in (None, '') else actor.user_id
+    # Staff may file for someone who phoned it in; a portal user files only for themself.
+    from apps.core.services.access import is_portal
+    if is_portal(actor) and payee_id != actor.user_id:
+        raise Refused(403, 'sting_payee', 'You can file a sting only for yourself; it is owed '
+                      'to the person who files it.', {'contact_id': payee_id})
     if not payee_id or not Contact.objects.filter(pk=payee_id).exists():
         raise Refused(400, 'payee_required', 'A sting is owed to the person who filed it: sign in, '
                       'or name the filing contact ("contact_id").', {'contact_id': payee_id})
