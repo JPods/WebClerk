@@ -1064,6 +1064,11 @@ class WCAPIGetView(APIView):
             except Exception:
                 pass
             
+            # An org's contacts are the contacts whose link points at it — served, never stored.
+            from apps.orgs.services.contact_linking import contact_role, served_contact_links
+            if contact_role(obj) and isinstance(payload.get("refs"), dict):
+                payload["refs"].setdefault("links", {})["contact"] = served_contact_links(obj)
+
             # For contact records, include communications via FK relationship
             if model_key == 'contact':
                 try:

@@ -1,64 +1,34 @@
+"""An org's contacts are the contacts whose ForeignKey of the org's role points at it
+(Contact.customer / vendor / manufacturer / rep). That is the one source (Bill, 2026-10-17):
+the org's ``refs.links.contact`` is served from it, and linking a contact to an org is an
+edit of the contact's own field (the CONTACTS panel writes the contact), so nothing drifts."""
 from __future__ import annotations
 
-from typing import Any
+from typing import List, Optional
 
 from apps.core.models import Contact
 
-
-def _ids_from_link_bucket(value: Any) -> set[int]:
-    ids: set[int] = set()
-    if isinstance(value, list):
-        for item in value:
-            if isinstance(item, int) and item > 0:
-                ids.add(item)
-                continue
-            if isinstance(item, dict):
-                raw = item.get("id")
-                if isinstance(raw, int) and raw > 0:
-                    ids.add(raw)
-    elif isinstance(value, int) and value > 0:
-        ids.add(value)
-    return ids
+#: The org a contact can belong to, by org_type: the contact's ForeignKey of the same name.
+CONTACT_ROLES = ('customer', 'vendor', 'manufacturer', 'rep')
 
 
-def resolve_contact_ids_for_customer_org(org) -> set[int]:
-    """Resolve linked contact IDs for a customer org from FK + refs data.
+def contact_role(org) -> Optional[str]:
+    role = (getattr(org, 'org_type', None) or '').lower()
+    return role if role in CONTACT_ROLES else None
 
-    Sources:
-    - Contact.customer_id FK
-    - OrgBase.contacts denormalized bucket
-    - OrgBase.refs.links.contact
-    - Contact.refs.links.customer reverse link
-    """
-    org_id = getattr(org, "pk", None)
-    if not isinstance(org_id, int) or org_id <= 0:
-        return set()
 
-    contact_ids: set[int] = set(
-        Contact.objects.filter(customer_id=org_id).values_list("id", flat=True)
-    )
+def contacts_of(org):
+    """The contacts linked to this org, its primary contact first."""
+    role = contact_role(org)
+    if role is None or not getattr(org, 'pk', None):
+        return Contact.objects.none()
+    return Contact.objects.filter(**{f'{role}_id': org.pk}).order_by('id')
 
-    contacts_bucket = getattr(org, "contacts", None)
-    if isinstance(contacts_bucket, list):
-        for item in contacts_bucket:
-            if isinstance(item, dict):
-                raw = item.get("id") or item.get("contact_id")
-                if isinstance(raw, int) and raw > 0:
-                    contact_ids.add(raw)
 
-    refs = getattr(org, "refs", None)
-    if isinstance(refs, dict):
-        links = refs.get("links")
-        if isinstance(links, dict):
-            contact_ids.update(_ids_from_link_bucket(links.get("contact")))
-
-    for contact in Contact.objects.only("id", "refs"):
-        cref = contact.refs if isinstance(contact.refs, dict) else {}
-        links = cref.get("links") if isinstance(cref, dict) else None
-        if not isinstance(links, dict):
-            continue
-        customer_ids = _ids_from_link_bucket(links.get("customer"))
-        if org_id in customer_ids:
-            contact_ids.add(contact.id)
-
-    return {cid for cid in contact_ids if isinstance(cid, int) and cid > 0}
+def served_contact_links(org) -> List[dict]:
+    """``refs.links.contact`` as the org's GET serves it."""
+    links = [{'id': c.pk, 'name': c.attention or c.email or f'Contact #{c.pk}'}
+             for c in contacts_of(org).only('id', 'attention', 'email')]
+    primary = getattr(org, 'contact_id', None)
+    links.sort(key=lambda link: link['id'] != primary)
+    return links

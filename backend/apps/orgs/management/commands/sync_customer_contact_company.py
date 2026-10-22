@@ -3,7 +3,7 @@ from django.utils import timezone
 
 from apps.core.models import Contact
 from apps.orgs.models import OrgBase
-from apps.orgs.services.contact_linking import resolve_contact_ids_for_customer_org
+from apps.orgs.services.contact_linking import contacts_of
 
 
 class Command(BaseCommand):
@@ -27,7 +27,7 @@ class Command(BaseCommand):
         for org in orgs.iterator():
             if not org.company:
                 continue
-            linked_contact_ids = resolve_contact_ids_for_customer_org(org)
+            linked_contact_ids = list(contacts_of(org).values_list('id', flat=True))
             if not linked_contact_ids:
                 continue
 

@@ -39,6 +39,11 @@ def _new(client, model, body):
     return OrgBase.objects.get(pk=data.get('id') or data['record']['id'])
 
 
+def _served(client, model, org):
+    data = client.get(f'/wcapi/{model}/{org.id}/', HTTP_HOST='localhost').json()['data']
+    return data.get('record') or data
+
+
 def test_an_individual_customer_from_a_contact():
     client, susy = _staff_client(), _susy()
     org = _new(client, 'customer', {'_from_contact': susy.id})
@@ -49,7 +54,8 @@ def test_an_individual_customer_from_a_contact():
     susy = Contact.objects.get(pk=susy.pk)
     assert susy.customer_id == org.id
     org.refresh_from_db()
-    assert [c['id'] for c in org.refs['links']['contact']] == [susy.id]   # CONTACTS panel
+    assert [c['id'] for c in _served(client, 'customer', org)['refs']['links']['contact']] \
+        == [susy.id]                                                        # CONTACTS panel
     assert org.display_name == 'Susy Que' and org.address_full.startswith('3941 60th PL')
 
 
@@ -65,3 +71,39 @@ def test_a_contact_the_actor_cannot_see_is_refused():
     r = client.post('/wcapi/customer/', {'_from_contact': 99999999}, format='json',
                     HTTP_HOST='localhost')
     assert r.status_code == 404 and r.json()['error']['code'] == 'from_contact_not_found'
+
+
+def test_a_reference_saves_back_in_the_shape_it_was_served():
+    """The contact page holds a picked customer as {id, ida, name}, as the GET serves it,
+    so the field shows locked; the save links it by its id (Bill, 2026-10-17)."""
+    client, susy = _staff_client(), _susy()
+    org = _new(client, 'customer', {'_company': 'Que Supply'})
+    picked = {'id': org.id, 'ida': org.ida, 'name': org.company}
+    r = client.put(f'/wcapi/contact/{susy.id}/', {'customer': picked}, format='json',
+                   HTTP_HOST='localhost')
+    assert r.status_code == 200, r.json()
+    assert Contact.objects.get(pk=susy.pk).customer_id == org.id
+    served = client.get(f'/wcapi/contact/{susy.id}/', HTTP_HOST='localhost').json()['data']
+    assert (served.get('record') or served)['customer']['id'] == org.id
+
+
+def test_an_orgs_contacts_are_served_from_the_contacts_links_not_a_stored_copy():
+    """Que Supply listed no contacts: a later save wiped the stored copy while Suzy's
+    customer_id still pointed at it. The FK is the one source (Bill, 2026-10-17)."""
+    client, susy = _staff_client(), _susy()
+    org = _new(client, 'customer', {'_company': 'Que Supply'})
+    Contact.objects.filter(pk=susy.pk).update(customer_id=org.id)
+    OrgBase.objects.filter(pk=org.pk).update(refs={'links': {'contact': [{'id': 10 ** 9}]}})
+    assert [c['id'] for c in _served(client, 'customer', org)['refs']['links']['contact']] == [susy.id]
+
+
+def test_the_contacts_panel_links_by_editing_the_contact():
+    """The CONTACTS panel's add and remove write the contact's own customer field."""
+    client, susy = _staff_client(), _susy()
+    org = _new(client, 'customer', {'_company': 'Que Supply'})
+    put = lambda value: client.put(f'/wcapi/contact/{susy.id}/', {'customer': value},
+                                   format='json', HTTP_HOST='localhost')
+    assert put(org.id).status_code == 200
+    assert [c['id'] for c in _served(client, 'customer', org)['refs']['links']['contact']] == [susy.id]
+    assert put({'mode': 'delete'}).status_code == 200            # the door's clear
+    assert _served(client, 'customer', org)['refs']['links']['contact'] == []

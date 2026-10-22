@@ -92,22 +92,18 @@ class TestGLPosting:
 @pytest.mark.django_db
 @pytest.mark.usefixtures("chart_of_accounts")
 class TestContactOrgLinking:
-    """Contact save_after populates bidirectional refs."""
+    """An org's contacts are the contacts whose FK points at it (Bill, 2026-10-17)."""
 
     def test_contact_links_to_customer_refs(self):
-        """Contact with customer FK → customer.refs.links.contact includes contact."""
+        """Contact with customer FK → the customer serves it in refs.links.contact."""
+        from apps.orgs.services.contact_linking import served_contact_links
         customer = CustomerFactory(company="Test Corp")
         contact = ContactFactory(email="linked@test.com", customer=customer)
-        contact.save_after({})
-
-        customer.refresh_from_db()
-        refs = getattr(customer, 'refs', {}) or {}
-        contact_links = refs.get('links', {}).get('contact', [])
-        contact_ids = [c.get('id') for c in contact_links if isinstance(c, dict)]
-        assert contact.pk in contact_ids
+        assert [c['id'] for c in served_contact_links(customer)] == [contact.pk]
 
     def test_contact_without_org_no_error(self):
-        """Contact with no org FK → save_after completes without error."""
-        contact = ContactFactory(email="standalone@test.com")
-        result = contact.save_after({})
-        assert result is True
+        """A contact with no org FK is served by no org."""
+        from apps.orgs.services.contact_linking import served_contact_links
+        customer = CustomerFactory(company="Lonely Corp")
+        ContactFactory(email="standalone@test.com")
+        assert served_contact_links(customer) == []

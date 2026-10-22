@@ -38,6 +38,9 @@ import { getUI } from '@/utils/contactUI';
 
 type Rec = Record<string, any>;
 
+/** The orgs a contact belongs to through its own field of the same name. */
+const ORG_ROLES = ['customer', 'vendor', 'manufacturer', 'rep'];
+
 interface LinkedRecordsPanelProps {
   /** Model name to link (e.g. "item", "action", "touch", "document") */
   linkedModel: string;
@@ -389,7 +392,14 @@ export const LinkedRecordsPanel: React.FC<LinkedRecordsPanelProps> = ({
   const saveLinks = useCallback(async (newIds: number[]) => {
     const linkRefs = newIds.map(id => ({ id }));
     try {
-      await saveRecord(parentModel, {
+      if (linkedModel === 'contact' && ORG_ROLES.includes(parentModel)) {
+        // An org's contacts are the contacts' own customer/vendor/… field (Bill, 2026-10-17):
+        // linking edits the contact; the org serves the list and stores no copy.
+        const added = newIds.filter(id => !linkedIds.includes(id));
+        const removed = linkedIds.filter(id => !newIds.includes(id));
+        for (const id of added) await saveRecord('contact', { id, [parentModel]: parentId });
+        for (const id of removed) await saveRecord('contact', { id, [parentModel]: { mode: 'delete' } });
+      } else await saveRecord(parentModel, {
         id: parentId,
         [`refs.links.${linkedModel}`]: linkRefs,
       });
@@ -398,7 +408,7 @@ export const LinkedRecordsPanel: React.FC<LinkedRecordsPanelProps> = ({
     } catch (err) {
       console.error(`Failed to save ${linkedModel} links:`, err);
     }
-  }, [parentModel, parentId, linkedModel, onLinksChanged]);
+  }, [parentModel, parentId, linkedModel, linkedIds, onLinksChanged]);
 
   // Assign an existing record (search → link)
   const handleAssign = useCallback(async (record: Rec) => {

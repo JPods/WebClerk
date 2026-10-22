@@ -149,6 +149,9 @@ def _set_fk_field(obj, field: str, model_field, value) -> bool:
         return False
 
     id_attr = field if field.endswith('_id') else f'{field}_id'
+    # A reference comes back as it was served — {id, ida, name} — and saves by its id.
+    if isinstance(value, dict) and 'id' in value:
+        value = value['id']
     if isinstance(value, int) or (isinstance(value, str) and value.strip().isdigit()):
         setattr(obj, id_attr, int(value) if isinstance(value, str) else value)
         return True

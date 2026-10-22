@@ -301,9 +301,8 @@ class Command(BaseCommand):
 
     def _seed_orgs(self):
         created = 0
-        # Use bulk_create to bypass OrgBase.save() which does a full contacts
-        # table scan on every customer org save (resolve_contact_ids_for_customer_org).
-        # New orgs can't have linked contacts yet, so the scan is wasted work.
+        # bulk_create: new orgs have no linked contacts yet, so OrgBase.save()'s
+        # contact-company sync is wasted work.
         now_ms = int(timezone.now().timestamp() * 1000)
         orgs_to_create = []
         for c in [VENDOR] + list(CUSTOMERS):

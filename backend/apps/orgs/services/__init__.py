@@ -14,7 +14,7 @@ from .primary_org import (
 	get_primary_org_setting,
 	set_primary_org,
 )
-from .contact_linking import resolve_contact_ids_for_customer_org
+from .contact_linking import contacts_of, served_contact_links
 from .customer_transaction_maintenance import maintain_customer_transaction_links
 
 __all__ = [
@@ -30,6 +30,7 @@ __all__ = [
 	"get_primary_org_id",
 	"get_primary_org_setting",
 	"set_primary_org",
-	"resolve_contact_ids_for_customer_org",
+	"contacts_of",
+	"served_contact_links",
 	"maintain_customer_transaction_links",
 ]

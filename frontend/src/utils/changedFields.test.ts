@@ -24,4 +24,9 @@ describe('changedFields', () => {
   it('keeps the loaded version, not an edited one', () => {
     expect(changedFields(loaded, { ...loaded, version: 99 }).version).toBe(3);
   });
+
+  it('sends a field the person emptied as the door\'s clear', () => {
+    const linked = { ...loaded, customer: { id: 5648, name: 'Que Supply' } };
+    expect(changedFields(linked, { ...linked, customer: null }).customer).toEqual({ mode: 'delete' });
+  });
 });

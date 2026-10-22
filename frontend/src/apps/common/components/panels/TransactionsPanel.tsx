@@ -1,9 +1,13 @@
-/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
+/* LastChecked: 2026-10-20 | WhereUsed: panelRegistry `transactions` (org forms) | WhoCreated: Unknown */
 /**
  * TransactionsPanel - Displays transactions for an org (Customer or Vendor)
  *
  * Customer sub-tables: quotes, orders, invoices, ledgers, cash
  * Vendor sub-tables:   purchases, receipts
+ * Rep sub-tables:      the quotes, orders, invoices it is credited on
+ *
+ * Each document's own org field is the one source (Bill, 2026-10-20: restored after a
+ * copy on the org, refs.links.order, had drifted — Riverside's 7 orders showed 0).
  *
  * Fetches records via wcapi getRecords filtered by parent org ID.
  * Each row links to its transaction detail page.
@@ -35,7 +39,7 @@ import { formatCurrency } from '@/utils/stringUtils';
 // ---------------------------------------------------------------------------
 
 /** Org type determines which sub-tables to display */
-export type OrgType = "customer" | "vendor";
+export type OrgType = "customer" | "vendor" | "rep";
 
 /** Minimal transaction record returned from the API */
 export interface TransactionRecord {
@@ -84,7 +88,7 @@ const CUSTOMER_TABLES: SubTable[] = [
   { model: "quote", label: "Quotes", filterField: "customer" },
   { model: "order", label: "Orders", filterField: "customer" },
   { model: "invoice", label: "Invoices", filterField: "customer" },
-  { model: "ledger", label: "Ledgers", filterField: "customer" },
+  { model: "ledger", label: "Ledgers", filterField: "org" },
   { model: "cash", label: "Cash", filterField: "customer" },
 ];
 
@@ -93,10 +97,21 @@ const VENDOR_TABLES: SubTable[] = [
   { model: "receipt", label: "Receipts", filterField: "vendor" },
 ];
 
+const REP_TABLES: SubTable[] = [
+  { model: "quote", label: "Quotes", filterField: "rep_id" },
+  { model: "order", label: "Orders", filterField: "rep_id" },
+  { model: "invoice", label: "Invoices", filterField: "rep_id" },
+];
+
 const SUB_TABLES: Record<OrgType, SubTable[]> = {
   customer: CUSTOMER_TABLES,
   vendor: VENDOR_TABLES,
+  rep: REP_TABLES,
 };
+
+/** A document's total; cash carries amount, a ledger instalment its unpaid balance. */
+const recordTotal = (r: TransactionRecord) =>
+  (r.totals as { total?: number } | undefined)?.total ?? (r.amount as number | undefined) ?? (r.value_available as number | undefined);
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -126,8 +141,10 @@ const TransactionsPanel: React.FC<TransactionsPanelProps> = ({
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [data, setData] = useState<Record<string, TransactionRecord[]>>({});
   const [loading, setLoading] = useState(true);
+  /** Sub-tables whose fetch failed — shown, never silently empty (Axiom 6). */
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const inflightRequests = useRef<
-    Map<string, Promise<Record<string, TransactionRecord[]>>>
+    Map<string, Promise<{ map: Record<string, TransactionRecord[]>; errs: Record<string, string> }>>
   >(new Map());
 
   const windowManager = useWindowManager();
@@ -176,7 +193,7 @@ const TransactionsPanel: React.FC<TransactionsPanelProps> = ({
         label: "total",
         cellClassName: "w-[90px] text-right",
         cellStyle: { color: 'var(--db-text)' },
-        render: (r) => formatCurrency(r.totals?.total),
+        render: (r) => formatCurrency(recordTotal(r)),
       },
       {
         key: "dt_created",
@@ -204,9 +221,10 @@ const TransactionsPanel: React.FC<TransactionsPanelProps> = ({
     let cancelled = false;
     setLoading(true);
 
-    const executeFetch = async (): Promise<
-      Record<string, TransactionRecord[]>
-    > => {
+    const executeFetch = async (): Promise<{
+      map: Record<string, TransactionRecord[]>;
+      errs: Record<string, string>;
+    }> => {
       const results = await Promise.all(
         tables.map(async (t) => {
           try {
@@ -214,18 +232,20 @@ const TransactionsPanel: React.FC<TransactionsPanelProps> = ({
               [t.filterField]: orgId,
               limit: 100,
             });
-            return { model: t.model, records: result?.results ?? [] };
-          } catch {
-            return { model: t.model, records: [] };
+            return { model: t.model, records: result?.results ?? [], error: "" };
+          } catch (err: any) {
+            return { model: t.model, records: [], error: err?.message || "could not load" };
           }
         }),
       );
 
       const map: Record<string, TransactionRecord[]> = {};
+      const errs: Record<string, string> = {};
       results.forEach((r) => {
         map[r.model] = r.records;
+        if (r.error) errs[r.model] = r.error;
       });
-      return map;
+      return { map, errs };
     };
 
     const existingRequest = inflightRequests.current.get(cacheKey);
@@ -233,13 +253,10 @@ const TransactionsPanel: React.FC<TransactionsPanelProps> = ({
     inflightRequests.current.set(cacheKey, request);
 
     request
-      .then((map) => {
+      .then(({ map, errs }) => {
         if (cancelled) return;
         setData(map);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setData({});
+        setErrors(errs);
       })
       .finally(() => {
         if (cancelled) return;
@@ -329,6 +346,12 @@ const TransactionsPanel: React.FC<TransactionsPanelProps> = ({
                   {t.label} ({data[t.model]?.length ?? 0})
                 </button>
               ))}
+            </div>
+          )}
+
+          {Object.keys(errors).length > 0 && (
+            <div className="mb-3 px-2 py-1 text-xs rounded" style={{ color: 'var(--db-danger, #dc2626)', background: 'var(--db-surface-alt)' }}>
+              {Object.entries(errors).map(([model, msg]) => `${model}: ${msg}`).join(' · ')}
             </div>
           )}
 

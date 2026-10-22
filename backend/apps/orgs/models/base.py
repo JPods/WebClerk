@@ -59,7 +59,7 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 	# worse, and labels are the field names users read (Bill, 2026-09-20).
 	company = models.CharField(max_length=255, db_index=True)
 	# Primary contact — value, not FK. Independent lifecycle.
-	# refs.links.contact carries denormalized display data.
+	# The org's contacts come from the contacts' own FK (orgs.services.contact_linking), served at GET.
 	contact_id = models.BigIntegerField(null=True, blank=True, db_index=True,
 		help_text="Primary contact id (value, not FK — no cascade)")
 
@@ -448,9 +448,9 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 		):
 			try:
 				from apps.core.models import Contact
-				from apps.orgs.services.contact_linking import resolve_contact_ids_for_customer_org
+				from apps.orgs.services.contact_linking import contacts_of
 				now_ms = int(timezone.now().timestamp() * 1000)
-				linked_contact_ids = resolve_contact_ids_for_customer_org(self)
+				linked_contact_ids = list(contacts_of(self).values_list('id', flat=True))
 				if linked_contact_ids:
 					Contact.objects.filter(id__in=linked_contact_ids).exclude(company=self.company).update(
 						company=self.company,

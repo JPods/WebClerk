@@ -438,31 +438,6 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
         # Custom logic before save
         return True
 
-    def save_after(self, data):
-        """Ensure bidirectional refs between contact and linked orgs."""
-        ROLE_FIELDS = ('customer', 'vendor', 'manufacturer', 'rep')
-
-        # --- Bidirectional refs sync ---
-        for field in ROLE_FIELDS:
-            org = getattr(self, field, None)
-            if org is None:
-                continue
-            try:
-                refs = getattr(org, 'refs', None) or {}
-                if not isinstance(refs, dict):
-                    refs = {}
-                links = refs.setdefault('links', {})
-                contact_links = links.get('contact', [])
-                contact_ids = [c.get('id') for c in contact_links if isinstance(c, dict)]
-                if self.pk and self.pk not in contact_ids:
-                    contact_links.append({'id': self.pk, 'name': str(self.attention or self.email or '')})
-                    links['contact'] = contact_links
-                    refs['links'] = links
-                    org.__class__.objects.filter(pk=org.pk).update(refs=refs)
-            except Exception:
-                pass
-        return True
-
     def update_keywords(self):
         """Update keywords for this contact record."""
         # Get current refs or initialize if needed

@@ -147,6 +147,9 @@ const BEHAVIOR_TO_LABEL: Record<string, string> = {
   // boolean, date, percentage, editor) → editable (normal gray)
 };
 
+// A record's links to an org, each searched and opened as its own role
+const ORG_ROLES = ['customer', 'vendor', 'manufacturer', 'rep'];
+
 // Detect label style from field name or label — universal conventions
 // These fire regardless of model or behavior config
 // Checked against both field leaf name AND label prop
@@ -230,6 +233,7 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
   const [orgQuery, setOrgQuery] = useState('');
   const [orgResults, setOrgResults] = useState<any[]>([]);
   const [orgSearching, setOrgSearching] = useState(false);
+  const [orgError, setOrgError] = useState('');
   const orgTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const val = (field.includes('.') || field.includes('[')) ? getNestedValue(data, field) : data?.[field];
 
@@ -239,13 +243,10 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
       e.preventDefault();
       e.stopPropagation();
       // Cmd/Ctrl+click on record reference fields → open in new window
-      if (val && typeof val === 'object' && (val as any).id) {
-        const leaf = field.split('.').pop()?.replace(/\[\d+\]$/, '') || '';
-        // Map field names to their model routes
-        const FIELD_TO_ROUTE: Record<string, string> = {
-          company: 'customer', customer: 'customer', vendor: 'customer',
-          manufacturer: 'customer', employee: 'contact', rep: 'contact',
-        };
+      const leaf = field.split('.').pop()?.replace(/\[\d+\]$/, '') || '';
+      if (val && typeof val === 'object' && (val as any).id && !ORG_ROLES.includes(leaf)) {
+        // Map field names to their model routes (org roles open on a plain click)
+        const FIELD_TO_ROUTE: Record<string, string> = { company: 'customer', employee: 'contact' };
         const route = FIELD_TO_ROUTE[leaf] || leaf;
         window.open(`/${route}?id=${(val as any).id}`, '_blank');
         return;
@@ -263,6 +264,11 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
     }
     // Plain click on action labels — launch tel/mailto/maps + copy to clipboard
     const leafN = field.split('.').pop()?.replace(/\[\d+\]$/, '') || '';
+    // A linked customer/vendor/manufacturer/rep opens in another browser window (Bill, 2026-10-17)
+    if (ORG_ROLES.includes(leafN) && val && typeof val === 'object' && (val as any).id) {
+      window.open(`/${leafN}/${(val as any).id}`, '_blank');
+      return;
+    }
     const actionKey = leafN || label;  // check both
     const strVal = typeof val === 'string' ? val : _firstScalar(val);
     if (!strVal || strVal === '—') return;
@@ -314,7 +320,7 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
       <span
         className={`db-font-xs font-medium shrink-0 text-right truncate ${isClickable ? 'hover:underline cursor-pointer' : ''}`}
         style={{ ...labelStyle, width: 110, maxWidth: 110 }}
-        title={`${label} → ${pathDisplay}  |  Cmd+click: copy path`}
+        title={`${label} → ${pathDisplay}  |  ${ORG_ROLES.includes(leafName) && isRecordRef ? 'click: open in new window  |  ' : ''}Cmd+click: copy path`}
         onMouseDown={(e) => { if (e.shiftKey) e.preventDefault(); }}
         onClick={handleLabelClick}
         onMouseEnter={(e) => { if (e.shiftKey && help) setShowHelp(true); }}
@@ -347,30 +353,31 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
             </button>
           );
         }
-        const AFF_FIELDS = ['customer','vendor','manufacturer','rep'];
-        const isAffiliation = AFF_FIELDS.includes(leafName);
-        // All org affiliations search the same org table
-        const FIELD_TO_MODEL: Record<string, string> = {
-          customer: 'org', vendor: 'org', manufacturer: 'org', rep: 'org',
-        };
-
+        const isAffiliation = ORG_ROLES.includes(leafName);
+        // Each affiliation searches its own role: contact.customer finds customers.
         const doSearch = (q: string) => {
           setOrgQuery(q);
+          setOrgError('');
           if (orgTimerRef.current) clearTimeout(orgTimerRef.current);
           if (!q || q.length < 2) { setOrgResults([]); return; }
           orgTimerRef.current = setTimeout(async () => {
             setOrgSearching(true);
             try {
-              const model = FIELD_TO_MODEL[leafName] || 'customer';
-              const res = await getRecords(model, { keyword: q, limit: 10 });
+              const res = await getRecords(leafName, { keyword: q, limit: 10 });
               setOrgResults(res?.results || res?.records || []);
-            } catch { setOrgResults([]); }
+            } catch (err: any) {
+              // A failed search is not "no results" — say so, or the user makes a duplicate.
+              setOrgResults([]);
+              setOrgError(err?.message || `Search of ${leafName} failed`);
+            }
             setOrgSearching(false);
           }, 300);
         };
 
+        // Held in the shape the GET serves, so the field shows locked with the company's name.
         const handleOrgSelect = (record: any) => {
-          onChange(field, record.id);
+          onChange(field, { id: record.id, ida: record.ida,
+                            name: record.display_name || record.company || record.ida || `#${record.id}` });
           setOrgQuery(''); setOrgResults([]); setRefUnlocked(false);
         };
 
@@ -405,7 +412,13 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
                   ))}
                 </div>
               )}
-              {orgQuery.length >= 2 && !orgSearching && orgResults.length === 0 && (
+              {orgError && !orgSearching && (
+                <div className="absolute top-7 left-0 w-56 rounded shadow-lg z-50 px-3 py-1.5 db-font-sm"
+                  style={{ background: 'var(--db-surface)', border: '1px solid var(--db-danger, #dc2626)', color: 'var(--db-danger, #dc2626)' }}>
+                  {orgError}
+                </div>
+              )}
+              {orgQuery.length >= 2 && !orgSearching && !orgError && orgResults.length === 0 && (
                 <div className="absolute top-7 left-0 w-56 rounded shadow-lg z-50 px-3 py-1.5 db-font-sm"
                   style={{ background: 'var(--db-surface)', border: '1px solid var(--db-border)', color: 'var(--db-text-muted)' }}>
                   No results

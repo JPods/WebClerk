@@ -33,6 +33,7 @@ const LinkedRecordsPanel = lazy(() => import('@/apps/common/components/panels/Li
 const CommentsPanel = lazy(() => import('@/apps/common/components/panels/CommentsPanel'));
 const FinancialsPanel = lazy(() => import('@/apps/common/components/panels/FinancialsPanel'));
 const OrgFinancialsPanel = lazy(() => import('@/apps/orgs/components/OrgFinancialsPanel'));
+const TransactionsPanel = lazy(() => import('@/apps/common/components/panels/TransactionsPanel'));
 const ProjectKanbanPanel = lazy(() => import('@/apps/common/components/panels/ProjectKanbanPanel'));
 const ProjectGanttPanel = lazy(() => import('@/apps/common/components/panels/ProjectGanttPanel'));
 const ProjectActionGantt = lazy(() => import('@/apps/common/components/panels/ProjectActionGantt'));
@@ -141,8 +142,9 @@ const registry: Record<string, PanelRenderer> = {
     linkedModel: 'contact', parentModel: ctx.modelName, parentId: ctx.data?.id, defaultCollapsed: false,
   })),
 
-  transactions: (ctx) => wrap(createElement(LinkedRecordsPanel, {
-    linkedModel: 'order', parentModel: ctx.modelName, parentId: ctx.data?.id, defaultCollapsed: false,
+  // An org's documents by their own customer / vendor / rep field — never a copy on the org.
+  transactions: (ctx) => wrap(createElement(TransactionsPanel, {
+    orgId: ctx.data?.id, orgType: ctx.data?.org_type || ctx.modelName,
   })),
 
   purchases: (ctx) => wrap(createElement(LinkedRecordsPanel, {
