@@ -83,7 +83,8 @@ flowchart TD
    or `applies_to` holds `all: true`, the customer's id in `customers`, or the customer's
    level in `price_levels`. A catalog assigned to no one prices for no one; a vendor's
    catalog is not a customer's price list. The line matches the item directly, then by
-   scope (`all_items`, `categories`, `vendors`), within its `min_qty`/`max_qty`. Its price
+   scope (`all_items`, `categories`, `vendors`), within its `min_qty`/`max_qty`. A line
+   names an item or a non-empty scope, never neither (see *Catalog lines*). Its price
    comes from `items.pricing.tiers` by quantity if present, else its adjustment:
    `fixed_price`, or `percent_off`/`amount_off` taken off the line's `price_unit` or the
    level price.
@@ -115,6 +116,18 @@ Action. Shipment is never blocked.
 - `costing_method` (FIFO/LIFO/avg) is a different question. It values COGS from the
   layers and is not a cost pick.
 
+## Catalog lines
+
+A catalog's lines are edited in the **lines** panel on the catalog's page
+(`CatalogLinesPanel.tsx`). Each line is its own record through the door (`catalog_line`
+in MODEL_REGISTRY, `wc-model-catalog_line` Setting): `new` with the `catalog_id`, then a
+save naming the item, or the scope for a line without one:
+`{all_items: true|false, categories: [category], vendors: [vendor id]}`. Edits are saves
+and removal is a delete. `CatalogLineBehaviour` (products/behaviours.py) refuses a save
+that names neither an item nor a non-empty scope (`catalog_line_covers_nothing`), since
+that line would price nothing. Admin, agent and superuser edit catalog lines; portal users
+get no access to them.
+
 ## Price levels
 
 **retail, wholesale, distributor, sample** are the only levels (Bill, 2026-10-22). They are
@@ -142,6 +155,7 @@ rewrote the letters and case variants already stored.
 | Reorder bounds margin (`inventory_bounds.py`) | `resolve_cost().margin_pct` |
 | Margin velocity (`inventory_layers.py`) | `list_price` (cost stays the layers' avg actual) |
 | Training flow | `resolve_price` / `resolve_cost` |
+| Catalog page, lines panel (`CatalogLinesPanel.tsx`) | door `new`/`save`/`delete` on `catalog_line` |
 | Portal catalog page (`portal/js/views/customer/catalog.js`) | shows the one level price the server serves (`price.$user.price_level`); the order is priced on save |
 
 Manage actions: `price_lines`, `resolve_price`, `resolve_cost`, `get_price_matrix`,

@@ -38,6 +38,7 @@ const ProjectKanbanPanel = lazy(() => import('@/apps/common/components/panels/Pr
 const ProjectGanttPanel = lazy(() => import('@/apps/common/components/panels/ProjectGanttPanel'));
 const ProjectActionGantt = lazy(() => import('@/apps/common/components/panels/ProjectActionGantt'));
 const BomPanel = lazy(() => import('@/apps/products/components/BomPanel'));
+const CatalogLinesPanel = lazy(() => import('@/apps/products/components/CatalogLinesPanel'));
 const SerialPanel = lazy(() => import('@/apps/products/components/SerialPanel'));
 const ProductListPanel = lazy(() => import('@/apps/products/components/ProductListPanel'));
 const InventoryLayersPanel = lazy(() => import('@/apps/products/components/InventoryLayersPanel'));
@@ -174,6 +175,8 @@ const registry: Record<string, PanelRenderer> = {
     itemId: ctx.data.id,
     itemCode: ctx.data.ida || ctx.data.item_code || `#${ctx.data.id}`,
   })),
+
+  catalog_lines: (ctx) => wrap(createElement(CatalogLinesPanel, { catalogId: ctx.data.id })),
 
   serials: (ctx) => wrap(createElement(SerialPanel, {
     itemId: ctx.data.id,

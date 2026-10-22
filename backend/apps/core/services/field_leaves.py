@@ -98,6 +98,8 @@ FIELD_SCHEMAS: dict[str, str] = {
         'pending.changes', 'tax_jurisdiction.scripts',
     )},
     'inventory_layer.cost': f'{_TE}:TransactionCost',
+    'catalog_line.scope': 'apps.products.models.catalog_line_pydantic:CatalogLineScope',
+    'catalog_line.items': 'apps.products.models.catalog_line_pydantic:CatalogLineItems',
     'item_xref.cost': f'{_TE}:TransactionCost',
 }
 

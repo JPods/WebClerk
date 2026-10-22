@@ -95,6 +95,7 @@ MODEL_REGISTRY: Dict[str, ModelMeta] = {
     'item': ModelMeta('item', 'apps.products.models.item.Item', 'Item', 'Items', 'items', kind='support', aliases=['items', 'product']),
     'bill_of_material': ModelMeta('bill_of_material', 'apps.products.models.bill_of_material.BillOfMaterial', 'Bill Of Material', 'Bill Of Materials', 'bills-of-material', kind='support', aliases=['bill_of_materials', 'bill_of_material']),
     'catalog': ModelMeta('catalog', 'apps.products.models.catalog.Catalog', 'Catalog', 'Catalogs', 'catalogs', kind='support', aliases=['catalogs']),
+    'catalog_line': ModelMeta('catalog_line', 'apps.products.models.catalog.CatalogLine', 'Catalog Line', 'Catalog Lines', 'catalog-lines', kind='line', aliases=['catalog_lines', 'catalogline']),
     'inventory_adjustment_run': ModelMeta('inventory_adjustment_run', 'apps.products.models.processor_runs.InventoryAdjustmentProcessorRun', 'Inventory Adjustment Run', 'Inventory Adjustment Runs', 'inventory-adjustment-runs', kind='support', aliases=['inventory_adjustment_runs']),
     'inventory_layer': ModelMeta('inventory_layer', 'apps.products.models.inventory_layer.InventoryLayer', 'Inventory Layer', 'Inventory Layers', 'inventory-layers', kind='support', aliases=['inventory_layers']),
     'inventory_metrics_snapshot': ModelMeta('inventory_metrics_snapshot', 'apps.products.models.metrics.InventoryMetricsSnapshot', 'Inventory Metrics Snapshot', 'Inventory Metrics Snapshots', 'inventory-metrics-snapshots', kind='support', aliases=['inventory_metrics_snapshots']),

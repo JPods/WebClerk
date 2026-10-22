@@ -18251,6 +18251,11 @@
                   "content": "comments"
                 },
                 {
+                  "type": "panel",
+                  "content": "catalog_lines",
+                  "label": "lines"
+                },
+                {
                   "tabs": [
                     {
                       "label": "contacts",
@@ -18893,6 +18898,680 @@
           "sections",
           "system",
           "wc-model-catalog",
+          "wc:model",
+          "wcmodel"
+        ],
+        "categories": [],
+        "depends_on": {},
+        "related_ids": []
+      }
+    },
+    {
+      "uuid": "7c1d2b8e-4f0a-4d6b-9e21-3a5c8f0d1b47",
+      "ida": "wc-model-catalog_line",
+      "name": "Catalog Line Model Definition",
+      "scope": "system",
+      "purpose": "wc:model",
+      "parent_model": "catalog_line",
+      "explanation": "Model definition for Catalog Line. Governs named layouts (list columns, detail fields, ui sections), field behaviors, schema metadata, and access configuration.",
+      "paths": {
+        "model": "apps/products/models/catalog.py",
+        "schema": "apps/products/models/catalog_line_pydantic.py"
+      },
+      "config": {
+        "access": {
+          "sets": {
+            "all": [
+              "actions.extra",
+              "actions.kind",
+              "actions.required",
+              "actions.status",
+              "actions.what",
+              "actions.when",
+              "actions.who",
+              "adjustment_type",
+              "adjustment_value",
+              "catalog",
+              "catalog_id",
+              "comments.partner.key",
+              "comments.partner.mgs",
+              "comments.partner.source",
+              "comments.partner.time",
+              "comments.partner.user",
+              "comments.partner.user_id",
+              "comments.process.key",
+              "comments.process.mgs",
+              "comments.process.source",
+              "comments.process.time",
+              "comments.process.user",
+              "comments.process.user_id",
+              "comments.public.key",
+              "comments.public.mgs",
+              "comments.public.source",
+              "comments.public.time",
+              "comments.public.user",
+              "comments.public.user_id",
+              "config.is_new",
+              "discount_amount",
+              "discount_percent",
+              "dt_approved",
+              "dt_created",
+              "dt_last_used",
+              "dt_modified",
+              "health_rating",
+              "id",
+              "is_active",
+              "is_archived",
+              "item",
+              "item_id",
+              "item_ida",
+              "items.pricing.tiers.min_qty",
+              "items.pricing.tiers.price",
+              "max_qty",
+              "metadata.access.edit",
+              "metadata.access.view",
+              "metadata.audit_trail.action",
+              "metadata.audit_trail.details",
+              "metadata.audit_trail.dt",
+              "metadata.audit_trail.user_id",
+              "metadata.documents",
+              "metadata.erosions",
+              "metadata.explanation",
+              "metadata.flags.keywords_pending",
+              "metadata.flags.schema_rev",
+              "metadata.flow",
+              "metadata.health.accuracy",
+              "metadata.health.completeness",
+              "metadata.health.consistency",
+              "metadata.health.freshness",
+              "metadata.health.lock.by.id",
+              "metadata.health.lock.by.name",
+              "metadata.health.lock.dt",
+              "metadata.health.lock.reason",
+              "metadata.health.lock.status_before",
+              "metadata.health.lock_history.by.id",
+              "metadata.health.lock_history.by.name",
+              "metadata.health.lock_history.dt",
+              "metadata.health.lock_history.reason",
+              "metadata.health.lock_history.status_before",
+              "metadata.health.lock_history.unlock_reason",
+              "metadata.health.lock_history.unlocked_by.id",
+              "metadata.health.lock_history.unlocked_by.name",
+              "metadata.health.lock_history.unlocked_dt",
+              "metadata.health.rating",
+              "metadata.history.accessed.contact_id",
+              "metadata.history.accessed.dt",
+              "metadata.history.created.contact_id",
+              "metadata.history.created.dt",
+              "metadata.history.modified.contact_id",
+              "metadata.history.modified.dt",
+              "metadata.history.synced.contact_id",
+              "metadata.history.synced.dt",
+              "metadata.history.verified.contact_id",
+              "metadata.history.verified.dt",
+              "metadata.images.hr",
+              "metadata.images.md",
+              "metadata.images.source",
+              "metadata.images.tn",
+              "metadata.import_data.dt_delete_on",
+              "metadata.import_data.dt_imported",
+              "metadata.import_data.original",
+              "metadata.import_data.risk",
+              "metadata.import_data.source",
+              "metadata.import_data.status",
+              "metadata.priority",
+              "metadata.publish",
+              "metadata.resources",
+              "metadata.security",
+              "metadata.small_stings",
+              "metadata.source",
+              "metadata.temp",
+              "metadata.version",
+              "metadata.versioning.changed_fields",
+              "metadata.versioning.size_activity",
+              "min_qty",
+              "prefs.pinned",
+              "prefs.search.dt_saved",
+              "prefs.search.filters",
+              "prefs.search.keyword",
+              "prefs.search.limit",
+              "prefs.search.model_name",
+              "prefs.search.name",
+              "prefs.search.ordering",
+              "prefs.search.relative_period",
+              "prefs.search.search_fields",
+              "prefs.tags",
+              "price_unit",
+              "purpose",
+              "refs.demo_source",
+              "refs.links",
+              "refs.source.id",
+              "refs.source.order_line_id",
+              "refs.source.purchase_line_id",
+              "refs.source.quote_line_id",
+              "refs.source.type",
+              "scope.all_items",
+              "scope.categories",
+              "scope.vendors",
+              "security_level",
+              "status",
+              "times_used",
+              "uuid",
+              "version"
+            ]
+          },
+          "roles": {
+            "superuser": {
+              "view": [
+                "@all"
+              ],
+              "edit": [
+                "@all"
+              ],
+              "scope": {},
+              "create": true,
+              "delete": true
+            },
+            "admin": {
+              "view": [
+                "@all"
+              ],
+              "edit": [
+                "@all"
+              ],
+              "scope": {},
+              "create": true,
+              "delete": true
+            },
+            "agent": {
+              "view": [
+                "@all"
+              ],
+              "edit": [
+                "@all"
+              ],
+              "scope": {},
+              "create": true,
+              "delete": false
+            }
+          }
+        },
+        "behaviors": {
+          "id": {
+            "type": "readonly",
+            "label": "id"
+          },
+          "uuid": {
+            "type": "readonly",
+            "label": "uuid"
+          },
+          "dt_created": {
+            "type": "readonly",
+            "label": "dt created"
+          },
+          "dt_modified": {
+            "type": "readonly",
+            "label": "dt modified"
+          },
+          "version": {
+            "type": "readonly",
+            "label": "version"
+          },
+          "is_active": {
+            "type": "boolean",
+            "label": "is active"
+          },
+          "security_level": {
+            "type": "readonly",
+            "label": "security level"
+          },
+          "dt_approved": {
+            "type": "timestamp",
+            "label": "dt approved"
+          },
+          "comments": {
+            "type": "json-tree",
+            "label": "comments"
+          },
+          "times_used": {
+            "type": "readonly",
+            "label": "times used"
+          },
+          "dt_last_used": {
+            "type": "timestamp",
+            "label": "dt last used"
+          },
+          "purpose": {
+            "type": "select",
+            "source": "inline",
+            "options": [
+              {
+                "value": "standard",
+                "label": "Standard"
+              },
+              {
+                "value": "template",
+                "label": "Template"
+              },
+              {
+                "value": "test",
+                "label": "Test"
+              },
+              {
+                "value": "internal",
+                "label": "Internal"
+              }
+            ],
+            "label": "purpose"
+          },
+          "status": {
+            "type": "select",
+            "source": "inline",
+            "options": [
+              {
+                "value": "active",
+                "label": "Active"
+              },
+              {
+                "value": "inactive",
+                "label": "Inactive"
+              },
+              {
+                "value": "archived",
+                "label": "Archived"
+              }
+            ],
+            "label": "status"
+          },
+          "config": {
+            "type": "json-tree",
+            "label": "config"
+          },
+          "is_archived": {
+            "type": "readonly",
+            "label": "is archived"
+          },
+          "metadata": {
+            "type": "json-tree",
+            "label": "metadata"
+          },
+          "refs": {
+            "type": "json-tree",
+            "label": "refs"
+          },
+          "prefs": {
+            "type": "json-tree",
+            "label": "prefs"
+          },
+          "actions": {
+            "type": "json-tree",
+            "label": "actions"
+          },
+          "health_rating": {
+            "type": "readonly",
+            "label": "health rating"
+          },
+          "item_ida": {
+            "type": "text",
+            "label": "item ida"
+          },
+          "catalog": {
+            "type": "lookup",
+            "model": "catalog",
+            "display": "name",
+            "label": "catalog"
+          },
+          "item": {
+            "type": "lookup",
+            "model": "item",
+            "display": "name",
+            "label": "item"
+          },
+          "price_unit": {
+            "type": "number",
+            "label": "price unit"
+          },
+          "discount_percent": {
+            "type": "number",
+            "label": "discount percent"
+          },
+          "discount_amount": {
+            "type": "number",
+            "label": "discount amount"
+          },
+          "scope": {
+            "type": "json",
+            "label": "scope"
+          },
+          "adjustment_type": {
+            "type": "text",
+            "label": "adjustment type"
+          },
+          "adjustment_value": {
+            "type": "number",
+            "label": "adjustment value"
+          },
+          "min_qty": {
+            "type": "number",
+            "label": "min qty"
+          },
+          "max_qty": {
+            "type": "number",
+            "label": "max qty"
+          },
+          "items": {
+            "type": "json",
+            "label": "items"
+          },
+          "metrics": {
+            "type": "json",
+            "label": "metrics"
+          },
+          "comments.public": {
+            "type": "json-tree",
+            "label": "Public Comments"
+          },
+          "comments.process": {
+            "type": "json-tree",
+            "label": "Process Notes"
+          },
+          "comments.partner": {
+            "type": "json-tree",
+            "label": "Partner Notes"
+          },
+          "comments.notes": {
+            "type": "json-tree",
+            "label": "Internal Notes"
+          }
+        },
+        "field_groups": [
+          {
+            "key": "identity",
+            "label": "Identity",
+            "fields": [
+              "times_used",
+              "purpose",
+              "item_ida",
+              "price_unit",
+              "discount_percent",
+              "discount_amount",
+              "scope",
+              "adjustment_type",
+              "adjustment_value",
+              "min_qty",
+              "max_qty",
+              "items"
+            ]
+          },
+          {
+            "key": "status",
+            "label": "Status",
+            "fields": [
+              "is_active",
+              "status",
+              "is_archived"
+            ]
+          },
+          {
+            "key": "dates",
+            "label": "Dates",
+            "fields": [
+              "dt_created",
+              "dt_modified",
+              "dt_approved",
+              "dt_last_used"
+            ]
+          },
+          {
+            "key": "system",
+            "label": "System",
+            "fields": [
+              "id",
+              "uuid",
+              "version",
+              "security_level",
+              "health_rating"
+            ]
+          },
+          {
+            "key": "json",
+            "label": "Data",
+            "fields": [
+              "comments",
+              "config",
+              "metadata",
+              "refs",
+              "prefs",
+              "actions",
+              "catalog",
+              "item",
+              "metrics"
+            ]
+          }
+        ],
+        "select_lists": {},
+        "formatting": {
+          "currency": "USD",
+          "locale": "en-US",
+          "date_format": "short",
+          "number_precision": 2
+        },
+        "default_collapsed": [
+          "system",
+          "dates",
+          "json"
+        ],
+        "enrichment": {},
+        "layout": {
+          "active": {
+            "list": "default",
+            "column": "default",
+            "detail": "default",
+            "form": "default"
+          },
+          "list": {
+            "default": {
+              "detail": "default",
+              "form": "default",
+              "columns": [
+                {
+                  "field": "purpose",
+                  "label": "purpose",
+                  "visible": true
+                },
+                {
+                  "field": "status",
+                  "label": "status",
+                  "visible": true
+                },
+                {
+                  "field": "item_ida",
+                  "label": "item_ida",
+                  "visible": true
+                },
+                {
+                  "field": "adjustment_type",
+                  "label": "adjustment_type",
+                  "visible": true
+                }
+              ]
+            }
+          },
+          "column": {
+            "default": {
+              "detail": "default",
+              "form": "default",
+              "columns": []
+            }
+          },
+          "detail": {
+            "default": {
+              "list": "default",
+              "form": "default",
+              "fields": [
+                "is_active",
+                "purpose",
+                "status",
+                "item_ida",
+                "price_unit",
+                "discount_percent",
+                "discount_amount",
+                "scope",
+                "adjustment_type",
+                "adjustment_value",
+                "min_qty",
+                "max_qty",
+                "items",
+                "comments",
+                "config",
+                "metadata",
+                "refs",
+                "prefs",
+                "actions",
+                "catalog",
+                "item",
+                "metrics",
+                "id",
+                "uuid",
+                "dt_created",
+                "dt_modified",
+                "version",
+                "security_level",
+                "dt_approved",
+                "times_used",
+                "dt_last_used",
+                "is_archived",
+                "health_rating"
+              ]
+            }
+          },
+          "form": {
+            "default": {
+              "list": "default",
+              "detail": "default"
+            }
+          },
+          "panel": [],
+          "card": [],
+          "tabs": [
+            "contacts",
+            "actions",
+            "touches",
+            "documents",
+            "files"
+          ]
+        },
+        "searches": [],
+        "defaults": {}
+      },
+      "metadata": {
+        "flow": {},
+        "temp": [],
+        "flags": {
+          "schema_rev": 1,
+          "keywords_pending": false
+        },
+        "access": {
+          "edit": [],
+          "view": []
+        },
+        "health": {
+          "rating": 0,
+          "accuracy": 0,
+          "freshness": 0,
+          "consistency": 0,
+          "completeness": 0
+        },
+        "images": {
+          "hr": false,
+          "md": false,
+          "tn": false,
+          "source": ""
+        },
+        "source": {},
+        "history": {
+          "synced": {
+            "dt": 0,
+            "contact_id": 0
+          },
+          "created": {
+            "dt": 1786742331281,
+            "contact_id": 0
+          },
+          "accessed": {
+            "dt": 1786742331280,
+            "contact_id": 0
+          },
+          "modified": {
+            "dt": 1789450400182,
+            "contact_id": 0
+          },
+          "verified": {
+            "dt": 0,
+            "contact_id": 0
+          }
+        },
+        "publish": "",
+        "version": "1.0",
+        "erosions": [],
+        "priority": "",
+        "security": "",
+        "documents": [],
+        "resources": {
+          "required": {},
+          "allocated": {}
+        },
+        "versioning": {
+          "changed_fields": [
+            "config"
+          ],
+          "keywords_dt_refreshed": 1789508118511
+        },
+        "audit_trail": [],
+        "explanation": "",
+        "import_data": null,
+        "userdefined": {},
+        "foundational": true,
+        "small_stings": []
+      },
+      "prefs": {
+        "tags": [],
+        "pinned": false,
+        "search": [],
+        "userdefined": {}
+      },
+      "refs": {
+        "tags": [],
+        "links": {
+          "item": [],
+          "contact": []
+        },
+        "source": null,
+        "parents": [],
+        "keywords": [
+          "7c1d2b8e-4f0a-4d6b-9e21-3a5c8f0d1b47",
+          "access",
+          "behaviors",
+          "catalog",
+          "catalog_line",
+          "catalogline",
+          "columns",
+          "configuration",
+          "definition",
+          "detail",
+          "field",
+          "fields",
+          "governs",
+          "layouts",
+          "line",
+          "list",
+          "metadata",
+          "model",
+          "named",
+          "schema",
+          "sections",
+          "system",
+          "wc-model-catalog_line",
           "wc:model",
           "wcmodel"
         ],

@@ -153,9 +153,19 @@ class CatalogLine(ItemLinkedBase):
     def description(self):
         return str(self.catalog) if hasattr(self, 'catalog') else ""
 
-    """Item entry in a catalog with specific pricing overrides."""
+    """A catalog's price rule: for one item, or for the items its scope covers.
+
+    A line names an item, or a non-empty scope (all_items, categories, vendors) — never
+    neither (Bill, 2026-10-22; products/behaviours.CatalogLineBehaviour refuses it). The
+    resolver tries a catalog's item lines before its scope lines (price_resolver._catalog_line).
+    """
 
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE, related_name="lines", db_column='catalog_id')
+    # Null for a scope line: it covers many items, so it names none.
+    item = models.ForeignKey(
+        'products.Item', on_delete=models.PROTECT, null=True, blank=True,
+        related_name="catalogline_related", db_column='item_id',
+    )
     price_unit = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True)
     discount_percent = models.DecimalField(max_digits=6, decimal_places=3, null=True, blank=True)
     discount_amount = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True)
@@ -168,7 +178,7 @@ class CatalogLine(ItemLinkedBase):
         ('price_level', 'Price Level'),
     ]
     scope = models.JSONField(default=dict, blank=True,
-        help_text="What this line covers: {items: [id], categories: [], vendors: [], all_items: false}")
+        help_text="What a line without an item covers: {all_items: false, categories: [], vendors: [vendor ids]}")
     adjustment_type = models.CharField(max_length=20, choices=ADJUSTMENT_TYPES, default='percent_off', blank=True)
     adjustment_value = models.DecimalField(max_digits=14, decimal_places=4, default=0, blank=True,
         help_text="Value depends on type: 15.0 = 15% off, or $15 fixed, or price level code")
