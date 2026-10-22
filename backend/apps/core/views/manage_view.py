@@ -717,7 +717,9 @@ def _file_small_sting(params: dict) -> dict:
     Params:
         complaint: text description of the problem
         severity: 1-5 (1=minor annoyance, 5=business-stopping)
-        amount: the sting's value (optional, default 1.72)
+        amount: the sting's value (optional, default 1.72; with a class it must match the class)
+        class: one of the company's sting classes (company profile config.small_stings.classes),
+            which sets the amount and whether the payable waits for staff review (optional)
         model_name: which model/area the complaint is about (optional)
         record_id: specific record ID if applicable (optional)
         contact_id: who is filing (optional, defaults to the signed-in person) — the payee
@@ -727,7 +729,28 @@ def _file_small_sting(params: dict) -> dict:
         _acting_actor(params), complaint=params.get('complaint', ''),
         severity=params.get('severity', 3), model_name=params.get('model_name', ''),
         record_id=params.get('record_id', ''), contact_id=params.get('contact_id'),
-        amount=params.get('amount'))
+        amount=params.get('amount'), sting_class_key=params.get('class', ''))
+
+
+def _approve_small_sting(params: dict) -> dict:
+    """Staff approve a sting under review; its payable may then be paid in cash.
+
+    Params: action_id (the STING- Action) or receipt_id (its payable); note (optional).
+    """
+    from apps.accounts.services.small_sting import approve_small_sting
+    return approve_small_sting(_acting_actor(params), action_id=params.get('action_id'),
+                               receipt_id=params.get('receipt_id'), note=params.get('note', ''))
+
+
+def _reject_small_sting(params: dict) -> dict:
+    """Staff reject a sting under review: its journal is reversed and its payable closed,
+    with nothing deleted.
+
+    Params: action_id or receipt_id; reason (required).
+    """
+    from apps.accounts.services.small_sting import reject_small_sting
+    return reject_small_sting(_acting_actor(params), action_id=params.get('action_id'),
+                              receipt_id=params.get('receipt_id'), reason=params.get('reason', ''))
 
 
 def _acting_actor(params):
@@ -844,6 +867,8 @@ _ACTION_DISPATCH = {
     "cleanup_training": _cleanup_training,
     "get_training_activity": _get_training_activity,
     "file_small_sting": _file_small_sting,
+    "approve_small_sting": _approve_small_sting,
+    "reject_small_sting": _reject_small_sting,
     "get_orphan_counts": _get_orphan_counts,
     "get_orphan_detail": _get_orphan_detail,
     "get_accounting_dashboard": lambda params: __import__(

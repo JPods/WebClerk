@@ -174,6 +174,12 @@ def add_cash(ctx) -> Dict[str, Any]:
     if not party_id and model_key == 'receipt' and getattr(doc, 'contact_id', None):
         # No vendor: the payee is the receipt's contact (a Small-Sting's filer, Bill 2026-10-22).
         party_key, party_id = 'contact_id', doc.contact_id
+    if model_key == 'receipt':
+        # A sting under review (or rejected) is not paid: refused before any Cash is saved.
+        from apps.accounts.services.small_sting import sting_payment_refusal
+        why_not = sting_payment_refusal(doc)
+        if why_not:
+            raise Refused(409, 'sting_not_payable', why_not, {'receipt_id': doc.pk})
     if not party_id:
         who = 'customer' if side['party'] == 'customer_id' else 'vendor'
         raise Refused(400, f'{who}_required', f'{model_key.title()} {doc.pk} names no {who}; '

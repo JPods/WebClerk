@@ -5793,6 +5793,24 @@
             ]
           }
         },
+        "small_stings": {
+          "note": "Small-Stings: fines a customer assesses on us. Each files its payable at once, due under term (a Term ida; N10 when unset). A sting names a class, which sets its amount; review=true holds the payable from payment until staff approve it, or reject it, which reverses its journal. A sting with no class is worth what it names, else $1.72.",
+          "term": "N10",
+          "classes": [
+            {
+              "key": "inconvenience",
+              "label": "Inconvenience",
+              "amount": 25.0,
+              "review": false
+            },
+            {
+              "key": "safety_breach",
+              "label": "Valid safety breach",
+              "amount": 100.0,
+              "review": true
+            }
+          ]
+        },
         "transactions": {
           "default_terms": "net30",
           "dt_needed_days": 14,

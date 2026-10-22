@@ -99,6 +99,10 @@ def _check_receipt_application(cash, receipt, amount: Decimal) -> None:
     # The cash's spend, both sides, is counted inside the one check (B-5).
     # The payee is the vendor, else the receipt's contact: a Small-Sting is owed to the person
     # who filed it (Bill, 2026-10-22), and a payment to someone else does not pay it.
+    from apps.accounts.services.small_sting import sting_payment_refusal
+    why_not = sting_payment_refusal(receipt)
+    if why_not:
+        raise ValueError(why_not)
     if receipt.vendor_id:
         party_attr, party_label = 'vendor_id', 'vendor'
     else:
