@@ -195,13 +195,4 @@ class Setting(BaseModel):
 # - purchase_defaults: purchasing module defaults (global or per table)
 # - accounting_defaults: accounting/GL/tax defaults
 
-#Logic now:
-# Reads active Setting with purpose='wc:keywords' for the documents table.
-# Accepts config.fields (list/tuple) or comma string (config.field_list fallback).
-# On create: always enqueue (unless duplicate unprocessed Pending exists).
-# On update: only enqueue if any tracked keyword field actually changed.
-# Debounce: skips creating a new Pending if an unprocessed one already exists for the same table/record.
-# Fallback: if no tracked fields configured but table in get_keyword_requirements(), only enqueue on create.
-# Includes tracked_fields list in Pending.config for transparency.
-# Guarded against errors; won’t break saves.
 

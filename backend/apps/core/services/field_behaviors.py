@@ -406,6 +406,22 @@ def _inject_leaf_behaviors(model_key, field_map, behaviors):
 
 # ── Core: field behavior detection ───────────────────────────────────────
 
+def _registry_key_for(model_cls) -> str:
+    """The MODEL_REGISTRY key for a Django model class — read from the registry, never a
+    hand-kept map (one drifted: ai_message's FKs pointed at 'aimessage'). OrgBase is
+    inheritance only, never a model (Bill); its FKs look up customers."""
+    from apps.core.constants.model_registry import MODEL_REGISTRY
+    name = model_cls.__name__.lower()
+    if name == 'orgbase':
+        return 'customer'
+    path = f'{model_cls.__module__}.{model_cls.__name__}'
+    keys = [k for k, meta in MODEL_REGISTRY.items() if meta.model == path]
+    for k in keys:
+        if k.replace('_', '') == name:
+            return k
+    return keys[0] if keys else name
+
+
 def get_field_behaviors(model_key, field_map=None, overrides=None):
     """Compute UI behaviors for every field on a model.
 
@@ -478,17 +494,7 @@ def get_field_behaviors(model_key, field_map=None, overrides=None):
         if hasattr(field, 'related_model') and field.related_model is not None:
             related = field.related_model
             related_name = related.__name__.lower() if related else ''
-            model_map = {
-                'contact': 'contact', 'orgbase': 'customer', 'customer': 'customer',
-                'invoice': 'invoice', 'item': 'item', 'glaccount': 'gl_account',
-                'gljournal': 'gl_journal', 'cash_method': 'cash_method',
-                'term': 'term', 'warehouse': 'warehouse', 'setting': 'setting',
-                'catalog': 'catalog', 'taxjurisdiction': 'tax_jurisdiction',
-                'workorder': 'workorder', 'workorderline': 'workorder_line',
-                'purchaseline': 'purchase_line',
-                'inventorylayer': 'inventory_layer',
-            }
-            lookup_model = model_map.get(related_name, related_name)
+            lookup_model = _registry_key_for(related)
             display = 'display_name' if related_name in ('orgbase', 'customer') else 'name' if hasattr(related, 'name') else 'ida'
             behaviors[name] = {'type': 'lookup', 'model': lookup_model, 'display': display}
             continue

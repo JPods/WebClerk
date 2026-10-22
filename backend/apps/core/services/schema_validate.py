@@ -137,7 +137,10 @@ def _check_schema_inheritance(model_name: str, violations: list):
     defaults = _get_defaults()
     for schema_key, base_name in REQUIRED_SCHEMA_KEYS.items():
         envelope = schema_key.removesuffix('_schema')
-        cls = classes[envelope]
+        cls = classes.get(envelope)
+        if cls is None:
+            continue                    # a CoreModel (pending) carries no refs/prefs
+
         if not issubclass(cls, bases[schema_key]):
             violations.append({
                 'field': schema_key,

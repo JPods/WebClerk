@@ -138,7 +138,16 @@ def _delete_field(obj, field: str):
         return
 
     if hasattr(obj, field):
-        setattr(obj, field, None)
+        # A non-null column clears to its empty default ('' for text), never None —
+        # None on contacts.company raised IntegrityError (allie-92, 2026-10-22).
+        try:
+            model_field = obj._meta.get_field(field)
+        except Exception:
+            model_field = None
+        if model_field is not None and not model_field.null and not model_field.is_relation:
+            setattr(obj, field, model_field.get_default())
+        else:
+            setattr(obj, field, None)
         return
 
 

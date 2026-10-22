@@ -4,9 +4,6 @@ from common.models import BaseModel
 from django.utils import timezone
 from django.contrib.postgres.search import SearchVector, SearchVectorField
 from django.contrib.postgres.indexes import GinIndex
-from apps.core.models.pending import Pending
-from apps.core.constants.keyword_requirements import get_keyword_requirements
-from apps.core.models.setting import Setting
 from apps.docs.choices import (
     DOCUMENT_CONFIDENTIALITY_CHOICES,
     DOCUMENT_STATUS_CHOICES,
@@ -102,7 +99,6 @@ class Document(BaseModel):
         # derive size if body present
         if self.body and not self.size_bytes:
             self.size_bytes = len(self.body.encode('utf-8'))
-        is_create = self.pk is None
         # ensure slug if missing and name present (non-destructive)
         if not self.slug and self.name:
             from django.utils.text import slugify
@@ -116,58 +112,9 @@ class Document(BaseModel):
                     candidate = (base[: 240 - len(suffix)] + suffix)
                     i += 1
                 self.slug = candidate
-        # Capture original field values for change detection (only if existing)
-        tracked_original = {}
-        tracked_fields: list[str] = []
-        try:
-            # Fetch keyword fields from wc:model config.search
-            model_key = 'document'
-            setting = Setting.objects.filter(parent_model=model_key, purpose='wc:model', is_active=True).first()
-            if setting and isinstance(setting.config, dict):
-                search_cfg = setting.config.get('search', {})
-                fields_spec = search_cfg.get('self_fields', [])
-                if isinstance(fields_spec, (list, tuple)):
-                    tracked_fields = [f for f in fields_spec if isinstance(f, str)]
-            if not is_create and tracked_fields:
-                db_self = type(self).objects.filter(pk=self.pk).only(*[f for f in tracked_fields if f in [fld.name for fld in self._meta.fields]]).first()
-                if db_self:
-                    for f in tracked_fields:
-                        if hasattr(db_self, f):
-                            tracked_original[f] = getattr(db_self, f)
-        except Exception:
-            pass
-
         super().save(*args, **kwargs)
         self.rebuild_search_vector(commit=False)
 
-        # Decide whether to enqueue Pending
-        try:
-            model_key = 'Document'
-            enqueue = False
-            if is_create:
-                enqueue = True
-            elif tracked_fields:
-                for f in tracked_fields:
-                    old_val = tracked_original.get(f, None)
-                    new_val = getattr(self, f, None)
-                    if old_val != new_val:
-                        enqueue = True
-                        break
-            # Fallback: if no tracked fields defined but table configured in keyword requirements
-            if not enqueue and model_key in get_keyword_requirements():
-                enqueue = is_create  # only create on new rows to avoid noise
-
-            if enqueue:
-                # Debounce: ensure no unprocessed Pending exists for this id/table
-                if not Pending.objects.filter(model_name=model_key, record_id=self.id, dt_processed=0).exists():
-                    Pending.objects.create(
-                        model_name=model_key,
-                        record_id=self.id,
-                        purpose='keywords',
-                        config={'tracked_fields': tracked_fields}
-                    )
-        except Exception:
-            pass
 
 
 
