@@ -22418,7 +22418,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -22463,7 +22462,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -22543,7 +22541,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -22596,7 +22593,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -22664,7 +22660,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -22837,10 +22832,6 @@
                 {
                   "field": "terms",
                   "label": "terms"
-                },
-                {
-                  "field": "type",
-                  "label": "type"
                 }
               ]
             },
@@ -22919,10 +22910,6 @@
                         {
                           "field": "display_name",
                           "label": "display_name"
-                        },
-                        {
-                          "field": "type",
-                          "label": "type"
                         },
                         {
                           "field": "status",
@@ -23098,12 +23085,6 @@
                   "visible": true
                 },
                 {
-                  "field": "type",
-                  "label": "type",
-                  "width": 100,
-                  "visible": true
-                },
-                {
                   "field": "status",
                   "label": "status",
                   "width": 90,
@@ -23218,7 +23199,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -23282,10 +23262,6 @@
           "refs": {
             "type": "json-tree",
             "label": "refs"
-          },
-          "type": {
-            "type": "text",
-            "label": "type"
           },
           "uuid": {
             "type": "readonly",
@@ -23705,7 +23681,6 @@
               "stats",
               "relationship_stats",
               "org_type",
-              "type",
               "display_name",
               "contact_id",
               "attention",
@@ -27854,7 +27829,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -27899,7 +27873,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -27979,7 +27952,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -28032,7 +28004,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -28081,7 +28052,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -28235,10 +28205,6 @@
                 {
                   "field": "terms",
                   "label": "terms"
-                },
-                {
-                  "field": "type",
-                  "label": "type"
                 }
               ]
             },
@@ -28317,10 +28283,6 @@
                         {
                           "field": "display_name",
                           "label": "display_name"
-                        },
-                        {
-                          "field": "type",
-                          "label": "type"
                         },
                         {
                           "field": "status",
@@ -28488,12 +28450,6 @@
                   "visible": true
                 },
                 {
-                  "field": "type",
-                  "label": "type",
-                  "width": 100,
-                  "visible": true
-                },
-                {
                   "field": "status",
                   "label": "status",
                   "width": 90,
@@ -28608,7 +28564,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -28672,10 +28627,6 @@
           "refs": {
             "type": "json-tree",
             "label": "refs"
-          },
-          "type": {
-            "type": "text",
-            "label": "type"
           },
           "uuid": {
             "type": "readonly",
@@ -29083,7 +29034,6 @@
               "stats",
               "relationship_stats",
               "org_type",
-              "type",
               "display_name",
               "contact_id",
               "attention",
@@ -45676,7 +45626,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -45721,7 +45670,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -45801,7 +45749,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -45854,7 +45801,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -45903,7 +45849,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -46057,10 +46002,6 @@
                 {
                   "field": "terms",
                   "label": "terms"
-                },
-                {
-                  "field": "type",
-                  "label": "type"
                 }
               ]
             },
@@ -46139,10 +46080,6 @@
                         {
                           "field": "display_name",
                           "label": "display_name"
-                        },
-                        {
-                          "field": "type",
-                          "label": "type"
                         },
                         {
                           "field": "status",
@@ -46317,12 +46254,6 @@
                   "visible": true
                 },
                 {
-                  "field": "type",
-                  "label": "type",
-                  "width": 100,
-                  "visible": true
-                },
-                {
                   "field": "status",
                   "label": "status",
                   "width": 90,
@@ -46437,7 +46368,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -46501,10 +46431,6 @@
           "refs": {
             "type": "json-tree",
             "label": "refs"
-          },
-          "type": {
-            "type": "text",
-            "label": "type"
           },
           "uuid": {
             "type": "readonly",
@@ -46924,7 +46850,6 @@
               "stats",
               "relationship_stats",
               "org_type",
-              "type",
               "display_name",
               "contact_id",
               "attention",
@@ -51530,7 +51455,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -51575,7 +51499,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -51655,7 +51578,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -51708,7 +51630,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -51757,7 +51678,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -51904,10 +51824,6 @@
                 {
                   "field": "terms",
                   "label": "terms"
-                },
-                {
-                  "field": "type",
-                  "label": "type"
                 }
               ]
             },
@@ -52048,12 +51964,6 @@
                   "visible": true
                 },
                 {
-                  "field": "type",
-                  "label": "type",
-                  "width": 100,
-                  "visible": true
-                },
-                {
                   "field": "status",
                   "label": "status",
                   "width": 90,
@@ -52168,7 +52078,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -52232,10 +52141,6 @@
           "refs": {
             "type": "json-tree",
             "label": "refs"
-          },
-          "type": {
-            "type": "text",
-            "label": "type"
           },
           "uuid": {
             "type": "readonly",
@@ -52635,7 +52540,6 @@
               "stats",
               "relationship_stats",
               "org_type",
-              "type",
               "display_name",
               "contact_id",
               "attention",
@@ -67036,7 +66940,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -67081,7 +66984,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -67161,7 +67063,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -67214,7 +67115,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -67263,7 +67163,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -67417,10 +67316,6 @@
                 {
                   "field": "terms",
                   "label": "terms"
-                },
-                {
-                  "field": "type",
-                  "label": "type"
                 }
               ]
             },
@@ -67499,10 +67394,6 @@
                         {
                           "field": "display_name",
                           "label": "display_name"
-                        },
-                        {
-                          "field": "type",
-                          "label": "type"
                         },
                         {
                           "field": "status",
@@ -67674,12 +67565,6 @@
                   "visible": true
                 },
                 {
-                  "field": "type",
-                  "label": "type",
-                  "width": 100,
-                  "visible": true
-                },
-                {
                   "field": "status",
                   "label": "status",
                   "width": 90,
@@ -67794,7 +67679,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -67858,10 +67742,6 @@
           "refs": {
             "type": "json-tree",
             "label": "refs"
-          },
-          "type": {
-            "type": "text",
-            "label": "type"
           },
           "uuid": {
             "type": "readonly",
@@ -68269,7 +68149,6 @@
               "stats",
               "relationship_stats",
               "org_type",
-              "type",
               "display_name",
               "contact_id",
               "attention",
@@ -81248,7 +81127,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -81293,7 +81171,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -81373,7 +81250,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -81431,7 +81307,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -81480,7 +81355,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -81634,10 +81508,6 @@
                 {
                   "field": "terms",
                   "label": "terms"
-                },
-                {
-                  "field": "type",
-                  "label": "type"
                 }
               ]
             },
@@ -81716,10 +81586,6 @@
                         {
                           "field": "display_name",
                           "label": "display_name"
-                        },
-                        {
-                          "field": "type",
-                          "label": "type"
                         },
                         {
                           "field": "status",
@@ -81895,12 +81761,6 @@
                   "visible": true
                 },
                 {
-                  "field": "type",
-                  "label": "type",
-                  "width": 100,
-                  "visible": true
-                },
-                {
                   "field": "status",
                   "label": "status",
                   "width": 90,
@@ -82015,7 +81875,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -82079,10 +81938,6 @@
           "refs": {
             "type": "json-tree",
             "label": "refs"
-          },
-          "type": {
-            "type": "text",
-            "label": "type"
           },
           "uuid": {
             "type": "readonly",
@@ -82502,7 +82357,6 @@
               "stats",
               "relationship_stats",
               "org_type",
-              "type",
               "display_name",
               "contact_id",
               "attention",

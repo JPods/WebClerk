@@ -188,7 +188,6 @@ ORG_PANELS = [
 ORG_IDENTITY_FIELDS = [
     _f("ida"),
     _f("display_name"),
-    _f("type"),
     _f("status"),
 ]
 

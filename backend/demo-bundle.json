@@ -22352,7 +22352,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -22397,7 +22396,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -22477,7 +22475,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -22530,7 +22527,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -22598,7 +22594,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -22771,10 +22766,6 @@
                 {
                   "field": "terms",
                   "label": "terms"
-                },
-                {
-                  "field": "type",
-                  "label": "type"
                 }
               ]
             },
@@ -22853,10 +22844,6 @@
                         {
                           "field": "display_name",
                           "label": "display_name"
-                        },
-                        {
-                          "field": "type",
-                          "label": "type"
                         },
                         {
                           "field": "status",
@@ -23032,12 +23019,6 @@
                   "visible": true
                 },
                 {
-                  "field": "type",
-                  "label": "type",
-                  "width": 100,
-                  "visible": true
-                },
-                {
                   "field": "status",
                   "label": "status",
                   "width": 90,
@@ -23152,7 +23133,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -23216,10 +23196,6 @@
           "refs": {
             "type": "json-tree",
             "label": "refs"
-          },
-          "type": {
-            "type": "text",
-            "label": "type"
           },
           "uuid": {
             "type": "readonly",
@@ -23639,7 +23615,6 @@
               "stats",
               "relationship_stats",
               "org_type",
-              "type",
               "display_name",
               "contact_id",
               "attention",
@@ -27788,7 +27763,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -27833,7 +27807,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -27913,7 +27886,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -27966,7 +27938,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -28015,7 +27986,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -28169,10 +28139,6 @@
                 {
                   "field": "terms",
                   "label": "terms"
-                },
-                {
-                  "field": "type",
-                  "label": "type"
                 }
               ]
             },
@@ -28251,10 +28217,6 @@
                         {
                           "field": "display_name",
                           "label": "display_name"
-                        },
-                        {
-                          "field": "type",
-                          "label": "type"
                         },
                         {
                           "field": "status",
@@ -28422,12 +28384,6 @@
                   "visible": true
                 },
                 {
-                  "field": "type",
-                  "label": "type",
-                  "width": 100,
-                  "visible": true
-                },
-                {
                   "field": "status",
                   "label": "status",
                   "width": 90,
@@ -28542,7 +28498,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -28606,10 +28561,6 @@
           "refs": {
             "type": "json-tree",
             "label": "refs"
-          },
-          "type": {
-            "type": "text",
-            "label": "type"
           },
           "uuid": {
             "type": "readonly",
@@ -29017,7 +28968,6 @@
               "stats",
               "relationship_stats",
               "org_type",
-              "type",
               "display_name",
               "contact_id",
               "attention",
@@ -45610,7 +45560,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -45655,7 +45604,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -45735,7 +45683,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -45788,7 +45735,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -45837,7 +45783,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -45991,10 +45936,6 @@
                 {
                   "field": "terms",
                   "label": "terms"
-                },
-                {
-                  "field": "type",
-                  "label": "type"
                 }
               ]
             },
@@ -46073,10 +46014,6 @@
                         {
                           "field": "display_name",
                           "label": "display_name"
-                        },
-                        {
-                          "field": "type",
-                          "label": "type"
                         },
                         {
                           "field": "status",
@@ -46251,12 +46188,6 @@
                   "visible": true
                 },
                 {
-                  "field": "type",
-                  "label": "type",
-                  "width": 100,
-                  "visible": true
-                },
-                {
                   "field": "status",
                   "label": "status",
                   "width": 90,
@@ -46371,7 +46302,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -46435,10 +46365,6 @@
           "refs": {
             "type": "json-tree",
             "label": "refs"
-          },
-          "type": {
-            "type": "text",
-            "label": "type"
           },
           "uuid": {
             "type": "readonly",
@@ -46858,7 +46784,6 @@
               "stats",
               "relationship_stats",
               "org_type",
-              "type",
               "display_name",
               "contact_id",
               "attention",
@@ -51464,7 +51389,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -51509,7 +51433,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -51589,7 +51512,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -51642,7 +51564,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -51691,7 +51612,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -51838,10 +51758,6 @@
                 {
                   "field": "terms",
                   "label": "terms"
-                },
-                {
-                  "field": "type",
-                  "label": "type"
                 }
               ]
             },
@@ -51982,12 +51898,6 @@
                   "visible": true
                 },
                 {
-                  "field": "type",
-                  "label": "type",
-                  "width": 100,
-                  "visible": true
-                },
-                {
                   "field": "status",
                   "label": "status",
                   "width": 90,
@@ -52102,7 +52012,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -52166,10 +52075,6 @@
           "refs": {
             "type": "json-tree",
             "label": "refs"
-          },
-          "type": {
-            "type": "text",
-            "label": "type"
           },
           "uuid": {
             "type": "readonly",
@@ -52569,7 +52474,6 @@
               "stats",
               "relationship_stats",
               "org_type",
-              "type",
               "display_name",
               "contact_id",
               "attention",
@@ -66970,7 +66874,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -67015,7 +66918,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -67095,7 +66997,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -67148,7 +67049,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -67197,7 +67097,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -67351,10 +67250,6 @@
                 {
                   "field": "terms",
                   "label": "terms"
-                },
-                {
-                  "field": "type",
-                  "label": "type"
                 }
               ]
             },
@@ -67433,10 +67328,6 @@
                         {
                           "field": "display_name",
                           "label": "display_name"
-                        },
-                        {
-                          "field": "type",
-                          "label": "type"
                         },
                         {
                           "field": "status",
@@ -67608,12 +67499,6 @@
                   "visible": true
                 },
                 {
-                  "field": "type",
-                  "label": "type",
-                  "width": 100,
-                  "visible": true
-                },
-                {
                   "field": "status",
                   "label": "status",
                   "width": 90,
@@ -67728,7 +67613,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -67792,10 +67676,6 @@
           "refs": {
             "type": "json-tree",
             "label": "refs"
-          },
-          "type": {
-            "type": "text",
-            "label": "type"
           },
           "uuid": {
             "type": "readonly",
@@ -68203,7 +68083,6 @@
               "stats",
               "relationship_stats",
               "org_type",
-              "type",
               "display_name",
               "contact_id",
               "attention",
@@ -81182,7 +81061,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -81227,7 +81105,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -81307,7 +81184,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -81365,7 +81241,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -81414,7 +81289,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -81568,10 +81442,6 @@
                 {
                   "field": "terms",
                   "label": "terms"
-                },
-                {
-                  "field": "type",
-                  "label": "type"
                 }
               ]
             },
@@ -81650,10 +81520,6 @@
                         {
                           "field": "display_name",
                           "label": "display_name"
-                        },
-                        {
-                          "field": "type",
-                          "label": "type"
                         },
                         {
                           "field": "status",
@@ -81829,12 +81695,6 @@
                   "visible": true
                 },
                 {
-                  "field": "type",
-                  "label": "type",
-                  "width": 100,
-                  "visible": true
-                },
-                {
                   "field": "status",
                   "label": "status",
                   "width": 90,
@@ -81949,7 +81809,6 @@
                 "stats",
                 "relationship_stats",
                 "org_type",
-                "type",
                 "display_name",
                 "contact_id",
                 "attention",
@@ -82013,10 +81872,6 @@
           "refs": {
             "type": "json-tree",
             "label": "refs"
-          },
-          "type": {
-            "type": "text",
-            "label": "type"
           },
           "uuid": {
             "type": "readonly",
@@ -82436,7 +82291,6 @@
               "stats",
               "relationship_stats",
               "org_type",
-              "type",
               "display_name",
               "contact_id",
               "attention",
@@ -132209,7 +132063,6 @@
           "dt_last": {}
         },
         "org_type": "customer",
-        "type": "",
         "display_name": "Pinnacle Systems 84",
         "contact_id": 10695,
         "attention": "Zeke Zander",
@@ -132814,7 +132667,6 @@
           "dt_last": {}
         },
         "org_type": "employee",
-        "type": "",
         "display_name": "Prairie Holdings 19",
         "contact_id": null,
         "attention": null,
@@ -133417,7 +133269,6 @@
           "dt_last": {}
         },
         "org_type": "manufacturer",
-        "type": "",
         "display_name": "Beacon LLC 63",
         "contact_id": null,
         "attention": null,
@@ -134021,7 +133872,6 @@
           "dt_last": {}
         },
         "org_type": "rep",
-        "type": "",
         "display_name": "Prairie Holdings 34",
         "contact_id": null,
         "attention": null,
@@ -134625,7 +134475,6 @@
           "dt_last": {}
         },
         "org_type": "vendor",
-        "type": "",
         "display_name": "Pinnacle Systems 52",
         "contact_id": null,
         "attention": null,
@@ -135247,7 +135096,6 @@
           "dt_last": {}
         },
         "org_type": "customer",
-        "type": "",
         "display_name": "Beacon LLC 78",
         "contact_id": null,
         "attention": null,
@@ -135943,7 +135791,6 @@
           }
         },
         "org_type": "customer",
-        "type": "customer",
         "display_name": "Beacon LLC 23",
         "contact_id": 10697,
         "attention": "Bill James",
@@ -136253,7 +136100,6 @@
           }
         },
         "org_type": "customer",
-        "type": "",
         "display_name": "Ironbridge Ltd 48",
         "contact_id": 10699,
         "attention": "Dan Keller",
@@ -136555,7 +136401,6 @@
           }
         },
         "org_type": "customer",
-        "type": "",
         "display_name": "Riverside Supplies 80",
         "contact_id": 10698,
         "attention": "Pat Mitchell",
@@ -136821,7 +136666,6 @@
           }
         },
         "org_type": "vendor",
-        "type": "",
         "display_name": "Lakeside Partners 71",
         "contact_id": 10715,
         "attention": "Mark Stanley",
@@ -137077,7 +136921,6 @@
           }
         },
         "org_type": "vendor",
-        "type": "",
         "display_name": "Lakeside Partners 97",
         "contact_id": 10714,
         "attention": "Karen Behr",
@@ -137340,7 +137183,6 @@
           }
         },
         "org_type": "vendor",
-        "type": "",
         "display_name": "Crestview Co 54",
         "contact_id": 10716,
         "attention": "Jim Sawyer",
@@ -137596,7 +137438,6 @@
           "dt_last": {}
         },
         "org_type": "vendor",
-        "type": "",
         "display_name": "Valley Industries 99",
         "contact_id": 10717,
         "attention": "Lisa Wang",
@@ -138261,7 +138102,6 @@
           "dt_last": {}
         },
         "org_type": "customer",
-        "type": "",
         "display_name": "Pinnacle Systems 39",
         "contact_id": 10693,
         "attention": "Tom Bradley",
@@ -138934,7 +138774,6 @@
           }
         },
         "org_type": "customer",
-        "type": "company",
         "display_name": "Evergreen Works 15",
         "contact_id": 10630,
         "attention": "Sarah Chen",
@@ -139189,7 +139028,6 @@
           }
         },
         "org_type": "customer",
-        "type": "company",
         "display_name": "Ironbridge Ltd 1",
         "contact_id": 10631,
         "attention": "Mike Rodriguez",
@@ -139439,7 +139277,6 @@
           }
         },
         "org_type": "customer",
-        "type": "company",
         "display_name": "Pinnacle Systems 70",
         "contact_id": 10632,
         "attention": "Tom Parker",
@@ -139657,7 +139494,6 @@
           }
         },
         "org_type": "customer",
-        "type": "company",
         "display_name": "Riverside Supplies 82",
         "contact_id": 10633,
         "attention": "Lisa Wang",
@@ -139892,7 +139728,6 @@
           "dt_last": {}
         },
         "org_type": "vendor",
-        "type": "",
         "display_name": "Crestview Co 61",
         "contact_id": null,
         "attention": null,
@@ -140495,7 +140330,6 @@
           "dt_last": {}
         },
         "org_type": "customer",
-        "type": "",
         "display_name": "Oakdale Trading 27",
         "contact_id": null,
         "attention": null,
@@ -141098,7 +140932,6 @@
           "dt_last": {}
         },
         "org_type": "customer",
-        "type": "",
         "display_name": "Pinnacle Systems 89",
         "contact_id": null,
         "attention": null,
@@ -141701,7 +141534,6 @@
           "dt_last": {}
         },
         "org_type": "customer",
-        "type": "",
         "display_name": "Riverside Supplies 60",
         "contact_id": null,
         "attention": null,
@@ -142304,7 +142136,6 @@
           "dt_last": {}
         },
         "org_type": "customer",
-        "type": "",
         "display_name": "Harbor Logistics 84",
         "contact_id": null,
         "attention": null,
@@ -142908,7 +142739,6 @@
           "dt_last": {}
         },
         "org_type": "customer",
-        "type": "",
         "display_name": "Riverside Supplies 51",
         "contact_id": null,
         "attention": null,

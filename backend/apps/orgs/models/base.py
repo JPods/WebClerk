@@ -50,10 +50,6 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 	}
 
 	org_type = models.CharField(max_length=20, choices=OrgType.choices, db_index=True, blank=True, null=True)
-	type = models.CharField(
-		max_length=50, blank=True, db_index=True,
-		help_text="Org classification: distributor, end_user, regulator, government, utility, association"
-	)
 	# What everyone calls it. An individual customer's company is their own name, and
 	# people are content with that — a neutral word for the rare case made the common one
 	# worse, and labels are the field names users read (Bill, 2026-09-20).
