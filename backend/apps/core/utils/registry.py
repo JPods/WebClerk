@@ -42,6 +42,7 @@ def resolve(key: str):
       1) Registered key -> cfg.model
       2) app_label.ModelName or app_label.modelname
       3) Any installed model whose _meta.model_name == key
+      4) The canonical MODEL_REGISTRY (key, alias, endpoint)
     """
     if not key:
         return None
@@ -81,7 +82,12 @@ def resolve(key: str):
                 return m
         except Exception:
             continue
-    return None
+
+    # 4) the canonical MODEL_REGISTRY: a snake_case key (catalog_line, receipt_line,
+    # journal_batch) matches no model_name (catalogline), and 19 registered models
+    # resolved to None here — a superuser's save of one failed with a 500 (wc3, 2026-10-24).
+    from apps.core.constants.model_registry import import_model
+    return import_model(skey)
 
 
 def refresh_from_settings():

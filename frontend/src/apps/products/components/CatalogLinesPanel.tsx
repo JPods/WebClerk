@@ -28,7 +28,7 @@ const errMsg = (e: any, fallback: string) =>
 
 /** What a line covers, in words. */
 function covers(line: any): string {
-  if (line.item_id) return line.item_ida || `item #${line.item_id}`;
+  if (line.item) return line.item_ida || `item #${line.item}`;
   const scope = line.scope || {};
   const parts: string[] = [];
   if (scope.all_items) parts.push('all items');
@@ -77,7 +77,7 @@ const CatalogLineRow: React.FC<{ line: any; onChanged: () => void }> = ({ line, 
 
   return (
     <div className="flex items-center gap-2 px-2 py-1 text-xs border-b border-slate-100 dark:border-slate-800">
-      <span className="flex-1 truncate text-slate-700 dark:text-slate-200" title={line.item_id ? 'item line' : 'scope line'}>
+      <span className="flex-1 truncate text-slate-700 dark:text-slate-200" title={line.item ? 'item line' : 'scope line'}>
         {covers(line)}
       </span>
       <select
@@ -113,7 +113,7 @@ const CatalogLinesPanel: React.FC<CatalogLinesPanelProps> = ({ catalogId }) => {
       const res: any = await getRecords('catalog_line', { catalog_id: catalogId, limit: 500 });
       const rows = res?.results || res?.records || [];
       // Item lines first, as the resolver tries them first.
-      rows.sort((a: any, b: any) => (a.item_id ? 0 : 1) - (b.item_id ? 0 : 1) || a.id - b.id);
+      rows.sort((a: any, b: any) => (a.item ? 0 : 1) - (b.item ? 0 : 1) || a.id - b.id);
       setLines(rows);
     } catch { setLines([]); }
     setLoading(false);
