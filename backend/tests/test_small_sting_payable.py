@@ -116,11 +116,12 @@ def test_a_sting_with_no_value_is_a_payable_of_1_72_owed_to_the_filer(filer):
     assert not Pending.objects.filter(purpose='small_sting').exists(), 'no writer without a reader'
 
 
-def test_a_sting_that_names_its_value_is_owed_that_value(filer):
-    from apps.transactions.models import Receipt
-    out = _file(filer, amount='25.00')
-    assert out['amount'] == 25.0
-    assert Decimal(str(Receipt.objects.get(pk=out['receipt_id']).totals['total'])) == Decimal('25.00')
+def test_a_sting_with_no_class_is_1_72_and_names_no_other_value(filer):
+    from apps.core.services.door import Refused
+    assert _file(filer, amount='1.72')['amount'] == 1.72
+    with pytest.raises(Refused) as e:
+        _file(filer, amount='25.00')
+    assert e.value.code == 'sting_amount'
 
 
 def test_the_payee_is_the_filing_contact_named(filer):
@@ -132,9 +133,9 @@ def test_the_payee_is_the_filing_contact_named(filer):
 
 
 def test_the_sting_posts_balanced_to_its_own_accounts(filer):
-    out = _file(filer, amount='3.00')
-    assert _net('receipt', out['receipt_id'], STING_EXPENSE) == Decimal('3.00')
-    assert _net('receipt', out['receipt_id'], STING_PAYABLE) == Decimal('-3.00')
+    out = _file(filer)
+    assert _net('receipt', out['receipt_id'], STING_EXPENSE) == Decimal('1.72')
+    assert _net('receipt', out['receipt_id'], STING_PAYABLE) == Decimal('-1.72')
     assert _net('receipt', out['receipt_id'], '2050-received_not_billed') == 0
     from apps.accounts.models import GlJournal
     rows = GlJournal.objects.filter(source_model='receipt', source_id=out['receipt_id'])
@@ -405,25 +406,32 @@ def test_a_sting_under_review_is_not_paid(filer, filer_client, classes):
         apply_cash_to_receipt(cash.pk, out['receipt_id'], Decimal('100.00'))
 
 
-def test_approve_then_pay(filer, filer_client, classes):
+def test_approve_then_pay(filer, filer_client, classes, client, django_user_model):
     from apps.core.models import Action
-    from apps.transactions.models import Receipt
-    out = _file(filer, sting_class_key='safety_breach')
-    r = filer_client.post('/wcapi/_manage/', {'action': 'approve_small_sting',
-                                              'params': {'receipt_id': out['receipt_id'], 'note': 'CCTV confirms'}},
-                          content_type='application/json')
-    assert r.status_code == 200, r.content
-    review = Action.objects.get(pk=out['action_id']).metadata['review']
-    assert (review['state'], review['reviewed_by'], review['note']) == ('approved', filer.pk, 'CCTV confirms')
-    assert review['dt_reviewed'] > 1_700_000_000_000, 'UTC epoch ms'
-    r = filer_client.post(f'/wcapi/receipt/{out["receipt_id"]}/add_cash/',
-                          {'amount': '100.00', 'method': 'cash'}, content_type='application/json')
-    assert r.status_code == 200, r.content
-    assert float(Receipt.objects.get(pk=out['receipt_id']).totals['balance']) == 0.0
     from apps.core.services.door import Refused
     from apps.accounts.services.small_sting import approve_small_sting
+    from apps.transactions.models import Receipt
+    out = _file(filer, sting_class_key='safety_breach')
+    # Separation of duties: the filer (and payee) does not approve their own sting.
     with pytest.raises(Refused) as e:
         approve_small_sting(_actor(filer), action_id=out['action_id'])
+    assert e.value.code == 'sting_self_approval'
+    reviewer = django_user_model.objects.create_user(email='reviewer@sting.test', password='x',
+                                                     username='', role='admin')
+    client.force_login(reviewer)
+    r = client.post('/wcapi/_manage/', {'action': 'approve_small_sting',
+                                        'params': {'receipt_id': out['receipt_id'], 'note': 'CCTV confirms'}},
+                    content_type='application/json')
+    assert r.status_code == 200, r.content
+    review = Action.objects.get(pk=out['action_id']).metadata['review']
+    assert (review['state'], review['reviewed_by'], review['note']) == ('approved', reviewer.pk, 'CCTV confirms')
+    assert review['dt_reviewed'] > 1_700_000_000_000, 'UTC epoch ms'
+    r = client.post(f'/wcapi/receipt/{out["receipt_id"]}/add_cash/',
+                    {'amount': '100.00', 'method': 'cash'}, content_type='application/json')
+    assert r.status_code == 200, r.content
+    assert float(Receipt.objects.get(pk=out['receipt_id']).totals['balance']) == 0.0
+    with pytest.raises(Refused) as e:
+        approve_small_sting(_actor(reviewer), action_id=out['action_id'])
     assert e.value.code == 'sting_not_under_review'
 
 

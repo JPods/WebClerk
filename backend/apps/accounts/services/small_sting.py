@@ -24,7 +24,7 @@ Bill's rulings, 2026-10-22 (classes, review, due date):
 - **Classes.** The company defines classes of sting (config.small_stings.classes: key, label,
   amount, review). A sting names one, and the class sets its value; an amount that differs from
   the class amount is refused (the company sets the price of a class, not the filer). A sting
-  that names no class is worth what it names, else $1.72.
+  that names no class is $1.72 — no other amount without a class.
 - **Review.** "Create the payable at once, before the review." A class with review=true still
   files its payable and journal at once; the payable is under review and cash is refused
   against it until staff approve. Approve releases it for payment. Reject reverses its journal
@@ -167,7 +167,14 @@ def file_small_sting(actor: Actor, *, complaint: str, severity=3, model_name: st
                       f'"{severity}" was given.')
     klass = sting_class(sting_class_key)
     if klass is None:
+        # No class, no review — so no say in the amount: $1.72. Any other value comes from a
+        # class the company defines and reviews (Bill, 2026-10-22).
         amount = sting_amount(amount)
+        if amount != DEFAULT_STING_AMOUNT:
+            raise Refused(400, 'sting_amount', f'A sting with no class is ${DEFAULT_STING_AMOUNT}; '
+                          f'{amount} was given. Name a class for another amount: '
+                          f'{", ".join(c["key"] for c in sting_classes()) or "the company defines none"}.',
+                          {'amount': str(amount)})
     else:
         named = None if amount in (None, '') else sting_amount(amount)
         if named is not None and named != klass['amount']:
@@ -203,7 +210,7 @@ def file_small_sting(actor: Actor, *, complaint: str, severity=3, model_name: st
             'record_id': str(record_id) if record_id else '', 'amount': str(amount),
             'dt_filed': int(now.timestamp() * 1000), 'source': {'type': 'user_complaint'},
             'class': klass['key'] if klass else '', 'term': term,
-            'review': {'state': review},
+            'review': {'state': review}, 'filed_by': actor.user_id,
         }})
         action = Action.objects.get(pk=saved.obj_id)
 
@@ -350,6 +357,12 @@ def approve_small_sting(actor: Actor, *, action_id=None, receipt_id=None, note: 
     with transaction.atomic():
         action = _sting_action(action_id, receipt_id)
         _pending_review(action)
+        # Separation of duties: whoever filed it, or is owed it, does not approve it.
+        meta = action.metadata or {}
+        if actor.user_id in {meta.get('filed_by'), action.contact_id}:
+            raise Refused(403, 'sting_self_approval', f'Sting {action.ida} is approved by someone '
+                          f'other than the person who filed it or is owed it.',
+                          {'action_id': action.pk})
         receipt = _sting_receipt(action)
         dt = _write_review(actor, action, REVIEW_APPROVED, (note or '').strip())
     return {'success': True, 'action_id': action.pk, 'action_ida': action.ida,
