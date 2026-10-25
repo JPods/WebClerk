@@ -31,6 +31,8 @@ export interface DetailToolbarProps {
   isEditing?: boolean;
   canEdit?: boolean;
   saving?: boolean;
+  /** Why Save is off: the edit would break a size limit. Shown beside the button. */
+  saveBlocked?: string;
   canDelete?: boolean;
   companyInfo?: any;
   logos?: any;
@@ -59,7 +61,7 @@ export interface DetailToolbarProps {
 const DetailToolbar: React.FC<DetailToolbarProps> = ({
   data, currentData, modelName, layout,
   mode: modeProp, isEditing: isEditingProp,
-  canEdit = true, saving = false, canDelete = true,
+  canEdit = true, saving = false, saveBlocked, canDelete = true,
   companyInfo, logos, documentText,
   onAddNew, onSave, onCancel, onClose, onDelete,
   onWorkflowComplete,
@@ -145,8 +147,11 @@ const DetailToolbar: React.FC<DetailToolbarProps> = ({
         <ToolbarIcon action={TB.addRecord} title="Add New Record" onClick={onAddNew} />
       )}
 
-      <ToolbarIcon action={TB.save} title={saving ? 'Saving...' : 'Save'} disabled={!isEditing || saving} onClick={onSave} />
+      <ToolbarIcon action={TB.save} title={saving ? 'Saving...' : (saveBlocked || 'Save')} disabled={!isEditing || saving || !!saveBlocked} onClick={onSave} />
       <ToolbarIcon action={TB.discard} title="Discard" disabled={!isEditing} onClick={onCancel} />
+      {isEditing && saveBlocked && (
+        <span data-wc="save-blocked" className="text-xs text-red-600 dark:text-red-400 max-w-md leading-tight">{saveBlocked}</span>
+      )}
       {onClose && (
         <ToolbarIcon action={TB.cancel} title="Cancel / Close Record" onClick={onClose} />
       )}

@@ -20,13 +20,13 @@ from typing import Any
 from django.db import models
 
 from common.json_path import delete_nested_value
+from apps.core.services.json_ops import deep_merge
+from common.models import json_depth_cap, save_field_cap
 
 console_logger = logging.getLogger('console')
 
-MAX_FIELD_SIZE = 15000
 # The userdefined bounds live with the envelope that defines the bag.
 from common.schemas.envelopes import USERDEFINED_KEY_MAX_LEN, USERDEFINED_VALUE_MAX_LEN  # noqa: E402
-MAX_MERGE_DEPTH = 8                 # max recursion depth for deep_merge_dict
 MAX_DOT_PATH_DEPTH = 8             # max segments in a dot-path field name
 
 # Models whose fields may contain binary/document content
@@ -66,47 +66,8 @@ def check_field_size(value, max_size: int, field_name: str):
     """Raise ValueError if serialized field exceeds max_size bytes."""
     size = len(json.dumps(value).encode('utf-8'))
     if size > max_size:
-        raise ValueError(f"{field_name} exceeds maximum size of {max_size} bytes")
-
-
-def _check_json_depth(obj, depth: int = 0) -> int:
-    """Return max nesting depth of a dict/list structure."""
-    if depth >= MAX_MERGE_DEPTH:
-        return depth
-    if isinstance(obj, dict):
-        if not obj:
-            return depth
-        return max(_check_json_depth(v, depth + 1) for v in obj.values())
-    if isinstance(obj, list):
-        if not obj:
-            return depth
-        return max(_check_json_depth(v, depth + 1) for v in obj)
-    return depth
-
-
-def deep_merge_dict(a: dict, b: dict, _depth: int = 0) -> dict:
-    """Recursively merge dict b into dict a (in place) and return a.
-
-    Raises ValueError if incoming data or merge depth exceeds MAX_MERGE_DEPTH
-    to prevent stack overflow from crafted payloads.
-    """
-    if _depth >= MAX_MERGE_DEPTH:
-        raise ValueError(
-            f"JSON merge depth exceeds {MAX_MERGE_DEPTH} levels"
-        )
-    for k, v in (b or {}).items():
-        if isinstance(v, dict) and isinstance(a.get(k), dict):
-            deep_merge_dict(a[k], v, _depth + 1)
-        else:
-            # Check depth of incoming value before assigning
-            if isinstance(v, (dict, list)):
-                incoming_depth = _check_json_depth(v)
-                if _depth + incoming_depth >= MAX_MERGE_DEPTH:
-                    raise ValueError(
-                        f"JSON nesting depth exceeds {MAX_MERGE_DEPTH} levels"
-                    )
-            a[k] = v
-    return a
+        raise ValueError(f"{field_name} is {size:,} bytes; one save may send {max_size:,}. "
+                         f"Send only the part that changed.")
 
 
 def _normalize_envelope(field_data) -> dict:
@@ -281,12 +242,14 @@ def assign_fields(
             field_size_errors.append(binary_err)
             continue
 
-        # Check size
-        try:
-            check_field_size(value, MAX_FIELD_SIZE, field)
-        except ValueError as e:
-            field_size_errors.append(str(e))
-            continue
+        # Check size — what one save sends; send the change, not the whole record
+        cap = save_field_cap(model_cls, field)
+        if cap is not None:
+            try:
+                check_field_size(value, cap, field)
+            except ValueError as e:
+                field_size_errors.append(str(e))
+                continue
 
         try:
             if '.' in field or '[' in field:
@@ -357,7 +320,8 @@ def assign_fields(
                                 current = {}
                         if not isinstance(current, dict):
                             current = {}
-                        setattr(obj, field, deep_merge_dict(current, value))
+                        setattr(obj, field, deep_merge(current, value,
+                                                       max_depth=json_depth_cap(model_cls, field)))
                     elif is_json_field and not isinstance(value, (dict, list)) and value is not None:
                         console_logger.warning(
                             f"[SAVE] Skipping corrupted JSON field '{field}': "

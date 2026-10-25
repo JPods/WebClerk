@@ -10,8 +10,9 @@
  * Works for any model: contact, customer, vendor, manufacturer,
  * employee, rep, item, or any future model with a detail_layout Setting.
  */
-import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { changedFields } from '@/utils/changedFields';
+import { checkJsonLimits, describeJsonLimitProblems, jsonLimitsLoaded, loadJsonLimits } from '@/utils/jsonLimits';
 import { applyDerived } from '@/utils/derivedFields';
 import { useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
@@ -215,6 +216,15 @@ const ModelDetailPage: React.FC<ModelDetailPageProps> = ({
   }, [modelName, recordId, dispatch]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Save is off, with the reason beside it, while the edit would break a size limit.
+  const [limitsReady, setLimitsReady] = useState(!!jsonLimitsLoaded());
+  useEffect(() => { loadJsonLimits().then(l => setLimitsReady(!!l)); }, []);
+  const saveBlocked = useMemo(() => {
+    if (!limitsReady || !isEditing || !editData) return undefined;
+    const problems = checkJsonLimits(modelName, changedFields(data, editData), editData);
+    return problems.length ? describeJsonLimitProblems(problems) : undefined;
+  }, [limitsReady, isEditing, editData, data, modelName]);
 
   useEffect(() => {
     if (autoEdit && data && !isEditing) {
@@ -466,6 +476,7 @@ const ModelDetailPage: React.FC<ModelDetailPageProps> = ({
           layout={activeLayout}
           isEditing={isEditing}
           saving={saving}
+          saveBlocked={saveBlocked}
           companyInfo={companyInfo}
           logos={logos}
           documentText={documentText}

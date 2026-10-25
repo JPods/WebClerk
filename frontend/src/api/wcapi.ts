@@ -2,6 +2,7 @@
 import apiClient from "./axios";
 import { resolveModelName } from "./modelNameResolver";
 import { validateEnvelope } from "../utils/validateEnvelope";
+import { checkJsonLimits, describeJsonLimitProblems, loadJsonLimits } from "../utils/jsonLimits";
 import { MAX_PAYLOAD_BYTES } from "../constants/envelopeLimits";
 import { computeAthenaToken } from "../utils/athenaToken";
 
@@ -447,6 +448,13 @@ export async function saveRecord(model_name: string, payload: any) {
   if (envelopeErrors.length > 0) {
     const messages = envelopeErrors.map(e => `${e.path}: ${e.message}`);
     throw new Error(`Validation failed: ${messages.join('; ')}`);
+  }
+
+  // ── Pre-flight: JSON size limits (served by the backend) ──
+  await loadJsonLimits();
+  const sizeProblems = checkJsonLimits(resolved, record);
+  if (sizeProblems.length > 0) {
+    throw new Error(describeJsonLimitProblems(sizeProblems));
   }
 
   // The fields go flat: no `record` wrapper, no model_name, no id, no mode in the body.

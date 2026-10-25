@@ -42,10 +42,11 @@ import json
 import logging
 import re
 
+from common.models import MAX_JSON_DEPTH
+
 logger = logging.getLogger('console')
 
 MAX_PATH_DEPTH = 8                # max dot-path segments allowed
-MAX_MERGE_DEPTH = 8               # max recursion depth for _deep_merge
 
 
 def apply_json_op(target, path: str, mode: str, value=None, key: str = None) -> bool:
@@ -135,7 +136,7 @@ def apply_json_op(target, path: str, mode: str, value=None, key: str = None) -> 
         idx = next((i for i, el in enumerate(arr) if isinstance(el, dict) and str(el.get(sel_key)) == sel_val), None)
         if mode in ('update', 'merge') and idx is not None:
             if mode == 'merge' and isinstance(arr[idx], dict) and isinstance(value, dict):
-                _deep_merge(arr[idx], value)
+                deep_merge(arr[idx], value)
             else:
                 arr[idx] = value
         elif mode in ('remove', 'delete') and idx is not None:
@@ -176,7 +177,7 @@ def _apply_at_node(current, mode, value, key):
 
     elif mode == 'merge':
         if isinstance(current, dict) and isinstance(value, dict):
-            _deep_merge(current, value)
+            deep_merge(current, value)
             return current
         return value  # fallback to replace
 
@@ -280,39 +281,36 @@ def _create_intermediate(root, parts):
     return node
 
 
-def _check_json_depth(obj, depth: int = 0) -> int:
-    """Return max nesting depth of a dict/list structure."""
-    if depth >= MAX_MERGE_DEPTH:
+def _check_json_depth(obj, max_depth: int = MAX_JSON_DEPTH, depth: int = 0) -> int:
+    """Return max nesting depth of a dict/list structure (stops counting at max_depth)."""
+    if depth >= max_depth:
         return depth
     if isinstance(obj, dict):
         if not obj:
             return depth
-        return max(_check_json_depth(v, depth + 1) for v in obj.values())
+        return max(_check_json_depth(v, max_depth, depth + 1) for v in obj.values())
     if isinstance(obj, list):
         if not obj:
             return depth
-        return max(_check_json_depth(v, depth + 1) for v in obj)
+        return max(_check_json_depth(v, max_depth, depth + 1) for v in obj)
     return depth
 
 
-def _deep_merge(a: dict, b: dict, _depth: int = 0) -> dict:
-    """Recursively merge dict b into dict a. Only replaces leaf values.
+def deep_merge(a: dict, b: dict, max_depth: int = MAX_JSON_DEPTH, _depth: int = 0) -> dict:
+    """Recursively merge dict b into dict a, in place, and return a. Dicts merge; lists
+    and leaves replace. ``max_depth`` bounds the nesting a crafted payload can force —
+    a model may widen it per field (common.models.json_depth_cap).
 
-    Raises ValueError if merge depth exceeds MAX_MERGE_DEPTH.
+    Raises ValueError if the merge would go deeper than max_depth.
     """
-    if _depth >= MAX_MERGE_DEPTH:
-        raise ValueError(
-            f"JSON merge depth exceeds {MAX_MERGE_DEPTH} levels"
-        )
-    for k, v in b.items():
+    if _depth >= max_depth:
+        raise ValueError(f"JSON merge depth exceeds {max_depth} levels")
+    for k, v in (b or {}).items():
         if isinstance(v, dict) and isinstance(a.get(k), dict):
-            _deep_merge(a[k], v, _depth + 1)
+            deep_merge(a[k], v, max_depth, _depth + 1)
         else:
             if isinstance(v, (dict, list)):
-                incoming = _check_json_depth(v)
-                if _depth + incoming >= MAX_MERGE_DEPTH:
-                    raise ValueError(
-                        f"JSON nesting depth exceeds {MAX_MERGE_DEPTH} levels"
-                    )
+                if _depth + _check_json_depth(v, max_depth) >= max_depth:
+                    raise ValueError(f"JSON nesting depth exceeds {max_depth} levels")
             a[k] = v
     return a

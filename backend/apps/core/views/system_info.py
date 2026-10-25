@@ -16,6 +16,8 @@ from decouple import config
 import platform
 import django
 
+from common.models import json_limits
+
 # 3 minutes in milliseconds — threshold for stale pending records
 PENDING_STALE_MS = 3 * 60 * 1000
 
@@ -74,6 +76,7 @@ class SystemInfoView(APIView):
                 'python_version': platform.python_version(),
             },
             'pending': pending_health,
+            'json_limits': json_limits(),
             'message': f"Connected to {data_set_name} ({data_set_kind})"
         })
 

@@ -58,6 +58,54 @@ MAX_REFS_SIZE = 64000
 MAX_PREFS_SIZE = 96000 # max prefs
 MAX_CONFIG_SIZE = 64000  # config — application data; larger content → Document record
 MAX_ACTIONS_SIZE = 32000  # actions JSON should remain small and query-friendly
+MAX_SAVE_FIELD_SIZE = 15000  # bytes one save may send for one field — send the change, not the record
+JSON_FIELD_CAPS = {
+    'metadata': MAX_METADATA_SIZE,
+    'refs': MAX_REFS_SIZE,
+    'prefs': MAX_PREFS_SIZE,
+    'config': MAX_CONFIG_SIZE,
+    'actions': MAX_ACTIONS_SIZE,
+}
+
+
+def json_caps(model_cls) -> dict:
+    """{field: bytes} a record of this model may store per JSON field; None = no limit.
+
+    A model widens a field with ``json_cap_overrides``. Setting's config is as big as its
+    users need (Bill, 2026-10-24); the 2 MB request limit is its only ceiling.
+    """
+    return {**JSON_FIELD_CAPS, **getattr(model_cls, 'json_cap_overrides', {})}
+
+
+MAX_JSON_DEPTH = 8  # nesting a merged JSON field may reach — bounds a crafted payload
+
+
+def json_depth_cap(model_cls, field: str) -> int:
+    """Nesting depth a merge into this field may reach; a model widens it with
+    ``json_depth_overrides`` (Setting layouts run 9–11 deep: sections→columns→fields→options)."""
+    return getattr(model_cls, 'json_depth_overrides', {}).get(field.split('.', 1)[0], MAX_JSON_DEPTH)
+
+
+def save_field_cap(model_cls, field: str):
+    """Bytes one save may send for a field (the top of a dot-path); None = no limit."""
+    top = field.split('.', 1)[0]
+    if top in getattr(model_cls, 'json_cap_overrides', {}) and json_caps(model_cls)[top] is None:
+        return None
+    return MAX_SAVE_FIELD_SIZE
+
+
+def json_limits() -> dict:
+    """The limits the browser checks before a save — served from here, never copied."""
+    from django.apps import apps as django_apps
+    models_widened = {}
+    for m in django_apps.get_models():
+        caps, depth = getattr(m, 'json_cap_overrides', {}), getattr(m, 'json_depth_overrides', {})
+        if caps or depth:
+            models_widened[m._meta.model_name] = {'caps': caps, 'depth': depth}
+    return {'per_save': MAX_SAVE_FIELD_SIZE, 'depth': MAX_JSON_DEPTH,
+            'caps': JSON_FIELD_CAPS, 'models': models_widened}
+
+
 SIZE_WARN_FRACTION = 0.75  # warn once JSON envelope passes 75% of limit
 SIZE_ACTIVITY_FRACTIONS: tuple[float, ...] = (0.30, 0.60, 0.75)  # progressive telemetry thresholds
 logger = logging.getLogger(__name__)
@@ -124,13 +172,9 @@ def _telemetry_offload_candidates(instance: "BaseModel"):
         if not isinstance(payload, (dict, list)):
             continue
         # Determine field cap for relative threshold
-        cap = {
-            'metadata': MAX_METADATA_SIZE,
-            'refs': MAX_REFS_SIZE,
-            'prefs': MAX_PREFS_SIZE,
-            'config': MAX_CONFIG_SIZE,
-            'comments': MAX_METADATA_SIZE,  # comments shares metadata cap unless changed
-        }.get(field_name, MAX_METADATA_SIZE)
+        cap = json_caps(type(instance)).get(field_name, MAX_METADATA_SIZE)  # comments: metadata's
+        if cap is None:
+            continue
         min_bytes = int(cap * OFFLOAD_MIN_FRACTION)
         for path_tuple, size in _find_large_subtrees(payload, min_bytes):
             logger.info(
@@ -186,6 +230,16 @@ else:  # pragma: no cover
 # ---------------- Optimistic concurrency primitives ------------------------
 class VersionConflictError(Exception):
     """Raised when an optimistic concurrency (version) check fails."""
+
+
+class JsonTooLarge(ValueError):
+    """A JSON field is over its model's cap — raised before the write, so nothing is stored."""
+
+    def __init__(self, model_name: str, field: str, size: int, cap: int):
+        self.model_name, self.field, self.size, self.cap = model_name, field, size, cap
+        super().__init__(f"{model_name}.{field} is {size:,} bytes; its limit is {cap:,}. "
+                         f"Remove what is no longer used, or move large content into a "
+                         f"Document and link it.")
 
 
 class JSONBSet(Func):
@@ -1310,17 +1364,14 @@ class BaseModel(
         if hasattr(self, 'prefs') and isinstance(self.prefs, dict):
             self.prefs.setdefault('userdefined', {})
 
-        super().save(*args, **kwargs)
-        self._capture_original_state()  # refresh snapshot
-
-        # size enforcement
+        # size enforcement — before the write: an oversized record is refused, never stored
         def check_size(field_value, max_size, field_name):
             try:
                 size = len(json.dumps(field_value, separators=(",", ":")).encode("utf-8"))
             except Exception:
                 return
             if size > max_size:
-                raise ValueError(f"{field_name} exceeds maximum size of {max_size} bytes")
+                raise JsonTooLarge(self.__class__.__name__.lower(), field_name, size, max_size)
             last_frac = 0.0
             meta_container = None
             if hasattr(self, "metadata") and isinstance(getattr(self, "metadata"), dict):  # type: ignore[attr-defined]
@@ -1339,16 +1390,14 @@ class BaseModel(
                     if meta_container is not None:
                         meta_container[field_name] = frac
 
-        if hasattr(self, "metadata"):
-            check_size(self.metadata, MAX_METADATA_SIZE, "metadata")  # type: ignore[attr-defined]
-        if hasattr(self, "refs"):
-            check_size(self.refs, MAX_REFS_SIZE, "refs")  # type: ignore[attr-defined]
-        if hasattr(self, "prefs"):
-            check_size(self.prefs, MAX_PREFS_SIZE, "prefs")  # type: ignore[attr-defined]
-        if hasattr(self, "config"):
-            check_size(self.config, MAX_CONFIG_SIZE, "config")  # type: ignore[attr-defined]
-        if hasattr(self, "actions"):
-            check_size(self.actions, MAX_ACTIONS_SIZE, "actions")  # type: ignore[attr-defined]
+        # metadata last: the other checks write their size_activity into it
+        caps = json_caps(type(self))
+        for field_name in ("refs", "prefs", "config", "actions", "metadata"):
+            if hasattr(self, field_name) and caps.get(field_name) is not None:
+                check_size(getattr(self, field_name), caps[field_name], field_name)
+
+        super().save(*args, **kwargs)
+        self._capture_original_state()  # refresh snapshot
 
         if isinstance(self, KeywordsMixin):
             self.mark_keywords_dirty()

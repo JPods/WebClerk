@@ -14,6 +14,11 @@ class Setting(BaseModel):
 
     Use resolve_setting() to walk the chain and get the effective value.
     """
+    # config is as big as its users need — layouts and access lists grow with use
+    # (Bill, 2026-10-24); the 2 MB request limit is the only ceiling.
+    json_cap_overrides = {'config': None}
+    json_depth_overrides = {'config': 16}
+
     name = models.CharField(max_length=255, blank=True, null=True)
     # Scope: who does this setting apply to?
     scope = models.CharField(

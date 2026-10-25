@@ -11,15 +11,11 @@ console_logger = logging.getLogger('console')  # Console logger for debugging
 # Classes:
 #     WcapiView(View): Handles POST requests to save or update records for a specified table/model.
 # Functions:
-#     check_field_size(field_value, max_size, field_name):
-#         Checks if the serialized size of a field value exceeds the specified maximum size in bytes.
-#         Raises ValueError if the size is exceeded.
 #     find_model_for_table(model_name: str):
 #         Searches all installed Django apps to find and return the model class corresponding to the given table name.
 #         Returns None if no matching model is found.
 # Constants:
 #     ALLOWED_NESTED_KEYS: Dict specifying which nested keys are allowed for certain fields (e.g., 'refs', 'prefs', 'metadata').
-#     MAX_FIELD_SIZE: Maximum allowed size (in bytes) for any field value.
 # View Details:
 #     WcapiView.post(request):
 #         - Expects a JSON body with 'model_name' (singular) and optionally 'id' (for updates).
@@ -56,32 +52,6 @@ ALLOWED_NESTED_KEYS = {
 #    'some_special_table': custom_save_function,
     # ...
 #}
-# YYY 2026-02-15
-MAX_FIELD_SIZE = 15000  # bytes, example
-
-def check_field_size(field_value, max_size, field_name):
-    size = len(json.dumps(field_value).encode('utf-8'))
-    if size > max_size:
-        raise ValueError(f"{field_name} exceeds maximum size of {max_size} bytes")
-
-
-def deep_merge_dict(a: dict, b: dict, _depth: int = 0) -> dict:
-    """Recursively merge dict b into dict a (in place) and return a.
-    - protects dictionary structures
-    - If a[key] and b[key] are both dicts, merge recursively.
-    - Otherwise, b[key] overwrites a[key].
-    - Raises ValueError if depth exceeds 8 levels (prevents stack overflow).
-    """
-    if _depth >= 8:
-        raise ValueError("JSON merge depth exceeds 8 levels")
-    for k, v in (b or {}).items():
-        if isinstance(v, dict) and isinstance(a.get(k), dict):
-            deep_merge_dict(a[k], v, _depth + 1)
-        else:
-            a[k] = v
-    return a
-
-
 from common.json_path import get_nested_value, set_nested_value, delete_nested_value
 
 

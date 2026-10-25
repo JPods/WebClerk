@@ -43,6 +43,8 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import models, transaction
 from django.forms.models import model_to_dict
 
+from common.models import JsonTooLarge
+
 from apps.core.services import verbs
 from apps.core.services.behaviours import HookContext
 from apps.core.services.door import Actor, Refused, SaveResult, resolve_model
@@ -357,8 +359,8 @@ def _enumerated_edit(actor: Actor, obj, model_key: str, data: dict):
 # ── phase 3: assign and validate ──────────────────────────────────────
 
 def _assign(obj, data: dict, model_cls, model_key: str, norm_key: str,
-            is_update: bool) -> List[str]:
-    """Set the fields, validate the envelopes. Returns non-fatal size warnings."""
+            is_update: bool) -> None:
+    """Set the fields, validate the envelopes."""
     json_field_names = {f.name for f in obj._meta.get_fields()
                         if hasattr(f, 'attname') and isinstance(f, models.JSONField)}
     # M2M fields cannot be set by setattr — assign_fields uses .set() after the save.
@@ -381,6 +383,13 @@ def _assign(obj, data: dict, model_cls, model_key: str, norm_key: str,
         console_logger.warning("[SAVE] Unknown keys refused for %s: %s", model_key, details)
         raise Refused(400, 'unknown_field',
                       f"Not fields of {model_key}: " + '; '.join(details), details)
+
+    # A field that cannot be taken refuses the save. It was a warning once, and the save
+    # went on without it: a 59 KB layout returned success and stored nothing (wc3, 2026-10-24).
+    if assignment['field_size_errors']:
+        details = assignment['field_size_errors']
+        console_logger.warning("[SAVE] Fields refused for %s: %s", model_key, details)
+        raise Refused(400, 'field_refused', 'Not saved: ' + '; '.join(details), details)
 
     if assignment['field_value_errors']:
         details = [str(e) for e in assignment['field_value_errors']]
@@ -408,7 +417,6 @@ def _assign(obj, data: dict, model_cls, model_key: str, norm_key: str,
             raise Refused(400, 'validation_failed', 'Validation failed', errors)
 
     _normalize_contact_id(obj, data)
-    return assignment['field_size_errors'] or []
 
 
 def _normalize_contact_id(obj, data: dict) -> None:
@@ -526,13 +534,13 @@ def save_record(actor: Actor, data: dict, *, model_key: Optional[str] = None,
     if server_set:
         data = {k: v for k, v in data.items() if k not in server_set}
     with unit_of_work():
-        size_warnings, ctx = _write(actor, obj, model_cls, model_key, norm_key,
+        ctx = _write(actor, obj, model_cls, model_key, norm_key,
                                     data, is_update, server_set=server_set, new=new)
     # Derived work — a document's totals — happened once, on the way out of the unit, so
     # what is read back here is what the caller will be told.
     obj.refresh_from_db()
 
-    messages = list(size_warnings) + ctx.messages
+    messages = list(ctx.messages)
 
     try:
         from apps.core.services.record_serialize import NEVER_SERVED
@@ -629,7 +637,7 @@ def _write(actor: Actor, obj, model_cls, model_key: str, norm_key: str, data: di
         data.update(copy.deepcopy(server_set))
     _results_are_computed(model_key, data)
     snapshot = _snapshot(obj)
-    size_warnings = _assign(obj, data, model_cls, model_key, norm_key, is_update)
+    _assign(obj, data, model_cls, model_key, norm_key, is_update)
     _terms_are_named(obj, snapshot)
     _price_level_is_named(obj, snapshot)
     # After the payload, before the hooks: the hooks see the mark, and no payload sets it.
@@ -645,6 +653,10 @@ def _write(actor: Actor, obj, model_cls, model_key: str, norm_key: str, data: di
 
     try:
         obj.save()
+    except JsonTooLarge as e:
+        console_logger.warning("[SAVE] %s", e)
+        raise Refused(400, 'record_too_large', str(e),
+                      {'field': e.field, 'size': e.size, 'limit': e.cap})
     except DjangoValidationError as e:
         details = (list(e.message_dict.items()) if hasattr(e, 'message_dict')
                    else list(getattr(e, 'messages', [str(e)])))
@@ -678,7 +690,7 @@ def _write(actor: Actor, obj, model_cls, model_key: str, norm_key: str, data: di
     except Exception as e:  # noqa: BLE001
         console_logger.error("[SAVE] Error updating keywords: %s", e)
 
-    return size_warnings, ctx
+    return ctx
 
 
 def _results_are_computed(model_key: str, data: dict) -> None:
