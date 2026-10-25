@@ -72,7 +72,7 @@ function withoutEmpties(value: any): any {
 // Component
 // ---------------------------------------------------------------------------
 
-const UiDetail: React.FC<UiDetailProps> = ({
+const UiDetailView: React.FC<UiDetailProps> = ({
   modelName: propModelName,
   recordId: propRecordId,
   onClose,
@@ -559,6 +559,58 @@ const UiDetail: React.FC<UiDetailProps> = ({
         />
       )}
     </div>
+  );
+};
+
+/** What a convert command made: the target model, its id, and the lines it returns for
+ *  review (the user saves them — review before save, Bill 2026-09-27). Null for anything else. */
+export function convertedTarget(result: any): { model: string; id: number; lines: any[] | null } | null {
+  if (!result) return null;
+  for (const model of ['order', 'invoice', 'purchase', 'receipt', 'workorder']) {
+    const id = result[`${model}_id`];
+    if (id) return { model, id: Number(id), lines: Array.isArray(result.lines) ? result.lines : null };
+  }
+  return null;
+}
+
+/**
+ * The transaction form, wherever it is hosted (DataBrowser, /<model>/:id, the flight
+ * simulator, a window). A workflow that converts this document opens what it made, with
+ * the lines for review, here — every host, one path. Before 2026-10-25 only the flight
+ * simulator did: elsewhere the lines were dropped and an empty purchase was left behind
+ * (order 1024-so → 1020-po, 1021-po). The host is told after, through onNavigate.
+ */
+const UiDetail: React.FC<UiDetailProps> = (props) => {
+  const params = useParams<{ model?: string; id?: string }>();
+  const hostModel = (props.modelName as string) || params.model || 'order';
+  const hostId = (props.recordId as number) || (params.id ? Number(params.id) : 0);
+  const [opened, setOpened] = useState<{ model: string; id: number; lines: any[] | null } | null>(null);
+
+  // The host moved to another record: show that one. (A host following our own jump
+  // through onNavigate lands on the record already opened, and keeps its lines.)
+  useEffect(() => {
+    setOpened((o) => (o && o.model === hostModel && o.id === hostId ? o : null));
+  }, [hostModel, hostId]);
+
+  const onWorkflowComplete = useCallback((result: any) => {
+    const target = convertedTarget(result);
+    if (target) {
+      setOpened(target);
+      (props.onNavigate as ((m: string, id: number) => void) | undefined)?.(target.model, target.id);
+    }
+    (props.onWorkflowComplete as ((r?: any) => void) | undefined)?.(result);
+  }, [props.onNavigate, props.onWorkflowComplete]);
+
+  if (!opened) return <UiDetailView {...props} onWorkflowComplete={onWorkflowComplete} />;
+  return (
+    <UiDetailView
+      key={`${opened.model}:${opened.id}`}
+      {...props}
+      modelName={opened.model}
+      recordId={opened.id}
+      initialLines={opened.lines}
+      onWorkflowComplete={onWorkflowComplete}
+    />
   );
 };
 

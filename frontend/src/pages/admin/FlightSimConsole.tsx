@@ -402,7 +402,6 @@ const FlightSimConsole: React.FC = () => {
   // Right panel
   const [rightModel, setRightModel] = useState<string | null>(null);
   const [rightRecordId, setRightRecordId] = useState<number>(0);
-  const [convertedLines, setConvertedLines] = useState<any[] | null>(null);
 
   const splitRef = useRef<HTMLDivElement>(null);
   const leftRef = useRef<HTMLDivElement>(null);
@@ -533,7 +532,6 @@ const FlightSimConsole: React.FC = () => {
   const startSimulation = async (sim: SimulationDef, resume = false, itemIda?: string) => {
     setActiveSim(sim);
     setLoading(true);
-    setConvertedLines(null);
     // Small margin so browser/server clock skew cannot hide the first new line.
     setSimSince(resume ? null : Date.now() - 5000);
     setRows([]);
@@ -688,7 +686,6 @@ const FlightSimConsole: React.FC = () => {
     if (!invoiceIda.trim()) return;
     setLoading(true);
     setActiveSim({ id: "audit", label: `Audit: Invoice ${invoiceIda}`, description: "Transaction audit view", needsItem: false, firstModel: "invoice" });
-    setConvertedLines(null);
     try {
       const res = await manageAction("get_flight_by_invoice", { invoice_ida: invoiceIda.trim() });
       const data = res?.data?.data ?? res?.data ?? res;
@@ -815,7 +812,7 @@ const FlightSimConsole: React.FC = () => {
                 <button
                   key={`${d.model}-${d.record_id}`}
                   className={`fs-btn fs-doc-chip${active ? " is-active" : ""}`}
-                  onClick={() => { setRightModel(d.model); setRightRecordId(d.record_id); setConvertedLines(null); }}
+                  onClick={() => { setRightModel(d.model); setRightRecordId(d.record_id); }}
                   onDoubleClick={() => window.open(`/${d.model}/${d.record_id}`, "_blank")}
                   title={`Open ${d.model} ${d.ida} here to add more records · double-click for a new window`}
                 >
@@ -1053,33 +1050,11 @@ const FlightSimConsole: React.FC = () => {
               <UiDetail
                 modelName={rightModel}
                 recordId={rightRecordId}
-                initialLines={convertedLines}
-                onNavigate={(model: string, id: number) => { setRightModel(model); setRightRecordId(id); setConvertedLines(null); refreshArray(); }}
-                onAfterSave={() => { setConvertedLines(null); refreshArray(); }}
-                onWorkflowComplete={(result: any) => {
-                  refreshArray();
-                  if (!result) return;
-                  // Switch right panel to the created record
-                  // Pass converted lines for user review before save
-                  const lines = result.lines || null;
-                  if (result.order_id) {
-                    setRightModel("order");
-                    setRightRecordId(result.order_id);
-                    setConvertedLines(lines);
-                  } else if (result.invoice_id) {
-                    setRightModel("invoice");
-                    setRightRecordId(result.invoice_id);
-                    setConvertedLines(lines);
-                  } else if (result.purchase_id) {
-                    setRightModel("purchase");
-                    setRightRecordId(result.purchase_id);
-                    setConvertedLines(lines);
-                  } else if (result.cash_id) {
-                    setRightModel("cash");
-                    setRightRecordId(result.cash_id);
-                    setConvertedLines(null);
-                  }
-                }}
+                onNavigate={(model: string, id: number) => { setRightModel(model); setRightRecordId(id); refreshArray(); }}
+                onAfterSave={() => refreshArray()}
+                // The form opens what a workflow converts to, with its lines for review, and
+                // tells us through onNavigate; here we only refresh the quantities.
+                onWorkflowComplete={() => refreshArray()}
               />
             </Suspense>
           ) : (
