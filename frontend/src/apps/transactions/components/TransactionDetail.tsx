@@ -31,6 +31,7 @@ import JsonSectionRenderer from './detail/JsonSectionRenderer';
 import '@/components/cards';
 import { DetailToolbar } from '@/components/common/DetailToolbar';
 import TransactionFlowIndicator from './detail/TransactionFlowIndicator';
+import RelatedTransactionsPanel from './detail/RelatedTransactionsPanel';
 import DesignMode from './detail/DesignMode';
 import AddCashDialog from './AddCashDialog';
 import { useNavigate } from 'react-router-dom';
@@ -489,15 +490,18 @@ const UiDetailView: React.FC<UiDetailProps> = ({
               );
             case 'line_card':
               return (
-                <LineCardRenderer
-                  key={idx}
-                  section={section}
-                  data={currentData}
-                  isEditing={isEditing}
-                  isLocked={editTier === 'closed'}
-                  onLinesChange={handleLinesChange}
-                  onEnterCash={['order', 'invoice', 'receipt'].includes(modelName) ? () => setShowAddCash(true) : undefined}
-                />
+                <React.Fragment key={idx}>
+                  <LineCardRenderer
+                    section={section}
+                    data={currentData}
+                    isEditing={isEditing}
+                    isLocked={editTier === 'closed'}
+                    onLinesChange={handleLinesChange}
+                    onEnterCash={['order', 'invoice', 'receipt'].includes(modelName) ? () => setShowAddCash(true) : undefined}
+                  />
+                  {/* The documents around this one, under its lines (Bill, 2026-10-25) */}
+                  <RelatedTransactionsPanel modelName={modelName} record={data} onNavigate={rest.onNavigate as any} />
+                </React.Fragment>
               );
             case 'tabs':
               return (
