@@ -30,8 +30,7 @@ export interface ItemSearchResult {
   unit_cost?: number | string;
   cost?: number | string | Record<string, unknown>;
   costA?: number | string;
-  qty_on_hand?: number | string;
-  qtyOnHand?: number | string;
+  quantity?: { on_hand?: number | string; available?: number | string; [k: string]: unknown };
   unit_of_measure?: string;
   unitOfMeasure?: string;
   unit_measure?: string;
@@ -68,16 +67,15 @@ export function resolveItemKey(item: ItemSearchResult): string {
   return id ? `item-${id}` : "";
 }
 
+/** The item's own counts (Item.quantity: on_hand, available, on_so, ...). The flat
+ *  qty_on_hand this read until 2026-10-25 no longer exists, so every item showed 0. */
 export function resolveQtyOnHand(item: ItemSearchResult): number {
-  const candidates = [item.qty_on_hand, item.qtyOnHand];
-  for (const candidate of candidates) {
-    if (typeof candidate === "number" && candidate >= 0) return candidate;
-    if (typeof candidate === "string") {
-      const parsed = Number.parseFloat(candidate);
-      if (!Number.isNaN(parsed) && parsed >= 0) return parsed;
-    }
-  }
-  return 0;
+  return Number(item.quantity?.on_hand) || 0;
+}
+
+/** What can still be promised: the item's available count, the server's arithmetic. */
+export function resolveQtyAvailable(item: ItemSearchResult): number {
+  return Number(item.quantity?.available) || 0;
 }
 
 interface TransactionItemSearchProps {
