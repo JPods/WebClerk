@@ -217,8 +217,8 @@ if _force_pg or (not _explicit_sqlite and not _running_pytest and not _force_pg)
         LOCAL_SYNC_ENABLED = False
         WRITE_THROUGH_REMOTE_ALIAS = '_wt_remote'
         WRITE_THROUGH_TIMEOUT = int(config('WRITE_THROUGH_TIMEOUT', default='30'))
-        print(f'\n[webClerk3] Data Set: {config("DATA_SET_KIND", default="live")} - {config("DATA_SET_NAME", default="Unknown")}')
-        print(f'[webClerk3] Database: WRITE-THROUGH  read=LOCAL@{_local_db_cfg["HOST"]}  write=REMOTE@{_remote_db_cfg["HOST"]}\n')
+        print(f'\n[webClerk3] Data Set: {config("DATA_SET_KIND", default="live")} - {config("DATA_SET_NAME", default="Unknown")}', file=sys.stderr)
+        print(f'[webClerk3] Database: WRITE-THROUGH  read=LOCAL@{_local_db_cfg["HOST"]}  write=REMOTE@{_remote_db_cfg["HOST"]}\n', file=sys.stderr)
     elif _db_mode == 'local-sync':
         # Local-sync: saves to local (fast), Celery pushes to remote async.
         # 'default' = local (all reads & writes), '_wt_remote' = remote (async target)
@@ -229,8 +229,8 @@ if _force_pg or (not _explicit_sqlite and not _running_pytest and not _force_pg)
         WRITE_THROUGH_ENABLED = False
         LOCAL_SYNC_ENABLED = True
         WRITE_THROUGH_REMOTE_ALIAS = '_wt_remote'
-        print(f'\n[webClerk3] Data Set: {config("DATA_SET_KIND", default="live")} - {config("DATA_SET_NAME", default="Unknown")}')
-        print(f'[webClerk3] Database: LOCAL-SYNC  save=LOCAL@{_local_db_cfg["HOST"]}  async→REMOTE@{_remote_db_cfg["HOST"]}\n')
+        print(f'\n[webClerk3] Data Set: {config("DATA_SET_KIND", default="live")} - {config("DATA_SET_NAME", default="Unknown")}', file=sys.stderr)
+        print(f'[webClerk3] Database: LOCAL-SYNC  save=LOCAL@{_local_db_cfg["HOST"]}  async→REMOTE@{_remote_db_cfg["HOST"]}\n', file=sys.stderr)
     elif _db_mode == 'local':
         # Local database for debugging
         DATABASES = {
@@ -238,8 +238,8 @@ if _force_pg or (not _explicit_sqlite and not _running_pytest and not _force_pg)
         }
         WRITE_THROUGH_ENABLED = False
         LOCAL_SYNC_ENABLED = False
-        print(f'\n[webClerk3] Data Set: {config("DATA_SET_KIND", default="live")} - {config("DATA_SET_NAME", default="Unknown")}')
-        print(f'[webClerk3] Database: LOCAL @ {DATABASES["default"]["HOST"]}:{DATABASES["default"]["PORT"]}/{DATABASES["default"]["NAME"]}\n')
+        print(f'\n[webClerk3] Data Set: {config("DATA_SET_KIND", default="live")} - {config("DATA_SET_NAME", default="Unknown")}', file=sys.stderr)
+        print(f'[webClerk3] Database: LOCAL @ {DATABASES["default"]["HOST"]}:{DATABASES["default"]["PORT"]}/{DATABASES["default"]["NAME"]}\n', file=sys.stderr)
     else:
         # Remote database for team collaboration (default)
         DATABASES = {
@@ -247,8 +247,8 @@ if _force_pg or (not _explicit_sqlite and not _running_pytest and not _force_pg)
         }
         WRITE_THROUGH_ENABLED = False
         LOCAL_SYNC_ENABLED = False
-        print(f'\n[webClerk3] Data Set: {config("DATA_SET_KIND", default="live")} - {config("DATA_SET_NAME", default="Unknown")}')
-        print(f'[webClerk3] Database: REMOTE @ {DATABASES["default"]["HOST"]}:{DATABASES["default"]["PORT"]}/{DATABASES["default"]["NAME"]}\n')
+        print(f'\n[webClerk3] Data Set: {config("DATA_SET_KIND", default="live")} - {config("DATA_SET_NAME", default="Unknown")}', file=sys.stderr)
+        print(f'[webClerk3] Database: REMOTE @ {DATABASES["default"]["HOST"]}:{DATABASES["default"]["PORT"]}/{DATABASES["default"]["NAME"]}\n', file=sys.stderr)
 else:
     # Fast in-memory database for tests
     DATABASES = {
