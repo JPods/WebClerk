@@ -46,6 +46,10 @@ class TransactionsConfig(AppConfig):
         from .models import hard_delete
         hard_delete.connect()
 
+        # A customer or vendor with business still open refuses deletion (Bill, 2026-10-25).
+        from .services import org_delete_guard
+        org_delete_guard.connect()
+
         # The cash door: a delete reverses its applications, and a cash Pending is
         # permanent (services/cash/cash_door.py).
         from .services.cash import cash_door
