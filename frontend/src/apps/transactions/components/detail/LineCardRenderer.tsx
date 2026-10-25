@@ -11,7 +11,7 @@ import MarginPanel from '../panels/MarginPanel';
 import SpecPanel from '../panels/SpecPanel';
 import XRefPanel from '../panels/XRefPanel';
 import CommissionPanel from '../panels/CommissionPanel';
-import { TransactionItemSearch, resolveItemCode, resolveItemDescription, resolveQtyOnHand } from '../TransactionItemSearch';
+import { TransactionItemSearch, resolveItemCode, resolveItemDescription, resolveQtyAvailable } from '../TransactionItemSearch';
 import { priceLines } from '../../services/linePricing';
 import type { ItemSearchResult } from '../TransactionItemSearch';
 import { getNextLineNumber } from '../../utils/lineHelpers';
@@ -89,10 +89,8 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
     }
 
     // 3. Available qty alert — warn if ordering more than available
-    const onHand = resolveQtyOnHand(item);
-    const onOrder = Number((item as any).qty_on_sales_order || (item as any).qtyOnSalesOrder || 0);
-    const available = onHand - onOrder;
-    if (available >= 0 && effectiveQty > available) {
+    const available = resolveQtyAvailable(item);
+    if (effectiveQty > available) {
       dispatch(showToast({ message: `${itemCode}: ordering ${effectiveQty} but only ${available} available`, type: 'info' }));
     }
 
@@ -124,13 +122,17 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
       dispatch(showToast({ message: `${itemCode} has linked items — check XR panel`, type: 'info' }));
     }
 
-    // 7. Commission — from item commission rate
-    const commRate = Number((item as any).commission_rate || (item as any).commissionRate || 0);
+    // Serial tracking, the ship-on date and commission are not stored on the line: each is
+    // worked out from the item, the need date and the reps (the server computes commission
+    // on save). Keys the line's schema does not name refuse the save (wc3, 2026-10-25).
+    if (isSerialized && trackSerials) {
+      dispatch(showToast({ message: `${itemCode} is serialized — enter serial numbers when it ships`, type: 'info' }));
+    }
+    if (shipOnDate) {
+      dispatch(showToast({ message: `${itemCode}: ship on ${shipOnDate} to meet the need date`, type: 'info' }));
+    }
 
-    const lineConfig: any = {};
-    if (isSerialized && trackSerials) lineConfig.serial_tracking = true;
-    if (shipOnDate) lineConfig.ship_on_date = shipOnDate;
-
+    const lineComment = (item as any).li_comment || (item as any).liComment || '';
     const newLine: any = {
       id: -Date.now(),
       line_number: getNextLineNumber(lines),
@@ -144,15 +146,13 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
         ida_item: (item as any).ida || '',
         description,
         unit_measure: item.unit_of_measure || item.unitOfMeasure || item.unit_measure || 'EA',
-        is_serialized: isSerialized,
       },
       quantity: { active: effectiveQty, remaining: effectiveQty, staged: effectiveQty },
       price: { unit: unitPrice, discount_percent: 0 },
       cost: { unit: unitCost },
       totals: { amount: unitPrice * effectiveQty, cost: unitCost * effectiveQty },
-      commission: commRate > 0 ? { rate: commRate, amount: unitPrice * effectiveQty * commRate / 100 } : {},
-      comments: { process: (item as any).li_comment || (item as any).liComment || '' },
-      config: lineConfig,
+      // The item's standing line comment: comments.<channel> is a list of messages.
+      ...(lineComment ? { comments: { process: [{ mgs: lineComment }] } } : {}),
       _dirty: true,
     };
 

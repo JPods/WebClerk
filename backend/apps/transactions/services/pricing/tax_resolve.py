@@ -330,8 +330,6 @@ def apply_tax_to_finance(
         finance['sales_tax_rate'] = tj['sales_rate']
         finance['cost_tax_rate'] = tj['cost_rate']
         finance['tax_on_shipping_rate'] = tj['shipping_rate']
-        if tj.get('gl_account_payable'):
-            finance['tax_gl_account'] = tj['gl_account_payable']
         logger.info(
             "Tax applied: %s (%.4f%%) zip=%s state=%s [source=%s]",
             tj['name'], tj['sales_rate'], zip_code,

@@ -186,13 +186,12 @@ _CODE_FIELDS = (
     ('accounts', 'TaxJurisdiction', ('gl_account_payable',)),
 )
 # Where it sits somewhere inside a JSON envelope: an item's gls, an org's gl_accounts,
-# the company's gl_defaults and commission accounts, cash methods, an invoice's
-# finance.tax_gl_account.
+# the company's gl_defaults and commission accounts, cash methods. A document's tax
+# account is its jurisdiction's, read at posting — not stored on the document.
 _JSON_FIELDS = (
     ('products', 'Item', 'gls'),
     ('orgs', 'OrgBase', 'gl_accounts'),
     ('core', 'Setting', 'config'),
-    ('transactions', 'Invoice', 'finance'),
 )
 
 

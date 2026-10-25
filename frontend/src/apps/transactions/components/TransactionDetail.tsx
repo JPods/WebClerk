@@ -13,7 +13,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import type { RootState } from '@/store';
 import { useWindowManager } from '@/context/WindowManagerContext';
 import { useDetailLayout } from '@/hooks/useDetailLayout';
-import { applyCustomerDefaults } from '@/apps/transactions/utils/applyCustomerDefaults';
+import { applyCustomerDefaults, DISPLAY_ONLY_KEYS } from '@/apps/transactions/utils/applyCustomerDefaults';
+import { changedFields } from '@/utils/changedFields';
 import { getNextLineNumber } from '../utils/lineHelpers';
 import { getActiveLines, getRemovedLines, isPersistedLine } from '../services/lineItemService';
 import type { TransactionLine } from '../types/transactionTypes';
@@ -44,6 +45,22 @@ interface UiDetailProps {
   /** When true, rendered inside DataBrowser — hide toolbar (DB has its own) */
   inline?: boolean;
   [key: string]: unknown;  // accept extra props from DataBrowser
+}
+
+/** A new line without the empty envelopes it was built with: `{}`, `[]` and `''` say
+ *  nothing about a line that does not exist yet, and each is a path to refuse. */
+function withoutEmpties(value: any): any {
+  if (Array.isArray(value)) return value.map(withoutEmpties);
+  if (value === null || typeof value !== 'object') return value;
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(value)) {
+    const kept = withoutEmpties(v);
+    if (kept === '' || kept === null || kept === undefined) continue;
+    if (Array.isArray(kept) && kept.length === 0) continue;
+    if (typeof kept === 'object' && !Array.isArray(kept) && Object.keys(kept).length === 0) continue;
+    out[k] = kept;
+  }
+  return out;
 }
 
 // ---------------------------------------------------------------------------
@@ -99,21 +116,24 @@ const UiDetail: React.FC<UiDetailProps> = ({
       const response = await getRecord(modelName, recordId);
       const record = response?.record || response;
 
-      // Fetch customer config if customer_id exists
+      // Fetch customer config if customer_id exists. A price level or terms taken from
+      // the customer go on the edit copy only: on both, the save saw no change and never
+      // stored them, so the screen showed wholesale while the record held retail.
       const custId = record?.customer_id || record?.customer;
+      const fills: Record<string, unknown> = {};
       if (custId) {
         try {
           const custResp = await getRecord('customer', custId);
           const cust = custResp?.record || custResp;
           if (cust?.config) record.customer_config = cust.config;
           record.customer_company = cust?.company || cust?.display_name || cust?.name || '';
-          if (!record.price_level && cust?.price_level) record.price_level = cust.price_level;
-          if (!record.terms && cust?.terms) record.terms = cust.terms;
+          if (!record.price_level && cust?.price_level) fills.price_level = cust.price_level;
+          if (!record.terms && cust?.terms) fills.terms = cust.terms;
         } catch { /* customer not found */ }
       }
 
       setData(record);
-      setEditData(record);
+      setEditData({ ...record, ...fills });
     } catch {
       dispatch(showToast({ message: `Failed to load ${modelName}`, type: 'error' }));
     } finally {
@@ -205,7 +225,7 @@ const UiDetail: React.FC<UiDetailProps> = ({
           });
           const isStaff = authUser?.is_staff || authUser?.is_superuser;
           const repMsg = (defaults.has_reps && isStaff) ? ' (commission will populate on save)' : '';
-          dispatch(showToast({ message: `Customer defaults applied: ${defaults.company}${repMsg}`, type: 'success' }));
+          dispatch(showToast({ message: `Customer defaults applied: ${defaults.addresses.bill_to.company}${repMsg}`, type: 'success' }));
         }).catch(() => {
           dispatch(showToast({ message: 'Could not load customer defaults', type: 'error' }));
         });
@@ -252,15 +272,26 @@ const UiDetail: React.FC<UiDetailProps> = ({
         .filter(isPersistedLine)
         .map((l: TransactionLine) => ({ ...l, _delete: true }));
       const keptLines = getActiveLines(allLines);
-      const payload = { ...editData, lines: [...keptLines, ...deletions] };
-
       const dirtyLines = keptLines.filter((l: any) => l._dirty || l._new);
+
+      // Only what changed goes: the header fields that differ from the record as loaded,
+      // and the lines the person touched. The door accepts the fields the role's
+      // enumeration names and refuses the rest, so echoing the whole record back refused
+      // every save with lines from 2026-09-20 to 2026-10-25 (wc3).
+      const { lines: _lines, ...editedHeader } = editData;
+      for (const k of DISPLAY_ONLY_KEYS) delete (editedHeader as any)[k];
+      const loadedById = new Map<number, any>((data?.lines || []).map((l: any) => [l.id, l]));
+      const linesToSend = dirtyLines.map((l: any) => isPersistedLine(l)
+        ? { ...changedFields(loadedById.get(l.id), l), _dirty: true }
+        : withoutEmpties(l));
+      const payload = { ...changedFields(data, editedHeader), lines: [...linesToSend, ...deletions] };
+
       // A removal on its own still takes the lines path — saveRecord would
       // not carry the `_delete` markers to the lines loop.
       const hasLinesToSave = dirtyLines.length > 0 || deletions.length > 0;
       console.log('[TransactionDetail] Saving:', { modelName, id: editData.id, hasLinesToSave, totalLines: keptLines.length, dirtyLines: dirtyLines.length, deleteLines: deletions.length });
       if (hasLinesToSave) { await saveTransactionWithLines(modelName, payload); }
-      else { await saveRecord(modelName, payload); }
+      else { const { lines: _none, ...header } = payload; await saveRecord(modelName, header); }
       dispatch(showToast({ message: `${modelName} saved`, type: 'success' }));
       setIsEditing(false);
       fetchData();

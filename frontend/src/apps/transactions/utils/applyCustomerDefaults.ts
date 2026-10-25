@@ -2,19 +2,21 @@
 /**
  * applyCustomerDefaults — fetch customer record and return fields to merge into transaction.
  *
- * PJPV: writes to JSON aspect envelopes (addresses, emails, phones),
- * not scalar columns. Scalar company/attention/email are also set as
- * search indexes but the aspects are the source of truth.
+ * PJPV: writes to JSON aspect envelopes (addresses, emails, phones). The company
+ * aspect is the server's: the save fills it from the customer.
+ * Only fields of the document go in: the door refuses any path the role's
+ * enumeration does not name, and a stray scalar refused every save with lines
+ * from 2026-09-20 to 2026-10-25 (email, phone, address_full, tax were not fields).
+ * Display-only values (customer_config, has_reps) are named in DISPLAY_ONLY_KEYS.
  */
 import { getRecord, manageAction } from '@/api/wcapi';
 
+/** Keys the screen shows but the document does not store; never sent on save. */
+export const DISPLAY_ONLY_KEYS = ['customer_config', 'customer_company', 'has_reps'] as const;
+
 export interface CustomerDefaults {
   customer_id: number;
-  company: string;
   attention: string;
-  email: string;
-  phone: string;
-  address_full: string;
   price_level: string;
   terms: string;
   ship_via: string;
@@ -32,7 +34,6 @@ export interface CustomerDefaults {
     ship_to: { number: string };
   };
   finance?: Record<string, any>;
-  tax?: Record<string, any>;
   customer_config?: Record<string, any>;
   has_reps?: boolean;
 }
@@ -79,12 +80,7 @@ export async function applyCustomerDefaults(
 
   const defaults: CustomerDefaults = {
     customer_id: customerId,
-    company,
-    // Scalar indexes (for search — not source of truth)
     attention: billAttn,
-    email: billEmail,
-    phone: billPhone,
-    address_full: billAddr,
     price_level: cust.price_level || '',
     terms: cust.terms || '',
     ship_via: cust.ship_via || config.ship_via || '',
@@ -113,11 +109,6 @@ export async function applyCustomerDefaults(
       sales_tax_name: 'Exempt',
       sales_tax_id: 0,
     };
-    defaults.tax = {
-      sales_rate: 0,
-      sales: 0,
-      exempt_code: taxExemptCode,
-    };
   } else {
     // One lookup for every case (backend tax_resolve): the customer's own
     // jurisdiction, else the ship-to ZIP, else the company default jurisdiction.
@@ -133,12 +124,8 @@ export async function applyCustomerDefaults(
           sales_tax_rate: tj.sales_rate || 0,
           sales_tax_name: tj.tax_name || tj.name || '',
           sales_tax_id: tj.id || 0,
-          tax_gl_account: tj.gl_account_payable || '',
-        };
-        defaults.tax = {
-          sales_rate: tj.sales_rate || 0,
-          cost_rate: tj.cost_rate || 0,
-          shipping: tj.shipping_rate || 0,
+          // The payable account is the jurisdiction's, read at posting (journalize).
+          cost_tax_rate: tj.cost_rate || 0,
         };
       }
     } catch { /* lookup failed — user sets rate manually */ }
@@ -184,15 +171,12 @@ export async function applyCustomerDefaults(
           defaults.addresses.bill_to.attention = ctAttn;
         }
         if (ctEmail) {
-          defaults.email = ctEmail;
           defaults.emails.bill_to.email = ctEmail;
         }
         if (ctPhone) {
-          defaults.phone = ctPhone;
           defaults.phones.bill_to.number = ctPhone;
         }
         if (ctAddr) {
-          defaults.address_full = ctAddr;
           defaults.addresses.bill_to.full_address = ctAddr;
         }
       }

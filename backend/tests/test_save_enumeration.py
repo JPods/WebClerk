@@ -254,3 +254,46 @@ def test_the_portal_fields_are_named_in_the_setting_not_in_a_view():
     assert 'notes' not in PORTAL_ORDER_FIELDS
     assert 'comments' not in PORTAL_ORDER_FIELDS
     assert 'totals.total' not in PORTAL_ORDER_FIELDS
+
+
+#: A quote as the transaction screen saves it after a customer pick and one new line
+#: (TransactionDetail.handleSave: the changed header fields, the touched lines). Checked
+#: against the real quote Setting, not a fixture: the screen echoed the whole record and
+#: every save with lines was refused from 2026-09-20 to 2026-10-25 while the tests, which
+#: post enumerated payloads, passed (wc3). Change this when the screen's save changes.
+SCREEN_QUOTE_SAVE = {
+    'id': 291, 'version': 5,
+    'customer_id': 5596, 'attention': 'Skyler Carter', 'price_level': 'wholesale',
+    'terms': 'N30', 'ship_via': 'USPS',
+    'addresses': {'bill_to': {'contact_id': 8717, 'company': 'Pinnacle Systems 39',
+                              'attention': 'Skyler Carter', 'full_address': '789 Industrial Blvd',
+                              'instructions': ''},
+                  'ship_to': {'contact_id': 7538, 'company': 'Pinnacle Systems 39',
+                              'attention': 'Sam Drake', 'full_address': '101 First Ave',
+                              'instructions': ''}},
+    'emails': {'bill_to': {'email': 'casey@valley.fake'}, 'ship_to': {'email': 'sage@lake.fake'}},
+    'phones': {'bill_to': {'number': '5551151146'}, 'ship_to': {'number': '5556964538'}},
+    'finance': {'sales_tax_rate': 10, 'sales_tax_name': 'Oklahoma', 'sales_tax_id': 2,
+                'cost_tax_rate': 0},
+}
+SCREEN_NEW_LINE = {
+    'id': -1792934310603, 'line_number': 10, 'price_level': 'wholesale', 'is_active': True,
+    'item': {'item_id': 625, 'ida_item': 'AF-2011', 'description': '5V boost converter',
+             'unit_measure': 'EA'},
+    'quantity': {'active': 15, 'remaining': 15, 'staged': 15},
+    'price': {'unit': 12.71, 'discount_percent': 0}, 'cost': {'unit': 8.97},
+    'totals': {'amount': 190.65, 'cost': 134.55},
+    'comments': {'process': [{'mgs': 'standing line comment'}]},
+    '_dirty': True,
+}
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('role', ['superuser', 'admin'])
+def test_the_screens_quote_save_is_named_by_the_real_quote_setting(django_user_model, role):
+    access.clear_cache()
+    actor = _login(django_user_model, f'{role}-screen@example.fake', role)
+    assert (access.block_for(actor, 'quote') or {}).get('edit'), f'{role} has no quote edit list'
+
+    assert _not_enumerated(actor, 'quote', SCREEN_QUOTE_SAVE) == []
+    assert _not_enumerated(actor, 'quote', SCREEN_NEW_LINE, prefix='lines.') == []

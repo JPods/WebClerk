@@ -222,6 +222,15 @@ def _get_item_gls(item_id: int) -> dict:
         return {}
 
 
+def _jurisdiction_payable(jurisdiction_id) -> str:
+    """The sales tax payable account of a tax jurisdiction, or '' when it names none."""
+    if not jurisdiction_id:
+        return ''
+    TaxJurisdiction = dj_apps.get_model('accounts', 'TaxJurisdiction')
+    return (TaxJurisdiction.objects.filter(pk=jurisdiction_id)
+            .values_list('gl_account_payable', flat=True).first() or '')
+
+
 def _item_ida(item_id) -> str:
     """The item's own reference, for a journal ida that names what was adjusted or built."""
     Item = dj_apps.get_model('products', 'Item')
@@ -480,12 +489,15 @@ def journalize_invoice(invoice_id: int, ida_prefix: str = '') -> dict:
     ar_total = _amt('total')
     if ar_total:
         _add(ar_account, 'debit', ar_total, 'accounts_receivable')
-    # Tax posts to the jurisdiction's payable account when it names one.
+    # Tax posts to the jurisdiction's payable account when it names one. The account is
+    # read from the jurisdiction the invoice names, never copied onto the invoice: one
+    # source, and an account renamed in the chart reaches every invoice (wc3, 2026-10-25).
     finance = invoice.finance if isinstance(getattr(invoice, 'finance', None), dict) else {}
-    tax_account = finance.get('tax_gl_account')
+    tax_account = _jurisdiction_payable(finance.get('sales_tax_id'))
     if tax_account:
         from apps.accounts.services.chart import require_account
-        require_account(tax_account, used_by=f'invoice {invoice.ida} finance.tax_gl_account')
+        require_account(tax_account, used_by=f'invoice {invoice.ida} tax jurisdiction '
+                                             f'{finance.get("sales_tax_id")}')
     for key, role, purpose in (('tax', 'sales_tax_payable', 'sales_tax'),
                                ('shipping', 'shipping_revenue', 'shipping'),
                                ('finance_charge', 'finance_charge_income', 'finance_charge'),

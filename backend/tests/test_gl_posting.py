@@ -128,3 +128,34 @@ class TestPostStagedGlEntries:
         for entry in entries:
             assert entry.type == 'general'
             assert entry.source == 'automation'
+
+
+@pytest.mark.django_db
+@pytest.mark.usefixtures("chart_of_accounts")
+def test_tax_posts_to_the_account_its_jurisdiction_names():
+    """The tax payable account is read from the jurisdiction the invoice names, never from
+    a copy on the invoice (wc3, 2026-10-25): an account renamed in the chart reaches every
+    invoice, and the screen has no account to send."""
+    from apps.accounts.models import GlJournal
+    from apps.accounts.models.tax_jurisdiction import TaxJurisdiction
+    from apps.accounts.services.chart import role_account
+    from apps.accounts.services.ledger_balance import post_staged_gl_entries
+    from apps.transactions.models import InvoiceLine
+
+    own_account = role_account('other_income')        # any account the chart holds
+    tj = TaxJurisdiction.objects.create(tax_name='Testland', tax_rate_sales=10.0,
+                                        gl_account_payable=own_account, is_active=True)
+    invoice = InvoiceFactory()
+    invoice.finance = {'sales_tax_id': tj.pk, 'sales_tax_rate': 10.0}
+    invoice.save()
+    InvoiceLine.objects.create(invoice=invoice, quantity={'active': 1},
+                               price={'unit': 100.0, 'precision': 2}, cost={'unit': 0})
+    invoice.refresh_from_db()
+    assert float((invoice.totals or {}).get('tax') or 0) > 0, invoice.totals
+
+    post_staged_gl_entries(invoice)
+
+    tax = GlJournal.objects.get(source_id=invoice.pk, source_model='invoice', account=own_account)
+    assert tax.credit == float(invoice.totals['tax'])
+    assert not GlJournal.objects.filter(source_id=invoice.pk, source_model='invoice',
+                                        account=role_account('sales_tax_payable')).exists()
