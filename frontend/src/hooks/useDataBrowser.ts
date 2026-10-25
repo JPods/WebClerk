@@ -1007,12 +1007,10 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
               ops['config.layout.list.default.columns'] = { mode: 'update', value: listSpecs };
             }
           }
-          // Upsert each named view individually
-          for (const view of (next.views || [])) {
-            if (view.name) {
-              ops['config.db.views'] = { mode: 'upsert', key: 'name', value: view };
-            }
-          }
+          // The named views, whole: `next` holds the full list. One upsert per view wrote
+          // every view to the same key, so only the last was saved — and a removed view
+          // was never removed (wc3, 2026-10-24).
+          ops['config.db.views'] = { mode: 'update', value: (next.views || []).filter(v => v.name) };
           await saveRecord('setting', ops);
         } else {
           console.warn('[DB] No wc:model Setting found for', model, '— cannot save layout');

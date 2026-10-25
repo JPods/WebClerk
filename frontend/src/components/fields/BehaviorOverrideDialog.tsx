@@ -121,12 +121,12 @@ export default function BehaviorOverrideDialog({ open, onClose, onReload, model,
       const rec = (res?.results || [])[0];
       if (!rec) { setMessage('Setting not found'); setSaving(false); return; }
 
-      const config = { ...rec.config };
-      const behaviors = { ...(config.behaviors || {}) };
+      // Only config.behaviors is sent — as a whole, since a field name such as totals.cost
+      // cannot be a dot-path segment. The rest of the Setting is never written back (wc3, 2026-10-24).
+      const behaviors = { ...(rec.config?.behaviors || {}) };
       behaviors[fieldName] = newBehavior;
-      config.behaviors = behaviors;
 
-      await saveRecord('setting', { id: settingId, config });
+      await saveRecord('setting', { id: settingId, 'config.behaviors': { mode: 'update', value: behaviors } });
       setMessage('Saved — reload to see changes');
       setOverride(newBehavior);
       if (onReload) onReload();
@@ -147,12 +147,10 @@ export default function BehaviorOverrideDialog({ open, onClose, onReload, model,
       const rec = (res?.results || [])[0];
       if (!rec) { setMessage('Setting not found'); setSaving(false); return; }
 
-      const config = { ...rec.config };
-      const behaviors = { ...(config.behaviors || {}) };
+      const behaviors = { ...(rec.config?.behaviors || {}) };
       delete behaviors[fieldName];
-      config.behaviors = behaviors;
 
-      await saveRecord('setting', { id: settingId, config });
+      await saveRecord('setting', { id: settingId, 'config.behaviors': { mode: 'update', value: behaviors } });
       setMessage('Override removed — using computed behavior');
       setOverride({});
       if (onReload) onReload();

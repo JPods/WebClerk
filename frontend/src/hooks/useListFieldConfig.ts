@@ -18,7 +18,9 @@
  *   const fc = useListFieldConfig('panel:order:contacts', columns, { reportId: 42 });
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useDispatch } from 'react-redux';
 import { getRecords } from '@/api/wcapi';
+import { showToast } from '@/store/slices/toastSlice';
 
 /** Column shape compatible with legacy TableColumn */
 type TableColumn<T = any> = {
@@ -126,6 +128,7 @@ export function useListFieldConfig<T>(
   allColumns: TableColumn<T>[],
   options?: UseListFieldConfigOptions,
 ) {
+  const dispatch = useDispatch();
   const [visibleKeys, setVisibleKeys] = useState<string[] | null>(null);
   const [colWidths, setColWidths] = useState<Record<string, number>>({});
   const [savedLayouts, setSavedLayouts] = useState<SavedLayout[]>([]);
@@ -245,10 +248,7 @@ export function useListFieldConfig<T>(
       const setting = res?.results?.[0] ?? res?.records?.[0];
       if (!setting) return;
 
-      const config = { ...setting.config };
-      const layout = { ...config.layout };
-      const list = { ...layout.list };
-      const listDefault = { ...(list.default || {}) };
+      const listDefault = { ...(setting.config?.layout?.list?.default || {}) };
 
       if (keys || widths) {
         const existingCols: ListColumnSpec[] = listDefault.columns || [];
@@ -274,16 +274,18 @@ export function useListFieldConfig<T>(
       }
       if (layouts) listDefault.views = layouts;
 
-      list.default = listDefault;
-      layout.list = list;
-      config.layout = layout;
-
+      // Only the list default is sent. Writing the whole config back lost anything saved
+      // to the rest of the Setting since it was read (wc3, 2026-10-24).
       const { saveRecord } = await import('@/api/wcapi');
-      await saveRecord('setting', { id: setting.id, version: setting.version, config });
-    } catch (e) {
+      await saveRecord('setting', {
+        id: setting.id,
+        'config.layout.list.default': { mode: 'update', value: listDefault },
+      });
+    } catch (e: any) {
       console.error('Failed to save list config to Setting:', e);
+      dispatch(showToast({ message: `Column layout not saved: ${e?.message || e}`, type: 'error' }));
     }
-  }, [modelName, settingId]);
+  }, [modelName, settingId, dispatch]);
 
   // Update list fields — saves to localStorage
   const updateListFields = useCallback((keys: string[]) => {
