@@ -159,3 +159,21 @@ def test_no_model_setting_or_bundle_names_is_locked():
     root = Path(__file__).resolve().parent.parent
     for bundle in ('demo-bundle.json', 'init-bundle.json', 'settings-bundle.json'):
         assert '"is_locked"' not in (root / bundle).read_text(), bundle
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('model_key', ['invoice', 'receipt', 'cash'])
+def test_a_journalized_invoice_receipt_or_cash_cannot_be_deleted(django_user_model, model_key):
+    """Bill, 2026-10-25: once a receipt or invoice is journalized it cannot be deleted, or cash."""
+    from django.utils.crypto import get_random_string
+    from apps.core.services.delete import delete_record
+    from apps.core.services.door import Actor, Refused, resolve_model
+    actor = Actor(user=django_user_model.objects.create_superuser(
+        email='lock@example.com', password=get_random_string(20), name_first='L', name_last='U'))
+    model = resolve_model(model_key)[0]
+    record = model.objects.create(**({'amount': 10} if model_key == 'cash' else {}))
+    model.objects.filter(pk=record.pk).update(dt_journaled=1792900000000)
+    with pytest.raises(Refused) as caught:
+        delete_record(actor, model_key, record.pk)
+    assert caught.value.code == 'delete_refused' and 'journalized' in caught.value.message
+    assert model.objects.filter(pk=record.pk).exists()

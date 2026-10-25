@@ -57,7 +57,7 @@ export function MatchCandidatesPanel({
         const { getRecords } = await import('@/api/wcapi');
         const ids = candidates.map((c: any) => c.contact_id).filter(Boolean);
         if (ids.length === 0) { setCandidateRecords([]); return; }
-        const res = await getRecords(selectedModel, { filters: { id__in: ids } });
+        const res = await getRecords(selectedModel, { id__in: ids.join(',') });
         if (!cancelled) setCandidateRecords(res.results || []);
       } catch { if (!cancelled) setCandidateRecords([]); }
       finally { if (!cancelled) setLoading(false); }

@@ -249,9 +249,10 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
     (async () => {
       try {
         const { getRecords } = await import('@/api/wcapi');
+        // Filters go flat in the query string; a list is comma-separated (__in).
         const res = await getRecords('action', {
-          filters: { 'metadata__quality_type': 'sprint', status__in: ['open', 'in_progress'] },
-          fields: ['project_name'],
+          metadata__quality_type: 'sprint',
+          status__in: 'open,in_progress',
           limit: 100,
           order_by: 'project_name',
         });

@@ -82,3 +82,4 @@ def test_a_queryset_delete_is_stopped_too(actor):
 def test_an_org_with_nothing_open_deletes(actor):
     c = Customer.objects.create(company='Clean Co')
     assert delete_record(actor, 'customer', c.pk).deleted
+

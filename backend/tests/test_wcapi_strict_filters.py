@@ -33,6 +33,21 @@ class WcapiFilterRejectsUnknownTests(TestCase):
         self.assertEqual(resp.status_code, 400)
         self.assertIn("Did you mean 'email'", resp.json().get('message', ''))
 
+    def test_a_nested_filters_object_is_named_once_and_coached_to_flat(self):
+        """axios serialized {filters: {...}, fields: [...]} as filters[x]=…&fields[]=… — four
+        keys reported as '<invalid>' with one hint repeated four times (2026-10-25)."""
+        resp = wcapi_get(self.client, {'model_name': 'action',
+                                       'filters[metadata__quality_type]': 'sprint',
+                                       'filters[status__in][0]': 'open',
+                                       'filters[status__in][1]': 'in_progress',
+                                       'fields[]': 'project_name'})
+        self.assertEqual(resp.status_code, 400)
+        message = resp.json().get('message', '')
+        self.assertNotIn('<invalid>', message)
+        self.assertIn("'filters[…]'", message)
+        self.assertIn('?status__in=open,in_progress', message)
+        self.assertEqual(message.count('Send filters flat'), 1)
+
     def test_valid_model_name_returns_success(self):
         """A valid model_name returns a success envelope."""
         resp = wcapi_get(self.client, {'model_name': 'contact'})

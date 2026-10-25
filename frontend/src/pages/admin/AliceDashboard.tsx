@@ -124,7 +124,7 @@ export default function AliceDashboard() {
         setActions(aRes?.results || []);
 
         // Training documents
-        const tRes = await getRecords('document', { filters: { target_model: 'system', status: 'published' }, ordering: 'name', limit: 20 }) as any;
+        const tRes = await getRecords('document', { target_model: 'system', status: 'published', ordering: 'name', limit: 20 }) as any;
         setTrainingDocs(tRes?.results || []);
 
         // LLM config

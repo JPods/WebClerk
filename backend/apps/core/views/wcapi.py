@@ -67,14 +67,29 @@ class UnknownFilterError(ValueError):
 
     # Dots are echoed too: 'totals.balance' is an honest mistake worth naming.
     SAFE_NAME = re.compile(r'^[A-Za-z0-9_.]{1,40}$')
+    NESTED = re.compile(r'^([A-Za-z_]{1,20})\[')
 
     def __init__(self, model_key: str, keys, field_names=None, allowed_lookups=None,
                  filterable=None):
-        # Never echo a caller-supplied name that is not a plain identifier.
-        self.keys = [k if self.SAFE_NAME.match(str(k)) else '<invalid>' for k in keys]
+        # Never echo a caller-supplied name that is not a plain identifier; a nested key is
+        # echoed by its identifier prefix only (filters[…]).
+        def shown(k):
+            if self.SAFE_NAME.match(str(k)):
+                return k
+            m = self.NESTED.match(str(k))
+            return f'{m.group(1)}[…]' if m else '<invalid>'
+        self.keys = list(dict.fromkeys(shown(k) for k in keys))
         self.model_key = model_key
-        self.hints = self._coach(self.keys, set(field_names or ()), set(allowed_lookups or ()),
-                                 list(filterable or sorted(field_names or ())))
+        # A nested object serialized into the query string (filters[status]=…, fields[]=…)
+        # is a shape, not a field: say so once, and how to send it (2026-10-25).
+        nested = sorted({m.group(1) for k in keys if (m := self.NESTED.match(str(k)))})
+        lead_hints = ([f"Send filters flat in the query string — ?status=open&amount__gte=100, a "
+                       f"list comma-separated as ?status__in=open,in_progress — not nested as "
+                       f"{' or '.join(f'{n}[…]' for n in nested)}."] if nested else [])
+        hints = self._coach([k for k in self.keys if not k.endswith('[…]')],
+                            set(field_names or ()), set(allowed_lookups or ()),
+                            list(filterable or sorted(field_names or ())))
+        self.hints = list(dict.fromkeys(lead_hints + hints))     # each hint once
         lead = (f"{model_key}: no filter field named "
                 f"{', '.join(repr(k) for k in self.keys)}.")
         super().__init__(' '.join([lead] + self.hints))
