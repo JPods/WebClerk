@@ -7,19 +7,11 @@
  *
  * Backend reference:
  *   apps/transactions/models/base_line_model.py      — _calculate_extended_price()
- *   apps/transactions/services/order_totals.py       — compute_order_sell_cost_totals()
- *   apps/transactions/services/po_totals.py          — compute_purchase_cost_totals()
  *
  * @see webClerk3/readmes/topics/transactions/transactions-totals.md
  */
 import { describe, it, expect } from 'vitest';
 import { round, toNumber, formatCurrency, formatPercent } from '../calculationUtils';
-import {
-  computeHeaderTotals,
-  computeCostOnlyTotals,
-  defaultCost,
-  defaultTotals,
-} from '../headerTotals';
 import { LineItemService, isSalesTransaction, isExecTransaction } from '../lineItemService';
 import type { TransactionLine } from '../../types/transactionTypes';
 
@@ -145,144 +137,7 @@ describe('LineItemService.calculateLine()', () => {
   });
 });
 
-// ============================================================================
-// computeHeaderTotals — mirrors compute_order_sell_cost_totals()
-// ============================================================================
 
-describe('computeHeaderTotals()', () => {
-  function makeLine(overrides: {
-    priceExt?: number;
-    priceDis?: number;
-    costExt?: number;
-    costTax?: number;
-    costShip?: number;
-    costHandl?: number;
-    costFreight?: number;
-    costComm?: number;
-    removed?: boolean;
-  }): TransactionLine {
-    return {
-      _removed: overrides.removed ?? false,
-      item: {},
-      totals: {
-        amount: overrides.priceExt ?? 0,
-        discount: overrides.priceDis ?? 0,
-        cost: overrides.costExt ?? 0,
-      },
-      cost: {
-        tax: overrides.costTax ?? 0,
-        shipping: overrides.costShip ?? 0,
-        handling: overrides.costHandl ?? 0,
-        freight: overrides.costFreight ?? 0,
-        commissions: overrides.costComm ?? 0,
-      },
-    } as unknown as TransactionLine;
-  }
-
-  it('aggregates sell + cost for a sales transaction', () => {
-    const lines = [
-      makeLine({ priceExt: 500, priceDis: 25, costExt: 300, costShip: 10 }),
-      makeLine({ priceExt: 500, priceDis: 25, costExt: 300, costShip: 15 }),
-    ];
-    const result = computeHeaderTotals(lines, { transactionType: 'order' });
-
-    expect(result.totals.amount).toBe(1000);
-    expect(result.totals.discount).toBe(50);
-    expect(result.totals.total).toBe(1000);
-
-    expect(result.cost.line_sum_goods).toBe(600);
-    expect(result.cost.line_sum_shipping).toBe(25);
-    expect(result.cost.total).toBe(625);
-
-    expect(result.totals.total).toBe(1000);
-    expect(result.totals.cost).toBe(625);
-    expect(result.totals.margin).toBe(375);
-    expect(result.totals.margin_pc).toBe(37.5);
-  });
-
-  it('skips lines the user removed', () => {
-    const lines = [
-      makeLine({ priceExt: 500, costExt: 300 }),
-      makeLine({ priceExt: 500, costExt: 300, removed: true }),
-    ];
-    const result = computeHeaderTotals(lines, { transactionType: 'order' });
-
-    expect(result.totals.amount).toBe(500);
-    expect(result.cost.line_sum_goods).toBe(300);
-  });
-
-  it('handles exec-side (no sales subtotal)', () => {
-    const lines = [
-      makeLine({ costExt: 200, costFreight: 30, costComm: 10 }),
-    ];
-    const result = computeHeaderTotals(lines, { transactionType: 'purchase' });
-
-    expect(result.totals.amount).toBe(0);
-        expect(result.cost.total).toBe(240);
-    expect(result.totals.total).toBe(240); // exec: total = cost.total
-  });
-
-  it('preserves received and computes balance', () => {
-    const lines = [makeLine({ priceExt: 1000, costExt: 600 })];
-    const result = computeHeaderTotals(lines, {
-      transactionType: 'order',
-      received: 400,
-    });
-
-    expect(result.totals.received).toBe(400);
-    expect(result.totals.balance).toBe(600); // 1000 − 400
-  });
-
-  it('returns null margin_pc when total is 0', () => {
-    const lines: TransactionLine[] = [];
-    const result = computeHeaderTotals(lines, { transactionType: 'order' });
-
-    expect(result.totals.margin_pc).toBeNull();
-  });
-});
-
-// ============================================================================
-// computeCostOnlyTotals — mirrors compute_purchase_cost_totals()
-// ============================================================================
-
-describe('computeCostOnlyTotals()', () => {
-  it('returns flat cost dict', () => {
-    const lines = [
-      {
-        item: {},
-        totals: { cost: 100 },
-        cost: { tax: 5, shipping: 3, handling: 2, freight: 1, commissions: 0.5 },
-      } as unknown as TransactionLine,
-    ];
-    const cost = computeCostOnlyTotals(lines);
-
-    expect(cost.line_sum_goods).toBe(100);
-    expect(cost.line_sum_tax).toBe(5);
-    expect(cost.total).toBe(111.5);
-  });
-});
-
-// ============================================================================
-// Default envelopes
-// ============================================================================
-
-describe('default envelopes', () => {
-
-  it('defaultCost() has WC3 keys', () => {
-    const c = defaultCost();
-    expect(c).toHaveProperty('line_sum_goods', 0);
-    expect(c).toHaveProperty('line_sum_tax', 0);
-    expect(c).toHaveProperty('freight', 0);
-    expect(c).toHaveProperty('commissions', 0);
-  });
-
-  it('defaultTotals() has WC3 keys', () => {
-    const t = defaultTotals();
-    expect(t).toHaveProperty('margin', 0);
-    expect(t).toHaveProperty('margin_pc', 0);
-    expect(t).toHaveProperty('balance', 0);
-  });
-});
 
 // ============================================================================
 // Transaction type helpers

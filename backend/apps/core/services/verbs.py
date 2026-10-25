@@ -86,6 +86,7 @@ VERBS: Dict[str, Callable[[Actor, str, dict], Any]] = {
     'complete': _command('complete'),           # a build moves its stock, all or nothing
     'lock': _command('lock'),                   # a person locks a document (Bill, 2026-09-29)
     'unlock': _command('unlock'),               # an admin or superuser lifts it
+    'totals': _command('totals'),               # what a document's unsaved edits will total; writes nothing
 }
 
 #: Which model answers which command, and the base service that does it. A command is

@@ -198,11 +198,12 @@ const DetailToolbar: React.FC<DetailToolbarProps> = ({
             : { background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' }
           }>{data.status}</span>
       )}
-      {data?.totals?.total != null && (
-        <span className="db-font-sm" style={{ color: 'var(--db-text-muted)' }}>total: <span className="font-medium">${(data.totals.total ?? 0).toLocaleString()}</span></span>
+      {/* Totals follow the edit: currentData carries the server's totals_preview while editing. */}
+      {(currentData || data)?.totals?.total != null && (
+        <span className="db-font-sm" style={{ color: 'var(--db-text-muted)' }}>total: <span className="font-medium">${((currentData || data).totals.total ?? 0).toLocaleString()}</span></span>
       )}
-      {(data?.totals?.balance ?? 0) > 0 && (
-        <span className="db-font-sm" style={{ color: 'var(--db-accent-red)' }}>bal: <span className="font-medium">${(data.totals?.balance ?? 0).toLocaleString()}</span></span>
+      {((currentData || data)?.totals?.balance ?? 0) > 0 && (
+        <span className="db-font-sm" style={{ color: 'var(--db-accent-red)' }}>bal: <span className="font-medium">${((currentData || data).totals?.balance ?? 0).toLocaleString()}</span></span>
       )}
       {data?.id && <span className="db-font-sm font-mono" style={{ color: 'var(--db-text-dim)' }}>#{data.id}</span>}
 

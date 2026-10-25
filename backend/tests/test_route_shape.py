@@ -38,8 +38,6 @@ KNOWN_VIOLATIONS = frozenset({
     'wcapi/^invoice/(?P<pk>[^/.]+)/populate_commission\\.(?P<format>[a-z0-9]+)/?$',
     'wcapi/^order/(?P<pk>[^/.]+)/populate_commission/$',
     'wcapi/^order/(?P<pk>[^/.]+)/populate_commission\\.(?P<format>[a-z0-9]+)/?$',
-    'wcapi/^purchase/(?P<pk>[^/.]+)/totals/$',
-    'wcapi/^purchase/(?P<pk>[^/.]+)/totals\\.(?P<format>[a-z0-9]+)/?$',
     'wcapi/^quote/(?P<pk>[^/.]+)/populate_commission/$',
     'wcapi/^quote/(?P<pk>[^/.]+)/populate_commission\\.(?P<format>[a-z0-9]+)/?$',
     'wcapi/_<str:action>/',

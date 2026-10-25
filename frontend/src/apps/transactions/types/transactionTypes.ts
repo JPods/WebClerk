@@ -288,8 +288,6 @@ export interface HeaderCost {
   total?: number | null;
 }
 
-// Aliases used by FinancialsPanel and other UI components
-export type TransactionCost = HeaderCost;
 
 export interface TransactionFinance {
   sales_tax_id?: number;

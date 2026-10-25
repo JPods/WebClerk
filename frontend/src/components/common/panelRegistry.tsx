@@ -294,7 +294,7 @@ const registry: Record<string, PanelRenderer> = {
   })),
 
   financials: (ctx) => {
-    // Org models have ctx.data.financial; transaction models have ctx.data.totals/cost/sell
+    // Org models have ctx.data.financial; transaction models have ctx.data.totals
     if (ctx.data.financial) {
       return wrap(createElement(OrgFinancialsPanel, {
         financial: ctx.data.financial,
@@ -305,7 +305,6 @@ const registry: Record<string, PanelRenderer> = {
     }
     return wrap(createElement(FinancialsPanel, {
       totals: ctx.data.totals,
-      cost: ctx.data.cost,
       currency: ctx.data.currency,
     }));
   },

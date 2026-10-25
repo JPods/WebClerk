@@ -485,6 +485,27 @@ export async function saveRecord(model_name: string, payload: any) {
   }
 }
 
+export interface TotalsPreview {
+  totals: Record<string, any>;
+  line_totals: Record<string, Record<string, any>>;
+}
+
+/**
+ * The totals a document will have once the screen's edits are saved — the totals command,
+ * POST /wcapi/<model>/<id>/totals/: the server's compute_totals on unsaved values; nothing
+ * is written. line_totals is keyed by line id (a new line's temporary negative id included).
+ */
+export async function previewTotals(model_name: string, id: number | string,
+                                    header: Record<string, any>, lines: any[]): Promise<TotalsPreview> {
+  try {
+    const answer = await wcapiPost<{ result: TotalsPreview }>(
+      `${resolveModelName(model_name)}/${id}/totals/`, { header, lines });
+    return answer.result;
+  } catch (err: any) {
+    throw new Error(getBackendErrorMessage(err, 'Totals could not be calculated'));
+  }
+}
+
 /**
  * Save a document (order, invoice, quote, purchase, workorder) with its lines — the REST
  * save like any other record: PUT /wcapi/<model>/<id>/ or POST /wcapi/<model>/. The lines

@@ -12,16 +12,12 @@ import {
   FaArrowUp,
   FaArrowDown,
 } from "react-icons/fa";
-import type {
-  TransactionTotals,
-  TransactionCost,
-} from "@/apps/transactions/types/transactionTypes";
+import type { TransactionTotals } from "@/apps/transactions/types/transactionTypes";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
 import { formatCurrency, formatPercent } from '@/utils/stringUtils';
 
 interface FinancialsPanelProps {
   totals?: TransactionTotals | null;
-  cost?: TransactionCost | null;
   currency?: string;
   /** Back-compat with old FinancialsCard usage (not used currently) */
   isEditing?: boolean;
@@ -68,14 +64,14 @@ const StatBox: React.FC<{
 
 const FinancialsPanel: React.FC<FinancialsPanelProps> = ({
   totals: totalsProp,
-  cost: costProp,
   currency = "USD",
 }) => {
   // A default parameter covers undefined, not null. Records carry null envelopes,
   // and reading a field off null crashed the whole purchase form.
-  // totals is the only total (Bill, 2026-09-18) — the old sell envelope is gone.
+  // totals is the only total (Bill, 2026-09-18) — the old sell envelope is gone, and so is
+  // the Cost Breakdown: header cost.line_sum_* came from the retired per-model totals and
+  // the engine never writes it, so it showed $0 on every document (Bill, 2026-10-25).
   const totals = totalsProp ?? ({} as TransactionTotals);
-  const cost = costProp ?? ({} as TransactionCost);
   // WC3-aligned: margin lives on the totals envelope
   const marginAmount = totals.margin ?? 0;
   const marginPercent = totals.margin_pc ?? undefined;
@@ -135,53 +131,6 @@ const FinancialsPanel: React.FC<FinancialsPanelProps> = ({
           <StatBox
             label="Other"
             value={formatCurrency(totals.other)}
-          />
-        </div>
-      </div>
-
-      {/* ── Cost breakdown ────────────────────────────────────── */}
-      <div className="p-4 border-b db-border-color">
-        <h4 className="db-font-xs font-semibold uppercase tracking-wide mb-3 db-text-muted">
-          Cost Breakdown
-        </h4>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <StatBox
-            label="Line Goods"
-            value={formatCurrency(cost.line_sum_goods)}
-            sublabel="Σ line totals.cost"
-          />
-          <StatBox
-            label="Shipping"
-            value={formatCurrency(cost.line_sum_shipping)}
-          />
-          <StatBox
-            label="Handling"
-            value={formatCurrency(cost.line_sum_handling)}
-          />
-          <StatBox
-            label="Freight"
-            value={formatCurrency(cost.freight)}
-          />
-          <StatBox
-            label="Commissions"
-            value={formatCurrency(cost.commissions)}
-          />
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3">
-          <StatBox
-            label="Tax"
-            value={formatCurrency(cost.tax)}
-          />
-          <StatBox
-            label="Tax Rate"
-            value={cost.tax_rate != null ? formatPercent(cost.tax_rate, 2) : "--"}
-          />
-          <StatBox
-            label="Total Cost"
-            value={formatCurrency(cost.total)}
-            highlight
-            mandatory
-            locked
           />
         </div>
       </div>

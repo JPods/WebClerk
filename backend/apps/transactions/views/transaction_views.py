@@ -87,13 +87,6 @@ class PurchaseViewSet(_VisibleActions):
     model_key = 'purchase'
     serializer_class = PurchaseSerializer
 
-    @action(detail=True, methods=['get'])
-    def totals(self, request, pk=None):
-        """Get detailed totals for purchase."""
-        purchase = self.get_object()
-        totals = purchase.update_sell_cost_totals(persist=False)
-        return Response(totals)
-
 
 class InvoiceViewSet(_VisibleActions):
     """Actions on a invoice. Writes go through /wcapi/save/."""

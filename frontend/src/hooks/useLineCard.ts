@@ -118,7 +118,9 @@ function flattenLine(line: any, idx: number, isSellSide: boolean): any {
 
   const preview = previewLineTotals(line, isSellSide);
   const discountedUnit = Number(line.totals?.discounted_unit ?? preview.discounted_unit);
-  const extended = Number(line._dirty ? preview.amount : (line.totals?.amount ?? preview.amount));
+  // line.totals is the server's (totals_preview while editing); an edit sets the local preview
+  // there at once, and the server's answer replaces it a moment later.
+  const extended = Number(line.totals?.amount ?? preview.amount);
 
   const weight = Number(line.physical?.weight ?? 0);
 

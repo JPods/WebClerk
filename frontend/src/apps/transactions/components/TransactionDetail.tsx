@@ -7,7 +7,8 @@
  */
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { getRecord, newRecord, saveRecord, saveTransactionWithLines } from '@/api/wcapi';
+import { getRecord, newRecord, saveRecord, saveTransactionWithLines, previewTotals } from '@/api/wcapi';
+import type { TotalsPreview } from '@/api/wcapi';
 import { showToast } from '@/store/slices/toastSlice';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState } from '@/store';
@@ -46,6 +47,10 @@ interface UiDetailProps {
   inline?: boolean;
   [key: string]: unknown;  // accept extra props from DataBrowser
 }
+
+/** The header values compute_totals reads — what totals_preview needs from the screen
+ *  (backend PREVIEW_HEADER_KEYS, apps/transactions/views/transaction_views.py). */
+const PREVIEW_HEADER_KEYS = ['finance', 'tax', 'allocations', 'ship_via', 'customer_id'] as const;
 
 /** A new line without the empty envelopes it was built with: `{}`, `[]` and `''` say
  *  nothing about a line that does not exist yet, and each is a path to refuse. */
@@ -309,8 +314,52 @@ const UiDetail: React.FC<UiDetailProps> = ({
   // ── Customer search hook ────────────────────────────────────────
   const custSearch = useCustomerSearch(handleFieldChange);
 
+  // ── Live totals while editing ───────────────────────────────────
+  // The screen mirrors the server (Bill, 2026-10-25): on each edit it asks totals_preview —
+  // the server's own compute_totals on the unsaved values — and shows that answer. The
+  // preview is display only; it never enters editData, so the save never sends totals.
+  const [preview, setPreview] = useState<TotalsPreview | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const previewInputs = useMemo(() => {
+    // Only a document that carries totals is totalled (not a requisition, not cash).
+    if (!isEditing || !editData?.id || !('totals' in editData)) return null;
+    const header = Object.fromEntries(PREVIEW_HEADER_KEYS.filter((k) => k in editData).map((k) => [k, editData[k]]));
+    const lines = getActiveLines(editData.lines || []).map((l: any) => ({
+      id: l.id, line_type: l.line_type, line_number: l.line_number,
+      quantity: l.quantity, price: l.price, cost: l.cost, tax: l.tax,
+    }));
+    return JSON.stringify({ id: editData.id, header, lines });
+  }, [isEditing, editData]);
+
+  useEffect(() => {
+    if (!previewInputs) { setPreview(null); setPreviewError(null); return; }
+    let stale = false;
+    const timer = setTimeout(async () => {
+      const { id, header, lines } = JSON.parse(previewInputs);
+      try {
+        const answer = await previewTotals(modelName, id, header, lines);
+        if (!stale) { setPreview(answer); setPreviewError(null); }
+      } catch (err: any) {
+        // Never show stale totals as current: drop the preview and say why.
+        if (!stale) { setPreview(null); setPreviewError(err?.message || 'Totals could not be calculated'); }
+      }
+    }, 400);
+    return () => { stale = true; clearTimeout(timer); };
+  }, [previewInputs, modelName]);
+
   // ── Current data (edit or read) ─────────────────────────────────
-  const currentData = isEditing ? editData : data;
+  const currentData = useMemo(() => {
+    if (!isEditing) return data;
+    if (!editData || !preview) return editData;
+    return {
+      ...editData,
+      totals: preview.totals,
+      lines: (editData.lines || []).map((l: any) => {
+        const t = preview.line_totals[String(l.id)];
+        return t ? { ...l, totals: t } : l;
+      }),
+    };
+  }, [isEditing, data, editData, preview]);
 
   // ── Loading states ──────────────────────────────────────────────
   if (layoutLoading || loading) {
@@ -354,6 +403,12 @@ const UiDetail: React.FC<UiDetailProps> = ({
         {isPendMode && (
           <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
             journalized — changes pend
+          </span>
+        )}
+        {isEditing && previewError && (
+          <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400"
+                title={previewError}>
+            totals as saved — {previewError}
           </span>
         )}
         {editTier === 'closed' && (

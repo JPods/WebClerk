@@ -233,8 +233,6 @@ export const TabContent: React.FC<{
 // ---------------------------------------------------------------------------
 
 export const SummaryTabContent: React.FC<{ data: any; modelName: string }> = ({ data, modelName }) => {
-  const authUser = useAppSelector((s) => s.auth.user);
-  const isStaff = authUser?.is_staff || authUser?.is_superuser || false;
   // Live lines only — the summary tab uses this for the `lines` COUNT in the
   // totals column, not for a line list. A line marked deleted contributes
   // nothing to totals, so it must not be counted here either.
@@ -242,7 +240,6 @@ export const SummaryTabContent: React.FC<{ data: any; modelName: string }> = ({ 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const isSellSide = ['order', 'invoice', 'quote'].includes(modelName);
   const totals = data?.totals || {};
-  const cost = data?.cost || {};
 
   // All values from json.path.value — never compute independently
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -306,10 +303,7 @@ export const SummaryTabContent: React.FC<{ data: any; modelName: string }> = ({ 
           <div className="border-t border-[var(--db-border,#dee2e6)] my-1" />
           <div className="flex justify-between font-bold"><span>total</span><span className="font-mono">{fmt(totals.total)}</span></div>
           <div className="border-t border-[var(--db-border,#dee2e6)] my-1" />
-          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">cost</span><span className="font-mono">{fmt(cost.line_sum_goods ?? 0)}</span></div>
-          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">freight</span><span className="font-mono">{fmt(cost.freight)}</span></div>
-          {isStaff && <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">commissions</span><span className="font-mono">{fmt(cost.commissions)}</span></div>}
-          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">cost total</span><span className="font-mono">{fmt(cost.total ?? 0)}</span></div>
+          <div className="flex justify-between"><span className="text-[var(--db-text-muted,#6c757d)]">cost</span><span className="font-mono">{fmt(totals.cost ?? 0)}</span></div>
           <div className="border-t border-[var(--db-border,#dee2e6)] my-1" />
           <div className="flex justify-between">
             <span className="text-[var(--db-text-muted,#6c757d)]">margin</span>

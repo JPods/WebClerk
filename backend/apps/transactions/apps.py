@@ -33,6 +33,10 @@ class TransactionsConfig(AppConfig):
         from .services import receive_commands
         receive_commands.register()
 
+        # Totals: what the screen's unsaved edits will total (services/totals_preview.py).
+        from .services import totals_preview
+        totals_preview.register()
+
         # Convert: one engine, a command on its source (services/convert/convert.py).
         from .services.convert import convert
         convert.register()
