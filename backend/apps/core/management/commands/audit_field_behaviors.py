@@ -152,6 +152,15 @@ class Command(BaseCommand):
                         'flag': 'ORPHAN_OVR',
                         'detail': f'Override exists but field not on model. Stored: {stored_beh}',
                     })
+                elif '.' in field_name and not computed_beh:
+                    # A JSON sub-path (totals.cost) has no computed behavior; the
+                    # Setting is its only source, so there is nothing to differ from.
+                    continue
+                elif (field_name.startswith('dt_')
+                      and {stored_beh.get('type'), computed_beh.get('type')} == {'date', 'timestamp'}):
+                    # dt_ fields store epoch ms either way; date is the clerk-entry
+                    # choice (local date, 23:59), not a drift (wc3, 2026-10-24).
+                    continue
                 elif stored_beh != computed_beh and stored_beh.get('type') != computed_beh.get('type'):
                     flags.append({
                         'model': model_key, 'field': field_name,
