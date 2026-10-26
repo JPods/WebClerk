@@ -223,6 +223,10 @@ def _header(source, source_type: str, target_type: str, is_sell_side: bool,
 def _review_lines(source_lines, source_type: str, target_type: str,
                   is_sell_side: bool) -> List[Dict[str, Any]]:
     """What the target's lines would be — returned for review, not saved here."""
+    from apps.core.services.door import resolve_model
+    line_model = resolve_model(target_type)[0].lines.rel.related_model
+    target_fields = {f.name for f in line_model._meta.get_fields()} | {
+        f.attname for f in line_model._meta.concrete_fields}
     lines = []
     for src_line in source_lines:
         src_qty = getattr(src_line, "quantity", None) or {}
@@ -278,7 +282,9 @@ def _review_lines(source_lines, source_type: str, target_type: str,
             line["parent_line_id"] = src_line.pk
             # The default warehouse while the warehouse feature is set aside (action 31277).
             line["warehouse_id"] = _stock_warehouse(src_line)
-        lines.append(line)
+        # Only what the target's line declares: a purchase line has no price, and the door
+        # refuses a path no line has (order → purchase failed on lines.price.*, 2026-10-25).
+        lines.append({k: v for k, v in line.items() if k.startswith("_") or k in target_fields})
     return lines
 
 

@@ -297,3 +297,22 @@ def test_the_screens_quote_save_is_named_by_the_real_quote_setting(django_user_m
 
     assert _not_enumerated(actor, 'quote', SCREEN_QUOTE_SAVE) == []
     assert _not_enumerated(actor, 'quote', SCREEN_NEW_LINE, prefix='lines.') == []
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('role', ['superuser', 'admin'])
+def test_an_order_converted_to_a_purchase_saves_its_review_lines(django_user_model, role):
+    """To Purchase returned the order lines for review with their price envelope; a purchase
+    line has no price, so saving the review was refused on lines.price.* (Bill, 2026-10-25).
+    Review lines carry only what the target's line declares."""
+    from apps.transactions.models import Order, OrderLine
+    from apps.transactions.services.convert.convert import convert_order_to_purchase
+    access.clear_cache()
+    actor = _login(django_user_model, f'{role}-po@example.fake', role)
+    order = Order.objects.create()
+    OrderLine.objects.create(order=order, line_number=10, quantity={'active': 8, 'remaining': 8},
+                             price={'unit': 14.95}, cost={'unit': 8.97})
+    review = convert_order_to_purchase(order.pk)['lines']
+    assert review and all('price' not in line for line in review)
+    for line in review:
+        assert _not_enumerated(actor, 'purchase', line, prefix='lines.') == []
