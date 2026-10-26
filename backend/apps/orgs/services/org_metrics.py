@@ -96,8 +96,7 @@ def compute_org_metrics(org, now: Optional[datetime] = None) -> Dict[str, Any]:
     sale_days: List[int] = []
     largest = (Decimal('0'), 0)
 
-    for inv in Invoice.objects.filter(customer_id=org.pk).only(
-            'totals', 'dt_approved', 'dt_created', 'source_name', 'ship_via'):
+    for inv in Invoice.objects.filter(customer_id=org.pk):
         t = inv.totals or {}
         amount = Decimal(str(t.get('amount') or 0))
         margin = Decimal(str(t.get('margin') or 0))

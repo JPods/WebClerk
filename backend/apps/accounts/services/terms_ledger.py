@@ -437,7 +437,7 @@ def settlement_days(org_id, model_name: str = 'invoice') -> List[int]:
     days = []
     for doc in DocModel.objects.filter(
         pk__in=list(due_by_doc), **{org_field: org_id},
-    ).only('id', 'events', 'totals'):
+    ):
         events = [e for e in (getattr(doc, 'events', None) or [])
                   if isinstance(e, dict) and e.get('kind') == 'cash_application' and e.get('dt')]
         if not events:

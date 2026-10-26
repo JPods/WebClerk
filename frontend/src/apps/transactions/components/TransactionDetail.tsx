@@ -321,6 +321,10 @@ const UiDetailView: React.FC<UiDetailProps> = ({
   // preview is display only; it never enters editData, so the save never sends totals.
   const [preview, setPreview] = useState<TotalsPreview | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
+  // A reload is the server's own answer: drop the preview. A payment changes no header or line
+  // input, so no new preview is asked, and the old one kept showing the balance from before
+  // the payment (invoice 1054-inv showed 1.17 open, paid in full — Bill, 2026-10-26).
+  useEffect(() => { setPreview(null); }, [data]);
   const previewInputs = useMemo(() => {
     // Only a document that carries totals is totalled (not a requisition, not cash).
     if (!isEditing || !editData?.id || !('totals' in editData)) return null;

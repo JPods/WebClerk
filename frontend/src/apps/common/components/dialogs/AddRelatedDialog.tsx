@@ -14,7 +14,8 @@ export type RelatedField =
   | { name: string; label: string; kind: 'text' | 'textarea' | 'date'; placeholder?: string; required?: boolean }
   | { name: string; label: string; kind: 'number'; placeholder?: string; required?: boolean; step?: string }
   | { name: string; label: string; kind: 'select'; options: { value: string; label: string }[]; required?: boolean }
-  | { name: string; label: string; kind: 'checkbox'; hint?: string };
+  /** A checkbox label may follow the other values (a write-off naming the amount it writes off). */
+  | { name: string; label: string | ((values: RelatedValues) => string); kind: 'checkbox'; hint?: string };
 
 export type RelatedValues = Record<string, string | boolean>;
 
@@ -84,7 +85,7 @@ const AddRelatedDialog: React.FC<AddRelatedDialogProps> = ({
                 {f.kind === 'checkbox' ? (
                   <label className="flex items-center gap-2 text-sm db-text cursor-pointer" title={f.hint}>
                     <input type="checkbox" checked={!!v} onChange={(e) => set(f.name, e.target.checked)} />
-                    {f.label}
+                    {typeof f.label === 'function' ? f.label(values) : f.label}
                   </label>
                 ) : (
                   <>

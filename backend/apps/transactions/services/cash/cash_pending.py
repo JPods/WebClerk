@@ -130,7 +130,7 @@ def _committed(**match) -> Decimal:
     filters = {f'changes__{k}': v for k, v in match.items()}
     queued = Decimal('0')
     for p in Pending.objects.filter(purpose=CASH_PURPOSE, dt_processed=0,
-                                    changes__state='pending', **filters).only('changes'):
+                                    changes__state='pending', **filters):
         queued += _d((p.changes or {}).get('amount'))
     return _applied(**match) + queued
 
@@ -154,7 +154,7 @@ def _check_policy(invoice, kind: str, value: Decimal) -> None:
     config.cash_policy): {discount_limit, discount_limit_pct}. No policy = the user decides.
     A write-off has no limit (Bill, 2026-09-26: no limit on bad debt, no clearing service)."""
     from apps.core.models import Setting
-    company = Setting.objects.filter(purpose='wc:company_profile').only('config').first()
+    company = Setting.objects.filter(purpose='wc:company_profile').first()
     policy = ((company.config or {}).get('cash_policy') or {}) if company else {}
     total = _d((invoice.totals or {}).get('total'))
     limit = policy.get(f'{kind}_limit')
@@ -179,7 +179,7 @@ def _applied_split(**match):
     filters = {f'changes__{k}': v for k, v in match.items()}
     adjusted = Decimal('0')
     for p in Pending.objects.filter(purpose=CASH_PURPOSE, changes__state='applied',
-                                    changes__kind__in=ADJUSTMENT_METHODS, **filters).only('changes'):
+                                    changes__kind__in=ADJUSTMENT_METHODS, **filters):
         adjusted += _d((p.changes or {}).get('amount'))
     return total - adjusted, adjusted
 

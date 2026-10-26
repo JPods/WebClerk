@@ -143,6 +143,42 @@ def test_a_write_off_that_cannot_apply_leaves_nothing_behind(admin_client, monke
     assert r.status_code == 409 and r.json()['error']['code'] == 'adjustment_failed', r.content
     assert Cash.objects.count() == before
 
+def test_a_short_payment_and_its_write_off_are_one_command(admin_client):
+    """Bill, 2026-10-25: a check $1.17 short of invoice 160, write off what is left. The screen
+    sent the payment and the write-off as two requests; the first took 33 s and timed out, the
+    second never went. One command now does both, in one transaction."""
+    inv = _invoice(116.17)
+    r = _post(admin_client, 'invoice', inv.pk, {'amount': '115.00', 'method': 'check',
+                                                'reason': 'check was 1.17 short', 'write_off_rest': True})
+    assert r.status_code == 200, r.content
+    body = _data(r)
+    assert body['applied']['state'] == 'applied'
+    assert body['written_off']['amount'] == 1.17
+    assert Cash.objects.get(pk=body['written_off']['cash_id']).method == 'write_off'
+    inv.refresh_from_db()
+    t = inv.totals
+    assert (t['received'], t['adjusted'], t['balance'], t['cash_state']) == (115.0, 1.17, 0.0, 'paid')
+
+
+def test_a_write_off_failure_takes_the_payment_back_too(admin_client, monkeypatch):
+    """Both stand or neither does: a fault writing off the rest leaves no payment behind."""
+    from apps.transactions.services.cash import cash_pending
+    inv = _invoice(100.0)
+    before = Cash.objects.count()
+    real = cash_pending.apply_cash_to_invoice
+
+    def fail_the_write_off(cash_id, *a, **k):
+        if Cash.objects.get(pk=cash_id).method == 'write_off':
+            raise ValueError('a fault for the test')
+        return real(cash_id, *a, **k)
+    monkeypatch.setattr(cash_pending, 'apply_cash_to_invoice', fail_the_write_off)
+    r = _post(admin_client, 'invoice', inv.pk, {'amount': '95.00', 'method': 'check', 'write_off_rest': True})
+    assert r.status_code == 409 and r.json()['error']['code'] == 'adjustment_failed', r.content
+    assert Cash.objects.count() == before
+    inv.refresh_from_db()
+    assert inv.totals['balance'] == 100.0
+
+
 def test_the_write_off_posts_to_the_loss_account_with_the_payment_sides_flipped(admin_client, chart_of_accounts):
     """Bill, 2026-09-26: WebClerk values the write-off Cash at +$5; the chart values it as a $5
     loss — a normal payment's debit to cash becomes a debit to bad debt, AR is credited."""

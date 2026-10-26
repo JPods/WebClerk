@@ -151,7 +151,8 @@ ADD_CASH_SIDES = {
 
 
 def add_cash(ctx) -> Dict[str, Any]:
-    """POST /wcapi/<invoice|receipt|order>/<id>/add_cash/ {amount ±, method, reference, reason, date}.
+    """POST /wcapi/<invoice|receipt|order>/<id>/add_cash/ {amount ±, method, reference, reason, date,
+    write_off_rest?}. write_off_rest (invoice): write off what the applied payment leaves open.
 
     Bill, 2026-09-26: one service — the Cash is saved through the standard save (save_record,
     as the acting person: their rights, enumerated fields, hooks), then the command base applies
@@ -239,9 +240,25 @@ def add_cash(ctx) -> Dict[str, Any]:
                        'reason': f'Saved, not applied to {model_key} {doc.pk}: {e}. The cash is '
                                  f'available to apply.'}
     doc.refresh_from_db()
+    written_off = None
+    if (ctx.data.get('write_off_rest') and model_key == 'invoice'
+            and (applied or {}).get('state') == 'applied'):
+        # The payment and the write-off of what it leaves are one action: this command runs in
+        # one transaction, so both stand or neither does (Bill, 2026-10-25: actions always
+        # balance). The screen sent them as two requests; the first timed out, the second
+        # never went, and the invoice kept 1.17 open.
+        rest = _balance(doc)
+        if rest > 0:
+            from types import SimpleNamespace
+            written_off = add_cash(SimpleNamespace(
+                actor=ctx.actor, model_key=model_key, obj=doc,
+                data={'amount': str(rest), 'method': 'write_off',
+                      'reason': reason or f'written off with cash {cash.pk}'}))
+            written_off = {'cash_id': written_off['cash_id'], 'amount': float(rest)}
+            doc.refresh_from_db()
     t = doc.totals or {}
     return {'cash_id': cash.pk, 'cash_amount': float(cash.amount), 'applied': applied,
-            'deposit': side['apply'] is None,
+            'written_off': written_off, 'deposit': side['apply'] is None,
             'balance': t.get('balance'), 'received': t.get('received'), 'paid': t.get('paid')}
 
 

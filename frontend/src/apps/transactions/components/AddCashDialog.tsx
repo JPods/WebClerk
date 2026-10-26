@@ -78,15 +78,23 @@ const AddCashDialog: React.FC<AddCashDialogProps> = ({
     { name: 'date', label: 'Date', kind: 'date' },
     { name: 'reference', label: 'Reference / check #', kind: 'text', placeholder: 'Check #, trans ID…' },
     { name: 'reason', label: 'Note', kind: 'textarea', placeholder: 'Optional' },
-    ...(canWriteOff ? [{ name: 'write_off_rest', label: 'Write off what is left', kind: 'checkbox' as const,
+    ...(canWriteOff ? [{ name: 'write_off_rest', kind: 'checkbox' as const,
+                     // Names what it writes off: the balance less the amount received (Bill, 2026-10-25).
+                     label: (v: RelatedValues) => {
+                       const rest = Math.round((balance - (Number(v.amount) || 0)) * 100) / 100;
+                       return rest > 0 ? `Write off what is left: ${formatCurrency(rest)}` : 'Write off what is left (nothing left)';
+                     },
                      hint: 'A write-off Cash for the remaining balance, posted to bad debt' }] : []),
   ];
 
   const save = async (v: RelatedValues) => {
     const amount = Number(v.amount);
+    // One command: the payment, its application and the write-off of what is left stand or
+    // fall together on the server, so an action always balances (Bill, 2026-10-25).
     const result: any = await addCash(model, id, {
       amount, method: String(v.method || 'check'), reference: String(v.reference || ''),
       reason: String(v.reason || ''), date: v.date ? new Date(String(v.date)).toISOString() : undefined,
+      ...(canWriteOff && v.write_off_rest ? { write_off_rest: true } : {}),
     });
     if (result?.applied?.state === 'refused') {
       dispatch(showToast({ message: result.applied.reason, type: 'info' }));
@@ -94,13 +102,8 @@ const AddCashDialog: React.FC<AddCashDialogProps> = ({
       dispatch(showToast({ message: model === 'order'
         ? `Deposit of ${formatCurrency(amount)} recorded` : `${formatCurrency(amount)} applied`, type: 'success' }));
     }
-    // Only after the payment applied, and only what the invoice still shows open (Fable: a
-    // refused apply must not be followed by a write-off of the wrong amount).
-    const applied = result?.applied?.state === 'applied';
-    const rest = Math.round(Number(result?.balance ?? (balance - amount)) * 100) / 100;
-    if (canWriteOff && v.write_off_rest && applied && rest > 0) {
-      await addCash(model, id, { amount: rest, method: 'write_off', reason: String(v.reason || 'written off') });
-      dispatch(showToast({ message: `${formatCurrency(rest)} written off`, type: 'success' }));
+    if (result?.written_off) {
+      dispatch(showToast({ message: `${formatCurrency(result.written_off.amount)} written off`, type: 'success' }));
     }
     onDone?.();
   };

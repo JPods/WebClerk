@@ -65,7 +65,7 @@ def _committed(**match) -> Decimal:
     filters = {f'changes__{k}': v for k, v in match.items()}
     queued = Decimal('0')
     for p in Pending.objects.filter(purpose=RECEIPT_CASH_PURPOSE, dt_processed=0,
-                                    changes__state='pending', **filters).only('changes'):
+                                    changes__state='pending', **filters):
         queued += _d((p.changes or {}).get('amount'))
     return _applied(**match) + queued
 

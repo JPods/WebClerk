@@ -89,7 +89,9 @@ export const fetchCashMethods = async () => {
 export const addCash = async (
   model: 'order' | 'invoice' | 'receipt',
   id: number,
-  body: { amount: number | string; method?: string; reference?: string; reason?: string; date?: string },
+  body: { amount: number | string; method?: string; reference?: string; reason?: string; date?: string;
+          /** Invoice only: write off what the payment leaves open, in the same command. */
+          write_off_rest?: boolean },
 ) => {
   try {
     const res = await apiClient.post(`/wcapi/${model}/${id}/add_cash/`, body);
