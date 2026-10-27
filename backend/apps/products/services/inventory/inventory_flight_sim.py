@@ -484,6 +484,16 @@ def get_flight_by_invoice(invoice_ida: str) -> Dict[str, Any]:
     return result
 
 
+def _applied_to(changes: Dict[str, Any]) -> str:
+    """The document a cash application names, by its ida: 'invoice 1054-inv', 'receipt 19'."""
+    for model in ('invoice', 'receipt'):
+        doc_id = changes.get(f'{model}_id')
+        if doc_id:
+            doc = dj_apps.get_model('transactions', model.title()).objects.filter(pk=doc_id).first()
+            return f'{model} {(doc.ida if doc else "") or f"#{doc_id}"}'
+    return 'unapplied'
+
+
 def _get_cash_rows(tx_lines: list) -> List[Dict[str, Any]]:
     """Build cash display rows from transaction lines.
 
@@ -531,7 +541,7 @@ def _get_cash_rows(tx_lines: list) -> List[Dict[str, Any]]:
 
         rows.append({
             'type': 'cash',
-            'label': f'Cash #{pay.ida or pay.pk}',
+            'label': f'Cash {pay.ida or f"#{pay.pk}"}',
             'model': 'cash',
             'record_id': pay.pk,
             'values': {
@@ -543,28 +553,20 @@ def _get_cash_rows(tx_lines: list) -> List[Dict[str, Any]]:
             },
         })
 
-        # Find cash application pending records
+        # This cash's applications: the Pendings that name it.
         pay_pending = Pending.objects.filter(
-            purpose='cash_application',
-            name__icontains=str(pay.pk),
-        ).order_by('dt_created')
-
-        # Also check by changes content
-        if not pay_pending.exists():
-            pay_pending = Pending.objects.filter(
-                purpose='cash_application',
-            ).order_by('dt_created')
+            purpose='cash_application', changes__cash_id=pay.pk).order_by('dt_created')
 
         for pp in pay_pending:
             changes = pp.changes if isinstance(pp.changes, dict) else {}
-            if changes.get('cash_id') != pay.pk:
-                continue
             app_amount = float(changes.get('amount', 0) or 0)
-            inv_id = changes.get('invoice_id')
             state = changes.get('state', 'pending')
             rows.append({
                 'type': 'cash_application',
-                'label': f'  Apply ${app_amount:.2f} → Invoice #{inv_id}',
+                # Named by the document number people know (1054-inv), not its record id: an
+                # invoice showing $0 open seemed to have no payments, because they read
+                # "→ Invoice #160" (Bill, 2026-10-27).
+                'label': f'  Apply ${app_amount:.2f} → {_applied_to(changes)}',
                 'values': {
                     'amount': f'-${app_amount:.2f}',
                     'applied': f'${app_amount:.2f}',

@@ -18,7 +18,7 @@ type Rec = Record<string, any>;
 const RELATED_TABS: Record<string, string[]> = {
   quote: ['order', 'invoice'],
   order: ['quote', 'invoice', 'purchase', 'workorder', 'cash'],
-  invoice: ['quote', 'order', 'cash'],
+  invoice: ['cash', 'order', 'quote'],     // payments first: what settled it (Bill, 2026-10-27)
   purchase: ['order', 'receipt', 'cash'],
   receipt: ['purchase', 'cash'],
   workorder: ['order'],
