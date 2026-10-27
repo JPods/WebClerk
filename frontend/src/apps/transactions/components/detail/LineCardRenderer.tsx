@@ -308,6 +308,10 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
         {selectionLabel && <span className="text-blue-600 font-medium">{selectionLabel}</span>}
       </div>
       <div className="flex items-center gap-2 italic justify-end" style={{ fontSize: 'inherit' }}>
+        {/* Reads as a sum: lines + tax + ship + other = total. "total" was the lines alone, so an
+            invoice of $116.17 read $104.65 (1054-inv, Bill 2026-10-27). */}
+        <span className="text-slate-400 dark:text-slate-500">lines:</span>
+        <span className="font-mono text-slate-600 dark:text-slate-300 w-16 text-right">{formatCurrency(footerExtended)}</span>
         <span className="text-slate-400 dark:text-slate-500">tax:</span>
         <span className="font-mono text-slate-600 dark:text-slate-300 w-14 text-right">{formatCurrency(data?.totals?.tax ?? 0)}</span>
         <span className="text-slate-400 dark:text-slate-500">ship:</span>
@@ -353,7 +357,8 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
           </>
         )}
         <span className="text-slate-700 dark:text-slate-200 not-italic font-semibold">total:</span>
-        <span className="font-bold text-slate-900 dark:text-white w-24 text-right not-italic">{formatCurrency(footerExtended)}</span>
+        <span className="font-bold text-slate-900 dark:text-white w-24 text-right not-italic"
+              title="The document's total, as the server calculates it">{formatCurrency(data?.totals?.total ?? footerExtended)}</span>
       </div>
     </div>
   );
