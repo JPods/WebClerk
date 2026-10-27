@@ -37,6 +37,10 @@ class TransactionsConfig(AppConfig):
         from .services import totals_preview
         totals_preview.register()
 
+        # The journal entry a document makes, before and after it posts (journal_preview.py).
+        from .services import journal_preview
+        journal_preview.register()
+
         # Convert: one engine, a command on its source (services/convert/convert.py).
         from .services.convert import convert
         convert.register()

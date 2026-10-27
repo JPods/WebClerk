@@ -475,12 +475,16 @@
 
 .fs-transaction-table {
   flex: 1;
-  overflow-y: auto;
+  /* No scroll of its own: .fs-section-content scrolls, so the header below can stick to it. */
   font-size: calc(var(--fsc-fs, 13px) - 1px);
   font-family: monospace;
 }
 
 .fs-tx-header {
+  /* Column labels stay in view while the rows scroll (Bill, 2026-10-27). */
+  position: sticky;
+  top: 0;
+  z-index: 2;
   display: flex;
   align-items: center;
   padding: 4px 8px;
@@ -569,6 +573,9 @@
 }
 
 .fs-pay-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   display: flex;
   align-items: center;
   padding: 4px 8px;

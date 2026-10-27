@@ -357,6 +357,7 @@ REST_FRAMEWORK = {
         "cash": "10/minute",
         "webhook": "30/minute",
         "tx_line": "60/minute",
+        "preview": "600/minute",    # commands that write nothing: totals, journal_preview
         "inquiry": "5/hour",         # public inquiry: emails sent, per IP
         "inquiry_form": "30/hour",   # public inquiry: link check + submit, per IP
     },

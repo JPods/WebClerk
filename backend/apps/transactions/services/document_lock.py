@@ -29,9 +29,9 @@ from typing import Any, Dict, Optional
 from apps.core.services.door import Refused
 
 LOCKABLE_MODELS = ('quote', 'order', 'invoice', 'purchase', 'receipt')
-#: Commands a locked document still answers: its unlock, money arriving, and its totals
-#: (which write nothing).
-COMMANDS_WHILE_LOCKED = frozenset({'unlock', 'add_cash', 'apply_balance', 'totals'})
+#: Commands a locked document still answers: its unlock, money arriving, and its totals and
+#: journal preview (which write nothing).
+COMMANDS_WHILE_LOCKED = frozenset({'unlock', 'add_cash', 'apply_balance', 'totals', 'journal_preview'})
 #: What a save to a locked document may carry: the record's address, its version, comments.
 SAVE_KEYS_WHILE_LOCKED = frozenset({'id', 'version', 'model_name', 'comments'})
 LOCKED = 'locked'

@@ -64,10 +64,14 @@ def _clear_movement_marks(obj) -> None:
 
 
 def journalize(ctx) -> Dict[str, Any]:
-    """POST /wcapi/<receipt|workorder>/<id>/journalize/ (Bill, 2026-09-28/30): a received receipt
-    posts its payable and its layers' value; a workorder posts its unposted events."""
+    """POST /wcapi/<invoice|cash|receipt|workorder>/<id>/journalize/ (Bill, 2026-09-28/30): a
+    received receipt posts its payable and its layers' value; a workorder posts its unposted
+    events; an invoice and a cash post their entries (2026-10-27: the flight simulator posts each
+    document through this one door, after its journal_preview)."""
     from apps.accounts.services import journalize as posting
-    post = {'receipt': posting.journalize_receipt, 'workorder': posting.journalize_workorder}[ctx.model_key]
+    post = {'invoice': posting.journalize_invoice, 'cash': posting.journalize_cash,
+            'receipt': posting.journalize_receipt,
+            'workorder': posting.journalize_workorder}[ctx.model_key]
     result = post(ctx.obj.pk, ida_prefix=str((ctx.data or {}).get('ida_prefix') or ''))
     if result.get('error'):
         error = result['error']
@@ -82,5 +86,5 @@ def register() -> None:
     from apps.core.services.verbs import register_command
     for model_key in UNJOURNALIZE_MODELS:
         register_command(model_key, 'unjournalize', unjournalize)
-    for model_key in ('receipt', 'workorder'):
+    for model_key in ('invoice', 'cash', 'receipt', 'workorder'):
         register_command(model_key, 'journalize', journalize)

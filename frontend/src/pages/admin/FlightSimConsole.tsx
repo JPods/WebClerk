@@ -20,6 +20,7 @@ import "./FlightSimConsole.css";
 import { formatCurrency } from "@/utils/stringUtils";
 
 const UiDetail = React.lazy(() => import("../../apps/transactions/components/TransactionDetail"));
+import JournalEntriesPanel, { type JournalDoc } from "./JournalEntriesPanel";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -59,16 +60,6 @@ interface CashRow {
     status?: string;
   };
   processed?: boolean;
-}
-
-interface GlRow {
-  type: "gl_header" | "gl_entry";
-  label: string;
-  values: {
-    debit?: string;
-    credit?: string;
-    source?: string;
-  };
 }
 
 interface SimulationDef {
@@ -214,7 +205,7 @@ interface SimDoc {
 const MAX_DOC_CHIPS = 6;
 
 /** Documents that get a chip. The ida names the type (1023-inv), so the chip shows the ida. */
-const DOC_MODELS = new Set(["quote", "order", "invoice", "purchase", "workorder"]);
+const DOC_MODELS = new Set(["quote", "order", "invoice", "purchase", "workorder", "receipt"]);
 
 /** Refresh control for a panel section. All three panels come from one call,
  *  so each button refreshes the same data. */
@@ -389,7 +380,6 @@ const FlightSimConsole: React.FC = () => {
   // Transaction array
   const [rows, setRows] = useState<TransactionRow[]>([]);
   const [cashRows, setCashRows] = useState<CashRow[]>([]);
-  const [glRows, setGlRows] = useState<GlRow[]>([]);
   // Fresh start time (epoch ms, UTC). The panels show only what happens from
   // here on; null = full history (shift-click resume).
   const [simSince, setSimSince] = useState<number | null>(null);
@@ -484,7 +474,6 @@ const FlightSimConsole: React.FC = () => {
       if (data && !data.error) {
         setRows(transformRows(data));
         setCashRows(data.cash_rows || []);
-        setGlRows(data.gl_rows || []);
         if (data.item) {
           setItemIda(data.item.ida || "");
           setItemName(data.item.name || "");
@@ -536,7 +525,6 @@ const FlightSimConsole: React.FC = () => {
     setSimSince(resume ? null : Date.now() - 5000);
     setRows([]);
     setCashRows([]);
-    setGlRows([]);
     // Phase 1 sims have no item — narrow the left panel to give the form more room
     if (!sim.needsItem) {
       setSplitWidth(280);
@@ -671,6 +659,16 @@ const FlightSimConsole: React.FC = () => {
     simDocs.push({ model: rightModel, record_id: rightRecordId, ida: `#${rightRecordId}` });
   }
 
+  /** What the Journal Entries panel posts: the invoices, their cash, the receipts. */
+  const journalDocs: JournalDoc[] = [
+    ...simDocs.filter((d) => d.model === "invoice")
+      .map((d) => ({ model: "invoice" as const, id: d.record_id, ida: d.ida })),
+    ...cashRows.filter((c) => c.type === "cash" && c.record_id)
+      .map((c) => ({ model: "cash" as const, id: c.record_id as number, ida: c.label.replace(/^Cash\s*#?/, "") })),
+    ...simDocs.filter((d) => d.model === "receipt")
+      .map((d) => ({ model: "receipt" as const, id: d.record_id, ida: d.ida })),
+  ];
+
   /** Double-click: open the transaction or pending record on its own, so the
    *  trainee can see the two are separate records. */
   const openRowRecord = (row: TransactionRow) => {
@@ -685,7 +683,8 @@ const FlightSimConsole: React.FC = () => {
   const startAudit = async (invoiceIda: string) => {
     if (!invoiceIda.trim()) return;
     setLoading(true);
-    setActiveSim({ id: "audit", label: `Audit: Invoice ${invoiceIda}`, description: "Transaction audit view", needsItem: false, firstModel: "invoice" });
+    // The audit loads the invoice's item, so its panels show (counts, money, journal entries).
+    setActiveSim({ id: "audit", label: `Audit: Invoice ${invoiceIda}`, description: "Transaction audit view", needsItem: true, firstModel: "invoice" });
     try {
       const res = await manageAction("get_flight_by_invoice", { invoice_ida: invoiceIda.trim() });
       const data = res?.data?.data ?? res?.data ?? res;
@@ -696,7 +695,6 @@ const FlightSimConsole: React.FC = () => {
       }
       setRows(transformRows(data));
       setCashRows(data.cash_rows || []);
-      setGlRows(data.gl_rows || []);
       if (data.item) {
         setItemId(data.item.id);
         setItemIda(data.item.ida || "");
@@ -984,52 +982,18 @@ const FlightSimConsole: React.FC = () => {
               onMouseDown={() => setVDragging(1)}
             />
 
-            {/* Section 3: GL Journals */}
+            {/* Section 3: Journal Entries — what each document posts, previewed then posted */}
             <div className="fs-section" style={{ height: `${sectionHeights[2]}%` }}>
               <div className="fs-section-header">
-                GL Journals
+                Journal Entries
                 <span className="fs-section-header-tools">
-                  {glRows.length} rows
+                  {journalDocs.length} documents
                   <SectionRefresh onClick={refreshArray} loading={loading} />
                 </span>
               </div>
               <div className="fs-section-content">
-                {glRows.length > 0 ? (
-                  <div className="fs-gl-table">
-                    <div className="fs-gl-header-row">
-                      <span className="fs-gl-cell fs-gl-account">Account</span>
-                      <span className="fs-gl-cell fs-gl-debit">Debit</span>
-                      <span className="fs-gl-cell fs-gl-credit">Credit</span>
-                      <span className="fs-gl-cell fs-gl-source">Source</span>
-                    </div>
-                    {glRows.map((row, idx) => {
-                      const isHeader = row.type === "gl_header";
-                      return (
-                        <div
-                          key={`gl-${idx}`}
-                          className={`fs-gl-row ${isHeader ? "fs-gl-row--header" : "fs-gl-row--entry"}`}
-                        >
-                          <span className="fs-gl-cell fs-gl-account">{row.label}</span>
-                          {isHeader ? (
-                            <>
-                              <span className="fs-gl-cell fs-gl-debit" />
-                              <span className="fs-gl-cell fs-gl-credit" />
-                              <span className="fs-gl-cell fs-gl-source" />
-                            </>
-                          ) : (
-                            <>
-                              <span className="fs-gl-cell fs-gl-debit">{row.values.debit || ""}</span>
-                              <span className="fs-gl-cell fs-gl-credit">{row.values.credit || ""}</span>
-                              <span className="fs-gl-cell fs-gl-source">{row.values.source || ""}</span>
-                            </>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="fs-section-empty">No GL journals yet</div>
-                )}
+                <JournalEntriesPanel key={journalDocs.map((d) => `${d.model}:${d.id}`).join(",")}
+                                     docs={journalDocs} onPosted={refreshArray} />
               </div>
             </div>
           </div>

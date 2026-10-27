@@ -257,6 +257,9 @@ def get_flight_transactions(item_id: int, since: Optional[int] = None) -> Dict[s
         ('transactions', 'InvoiceLine', 'invoice'),
         ('transactions', 'PurchaseLine', 'purchase'),
         ('transactions', 'WorkOrderLine', 'workorder'),
+        # A receipt is where purchased goods land and the payable is born (2026-10-27: the
+        # console journalizes the invoice, its cash and the receipt).
+        ('transactions', 'ReceiptLine', 'receipt'),
     ]
     for app, model_name, parent_model in line_models:
         try:
@@ -405,18 +408,10 @@ def get_flight_transactions(item_id: int, since: Optional[int] = None) -> Dict[s
         cash_rows = []
         warnings.append(f'Money rows unavailable: {exc}')
 
-    try:
-        gl_rows = _get_gl_rows(tx_lines)
-    except Exception as exc:
-        logger.exception('flight sim: GL rows failed')
-        gl_rows = []
-        warnings.append(f'GL rows unavailable: {exc}')
-
     return {
         'columns': COLUMNS,
         'rows': rows,
         'cash_rows': cash_rows,
-        'gl_rows': gl_rows,
         'item': item_dict,
         'row_count': len(rows),
         'warnings': warnings,
@@ -501,13 +496,16 @@ def _get_cash_rows(tx_lines: list) -> List[Dict[str, Any]]:
     # Collect parent invoice and order IDs from transaction lines
     invoice_ids = set()
     order_ids = set()
+    receipt_ids = set()
     for tx in tx_lines:
         if tx['type'] == 'invoice_line' and tx.get('record_id'):
             invoice_ids.add(tx['record_id'])
         elif tx['type'] == 'order_line' and tx.get('record_id'):
             order_ids.add(tx['record_id'])
+        elif tx['type'] == 'receipt_line' and tx.get('record_id'):
+            receipt_ids.add(tx['record_id'])
 
-    if not invoice_ids and not order_ids:
+    if not invoice_ids and not order_ids and not receipt_ids:
         return []
 
     # Find cash linked to these invoices or orders
@@ -518,6 +516,8 @@ def _get_cash_rows(tx_lines: list) -> List[Dict[str, Any]]:
         q |= Q(parent_model='invoice', parent_id__in=invoice_ids)
     if order_ids:
         q |= Q(parent_model='order', parent_id__in=order_ids)
+    if receipt_ids:
+        q |= Q(receipt_id__in=receipt_ids)          # paying the vendor for what was received
 
     cash_entries = Cash.objects.filter(q, is_active=True).order_by('dt_created')
 
@@ -574,70 +574,6 @@ def _get_cash_rows(tx_lines: list) -> List[Dict[str, Any]]:
                 },
                 'processed': state == 'applied',
             })
-
-    return rows
-
-
-def _get_gl_rows(tx_lines: list) -> List[Dict[str, Any]]:
-    """Build GL journal display rows from transaction lines.
-
-    Finds GlJournal entries linked to the item's invoices, cash, purchases.
-    """
-    try:
-        GlJournal = dj_apps.get_model('accounts', 'GlJournal')
-    except LookupError:
-        return []
-
-    # Collect source documents from transaction lines
-    from django.db.models import Q
-    q = Q()
-    source_docs = set()
-    for tx in tx_lines:
-        if tx.get('record_id') and tx['type'] in ('invoice_line', 'order_line', 'purchase_line'):
-            model = tx['type'].replace('_line', '')
-            source_docs.add((model, tx['record_id']))
-            q |= Q(source_model=model, source_id=tx['record_id'])
-
-    # Also find GL entries for cash_entries linked to these invoices
-    invoice_ids = {doc_id for model, doc_id in source_docs if model == 'invoice'}
-    if invoice_ids:
-        Cash = dj_apps.get_model('transactions', 'Cash')
-        pay_ids = list(Cash.objects.filter(
-            invoice_id__in=invoice_ids, is_active=True
-        ).values_list('pk', flat=True))
-        for pid in pay_ids:
-            q |= Q(source_model='cash', source_id=pid)
-
-    if not q:
-        return []
-
-    journals = GlJournal.objects.filter(q).order_by('dt_created')
-
-    rows = []
-    # Group by batch_id for cleaner display
-    current_batch = None
-    for gl in journals:
-        batch = gl.batch_id or ''
-        if batch != current_batch:
-            current_batch = batch
-            source_label = f'{gl.source_model or ""} #{gl.source_id or ""}'
-            rows.append({
-                'type': 'gl_header',
-                'label': f'Journal: {batch or source_label}',
-                'values': {},
-            })
-
-        debit = float(gl.debit or 0)
-        credit = float(gl.credit or 0)
-        rows.append({
-            'type': 'gl_entry',
-            'label': f'  {gl.account}',
-            'values': {
-                'debit': f'${debit:.2f}' if debit else '',
-                'credit': f'${credit:.2f}' if credit else '',
-                'source': f'{gl.source_model}',
-            },
-        })
 
     return rows
 

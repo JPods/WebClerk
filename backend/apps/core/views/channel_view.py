@@ -75,6 +75,10 @@ def _wrong_method(method: str, model_name: str, record_id):
                                            'verbs': METHOD_VERBS}})
 
 
+#: Commands that write nothing (verbs.py says which). Throttled as reads, not as money.
+PREVIEW_COMMANDS = frozenset({'totals', 'journal_preview'})
+
+
 class CommandChannelView(SaveWcapiView):
     """POST /wcapi/<model>/<id>/<command>/ — a command on one record (pay, refund, …)."""
 
@@ -83,8 +87,14 @@ class CommandChannelView(SaveWcapiView):
     throttle_classes = [UserRateThrottle, AnonRateThrottle, ScopedRateThrottle]
 
     def initial(self, request, *args, **kwargs):
-        # A command that moves money keeps the pay route's own limit (settings: 'cash').
-        self.throttle_scope = 'cash' if kwargs.get('model_name') == 'cash' else 'tx_line'
+        # A command that moves money keeps the pay route's own limit (settings: 'cash'). One that
+        # writes nothing — a preview — has its own: the screen asks it on every edit, and the
+        # flight simulator previews each of a document's cash at once ("Request was throttled",
+        # 2026-10-27).
+        if kwargs.get('command') in PREVIEW_COMMANDS:
+            self.throttle_scope = 'preview'
+        else:
+            self.throttle_scope = 'cash' if kwargs.get('model_name') == 'cash' else 'tx_line'
         super().initial(request, *args, **kwargs)
 
     def post(self, request, model_name: str, record_id: int, command: str):
