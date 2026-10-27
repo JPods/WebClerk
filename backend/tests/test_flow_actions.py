@@ -83,4 +83,5 @@ def test_receive_purchase_action(django_user_model):
     resp = client.post(f'/wcapi/purchase/{po.pk}/convert/', payload, format='json')
     assert resp.status_code == 200, resp.content  # type: ignore[attr-defined]
     result = resp.json()['data']['result']
-    assert result['receipt_ida'] and len(result['lines']) == 1
+    # Saved with its lines, so none come back for review (they were added twice — 2026-10-26).
+    assert result['receipt_ida'] and result['lines_saved'] == 1 and result['lines'] == []

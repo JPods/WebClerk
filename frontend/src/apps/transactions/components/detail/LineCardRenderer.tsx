@@ -30,6 +30,8 @@ export interface LineCardRendererProps {
   isLocked: boolean;
   onLinesChange: (lines: TransactionLine[]) => void;
   onEnterCash?: () => void;
+  /** The document's model: a receipt shows planned/received, warehouse, lot and serial. */
+  modelName?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -37,7 +39,7 @@ export interface LineCardRendererProps {
 // ---------------------------------------------------------------------------
 
 /** Render the line card -- DataGrid with line card config, no LinesCard component */
-const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEditing, isLocked, onLinesChange, onEnterCash }) => {
+const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEditing, isLocked, onLinesChange, onEnterCash, modelName }) => {
   // Removed lines stay in the list — greyed out, struck through, zero qty —
   // until the save deletes the row. Escape a delete by closing the window.
   const lines = data?.lines || [];
@@ -162,6 +164,7 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
   const lc = useLineCard({
     lines,
     family: section.family,
+    modelName,
     isEditing,
     isLocked,
     priceLevel: data?.price_level,

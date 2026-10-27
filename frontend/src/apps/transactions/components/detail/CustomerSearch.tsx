@@ -6,7 +6,15 @@ import { getRecords } from '@/api/wcapi';
 // Types
 // ---------------------------------------------------------------------------
 
+/** Who a document is with: a sale's customer, a purchase's or receipt's vendor. */
+export type Party = 'customer' | 'vendor';
+
+export function partyOf(modelName: string): Party {
+  return modelName === 'purchase' || modelName === 'receipt' ? 'vendor' : 'customer';
+}
+
 export interface CustomerSearchState {
+  party: Party;
   open: boolean;
   query: string;
   results: any[];
@@ -23,6 +31,7 @@ export interface CustomerSearchState {
 
 export function useCustomerSearch(
   onFieldChange: (field: string, value: unknown) => void,
+  party: Party = 'customer',
 ): CustomerSearchState {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -46,24 +55,26 @@ export function useCustomerSearch(
     timer.current = setTimeout(async () => {
       setSearching(true);
       try {
-        const res = await getRecords('customer', { keyword: q, limit: 10 });
+        const res = await getRecords(party, { keyword: q, limit: 10 });
         const records = res?.results || res?.records || [];
         setResults(records);
       } catch { setResults([]); }
       setSearching(false);
     }, 300);
-  }, []);
+  }, [party]);
 
   const select = useCallback((cust: any) => {
     setOpen(false);
     setQuery('');
     setResults([]);
-    setTimeout(() => onFieldChange('customer', cust.id), 0);
-  }, [onFieldChange]);
+    // A purchase's party is its vendor: picking one sets vendor, which the receipt and its
+    // payable inherit (To Receipt carried no vendor: the form could only pick a customer).
+    setTimeout(() => onFieldChange(party, cust.id), 0);
+  }, [onFieldChange, party]);
 
   useEffect(() => {
     if (open && inputRef.current) inputRef.current.focus();
   }, [open]);
 
-  return { open, query, results, searching, inputRef, toggle, search, select };
+  return { party, open, query, results, searching, inputRef, toggle, search, select };
 }

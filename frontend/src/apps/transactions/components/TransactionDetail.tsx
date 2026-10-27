@@ -16,12 +16,13 @@ import { useWindowManager } from '@/context/WindowManagerContext';
 import { useDetailLayout } from '@/hooks/useDetailLayout';
 import { applyCustomerDefaults, DISPLAY_ONLY_KEYS } from '@/apps/transactions/utils/applyCustomerDefaults';
 import { changedFields } from '@/utils/changedFields';
+import { convertedTarget, type ConvertedTarget } from '../utils/convertedTarget';
 import { getNextLineNumber } from '../utils/lineHelpers';
 import { getActiveLines, getRemovedLines, isPersistedLine } from '../services/lineItemService';
 import type { TransactionLine } from '../types/transactionTypes';
 import { selectCompanyInfo, selectLogos } from '@/store/slices/companySlice';
 
-import { useCustomerSearch } from './detail/CustomerSearch';
+import { useCustomerSearch, partyOf } from './detail/CustomerSearch';
 import HeaderRenderer from './detail/HeaderRenderer';
 import LineCardRenderer from './detail/LineCardRenderer';
 import TabsRenderer from './detail/TabsRenderer';
@@ -313,7 +314,7 @@ const UiDetailView: React.FC<UiDetailProps> = ({
   };
 
   // ── Customer search hook ────────────────────────────────────────
-  const custSearch = useCustomerSearch(handleFieldChange);
+  const custSearch = useCustomerSearch(handleFieldChange, partyOf(modelName));
 
   // ── Live totals while editing ───────────────────────────────────
   // The screen mirrors the server (Bill, 2026-10-25): on each edit it asks totals_preview —
@@ -481,6 +482,7 @@ const UiDetailView: React.FC<UiDetailProps> = ({
                   cardSpecs={activeLayout.card}
                   behaviors={activeLayout.behaviors}
                   custSearch={{
+                    party: custSearch.party,
                     open: custSearch.open,
                     query: custSearch.query,
                     results: custSearch.results,
@@ -501,6 +503,7 @@ const UiDetailView: React.FC<UiDetailProps> = ({
                     isEditing={isEditing}
                     isLocked={editTier === 'closed'}
                     onLinesChange={handleLinesChange}
+                    modelName={modelName}
                     onEnterCash={['order', 'invoice', 'receipt'].includes(modelName) ? () => setShowAddCash(true) : undefined}
                   />
                   {/* The documents around this one, under its lines (Bill, 2026-10-25) */}
@@ -570,17 +573,6 @@ const UiDetailView: React.FC<UiDetailProps> = ({
   );
 };
 
-/** What a convert command made: the target model, its id, and the lines it returns for
- *  review (the user saves them — review before save, Bill 2026-09-27). Null for anything else. */
-export function convertedTarget(result: any): { model: string; id: number; lines: any[] | null } | null {
-  if (!result) return null;
-  for (const model of ['order', 'invoice', 'purchase', 'receipt', 'workorder']) {
-    const id = result[`${model}_id`];
-    if (id) return { model, id: Number(id), lines: Array.isArray(result.lines) ? result.lines : null };
-  }
-  return null;
-}
-
 /**
  * The transaction form, wherever it is hosted (DataBrowser, /<model>/:id, the flight
  * simulator, a window). A workflow that converts this document opens what it made, with
@@ -592,7 +584,7 @@ const UiDetail: React.FC<UiDetailProps> = (props) => {
   const params = useParams<{ model?: string; id?: string }>();
   const hostModel = (props.modelName as string) || params.model || 'order';
   const hostId = (props.recordId as number) || (params.id ? Number(params.id) : 0);
-  const [opened, setOpened] = useState<{ model: string; id: number; lines: any[] | null } | null>(null);
+  const [opened, setOpened] = useState<ConvertedTarget | null>(null);
 
   // The host moved to another record: show that one. (A host following our own jump
   // through onNavigate lands on the record already opened, and keeps its lines.)

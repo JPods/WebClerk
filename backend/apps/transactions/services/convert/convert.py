@@ -395,11 +395,15 @@ def convert_record(actor, source_type: str, source_id: int, target_type: str, *,
         from apps.transactions.services.cash.cash_door import relink_deposits
         forwarded = relink_deposits(source, result.obj)
 
+    # Lines come back for review only when the target was saved without them. Saved with
+    # them (a receipt; lines named), returning them too had the screen add each a second time.
+    for_review = review if take is None else []
     return {
         f"{target_type}_id": result.obj_id,
         f"{target_type}_ida": getattr(result.obj, "ida", ""),
-        "lines_for_review": len(review),
-        "lines": review,
+        "lines_for_review": len(for_review),
+        "lines": for_review,
+        "lines_saved": len(payload.get("lines") or []),
         "cash_entries_forwarded": forwarded,
     }
 

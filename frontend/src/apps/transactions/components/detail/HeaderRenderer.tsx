@@ -11,6 +11,8 @@ import { WIDGETS } from '@/components/widgets';
 // ---------------------------------------------------------------------------
 
 export interface CustSearchProps {
+  /** customer or vendor — what the search finds and sets. */
+  party: 'customer' | 'vendor';
   open: boolean;
   query: string;
   results: any[];
@@ -99,16 +101,16 @@ const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditin
             <div className="font-bold mb-2 pb-1 flex items-center gap-2 db-font-sm"
               style={{ color: 'var(--db-text, #212529)', borderBottom: '1px solid var(--db-border-light, #e9ecef)' }}>
               <span>{col.title}</span>
-              {col.title_ida && data?.customer && (
+              {col.title_ida && custSearch && data?.[custSearch.party] && (
                 <span className="font-mono font-normal db-font-xs" style={{ color: 'var(--db-text-dim)' }}>
-                  #{typeof data.customer === 'object' ? data.customer.id : data.customer}
+                  {custSearch.party === 'vendor' ? 'vendor ' : ''}#{typeof data[custSearch.party] === 'object' ? data[custSearch.party].id : data[custSearch.party]}
                 </span>
               )}
               {col.title_ida && isEditing && custSearch && !custSearch.open && (
                 <button
                   type="button"
                   className="ml-auto db-font-xs text-slate-400 hover:text-blue-600 px-1 py-0.5 rounded hover:bg-blue-50"
-                  title="Search customers"
+                  title={`Search ${custSearch.party}s`}
                   onClick={() => custSearch.onToggle(true)}
                 >🔍</button>
               )}

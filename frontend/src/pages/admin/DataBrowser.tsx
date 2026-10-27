@@ -14,6 +14,7 @@ import DataGrid from '../../components/common/DataGrid';
 import { getRecords } from '../../api/wcapi';
 import ToolbarIcon from '../../components/common/ToolbarIcon';
 import { WorkflowSelect } from '../../components/common/WorkflowSelect';
+import { convertedTarget, type ConvertedTarget } from '../../apps/transactions/utils/convertedTarget';
 import { TB } from '../../components/common/toolbarActions';
 import DedupPanel from '../../components/common/DedupPanel';
 import { useReportShortcuts } from '../../hooks/useReportShortcuts';
@@ -315,6 +316,11 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
 
   // ── Detail component state (reported via callbacks) ──
   const [detailIsEditing, setDetailIsEditing] = useState(true); // default true for app mode
+  // What a workflow convert made, shown in the detail pane with its review lines until another
+  // record is picked. The toolbar's Workflow only refreshed the list: To Purchase left an empty
+  // purchase and To Receipt opened nothing (Bill, 2026-10-25/26).
+  const [converted, setConverted] = useState<ConvertedTarget | null>(null);
+  useEffect(() => { setConverted(null); }, [db.selectedModel, db.selectedId]);
   const detailSaveRef = useRef<(() => void) | null>(null);
   const detailCancelRef = useRef<(() => void) | null>(null);
   const detailDeleteRef = useRef<(() => void) | null>(null);
@@ -860,7 +866,13 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
                 db.setSelectedRecord(null);
               }} />
               <ToolbarIcon action={TB.print} title="Report / Print" disabled={!db.selectedId} onClick={() => setShowReportsDialog('detail')} />
-              <WorkflowSelect modelName={db.selectedModel} record={db.selectedRecord} onComplete={db.fetchRecords} />
+              <WorkflowSelect modelName={converted?.model ?? db.selectedModel}
+                              record={converted ? { id: converted.id } : db.selectedRecord}
+                              onComplete={(result: any) => {
+                                const target = convertedTarget(result);
+                                if (target) setConverted(target);
+                                db.fetchRecords();
+                              }} />
               <select
                 className="db-apply-select"
                 value={db.activeViewName || ''}
@@ -1020,8 +1032,10 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
         {!showDedup && (db.selectedRecord || (db.selectedModel && db.totalRecords === 0 && !db.recordsLoading)) && (() => {
           // VIEW: use source model for detail rendering
           const isViewSource = !!(db.selectedRecord as any)?._viewSource;
-          const detailModel = isViewSource ? (db.selectedRecord as any)._sourceModel || db.selectedModel : db.selectedModel;
-          const detailId = isViewSource ? (db.selectedRecord as any)._sourceId || db.selectedId : db.selectedId;
+          const detailModel = converted?.model
+            ?? (isViewSource ? (db.selectedRecord as any)._sourceModel || db.selectedModel : db.selectedModel);
+          const detailId = converted?.id
+            ?? (isViewSource ? (db.selectedRecord as any)._sourceId || db.selectedId : db.selectedId);
           const AppDetailComponent = viewPref === 'app' ? APP_DETAIL_COMPONENTS[detailModel] : null;
           // Parade mode: render any model's layout — works on all models, not just settings
           const paradeModel = viewPref === 'parade' ? (
@@ -1074,11 +1088,13 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
             {viewPref === 'app' && AppDetailComponent && detailId ? (
               <React.Suspense fallback={<div className="db-loading-fallback">Loading...</div>}>
                 <AppDetailComponent
+                  key={converted ? `${converted.model}:${converted.id}` : undefined}
                   modeProp={isViewSource ? "view" : "edit"}
                   recordId={detailId}
                   id={detailId}
                   modelName={detailModel}
-                  dataProp={db.selectedRecord}
+                  dataProp={converted ? undefined : db.selectedRecord}
+                  initialLines={converted?.lines ?? undefined}
                   hideBreadcrumb
                   inline
                   onSaved={() => db.fetchRecords()}

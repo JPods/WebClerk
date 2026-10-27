@@ -140,6 +140,8 @@ function flattenLine(line: any, idx: number, isSellSide: boolean): any {
     item_code: itemCode,
     description,
     qty: isRemoved ? 0 : qty,
+    planned: isRemoved ? 0 : Number(line.quantity?.staged ?? 0),
+    received: Number(line.quantity?.active ?? 0),
     remaining: isRemoved ? 0 : remaining,
     remain: isRemoved ? 0 : remaining,
     is_complete: isComplete,
@@ -218,6 +220,9 @@ export function useLineCard(options: UseLineCardOptions) {
         result.totals = previewLineTotals(result, isSellSide);
         return result;
       }
+      case "planned":
+        // The plan only: received (active) is the Receive command's.
+        return { ...updated, quantity: { ...updated.quantity, staged: Number(value) } };
       case "description":
         return { ...updated, item: { ...updated.item, description: String(value) } };
       case "unit_price": {
@@ -369,8 +374,15 @@ export function useLineCard(options: UseLineCardOptions) {
         },
       }, row.item_code),
     });
-    cols.push({ name: 'qty', field: 'qty', width: '80px', sortable: true });
-    cols.push({ name: 'remain', field: 'remaining', width: '55px', sortable: true });
+    if (isReceipt) {
+      // A receipt plans in staged and receives in active (Bill, 2026-09-30): the plan is what
+      // the user edits; received moves only by the Receive command.
+      cols.push({ name: 'planned', field: 'planned', width: '80px', sortable: true });
+      cols.push({ name: 'received', field: 'received', width: '70px', sortable: true });
+    } else {
+      cols.push({ name: 'qty', field: 'qty', width: '80px', sortable: true });
+      cols.push({ name: 'remain', field: 'remaining', width: '55px', sortable: true });
+    }
 
     if (isSellSide) {
       cols.push({ name: 'c', field: 'is_complete', width: '28px', sortable: false });
@@ -428,6 +440,8 @@ export function useLineCard(options: UseLineCardOptions) {
 
   const fieldBehaviors = useMemo(() => ({
     qty: { type: 'number', precision: currency.qty_precision, bulkEditable: true },
+    planned: { type: 'number', precision: currency.qty_precision },
+    received: { type: 'number', precision: currency.qty_precision, calculated: true },
     remaining: { type: 'number', precision: currency.qty_precision, calculated: true },
     remain: { type: 'number', precision: currency.qty_precision, calculated: true },
     is_complete: { type: 'boolean' },
