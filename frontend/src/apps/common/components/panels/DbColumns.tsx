@@ -38,11 +38,11 @@
  *     renderRow={(record, columns) => <CommCard ... />}
  *   />
  */
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
+import CollapsiblePanel from "@/apps/common/components/CollapsiblePanel";
 import { FaSlidersH } from "react-icons/fa";
 import FieldOrderDialog from "@/components/common/FieldOrderDialog";
 import { useListFieldConfig } from "@/hooks/useListFieldConfig";
-import { getUI } from '@/utils/contactUI';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -100,6 +100,10 @@ export interface DbColumnsProps<T = Record<string, unknown>> {
   hideHeaders?: boolean;
   /** Optional: empty state message */
   emptyMessage?: string;
+  /** Optional: the rows are being read / could not be read — shown by the panel frame. */
+  loading?: boolean;
+  error?: string | null;
+  onRetry?: () => void;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -125,10 +129,10 @@ export function DbColumns<T extends Record<string, unknown>>({
   compact = false,
   hideHeaders = false,
   emptyMessage,
+  loading,
+  error,
+  onRetry,
 }: DbColumnsProps<T>) {
-  const active = getUI<string>('theme.active', 'dark');
-  const baseFontSize = getUI<number>(`theme.${active}.font.size`, 13);
-  const [collapsed, setCollapsed] = useState(defaultCollapsed);
 
   // Column config persistence — pass default-visible columns as initial set
   // so useListFieldConfig only shows those when no saved config exists
@@ -155,141 +159,128 @@ export function DbColumns<T extends Record<string, unknown>>({
   }, [fc.effectiveKeys, columns, storageKey]);
 
   const hasSectionHeader = !!sectionLabel;
-  const showContent = !hasSectionHeader || !collapsible || !collapsed;
+  // Real extra content only: a caller's {cond && <X/>} hands over false, not nothing.
+  const hasChildren = React.Children.toArray(children).length > 0;
 
-  return (
-    <div>
-      {/* ── Section header ─────────────────────────────────────────── */}
-      {hasSectionHeader && (
-        <div
-          className="db-section-header"
-          onClick={(e) => {
-            // Option+Cmd (Mac) / Alt+Ctrl (Windows) → remove panel
-            if (onRemove && e.altKey && (e.metaKey || e.ctrlKey)) {
+  const table = (
+    <>
+      {/* ── Column headers: they stay in view while the rows scroll (TFTS 2026-10-27) ── */}
+      {!hideHeaders && visibleColumns.length > 0 && (
+        <div className="db-list-header"
+             style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--db-surface-alt, var(--db-surface, #fff))' }}>
+          {visibleColumns.map((col) => (
+            <span
+              key={col.key}
+              className={`db-list-header__cell ${col.className ?? ""}`}
+              style={col.width ? { width: col.width, flexShrink: 0 } : { flex: 1 }}
+            >
+              {col.label}
+            </span>
+          ))}
+          <button
+            type="button"
+            title="Configure columns"
+            className="db-list-header__action"
+            onClick={(e) => {
               e.stopPropagation();
-              onRemove();
-              return;
-            }
-            if (collapsible) setCollapsed((c) => !c);
-          }}
-        >
-          {collapsible && (
-            <span style={{ fontSize: 9, color: 'var(--db-text-dim)' }}>
-              {collapsed ? '▶' : '▼'}
-            </span>
-          )}
-          {sectionIcon && (
-            <span style={{ fontSize: baseFontSize - 3 }}>{sectionIcon}</span>
-          )}
-          <span className="db-section-header__label">{sectionLabel}</span>
-          <span className="db-section-header__count">({data.length})</span>
-          {onAssign && (
-            <span className="db-section-header__actions">
-              <button className="db-section-header__action"
-                onClick={(e) => { e.stopPropagation(); setCollapsed(false); onAssign(); }}>assign</button>
-            </span>
-          )}
+              fc.toggleDialog();
+            }}
+          >
+            <FaSlidersH size={10} />
+          </button>
         </div>
       )}
 
-      {showContent && (
-        <>
-          {/* ── Column headers ────────────────────────────────────── */}
-          {!hideHeaders && visibleColumns.length > 0 && (
-            <div className="db-list-header">
-              {visibleColumns.map((col) => (
-                <span
-                  key={col.key}
-                  className={`db-list-header__cell ${col.className ?? ""}`}
-                  style={col.width ? { width: col.width, flexShrink: 0 } : { flex: 1 }}
-                >
-                  {col.label}
-                </span>
-              ))}
-              <button
-                type="button"
-                title="Configure columns"
-                className="db-list-header__action"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  fc.toggleDialog();
+      {/* ── Data rows ─────────────────────────────────────────── */}
+      {data.map((record) => {
+        const rk = rowKey(record);
+        const isSelected = selectedKey != null && rk === selectedKey;
+
+        // Custom row renderer
+        if (renderRow) {
+          return (
+            <div key={rk} className={isSelected ? 'db-list-row--checked' : ''}>
+              {renderRow(record, visibleColumns)}
+            </div>
+          );
+        }
+
+        // Default columnar row
+        return (
+          <div
+            key={rk}
+            className={`db-list-row ${isSelected ? 'db-list-row--checked' : ''}`}
+            style={{ padding: compact ? '3px 12px' : '6px 12px' }}
+            onClick={() => onSelectRow?.(record)}
+          >
+            <div className="db-list-row__indicator" />
+            {visibleColumns.map((col) => (
+              <span
+                key={col.key}
+                className={col.className ?? ""}
+                style={{
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  ...(col.width ? { width: col.width, flexShrink: 0 } : { flex: 1 }),
                 }}
               >
-                <FaSlidersH size={10} />
-              </button>
-            </div>
-          )}
-
-          {/* ── Data rows ─────────────────────────────────────────── */}
-          {data.map((record) => {
-            const rk = rowKey(record);
-            const isSelected = selectedKey != null && rk === selectedKey;
-
-            // Custom row renderer
-            if (renderRow) {
-              return (
-                <div key={rk} className={isSelected ? 'db-list-row--checked' : ''}>
-                  {renderRow(record, visibleColumns)}
-                </div>
-              );
-            }
-
-            // Default columnar row
-            return (
-              <div
-                key={rk}
-                className={`db-list-row ${isSelected ? 'db-list-row--checked' : ''}`}
-                style={{ padding: compact ? '3px 12px' : '6px 12px' }}
-                onClick={() => onSelectRow?.(record)}
+                {col.render(record)}
+              </span>
+            ))}
+            {onRowAction && (
+              <button
+                type="button"
+                title="Open"
+                className="db-list-header__action"
+                style={{ marginLeft: 'auto' }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRowAction(record);
+                }}
               >
-                <div className="db-list-row__indicator" />
-                {visibleColumns.map((col) => (
-                  <span
-                    key={col.key}
-                    className={col.className ?? ""}
-                    style={{
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      ...(col.width ? { width: col.width, flexShrink: 0 } : { flex: 1 }),
-                    }}
-                  >
-                    {col.render(record)}
-                  </span>
-                ))}
-                {onRowAction && (
-                  <button
-                    type="button"
-                    title="Open"
-                    className="db-list-header__action"
-                    style={{ marginLeft: 'auto' }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onRowAction(record);
-                    }}
-                  >
-                    &#8599;
-                  </button>
-                )}
-              </div>
-            );
-          })}
+                &#8599;
+              </button>
+            )}
+          </div>
+        );
+      })}
 
-          {/* ── Empty state ───────────────────────────────────────── */}
-          {data.length === 0 && !children && (
-            <div className="db-list-empty">
-              {emptyMessage ?? `No ${sectionLabel?.toLowerCase() ?? 'records'}`}
-            </div>
-          )}
-
-          {/* ── Extra content (e.g. "adding" form) ───────────────── */}
-          {children}
-        </>
+      {/* ── Empty state: a bare table says it; a framed one lets the frame say it ── */}
+      {!hasSectionHeader && data.length === 0 && !hasChildren && (
+        <div className="db-list-empty">{emptyMessage ?? 'No records'}</div>
       )}
+
+      {/* ── Extra content (e.g. "adding" form) ───────────────── */}
+      {children}
 
       {/* ── Column config dialog ───────────────────────────────── */}
       <FieldOrderDialog {...fc.fieldOrderDialogProps} allFields={allTableColumns.map(c => String(c.name))} />
-    </div>
+    </>
+  );
+
+  if (!hasSectionHeader) return <div>{table}</div>;
+
+  // A labelled table is a panel: the one frame draws its header, count, collapse and status.
+  return (
+    <CollapsiblePanel
+      label={sectionLabel!}
+      icon={sectionIcon}
+      storageKey={`${storageKey}:collapsed`}
+      defaultCollapsed={defaultCollapsed}
+      collapsible={collapsible}
+      keepMounted
+      badge={data.length}
+      onRemove={onRemove}
+      headerActions={onAssign ? (
+        <button type="button" className="db-section-header__action" onClick={onAssign}>assign</button>
+      ) : undefined}
+      status={{ loading: !!loading && data.length === 0, error: error ?? null, onRetry,
+                empty: !loading && !error && data.length === 0 && !hasChildren,
+                emptyText: emptyMessage ?? `No ${sectionLabel!.toLowerCase()}` }}
+    >
+      {table}
+    </CollapsiblePanel>
   );
 }
 

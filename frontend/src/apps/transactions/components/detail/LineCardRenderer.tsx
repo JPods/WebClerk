@@ -337,7 +337,7 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
               Cash
             </button>
             <span
-              className="font-mono text-green-700 dark:text-green-400 w-16 text-right not-italic cursor-default"
+              className="font-mono text-green-700 dark:text-green-400 min-w-[4rem] whitespace-nowrap text-right not-italic cursor-default"
               title={`Paid: ${formatCurrency(data?.totals?.received ?? 0)}\nBalance: ${formatCurrency(data?.totals?.balance ?? 0)}`}
             >
               <span className="text-slate-400 dark:text-slate-500 italic mr-0.5" style={{ fontSize: '0.85em' }}>bal:</span>
@@ -353,7 +353,7 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
         {footerBacklog > 0 && (
           <>
             <span className="text-red-500 dark:text-red-400">backlog:</span>
-            <span className="font-mono font-medium text-red-600 dark:text-red-400 w-16 text-right">{formatCurrency(footerBacklog)}</span>
+            <span className="font-mono font-medium text-red-600 dark:text-red-400 min-w-[4rem] whitespace-nowrap text-right">{formatCurrency(footerBacklog)}</span>
           </>
         )}
         <span className="text-slate-700 dark:text-slate-200 not-italic font-semibold">total:</span>

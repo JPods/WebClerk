@@ -4,7 +4,8 @@
  *
  * Shared/common version used by detail pages.
  */
-import React from "react";
+import React, { useMemo } from "react";
+import { usePanelFrame } from "@/apps/common/components/CollapsiblePanel";
 import {
   FaDollarSign,
   FaPercentage,
@@ -84,17 +85,15 @@ const FinancialsPanel: React.FC<FinancialsPanelProps> = ({
           : "down"
       : "neutral";
 
+  // The frame draws the header (label from the layout); the panel says only what is its own:
+  // the currency (Bill, 2026-10-27 — panels inherit; this one drew a second header inside it).
+  const currencyTag = useMemo(
+    () => <span className="db-font-xs db-text-dim flex items-center gap-1"><FaDollarSign size={10} />{currency}</span>,
+    [currency]);
+  usePanelFrame({ headerActions: currencyTag });
+
   return (
-    <div className="rounded-lg border overflow-hidden db-panel">
-      <div className="px-4 py-3 border-b db-section-bg">
-        <div className="flex items-center gap-2">
-          <FaDollarSign className="db-text-green" size={16} />
-          <h3 className="font-semibold db-text">
-            Financials
-          </h3>
-          <span className="db-font-xs ml-auto db-text-dim">{currency}</span>
-        </div>
-      </div>
+    <div>
 
       {/* ── Totals ────────────────────────────────────────────── */}
       <div className="p-4 border-b db-border-color">

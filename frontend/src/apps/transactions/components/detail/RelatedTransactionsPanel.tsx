@@ -11,6 +11,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { getRecord, getRecords } from '@/api/wcapi';
 import { useWindowManager } from '@/context/WindowManagerContext';
 import { formatCurrency } from '@/utils/stringUtils';
+import CollapsiblePanel from '@/apps/common/components/CollapsiblePanel';
 
 type Rec = Record<string, any>;
 
@@ -131,51 +132,56 @@ const RelatedTransactionsPanel: React.FC<Props> = ({ modelName, record, onNaviga
   };
 
   const rows = related?.[active] || [];
+  const total = related ? Object.values(related).reduce((n, list) => n + list.length, 0) : undefined;
+  // The one frame draws the header, count, collapse and status; the tabs are this panel's own.
   return (
-    <div data-wc="related-transactions" className="rounded-lg border overflow-hidden db-panel no-print">
-      <div className="flex items-center gap-1 px-3 pt-2 border-b db-section-bg">
-        <span className="text-sm font-semibold db-text mr-2">Related</span>
-        {tabs.map((t) => {
-          const n = related?.[t]?.length ?? 0;
-          return (
-            <button key={t} onClick={() => setActive(t)}
-              className={`px-3 py-1 text-xs rounded-t ${t === active ? 'db-bg-row-active db-text-accent font-semibold' : 'db-text-muted'}`}>
-              {LABELS[t]} <span className="db-text-dim">({related ? n : '…'})</span>
-            </button>
-          );
-        })}
-        <button onClick={load} title="Reload" className="ml-auto text-xs db-text-dim px-2">↻</button>
-      </div>
-      {error ? (
-        <div className="p-3 text-xs db-text-red">{error}</div>
-      ) : !related ? (
-        <div className="p-3 text-xs db-text-dim">Loading…</div>
-      ) : !rows.length ? (
-        <div className="p-3 text-xs db-text-dim">No {LABELS[active].toLowerCase()} linked to this {modelName}.</div>
-      ) : (
-        <table className="w-full text-xs">
-          <thead>
-            <tr className="db-text-muted text-left">
-              <th className="px-3 py-1 font-medium">{LABELS[active]}</th>
-              <th className="px-3 py-1 font-medium">status</th>
-              <th className="px-3 py-1 font-medium">date</th>
-              <th className="px-3 py-1 font-medium text-right">{active === 'cash' ? 'amount' : 'total'}</th>
-              {active !== 'cash' && <th className="px-3 py-1 font-medium text-right">balance</th>}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.id} onClick={() => open(active, r)} className="cursor-pointer hover:db-bg-row-active border-t db-border-color">
-                <td className="px-3 py-1 font-mono db-text-accent">{r.ida || `#${r.id}`}</td>
-                <td className="px-3 py-1">{r.status || '—'}</td>
-                <td className="px-3 py-1">{dateOf(r)}</td>
-                <td className="px-3 py-1 text-right font-mono">{formatCurrency(amountOf(active, r))}</td>
-                {active !== 'cash' && <td className="px-3 py-1 text-right font-mono">{formatCurrency(Number(r.totals?.balance ?? 0))}</td>}
+    <div data-wc="related-transactions" className="no-print">
+      <CollapsiblePanel
+        label="Related"
+        storageKey={`panel_${modelName}_related`}
+        badge={total}
+        keepMounted
+        headerActions={<button type="button" onClick={load} title="Reload" className="text-xs db-text-dim px-2">↻</button>}
+        status={{ loading: !related && !error, error, onRetry: load }}
+      >
+        <div className="flex items-center gap-1 border-b db-border-color mb-1">
+          {tabs.map((t) => {
+            const n = related?.[t]?.length ?? 0;
+            return (
+              <button key={t} onClick={() => setActive(t)}
+                className={`px-3 py-1 text-xs rounded-t ${t === active ? 'db-bg-row-active db-text-accent font-semibold' : 'db-text-muted'}`}>
+                {LABELS[t]} <span className="db-text-dim">({n})</span>
+              </button>
+            );
+          })}
+        </div>
+        {!rows.length ? (
+          <div className="p-3 text-xs db-text-dim">No {LABELS[active].toLowerCase()} linked to this {modelName}.</div>
+        ) : (
+          <table className="w-full text-xs">
+            <thead className="sticky top-0" style={{ background: 'var(--db-surface, #fff)' }}>
+              <tr className="db-text-muted text-left">
+                <th className="px-3 py-1 font-medium">{LABELS[active]}</th>
+                <th className="px-3 py-1 font-medium">status</th>
+                <th className="px-3 py-1 font-medium">date</th>
+                <th className="px-3 py-1 font-medium text-right">{active === 'cash' ? 'amount' : 'total'}</th>
+                {active !== 'cash' && <th className="px-3 py-1 font-medium text-right">balance</th>}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.id} onClick={() => open(active, r)} className="cursor-pointer hover:db-bg-row-active border-t db-border-color">
+                  <td className="px-3 py-1 font-mono db-text-accent">{r.ida || `#${r.id}`}</td>
+                  <td className="px-3 py-1">{r.status || '—'}</td>
+                  <td className="px-3 py-1">{dateOf(r)}</td>
+                  <td className="px-3 py-1 text-right font-mono">{formatCurrency(amountOf(active, r))}</td>
+                  {active !== 'cash' && <td className="px-3 py-1 text-right font-mono">{formatCurrency(Number(r.totals?.balance ?? 0))}</td>}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </CollapsiblePanel>
     </div>
   );
 };

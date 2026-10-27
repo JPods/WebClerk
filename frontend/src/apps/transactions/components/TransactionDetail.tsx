@@ -223,13 +223,7 @@ const UiDetailView: React.FC<UiDetailProps> = ({
       const custId = typeof value === 'number' ? value : Number(value);
       if (custId > 0) {
         applyCustomerDefaults(custId).then(defaults => {
-          console.log('[TD] applyCustomerDefaults result:', { company: defaults.company, phone: defaults.phone, ship_to: defaults.config?.ship_to?.company });
-          setEditData((prev: any) => {
-            if (!prev) return prev;
-            const merged = { ...prev, ...defaults, config: { ...(prev.config || {}), ...(defaults.config || {}) } };
-            console.log('[TD] editData merged:', { company: merged.company, phone: merged.phone, isEditing });
-            return merged;
-          });
+          setEditData((prev: any) => (prev ? { ...prev, ...defaults } : prev));
           const isStaff = authUser?.is_staff || authUser?.is_superuser;
           const repMsg = (defaults.has_reps && isStaff) ? ' (commission will populate on save)' : '';
           dispatch(showToast({ message: `Customer defaults applied: ${defaults.addresses.bill_to.company}${repMsg}`, type: 'success' }));

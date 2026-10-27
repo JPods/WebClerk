@@ -409,7 +409,6 @@ export const DetailTabs: React.FC<DetailTabsProps> = ({
             standardTabs.includes("financials") && (
               <FinancialsPanel
                 totals={recordData?.financial?.totals}
-                cost={recordData?.financial?.cost}
                 currency={recordData?.financial?.currency}
               />
             )}

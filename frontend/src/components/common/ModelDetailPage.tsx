@@ -25,6 +25,7 @@ import { useDetailLayout } from '@/hooks/useDetailLayout';
 import { selectCompanyInfo, selectLogos } from '@/store/slices/companySlice';
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
 import { renderPanel } from './panelRegistry';
+import CollapsiblePanel from '@/apps/common/components/CollapsiblePanel';
 
 import FieldRow from '@/apps/transactions/components/detail/FieldRow';
 import DetailToolbar from '@/components/common/DetailToolbar';
@@ -527,7 +528,14 @@ const ModelDetailPage: React.FC<ModelDetailPageProps> = ({
               ))}
             </div>
             <div className="p-2">
-              {activeTab && renderPanel(activeTab, panelCtx)}
+              {/* Every registry panel renders inside the one frame, so what it declares
+                  (count, actions, loading / empty / error) shows here as in a layout section. */}
+              {activeTab && (
+                <CollapsiblePanel key={activeTab} collapsible={false}
+                  label={tabs.find((t: any) => t.content === activeTab)?.label ?? activeTab}>
+                  {renderPanel(activeTab, panelCtx)}
+                </CollapsiblePanel>
+              )}
             </div>
           </div>
         )}
