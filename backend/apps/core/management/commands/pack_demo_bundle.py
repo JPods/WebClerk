@@ -109,8 +109,7 @@ class Command(BaseCommand):
         }
 
         # ── Settings ───────────────────────────────────────────────────
-        from apps.core.services.demo_bundle import RUNTIME_SETTING_PURPOSES
-        for s in Setting.objects.filter(is_active=True).exclude(purpose__in=RUNTIME_SETTING_PURPOSES).order_by('purpose', 'parent_model'):
+        for s in Setting.objects.filter(is_active=True).order_by('purpose', 'parent_model'):
             if not s.uuid:
                 continue
             bundle['settings'].append({

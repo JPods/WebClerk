@@ -178,11 +178,6 @@ def sanitize_contact(row: dict) -> dict:
     return row
 
 
-# Settings that hold runtime state computed from data (Alice's aggregates are
-# rebuilt by refresh_all). They describe one database; bundles never carry them.
-RUNTIME_SETTING_PURPOSES = ("alice:aggregates",)
-
-
 def sanitize_setting(setting: dict) -> dict:
     """Remove company-identifying and cash-account details from Settings in a public bundle."""
     purpose = setting.get("purpose")

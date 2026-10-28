@@ -1,11 +1,10 @@
 """Consolidated Decimal coercion — single source of truth.
 
-Replaces 6 local copies of the same function across:
+Replaces 5 local copies of the same function across:
   - apps/transactions/services/totals.py (_d)
   - apps/transactions/services/transaction_save.py (_d)
   - apps/transactions/models/base_line_model.py (_to_decimal)
   - apps/accounts/services/tax_calculation.py (_d)
-  - apps/ai_assistant/services/aggregate_tracker.py (_d)
   - apps/transactions/services/transfer_utils.py (_to_decimal_safe)
 """
 

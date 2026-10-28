@@ -96,11 +96,9 @@ def _serialize_gl_account(account) -> dict | None:
 
 def pack_settings() -> dict:
     from apps.core.models.setting import Setting
-    from apps.core.services.demo_bundle import RUNTIME_SETTING_PURPOSES
 
     rows = (Setting.objects
             .filter(is_active=True)
-            .exclude(purpose__in=RUNTIME_SETTING_PURPOSES)
             .order_by('purpose', 'parent_model'))
     return {'settings': [r for r in (_serialize_setting(s) for s in rows) if r]}
 

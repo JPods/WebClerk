@@ -32,8 +32,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         records = []
-        from apps.core.services.demo_bundle import RUNTIME_SETTING_PURPOSES
-        for s in Setting.objects.filter(is_active=True).exclude(purpose__in=RUNTIME_SETTING_PURPOSES).order_by('purpose', 'parent_model', 'id'):
+        for s in Setting.objects.filter(is_active=True).order_by('purpose', 'parent_model', 'id'):
             rec = {
                 'uuid': str(s.uuid) if s.uuid else '',
                 'ida': s.ida or '',
