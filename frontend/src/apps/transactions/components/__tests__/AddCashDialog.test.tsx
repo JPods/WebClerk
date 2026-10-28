@@ -40,43 +40,46 @@ describe('AddRelatedDialog', () => {
 });
 
 describe('AddCashDialog', () => {
-  it('adds cash to an invoice and writes off the rest as its own payment', async () => {
-    addCash.mockResolvedValue({ applied: { state: 'applied' } });
+  // One command (Bill, 2026-10-25): the payment, its application and the write-off of what is
+  // left stand or fall together on the server; the label names the amount written off.
+  it('adds cash to an invoice and writes off the rest in the same command', async () => {
+    addCash.mockResolvedValue({ applied: { state: 'applied' }, written_off: { amount: 5 } });
     const onDone = vi.fn();
     render(<AddCashDialog isOpen onClose={() => {}} model="invoice" id={7} balance={100} onDone={onDone} />);
     fireEvent.change(screen.getByLabelText('Amount received *'), { target: { value: '95' } });
-    fireEvent.click(screen.getByLabelText('Write off what is left'));
+    fireEvent.click(screen.getByLabelText('Write off what is left: $5.00'));
     fireEvent.click(screen.getByText('Add and apply'));
-    await waitFor(() => expect(addCash).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(addCash).toHaveBeenCalledTimes(1));
     expect(addCash.mock.calls[0][0]).toBe('invoice');
     expect(addCash.mock.calls[0][1]).toBe(7);
-    expect(addCash.mock.calls[0][2]).toMatchObject({ amount: 95, method: 'check' });
-    expect(addCash.mock.calls[1][2]).toMatchObject({ amount: 5, method: 'write_off' });
+    expect(addCash.mock.calls[0][2]).toMatchObject({ amount: 95, method: 'check', write_off_rest: true });
     expect(onDone).toHaveBeenCalled();
   });
 
   it('records a deposit on an order with no write-off offered', async () => {
     addCash.mockResolvedValue({ deposit: true });
     render(<AddCashDialog isOpen onClose={() => {}} model="order" id={3} balance={250} />);
-    expect(screen.queryByLabelText('Write off what is left')).toBeNull();
+    expect(screen.queryByLabelText(/Write off what is left/)).toBeNull();
     fireEvent.click(screen.getByText('Record deposit'));
     await waitFor(() => expect(addCash).toHaveBeenCalledWith('order', 3, expect.objectContaining({ amount: 250 })));
   });
 });
 
 describe('AddCashDialog guards (Fable review)', () => {
-  it('does not write off after a refused payment', async () => {
+  // The server refuses the write-off with the payment; the dialog sends no second command.
+  it('sends one command when the payment is refused', async () => {
     addCash.mockResolvedValue({ applied: { state: 'refused', reason: 'customers differ' } });
     render(<AddCashDialog isOpen onClose={() => {}} model="invoice" id={9} balance={100} />);
     fireEvent.change(screen.getByLabelText('Amount received *'), { target: { value: '40' } });
-    fireEvent.click(screen.getByLabelText('Write off what is left'));
+    fireEvent.click(screen.getByLabelText('Write off what is left: $60.00'));
     fireEvent.click(screen.getByText('Add and apply'));
     await waitFor(() => expect(addCash).toHaveBeenCalledTimes(1));
+    expect(addCash.mock.calls[0][2]).toMatchObject({ write_off_rest: true });
   });
 
   it('offers no write-off on a receipt', () => {
     render(<AddCashDialog isOpen onClose={() => {}} model="receipt" id={2} balance={100} />);
-    expect(screen.queryByLabelText('Write off what is left')).toBeNull();
+    expect(screen.queryByLabelText(/Write off what is left/)).toBeNull();
   });
 });
 
