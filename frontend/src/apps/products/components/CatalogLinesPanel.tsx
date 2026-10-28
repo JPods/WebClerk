@@ -8,10 +8,12 @@
  * edits as saves, removal as a delete. The resolver reads them:
  * backend/apps/products/services/price_resolver.py → _catalog_line.
  */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useDispatch } from 'react-redux';
 import { showToast } from '@/store/slices/toastSlice';
-import { getRecords, createRecord, saveRecord, deleteRecord, searchItems } from '@/api/wcapi';
+import { createRecord, saveRecord, deleteRecord, searchItems } from '@/api/wcapi';
+import { usePanelRecords } from '@/hooks/usePanelRecords';
+import { usePanelFrame, PanelLabels } from '@/apps/common/components/CollapsiblePanel';
 
 export interface CatalogLinesPanelProps {
   catalogId: number;
@@ -100,26 +102,17 @@ const CatalogLineRow: React.FC<{ line: any; onChanged: () => void }> = ({ line, 
 
 const CatalogLinesPanel: React.FC<CatalogLinesPanelProps> = ({ catalogId }) => {
   const dispatch = useDispatch();
-  const [lines, setLines] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState<'' | 'item' | 'scope'>('');
   const [query, setQuery] = useState('');
   const [found, setFound] = useState<any[]>([]);
   const [scope, setScope] = useState({ all_items: false, categories: '', vendors: '' });
 
-  const fetchLines = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res: any = await getRecords('catalog_line', { catalog_id: catalogId, limit: 500 });
-      const rows = res?.results || res?.records || [];
-      // Item lines first, as the resolver tries them first.
-      rows.sort((a: any, b: any) => (a.item ? 0 : 1) - (b.item ? 0 : 1) || a.id - b.id);
-      setLines(rows);
-    } catch { setLines([]); }
-    setLoading(false);
-  }, [catalogId]);
-
-  useEffect(() => { fetchLines(); }, [fetchLines]);
+  const { records, refresh: fetchLines, status } = usePanelRecords('catalog_line',
+    { catalog_id: catalogId, limit: 500 },
+    { emptyText: 'No lines — a catalog prices nothing until it has a line or a universal %' });
+  // Item lines first, as the resolver tries them first.
+  const lines = useMemo(() => [...records].sort((a: any, b: any) =>
+    (a.item ? 0 : 1) - (b.item ? 0 : 1) || a.id - b.id), [records]);
 
   const add = async (values: Record<string, any>) => {
     try {
@@ -155,22 +148,22 @@ const CatalogLinesPanel: React.FC<CatalogLinesPanelProps> = ({ catalogId }) => {
 
   const input = 'px-2 py-1 text-xs rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white';
 
+  const headerActions = useMemo(() => (
+    <>
+      <button onClick={() => setAdding(a => (a === 'item' ? '' : 'item'))}
+        className="text-[9px] text-green-600 hover:text-green-800 dark:text-green-400 font-medium">
+        {adding === 'item' ? '× cancel' : '+ item line'}
+      </button>
+      <button onClick={() => setAdding(a => (a === 'scope' ? '' : 'scope'))}
+        className="text-[9px] text-green-600 hover:text-green-800 dark:text-green-400 font-medium">
+        {adding === 'scope' ? '× cancel' : '+ scope line'}
+      </button>
+    </>
+  ), [adding]);
+  usePanelFrame({ badge: lines.length, headerActions, status });
+
   return (
     <div className="p-2">
-      <div className="flex items-center gap-2 mb-2">
-        <span className="text-xs font-bold text-slate-600 dark:text-slate-300">Lines</span>
-        <span className="text-[9px] text-slate-400">({lines.length})</span>
-        <span className="flex-1" />
-        <button onClick={() => setAdding(adding === 'item' ? '' : 'item')}
-          className="text-[9px] text-green-600 hover:text-green-800 dark:text-green-400 font-medium mr-2">
-          {adding === 'item' ? '× cancel' : '+ item line'}
-        </button>
-        <button onClick={() => setAdding(adding === 'scope' ? '' : 'scope')}
-          className="text-[9px] text-green-600 hover:text-green-800 dark:text-green-400 font-medium">
-          {adding === 'scope' ? '× cancel' : '+ scope line'}
-        </button>
-      </div>
-
       {adding === 'item' && (
         <div className="mb-2 p-2 rounded border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20">
           <input autoFocus value={query} onChange={(e) => search(e.target.value)}
@@ -202,24 +195,18 @@ const CatalogLinesPanel: React.FC<CatalogLinesPanelProps> = ({ catalogId }) => {
         </div>
       )}
 
-      <div className="flex items-center gap-2 px-2 py-1 text-[10px] font-medium text-slate-400 border-b-2 border-slate-200 dark:border-slate-700">
-        <span className="flex-1">Covers</span>
-        <span className="w-24">Adjustment</span>
-        <span className="w-20 text-right">Value</span>
-        <span className="w-20 text-right">Price unit</span>
-        <span className="w-16 text-right">Min qty</span>
-        <span className="w-16 text-right">Max qty</span>
-        <span className="w-12" />
-      </div>
-      {loading ? (
-        <div className="text-xs text-slate-400 py-4 text-center">Loading...</div>
-      ) : lines.length === 0 ? (
-        <div className="text-xs text-slate-400 italic py-4 text-center">
-          No lines — a catalog prices nothing until it has a line or a universal %
-        </div>
-      ) : (
-        lines.map((line: any) => <CatalogLineRow key={line.id} line={line} onChanged={fetchLines} />)
+      {lines.length > 0 && (
+        <PanelLabels>
+          <span className="flex-1">Covers</span>
+          <span className="w-24">Adjustment</span>
+          <span className="w-20 text-right">Value</span>
+          <span className="w-20 text-right">Price unit</span>
+          <span className="w-16 text-right">Min qty</span>
+          <span className="w-16 text-right">Max qty</span>
+          <span className="w-12" />
+        </PanelLabels>
       )}
+      {lines.map((line: any) => <CatalogLineRow key={line.id} line={line} onChanged={fetchLines} />)}
     </div>
   );
 };

@@ -4,7 +4,8 @@
  * and empty handling; this does it once and hands back the status the panel frame shows
  * (usePanelFrame({ status })).
  *
- * Reads go through the one read channel (getRecords). `reloadKey` is anything that changes
+ * Reads go through the one read channel (getRecords); a panel whose rows come from a service
+ * view instead (inventory layers) passes `read`. `reloadKey` is anything that changes
  * when the server's data may have changed — the parent's version or dt_modified: a held
  * answer is void after any server change (TFTS 2026-10-26, calculated values).
  */
@@ -18,10 +19,12 @@ interface Options {
   /** Changes when the server's data may have changed: the parent's version / dt_modified. */
   reloadKey?: unknown;
   emptyText?: string;
+  /** Rows from a service view rather than the model channel; `model` then only names the read. */
+  read?: (params: Record<string, unknown>) => Promise<unknown[]>;
 }
 
 export function usePanelRecords<T = Record<string, any>>(
-  model: string, params: Record<string, unknown>, { enabled = true, reloadKey, emptyText }: Options = {},
+  model: string, params: Record<string, unknown>, { enabled = true, reloadKey, emptyText, read }: Options = {},
 ) {
   const [records, setRecords] = useState<T[]>([]);
   const [loading, setLoading] = useState(false);
@@ -34,15 +37,20 @@ export function usePanelRecords<T = Record<string, any>>(
     setLoading(true);
     setError(null);
     try {
-      const res: any = await getRecords(model, JSON.parse(paramKey));
-      setRecords((res?.results || res?.records || []) as T[]);
+      const p = JSON.parse(paramKey);
+      if (read) {
+        setRecords((await read(p)) as T[]);
+      } else {
+        const res: any = await getRecords(model, p);
+        setRecords((res?.results || res?.records || []) as T[]);
+      }
     } catch (e: any) {
       setError(e?.response?.data?.message || e?.message || `Could not read ${model}`);
     } finally {
       setLoading(false);
       setLoadedOnce(true);
     }
-  }, [model, paramKey, enabled]);
+  }, [model, paramKey, enabled]); // eslint-disable-line react-hooks/exhaustive-deps -- read is a module function
 
   useEffect(() => { refresh(); }, [refresh, reloadKey]);
 

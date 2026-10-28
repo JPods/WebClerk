@@ -186,7 +186,6 @@ const registry: Record<string, PanelRenderer> = {
   xref: (ctx) => wrap(createElement(ProductListPanel, {
     model: 'item_xref',
     itemId: ctx.data.id,
-    itemCode: ctx.data.ida || ctx.data.item_code || `#${ctx.data.id}`,
     filterField: 'item_id',
     CardComponent: XRefCard,
     headers: ['Type', 'XRef Code', 'Description', 'Org'],
@@ -197,7 +196,6 @@ const registry: Record<string, PanelRenderer> = {
   specs: (ctx) => wrap(createElement(ProductListPanel, {
     model: 'specification',
     itemId: ctx.data.id,
-    itemCode: ctx.data.ida || ctx.data.item_code || `#${ctx.data.id}`,
     filterField: 'item_id',
     CardComponent: SpecCard,
     headers: ['Name', 'Value', 'Unit', 'Category'],
@@ -206,10 +204,7 @@ const registry: Record<string, PanelRenderer> = {
 
   layers: (ctx) => wrap(createElement(InventoryLayersPanel, { itemId: ctx.data.id })),
 
-  counts: (ctx) => wrap(createElement(CycleCountPanel, {
-    itemId: ctx.data.id,
-    itemCode: ctx.data.ida || ctx.data.item_code || `#${ctx.data.id}`,
-  })),
+  counts: (ctx) => wrap(createElement(CycleCountPanel, { itemId: ctx.data.id })),
 
   // === Action panels ===
   touches: (ctx) => wrap(createElement(LinkedRecordsPanel, {

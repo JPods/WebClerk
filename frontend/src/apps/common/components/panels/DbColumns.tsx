@@ -164,8 +164,9 @@ export function DbColumns<T extends Record<string, unknown>>({
 
   const table = (
     <>
-      {/* ── Column headers: they stay in view while the rows scroll (TFTS 2026-10-27) ── */}
-      {!hideHeaders && visibleColumns.length > 0 && (
+      {/* ── Column headers: they stay in view while the rows scroll (TFTS 2026-10-27); no rows,
+           no labels — the empty message stands alone ── */}
+      {!hideHeaders && visibleColumns.length > 0 && data.length > 0 && (
         <div className="db-list-header"
              style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--db-surface-alt, var(--db-surface, #fff))' }}>
           {visibleColumns.map((col) => (

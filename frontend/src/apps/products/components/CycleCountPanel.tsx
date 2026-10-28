@@ -1,10 +1,13 @@
 /**
  * CycleCountPanel — cycle count workflow on the Item dashboard.
  * Shows current layer quantities, lets user enter actual counts,
- * calculates variance, and creates adjustments for differences.
+ * calculates variance, and creates adjustments for differences. After a count is saved the
+ * layers are read again: the server's quantities, not a local guess (TFTS 2026-10-26).
  */
-import React, { useEffect, useState, useCallback } from "react";
-import { saveCorrection } from "@/api/workorderApi";
+import { useEffect, useMemo, useState, useCallback } from "react";
+import { saveCorrection, getInventoryLayers } from "@/api/workorderApi";
+import { usePanelRecords } from "@/hooks/usePanelRecords";
+import { usePanelFrame } from "@/apps/common/components/CollapsiblePanel";
 
 interface LayerCount {
   layer_id: number;
@@ -18,47 +21,31 @@ interface LayerCount {
 
 interface Props {
   itemId: number;
-  itemCode?: string;
 }
 
-export default function CycleCountPanel({ itemId, itemCode }: Props) {
+export default function CycleCountPanel({ itemId }: Props) {
   const [rows, setRows] = useState<LayerCount[]>([]);
-  const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(false);
   const [message, setMessage] = useState("");
+  const { records: layers, refresh, status } = usePanelRecords<any>("inventory layers", { item_id: itemId },
+    { enabled: !!itemId, read: getInventoryLayers });
 
+  // A fresh read replaces the counts entered against the old one.
   useEffect(() => {
-    if (!itemId) return;
-    setLoading(true);
-    const token = document.cookie
-      .split("; ")
-      .find((c) => c.startsWith("access_token="))
-      ?.split("=")[1];
-
-    fetch(`/wcapi/products/inventory/layers/?item_id=${itemId}`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      credentials: "include",
-    })
-      .then((r) => r.json())
-      .then((resp) => {
-        const layers = resp.data || [];
-        setRows(
-          layers
-            .filter((l: any) => l.remaining > 0)
-            .map((l: any) => ({
-              layer_id: l.id,
-              warehouse_name: l.warehouse_name || l.warehouse_code || "Default",
-              lot: l.lot || "-",
-              system_qty: l.remaining,
-              unit_cost: Number(l.landed) || 0,
-              counted_qty: null,
-              variance: 0,
-            }))
-        );
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, [itemId]);
+    setRows(
+      layers
+        .filter((l) => l.remaining > 0)
+        .map((l) => ({
+          layer_id: l.id,
+          warehouse_name: l.warehouse_name || l.warehouse_code || "Default",
+          lot: l.lot || "-",
+          system_qty: l.remaining,
+          unit_cost: Number(l.landed) || 0,
+          counted_qty: null,
+          variance: 0,
+        }))
+    );
+  }, [layers]);
 
   const updateCount = useCallback((idx: number, value: number | null) => {
     setRows((prev) =>
@@ -100,43 +87,34 @@ export default function CycleCountPanel({ itemId, itemCode }: Props) {
       );
       const woIda = saved?.record?.ida ?? saved?.ida ?? "";
       setMessage(`Cycle count saved as workorder ${woIda}: ${diffs.length} layer(s) corrected.`);
-      // Reset counted values
-      setRows((prev) =>
-        prev.map((r) => ({
-          ...r,
-          system_qty: r.counted_qty !== null && r.variance !== 0 ? r.counted_qty! : r.system_qty,
-          counted_qty: null,
-          variance: 0,
-        }))
-      );
+      refresh();
     } catch (err: any) {
       setMessage(`Error: ${err?.response?.data?.message || err.message}`);
     }
     setApplying(false);
-  }, [rows, itemId]);
-
-  if (loading) return <div className="p-4 text-xs text-slate-400">Loading...</div>;
-  if (rows.length === 0) return <div className="p-4 text-xs text-slate-400">No active inventory layers for cycle count.</div>;
+  }, [rows, itemId, refresh]);
 
   const hasVariances = rows.some((r) => r.counted_qty !== null && r.variance !== 0);
   // Aggregate of user-entered variance values — no server-side aggregate available
   const totalVariance = rows.reduce((s, r) => s + r.variance, 0);
 
+  const headerActions = useMemo(() => hasVariances ? (
+    <span className={`text-xs font-semibold ${totalVariance >= 0 ? "text-green-400" : "text-red-400"}`}>
+      Net variance: {totalVariance > 0 ? "+" : ""}{totalVariance}
+    </span>
+  ) : null, [hasVariances, totalVariance]);
+  const frameStatus = useMemo(() => ({
+    ...status,
+    empty: status.empty || (layers.length > 0 && !layers.some((l) => l.remaining > 0)),
+    emptyText: "No active inventory layers for cycle count.",
+  }), [status, layers]);
+  usePanelFrame({ badge: rows.length, headerActions, status: frameStatus });
+  if (rows.length === 0) return null;
+
   return (
     <div className="p-2">
-      <div className="flex items-center justify-between mb-2 px-1">
-        <span className="text-xs font-bold text-slate-300">
-          Cycle Count — {itemCode || `Item #${itemId}`}
-        </span>
-        {hasVariances && (
-          <span className={`text-xs font-semibold ${totalVariance >= 0 ? "text-green-400" : "text-red-400"}`}>
-            Net variance: {totalVariance > 0 ? "+" : ""}{totalVariance}
-          </span>
-        )}
-      </div>
-
       <table className="w-full text-xs border-collapse">
-        <thead>
+        <thead className="sticky top-0" style={{ background: "var(--db-surface, #fff)" }}>
           <tr className="text-slate-500 border-b border-slate-700">
             <th className="text-left px-2 py-1">Warehouse</th>
             <th className="text-left px-2 py-1">Lot</th>

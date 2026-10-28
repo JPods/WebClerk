@@ -1,16 +1,17 @@
-/* LastChecked: 2026-08-06 | WhereUsed: ItemDetail BOM tab | WhoCreated: Claude */
+/* LastChecked: 2026-10-27 | WhereUsed: ItemDetail BOM tab | WhoCreated: Claude */
 /**
  * BomPanel — BOM editor for an item.
  * List of BomCards with add-component search, inline editing of all fields.
- * Backend handles cycle detection and cost rollup.
+ * Backend handles cycle detection and cost rollup. The panel frame draws the header, count,
+ * buttons and status (usePanelFrame); the read is usePanelRecords.
  */
-import React, { useState, useEffect, useCallback } from 'react';
-import { getRecords, createRecord } from '@/api/wcapi';
-import { searchItems } from '@/api/wcapi';
+import React, { useState, useCallback, useMemo } from 'react';
+import { createRecord, searchItems } from '@/api/wcapi';
+import { usePanelRecords } from '@/hooks/usePanelRecords';
+import { usePanelFrame, PanelLabels } from '@/apps/common/components/CollapsiblePanel';
 import { buildItem } from '@/api/workorderApi';
 import { useDispatch } from 'react-redux';
 import { showToast } from '@/store/slices/toastSlice';
-import { useWindowManager } from '@/context/WindowManagerContext';
 import BomCard from './BomCard';
 
 export interface BomPanelProps {
@@ -19,10 +20,6 @@ export interface BomPanelProps {
 }
 
 const BomPanel: React.FC<BomPanelProps> = ({ itemId, itemCode }) => {
-  const [components, setComponents] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const windowManager = useWindowManager();
   const dispatch = useDispatch();
 
   // Selection
@@ -40,19 +37,11 @@ const BomPanel: React.FC<BomPanelProps> = ({ itemId, itemCode }) => {
   const [searching, setSearching] = useState(false);
   const [adding, setAdding] = useState(false);
 
-  const fetchBom = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await getRecords('bill_of_material', { parent_item_id: itemId, limit: 100 });
-      const items = res?.results || res?.records || [];
-      // Sort by sequence then id
-      items.sort((a: any, b: any) => (a.sequence || 0) - (b.sequence || 0) || (a.id || 0) - (b.id || 0));
-      setComponents(items);
-    } catch { setComponents([]); }
-    setLoading(false);
-  }, [itemId]);
-
-  useEffect(() => { fetchBom(); }, [fetchBom]);
+  const { records, refresh: fetchBom, status } = usePanelRecords('bill_of_material',
+    { parent_item_id: itemId, limit: 100 },
+    { emptyText: 'No BOM components — "+ add component" builds the bill of materials' });
+  const components = useMemo(() => [...records].sort((a: any, b: any) =>
+    (a.sequence || 0) - (b.sequence || 0) || (a.id || 0) - (b.id || 0)), [records]);
 
   // Search for items to add as components
   const handleSearch = useCallback(async (q: string) => {
@@ -123,31 +112,28 @@ const BomPanel: React.FC<BomPanelProps> = ({ itemId, itemCode }) => {
     setBuilding(false);
   }, [itemId, itemCode, buildQty, dispatch]);
 
+  const headerActions = useMemo(() => (
+    <>
+      {components.length > 0 && (
+        <button
+          onClick={() => { setShowBuild(v => !v); setShowSearch(false); }}
+          className="text-[9px] text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+        >
+          {showBuild ? '× cancel' : 'Build from BOM'}
+        </button>
+      )}
+      <button
+        onClick={() => { setShowSearch(v => !v); setShowBuild(false); }}
+        className="text-[9px] text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 font-medium"
+      >
+        {showSearch ? '× cancel' : '+ add component'}
+      </button>
+    </>
+  ), [components.length, showBuild, showSearch]);
+  usePanelFrame({ badge: components.length, headerActions, status });
+
   return (
     <div className="p-2">
-      {/* Header */}
-      <div className="flex items-center gap-2 mb-2">
-        <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
-          Components of {itemCode}
-        </span>
-        <span className="text-[9px] text-slate-400">({components.length})</span>
-        <span className="flex-1" />
-        {components.length > 0 && (
-          <button
-            onClick={() => { setShowBuild(!showBuild); setShowSearch(false); }}
-            className="text-[9px] text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium mr-2"
-          >
-            {showBuild ? '× cancel' : 'Build from BOM'}
-          </button>
-        )}
-        <button
-          onClick={() => { setShowSearch(!showSearch); setShowBuild(false); }}
-          className="text-[9px] text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 font-medium"
-        >
-          {showSearch ? '× cancel' : '+ add component'}
-        </button>
-      </div>
-
       {/* Build from BOM */}
       {showBuild && (
         <div className="mb-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
@@ -216,41 +202,35 @@ const BomPanel: React.FC<BomPanelProps> = ({ itemId, itemCode }) => {
         </div>
       )}
 
-      {/* Column headers */}
-      <div className="flex items-center gap-2 px-2 py-1 text-[10px] font-medium text-slate-400 border-b-2 border-slate-200 dark:border-slate-700">
-        <span className="w-8 text-center">#</span>
-        <span className="w-28">Item</span>
-        <span className="flex-1">Description</span>
-        <span className="w-16 text-right">Qty</span>
-        <span className="w-16 text-right">Scrap%</span>
-        <span className="w-8">UOM</span>
-        <span className="w-12 text-center">Opt</span>
-        <span className="w-20"></span>
-      </div>
+      {/* Column headers stay put while the components scroll */}
+      {components.length > 0 && (
+        <PanelLabels>
+          <span className="w-8 text-center">#</span>
+          <span className="w-28">Item</span>
+          <span className="flex-1">Description</span>
+          <span className="w-16 text-right">Qty</span>
+          <span className="w-16 text-right">Scrap%</span>
+          <span className="w-8">UOM</span>
+          <span className="w-12 text-center">Opt</span>
+          <span className="w-20"></span>
+        </PanelLabels>
+      )}
 
       {/* Component list */}
-      {loading ? (
-        <div className="text-xs text-slate-400 py-4 text-center">Loading...</div>
-      ) : components.length === 0 ? (
-        <div className="text-xs text-slate-400 italic py-4 text-center">
-          No BOM components — click "+ add component" to build the bill of materials
-        </div>
-      ) : (
-        components.map((c: any) => (
-          <BomCard
-            key={c.id}
-            data={c}
-            parentItemId={itemId}
-            selected={selectedId === c.id}
-            onSave={() => fetchBom()}
-            onDelete={() => fetchBom()}
-            onSelect={(id) => setSelectedId(id === selectedId ? null : id)}
-            onOpen={(childId) => {
-              if (childId) window.open(`/item?id=${childId}`, '_blank');
-            }}
-          />
-        ))
-      )}
+      {components.map((c: any) => (
+        <BomCard
+          key={c.id}
+          data={c}
+          parentItemId={itemId}
+          selected={selectedId === c.id}
+          onSave={() => fetchBom()}
+          onDelete={() => fetchBom()}
+          onSelect={(id) => setSelectedId(id === selectedId ? null : id)}
+          onOpen={(childId) => {
+            if (childId) window.open(`/item?id=${childId}`, '_blank');
+          }}
+        />
+      ))}
     </div>
   );
 };

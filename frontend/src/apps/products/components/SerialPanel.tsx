@@ -3,7 +3,7 @@
  * Header row + filterable list of SerialCards. Click opens in DataBrowser.
  */
 import React, { useMemo, useState } from "react";
-import { usePanelFrame } from "@/apps/common/components/CollapsiblePanel";
+import { usePanelFrame, PanelLabels } from "@/apps/common/components/CollapsiblePanel";
 import { usePanelRecords } from "@/hooks/usePanelRecords";
 import { useWindowManager } from "@/context/WindowManagerContext";
 import SerialCard from "./SerialCard";
@@ -101,15 +101,15 @@ const SerialPanel: React.FC<SerialPanelProps> = ({
 
   return (
     <div>
-      {/* Column labels stay in view while the rows scroll (TFTS 2026-10-27) */}
-      <div className="sticky top-0 flex items-center gap-2 px-2 py-1 text-[10px] font-medium text-slate-500 border-b-2 border-slate-700"
-           style={{ background: "var(--db-surface, #fff)", zIndex: 1 }}>
-        <span className="w-32">Serial #</span>
-        <span className="w-20">Status</span>
-        <span className="w-20">Item</span>
-        <span className="flex-1">Party</span>
-        <span className="w-24 text-right">Document</span>
-      </div>
+      {serials.length > 0 && (
+        <PanelLabels>
+          <span className="w-32">Serial #</span>
+          <span className="w-20">Status</span>
+          <span className="w-20">Item</span>
+          <span className="flex-1">Party</span>
+          <span className="w-24 text-right">Document</span>
+        </PanelLabels>
+      )}
       {serials.map((s: any) => (
         <SerialCard key={s.id} data={s} onClick={handleClick} />
       ))}

@@ -77,6 +77,15 @@ function readCollapsed(storageKey: string | undefined, fallback: boolean): boole
 
 const STATUS_TEXT = 'px-3 py-2 db-font-xs';
 
+/** The column-label row over a panel's own rows (editable cards, not a DbColumns table).
+ *  Sticky: labels never scroll (TFTS 2026-10-27). */
+export const PanelLabels: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div className="sticky top-0 z-10 flex items-center gap-2 px-2 py-1 text-[10px] font-medium border-b-2"
+    style={{ background: 'var(--db-surface, #fff)', color: 'var(--db-text-muted, #6c757d)', borderColor: 'var(--db-border, #dee2e6)' }}>
+    {children}
+  </div>
+);
+
 /** The panel's status above its body. The body always stays rendered — a panel that declared
  *  "loading" must stay mounted to declare that it finished — and is hidden while loading or
  *  in error. */

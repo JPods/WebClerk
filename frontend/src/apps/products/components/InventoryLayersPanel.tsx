@@ -1,8 +1,10 @@
 /**
  * InventoryLayersPanel — FIFO/LIFO cost layers for an item, grouped by warehouse.
- * Shows on Item dashboard "Layers" tab.
+ * Shows on Item dashboard "Layers" tab. The panel frame draws the header, count and status.
  */
-import React, { useEffect, useState } from "react";
+import { getInventoryLayers } from "@/api/workorderApi";
+import { usePanelRecords } from "@/hooks/usePanelRecords";
+import { usePanelFrame } from "@/apps/common/components/CollapsiblePanel";
 
 interface Layer {
   id: number;
@@ -21,7 +23,7 @@ interface Layer {
   freight: number;
   duty: number;
   currency: string;
-  dt_created: string | null;
+  dt_created: number | null;
   parent_model: string;
   parent_id: number | null;
 }
@@ -31,31 +33,9 @@ interface Props {
 }
 
 export default function InventoryLayersPanel({ itemId }: Props) {
-  const [layers, setLayers] = useState<Layer[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!itemId) return;
-    setLoading(true);
-    const token = document.cookie
-      .split("; ")
-      .find((c) => c.startsWith("access_token="))
-      ?.split("=")[1];
-
-    fetch(`/wcapi/products/inventory/layers/?item_id=${itemId}`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      credentials: "include",
-    })
-      .then((r) => r.json())
-      .then((resp) => {
-        setLayers(resp.data || []);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, [itemId]);
-
-  if (loading) return <div className="p-4 text-xs text-slate-400">Loading layers...</div>;
-  if (layers.length === 0) return <div className="p-4 text-xs text-slate-400">No inventory layers for this item.</div>;
+  const { records: layers, status } = usePanelRecords<Layer>("inventory layers", { item_id: itemId },
+    { enabled: !!itemId, read: getInventoryLayers, emptyText: "No inventory layers for this item." });
+  usePanelFrame({ badge: layers.length, status });
 
   // Group by warehouse
   const byWarehouse: Record<string, Layer[]> = {};
@@ -80,7 +60,7 @@ export default function InventoryLayersPanel({ itemId }: Props) {
               </span>
             </div>
             <table className="w-full text-xs border-collapse">
-              <thead>
+              <thead className="sticky top-0" style={{ background: "var(--db-surface, #fff)" }}>
                 <tr className="text-slate-500 border-b border-slate-700">
                   <th className="text-left px-2 py-1">Lot</th>
                   <th className="text-right px-2 py-1">Rcvd</th>

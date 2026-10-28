@@ -108,3 +108,10 @@ export async function buildItem(itemId: number, qty: number, depth: 0 | 1 = 1) {
   const done = await completeWorkorder(record.id);
   return { workorder_id: record.id, ...done };
 }
+
+/** An item's cost layers with what each still holds, oldest first per warehouse
+ *  (GET products/inventory/layers — a service view, not the model channel). */
+export async function getInventoryLayers(params: Record<string, unknown>): Promise<any[]> {
+  const res = await apiClient.get('/wcapi/products/inventory/layers/', { params: { item_id: params.item_id } });
+  return res.data?.data || [];
+}
