@@ -1,7 +1,7 @@
 """
-Pydantic schemas for Serial and SerialLog JSON envelopes.
+Pydantic schemas for Serial JSON envelopes.
 
-Mirrors serial.py — Serial + SerialLog in one file.
+Mirrors serial.py.
 
 Serial.config carries transaction context (who holds the unit, what document
 moved it, cost/price at time of transaction).
@@ -74,8 +74,8 @@ class FloorPlan(BaseModel):
 class SerialActionEntry(BaseModel):
     """One recorded action in config.actions[].
 
-    Self-contained event: the serial carries its own history.
-    Replaces SerialLog for new actions (SerialLog retained as read-only archive).
+    Self-contained event: the serial carries its own history (the one history; SerialLog
+    was removed 2026-10-28). Written only by Serial.log_action.
     """
     action: str = Field(..., description="Full sentence action name")
     dt: int = Field(..., description="Unix timestamp (epoch ms) — UTC (Axiom 14)")
@@ -83,6 +83,7 @@ class SerialActionEntry(BaseModel):
     status_after: str = Field(..., description="Status after this action")
     doc_type: str = Field("", description="Document type: purchase, order, invoice, workorder, or empty")
     doc_id: Optional[int] = Field(None, description="Document ID that triggered this action")
+    org_id: Optional[int] = Field(None, description="The org on the other side: vendor received from, customer issued to")
     cost: Optional[float] = Field(None, description="Cost at time of action")
     price: Optional[float] = Field(None, description="Price at time of action")
     discount: Optional[float] = Field(None, description="Discount at time of action")
@@ -349,32 +350,3 @@ DEFAULT_SERIAL_ACTIONS: list[dict] = [
         "notes_required": True,
     },
 ]
-
-
-# ═══════════════════════════════════════════════════════════════════════
-# SerialLog
-# ═══════════════════════════════════════════════════════════════════════
-
-class SerialLogConfig(ConfigBase):
-    """Audit context for serial state changes."""
-    doc_type: str = ''                       # purchase, order, invoice
-    doc_id: Optional[int] = None
-    status_before: str = ''
-    notes: str = ''
-
-    class Config:
-        extra = "forbid"
-
-
-class SerialLogMetadata(MetadataBase):
-    pass
-
-
-class SerialLogPrefs(RecordPrefsBase):
-    pass
-
-
-class SerialLogRefs(RefsBase):
-    tags: list[str] = Field(default_factory=list)
-    keywords: list[str] = Field(default_factory=list)
-    source: Optional[SourceRef] = None

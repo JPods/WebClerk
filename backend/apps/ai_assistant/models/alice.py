@@ -7,7 +7,7 @@ what she produces — not her internal state (that's in the allie database).
 Three record types:
   - AliceObservation: patterns, anomalies, coaching suggestions
   - AlicePreset: promoted searches, dashboards, workflows (the "paved paths")
-  - AliceCoachingLog: training drill completions, user progress
+  (Drill completions are Log rows, purpose coaching — the one log, 2026-10-28.)
 
 These are commerce_expert records — they ship with the product, sync via
 Connection+Bundle, and appear in the DataBrowser.
@@ -140,44 +140,6 @@ class AlicePreset(BaseModel):
 
     def __str__(self):
         return f'[{self.preset_type}] {self.name}'
-
-
-class AliceCoachingLog(BaseModel):
-    """Training drill completion and user progress tracking.
-
-    Alice coaches users through training drills. This tracks what
-    drills they've completed, how long it took, and whether they
-    passed. Feeds into user skill assessment.
-    """
-    contact_id = models.BigIntegerField(
-        null=True, blank=True, db_index=True,
-        help_text="Contact id (value, not FK — coaching history survives)"
-    )
-    drill_id = models.CharField(max_length=50, db_index=True)  # e.g., 'TRAIN-COMM-drill-3'
-    document_id = models.BigIntegerField(null=True, blank=True)  # FK to training document
-    drill_name = models.CharField(max_length=200)
-    category = models.CharField(max_length=50, blank=True)  # 'commission', 'inventory', 'gl', etc.
-
-    # Results
-    completed = models.BooleanField(default=False)
-    passed = models.BooleanField(default=False)
-    score = models.IntegerField(null=True, blank=True)  # 0-100
-    duration_seconds = models.IntegerField(null=True, blank=True)
-
-    # Timing
-    dt_started = models.BigIntegerField(default=0)
-    dt_completed = models.BigIntegerField(default=0)
-
-    class Meta:
-        db_table = 'alice_coaching_log'
-        indexes = [
-            models.Index(fields=['contact_id', 'completed'], name='alicecoach_contact_done_idx'),
-            models.Index(fields=['category'], name='alicecoach_category_idx'),
-        ]
-
-    def __str__(self):
-        status = 'passed' if self.passed else 'completed' if self.completed else 'started'
-        return f'{self.drill_name} ({status})'
 
 
 class AliceInsight(BaseModel):

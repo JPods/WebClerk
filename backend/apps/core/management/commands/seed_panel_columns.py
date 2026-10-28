@@ -359,12 +359,12 @@ PANEL_COLUMNS = {
         f('child_description', width=160),
         f('quantity', width=60, align='right'),
     ],
-    'serial_log': [
-        f('ida', width=80),
-        f('purpose', width=80),
-        f('status', width=70),
+    'log': [
+        f('dt_created', width=110, format='date'),
+        f('purpose', width=110),
         f('action', width=120),
-        f('dt', width=90, format='date'),
+        f('model_name', width=100),
+        f('record_id', width=70, align='right'),
     ],
     'catalog': [
         f('ida', width=80),
@@ -489,14 +489,6 @@ PANEL_COLUMNS = {
         f('sender', width=100),
         f('subject', width=180),
         f('classification', width=80),
-    ],
-    'alice_coaching_log': [
-        f('ida', width=70),
-        f('purpose', width=80),
-        f('status', width=70),
-        f('drill_name', width=150),
-        f('category', width=80),
-        f('score', width=50, align='right'),
     ],
     'alice_observation': [
         f('ida', width=70),

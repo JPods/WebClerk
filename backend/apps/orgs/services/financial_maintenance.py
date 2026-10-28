@@ -191,10 +191,10 @@ def write_daily_alice_observation(
     transaction_activity: dict[str, Any],
     dry_run: bool = False,
 ) -> dict[str, Any]:
-    """Persist a daily maintenance observation into alice_log."""
+    """Persist a daily maintenance observation: a Log, purpose alice."""
     out = {
         "created": False,
-        "setting_id": None,
+        "log_id": None,
     }
     if dry_run:
         return out
@@ -230,7 +230,7 @@ def write_daily_alice_observation(
             details=details,
         )
         out["created"] = True
-        out["setting_id"] = note.pk
+        out["log_id"] = note.pk
     except Exception:
         # Logging must not block maintenance.
         out["created"] = False

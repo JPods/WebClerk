@@ -584,7 +584,7 @@ class Command(BaseCommand):
 
         if not quiet:
             self.stdout.write(self.style.SUCCESS("Alice schema watch completed."))
-            self.stdout.write(f"alice_log id: {log_note.pk}")
+            self.stdout.write(f"alice log id: {log_note.pk}")
             if pending_id:
                 self.stdout.write(self.style.WARNING(f"alice_pending id: {pending_id}"))
             self.stdout.write(

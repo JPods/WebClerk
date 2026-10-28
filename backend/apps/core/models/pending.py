@@ -1,6 +1,6 @@
 import logging
 
-from django.db import OperationalError, models
+from django.db import OperationalError, models, transaction
 from django.db.models.fields.json import KT
 from django.utils import timezone
 from common.models import CoreModel
@@ -25,6 +25,9 @@ INVENTORY_PURPOSES = (
 # inventory purpose: it stays open (dt_processed=0) as the note of the defect until
 # receipts fill it — partly, in metadata.incremental_apply — and never drains to celery.
 DEFICIT_PURPOSE = 'inventory_deficit'
+
+# A Log entry whose write failed inside a business save (audit_signals): applied to the log later.
+LOG_WRITE_PURPOSE = 'log_write'
 
 
 from apps.core.services.door import Refused  # noqa: E402 — door imports models lazily
@@ -114,6 +117,10 @@ class Pending(CoreModel):
         """
         if self.is_processed():
             return True
+
+        # ── A log entry whose first write failed (audit_signals) ────
+        if self.purpose == LOG_WRITE_PURPOSE:
+            return self._apply_log_write()
 
         applied = None
         # ── Inventory ────────────────────────────────────────────
@@ -611,6 +618,34 @@ class Pending(CoreModel):
         except Exception:
             logger.error("Pending %s: receipt cash apply failed", self.pk, exc_info=True)
             raise
+
+    @classmethod
+    def queue_log_write(cls, entry: dict) -> None:
+        """A Log entry that could not be written now (Bill, 2026-10-28: the save stands; make a
+        pending to apply to the log). entry = Log.write's arguments: purpose, action, model_name,
+        record_id, name, changes, details.
+        Saving tries it once more; the hourly drain (apps.sync process_pending) retries after."""
+        try:
+            with transaction.atomic():
+                cls.objects.create(purpose=LOG_WRITE_PURPOSE, model_name='log',
+                                   record_id=str(entry.get('record_id') or ''), changes=entry)
+        except Exception:
+            logger.error("Could not queue log entry %s", entry, exc_info=True)
+
+    def _apply_log_write(self) -> bool:
+        from apps.core.models.log import Log
+        e = self.changes if isinstance(self.changes, dict) else {}
+        try:
+            Log.write(e['purpose'], e.get('action', ''), model_name=e.get('model_name', ''),
+                      record_id=e.get('record_id'), name=e.get('name', ''),
+                      changes=e.get('changes'), details=e.get('details'))
+        except Exception:
+            logger.error("Pending %s: log write failed again", self.pk, exc_info=True)
+            if self.pk:
+                type(self).objects.filter(pk=self.pk).update(attempts=models.F('attempts') + 1)
+            return False
+        self.mark_processed(save=bool(self.pk))
+        return True
 
     def mark_processed(self, save: bool = True):
         if self.dt_processed == 0:

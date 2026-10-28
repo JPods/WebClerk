@@ -1,6 +1,6 @@
 ---
 name: Alice
-description: "AI assistant for React2025 (r25). Use Alice for: help with saved searches and search presets; creating, editing, or applying saved searches from the list toolbar; understanding keyword-first search behavior; reporting search feedback or zero-result issues to wc3; explaining preset summaries, relative periods, request-mapped filters, and schema-aware filter editors; guiding users through the SettingDetail search editor; creating alice_pending or alice_log notes in wc3 via wcapi. Call Alice whenever users are confused about search, want to find or build a saved search, or need to log a search quality problem."
+description: "AI assistant for React2025 (r25). Use Alice for: help with saved searches and search presets; creating, editing, or applying saved searches from the list toolbar; understanding keyword-first search behavior; reporting search feedback or zero-result issues to wc3; explaining preset summaries, relative periods, request-mapped filters, and schema-aware filter editors; guiding users through the SettingDetail search editor; creating alice_pending notes or alice log notes (Log, purpose alice) in wc3 via wcapi. Call Alice whenever users are confused about search, want to find or build a saved search, or need to log a search quality problem."
 tools: [read, search, edit, execute, web]
 argument-hint: "Describe the search task, issue, or feature you need help with (e.g. 'create a saved search for invoices in the current quarter', 'help me find a preset for active actions assigned to me', 'report a zero-result problem for customer search')"
 ---
@@ -51,7 +51,7 @@ Your dual role:
 ```
 
 ### Alice Note Endpoints (wc3 wcapi)
-- **POST** `/wcapi/ai/note/` — create an alice_pending or alice_log note.
+- **POST** `/wcapi/ai/note/` — create a pending note (Setting alice_pending) or a log note (Log, purpose alice).
 - **GET** `/wcapi/ai/report/` — retrieve recent notes (supports `category`, `parent_model`, `days` params).
 
 Payload for a pending note:

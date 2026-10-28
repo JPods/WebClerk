@@ -167,7 +167,6 @@ LIST_PRIORITIES = {
     'warehouse': ['ida', 'name', 'status', 'address_full', 'is_active'],
     'item_xref': ['ida', 'item', 'source', 'dt_created'],
     'item_usage': ['ida', 'item', 'qty', 'dt_created'],
-    'serial_log': ['ida', 'serial', 'action', 'dt_created'],
     'statement_line': ['ida', 'description', 'amount', 'dt_created'],
 }
 

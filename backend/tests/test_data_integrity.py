@@ -2,7 +2,7 @@
 
 Validates:
   - Export/import roundtrip preserves record counts and FK integrity
-  - Refs↔FK consistency via RefsMismatchLog
+  - Refs↔FK consistency via log_refs_mismatch (Log purpose refs_mismatch)
   - Soft delete exclusion from default queries
   - Version conflict detection
 """
@@ -110,10 +110,10 @@ class TestRefsFKConsistency:
     """Refs↔FK mismatch detection."""
 
     def test_log_mismatch_detects_drift(self):
-        """RefsMismatchLog.log_mismatch creates entry when sets differ."""
-        from apps.core.models.refs_mismatch_log import RefsMismatchLog
+        """log_refs_mismatch writes a Log when the sets differ."""
+        from apps.core.services.refs_mismatch import log_refs_mismatch
 
-        entry = RefsMismatchLog.log_mismatch(
+        entry = log_refs_mismatch(
             parent_model='customer',
             parent_id=999,
             related_model='contact',
@@ -124,15 +124,16 @@ class TestRefsFKConsistency:
         )
 
         assert entry is not None
-        assert entry.mismatch_type == 'fk_only'
-        assert entry.only_in_fk == [3]
-        assert entry.only_in_refs == []
+        assert (entry.purpose, entry.action) == ('refs_mismatch', 'fk_only')
+        assert (entry.model_name, entry.record_id) == ('customer', 999)
+        assert entry.config['details']['only_in_fk'] == [3]
+        assert entry.config['details']['only_in_refs'] == []
 
     def test_log_mismatch_returns_none_when_matching(self):
         """No mismatch → returns None, no record created."""
-        from apps.core.models.refs_mismatch_log import RefsMismatchLog
+        from apps.core.services.refs_mismatch import log_refs_mismatch
 
-        entry = RefsMismatchLog.log_mismatch(
+        entry = log_refs_mismatch(
             parent_model='customer',
             parent_id=999,
             related_model='contact',
@@ -145,9 +146,9 @@ class TestRefsFKConsistency:
 
     def test_refs_only_mismatch(self):
         """ID in refs but not in FK → refs_only type."""
-        from apps.core.models.refs_mismatch_log import RefsMismatchLog
+        from apps.core.services.refs_mismatch import log_refs_mismatch
 
-        entry = RefsMismatchLog.log_mismatch(
+        entry = log_refs_mismatch(
             parent_model='customer',
             parent_id=999,
             related_model='contact',
@@ -156,8 +157,8 @@ class TestRefsFKConsistency:
             refs_ids=[1, 5],  # 5 doesn't exist via FK
             caller='test',
         )
-        assert entry.mismatch_type == 'refs_only'
-        assert entry.only_in_refs == [5]
+        assert entry.action == 'refs_only'
+        assert entry.config['details']['only_in_refs'] == [5]
 
 
 @pytest.mark.django_db

@@ -55,8 +55,8 @@ class Serial(BaseModel):
     serial number gets one record. Status tracks lifecycle from received
     through issued to returned/scrapped. Config carries transaction
     context (who holds it, what document moved it, cost/price at time
-    of transaction). SerialLog records every state change with full
-    sentence descriptions.
+    of transaction). config.actions[] records every state change with full
+    sentence descriptions (log_action).
 
     Does NOT inherit ItemLinkedBase — serials have independent lifecycles.
     A physical unit exists regardless of whether the catalog item is
@@ -96,24 +96,24 @@ class Serial(BaseModel):
 
     def log_action(self, action: str, doc_type: str = '', doc_id: int | None = None,
                    notes: str = '', cost: float | None = None, price: float | None = None,
-                   discount: float | None = None, by: str = ''):
-        """Append action to config.actions[]. Self-contained history on the serial record.
-
-        SerialLog is retained as read-only archive for existing data.
-        New actions go to config.actions[] so the serial carries its own history.
-        """
+                   discount: float | None = None, by: str = '', org_id: int | None = None,
+                   status_before: str | None = None):
+        """Append action to config.actions[]: the serial carries its own history (the one
+        history since SerialLog was removed, Bill 2026-10-28). Callers change the status before
+        they log, so a caller that knows the old status passes it as status_before."""
         now_ms = int(timezone.now().timestamp() * 1000)
-        status_before = self.status
         entry = {
             'action': action,
             'dt': now_ms,
-            'status_before': status_before,
+            'status_before': status_before if status_before is not None else self.status,
             'status_after': self.status,
         }
         if doc_type:
             entry['doc_type'] = doc_type
         if doc_id is not None:
             entry['doc_id'] = doc_id
+        if org_id is not None:
+            entry['org_id'] = org_id
         if notes:
             entry['notes'] = notes
         if cost is not None:
@@ -126,9 +126,7 @@ class Serial(BaseModel):
             entry['by'] = by
 
         cfg = self.config or default_serial_config()
-        actions_list = cfg.get('actions', [])
-        actions_list.append(entry)
-        cfg['actions'] = actions_list
+        cfg.setdefault('actions', []).append(entry)
         self.config = cfg
         self.save(update_fields=['config'])
 
@@ -234,30 +232,3 @@ class Serial(BaseModel):
         self.status = 'referenced'
         self.save()
         self.log_action(f'Referenced in {doc_type}', doc_type=doc_type, doc_id=doc_id)
-
-
-class SerialLog(BaseModel):
-    """Log of actions / state changes for a serialized unit.
-
-    WC2 lineage: [ItemSerialAction] table. Every state change gets one
-    record with a full sentence action description, the document that
-    caused it, and the status before the change. Config carries context.
-    """
-
-    serial = models.ForeignKey(Serial, on_delete=models.CASCADE, related_name="logs", db_column='serial_id')
-    action = models.CharField(max_length=120, db_index=True, help_text="Full sentence: 'Issued in invoice', 'Returned from customer', etc.")
-    dt = models.BigIntegerField(db_index=True, help_text="Unix timestamp of the action")
-    config = models.JSONField(default=dict, blank=True, help_text="Context: doc_type, doc_id, status_before, notes")
-
-    @property
-    def ida(self):
-        return str(self.pk)
-
-    @property
-    def description(self):
-        return f"{self.action} @ {self.dt}"
-
-    class Meta:
-        indexes = [
-            models.Index(fields=("serial_id", "dt"), name="seriallog_serial_dt_idx"),
-        ]

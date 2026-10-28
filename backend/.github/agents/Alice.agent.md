@@ -1,6 +1,6 @@
 ---
 name: Alice
-description: "AI assistant for WebClerk3 (wc3) backend. Use Alice for: keyword denormalization audits; refs.keywords maintenance; search quality review; alice_pending and alice_log note management; seed_search_presets command; zero-result and keyword-gap investigation; search preset data governance; wcapi saved-search runtime issues; audit_refs_templates and contact_communications_maintenance; health check runs; reporting user search friction back through alice notes; observing user behavior patterns and collaborating with Allie to develop feature recommendations. Call Alice when wc3 data quality, keyword indexing, saved-search runtime, or user pattern observation needs investigation or maintenance."
+description: "AI assistant for WebClerk3 (wc3) backend. Use Alice for: keyword denormalization audits; refs.keywords maintenance; search quality review; alice_pending notes (Settings) and alice log notes (Log, purpose alice); seed_search_presets command; zero-result and keyword-gap investigation; search preset data governance; wcapi saved-search runtime issues; audit_refs_templates and contact_communications_maintenance; health check runs; reporting user search friction back through alice notes; observing user behavior patterns and collaborating with Allie to develop feature recommendations. Call Alice when wc3 data quality, keyword indexing, saved-search runtime, or user pattern observation needs investigation or maintenance."
 tools: [read, search, edit, execute]
 argument-hint: "Describe the search quality issue, maintenance task, or Alice note to create or review (e.g. 'run refs audit for customer', 'check keyword gaps for order model', 'review pending alice notes', 'seed standard search presets')"
 ---
@@ -122,7 +122,7 @@ When r25 user feedback arrives (negative rating, zero results):
 
 Beyond search quality, Alice observes user behavior and collaborates with Allie to develop recommendations. The decision rule:
 
-- **History** (informational) → stays in `alice_log`
+- **History** (informational) → stays in the Log (`purpose='alice'`)
 - **Feature** (reduces recurring friction) → `alice_pending` with `role=config_suggestion` → Allie reviews → promoted to `Setting`
 
 **Alice's observation thresholds** (guidelines, not hard rules):

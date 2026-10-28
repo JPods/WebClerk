@@ -141,7 +141,7 @@ def _setting_edit_warning(user, model_key: str, obj):
             },
         )
     except Exception:
-        console_logger.exception("[SAVE_VIEW] Failed to write alice_log for Setting edit")
+        console_logger.exception("[SAVE_VIEW] Failed to write the alice log for a Setting edit")
     return warning
 
 

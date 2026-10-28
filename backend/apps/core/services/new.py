@@ -45,9 +45,11 @@ def new_record(actor: Actor, model_key: str, payload: dict):
                       f'new makes a record; to change {model_key} {payload["id"]}, '
                       f'PUT /wcapi/{model_key}/{payload["id"]}/.',
                       {'id': payload['id']})
-    requires = tuple(behaviour_for(model_key).NEW_REQUIRES)
+    behaviour = behaviour_for(model_key)
+    requires = tuple(behaviour.NEW_REQUIRES)
+    accepts = requires + tuple(behaviour.NEW_ACCEPTS)
     values = sorted(k for k in payload
-                    if k not in _ENVELOPE and not k.startswith('_') and k not in requires)
+                    if k not in _ENVELOPE and not k.startswith('_') and k not in accepts)
     if values:
         also = f' It takes only {", ".join(requires)}.' if requires else ''
         raise Refused(400, 'new_takes_no_values',
@@ -61,7 +63,7 @@ def new_record(actor: Actor, model_key: str, payload: dict):
                       f'{"them" if len(missing) > 1 else "it"} to new.', missing)
 
     data = setting_defaults(model_key)
-    data.update({k: v for k, v in payload.items() if k.startswith('_') or k in requires})
+    data.update({k: v for k, v in payload.items() if k.startswith('_') or k in accepts})
     data['model_name'] = model_key
     try:
         return save_record(actor, data, model_key=model_key, new=True)

@@ -596,7 +596,7 @@ def get_field_behaviors(model_key, field_map=None, overrides=None):
         if name == 'status' and model_key == 'item':
             behaviors[name] = {'type': 'select', 'source': 'inline', 'options': ITEM_STATUS_OPTIONS}
             continue
-        if name == 'status' and model_key in ('serial', 'serial_log'):
+        if name == 'status' and model_key == 'serial':
             behaviors[name] = {'type': 'select', 'source': 'inline', 'options': SERIAL_STATUS_OPTIONS}
             continue
         if name == 'type' and model_key == 'gl_journal':
@@ -618,7 +618,7 @@ def get_field_behaviors(model_key, field_map=None, overrides=None):
         if name == 'status' and model_key not in (
             'customer', 'vendor', 'manufacturer', 'employee', 'rep',
             'invoice', 'order', 'quote', 'purchase', 'workorder', 'requisition',
-            'item', 'serial', 'serial_log',
+            'item', 'serial',
         ):
             behaviors[name] = {'type': 'select', 'source': 'inline', 'options': SUPPORT_STATUS_OPTIONS}
             continue

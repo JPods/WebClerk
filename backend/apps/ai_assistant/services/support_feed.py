@@ -290,7 +290,8 @@ def get_support_summary(period_days: int = 7) -> dict:
     """
     from apps.docs.models.document import Document
     from apps.core.models import Setting
-    from apps.ai_assistant.models.alice import AliceObservation, AliceCoachingLog
+    from apps.ai_assistant.models.alice import AliceObservation
+    from apps.core.models.log import Log
     from django.apps import apps
     from django.db.models import Count, Avg
 
@@ -325,13 +326,10 @@ def get_support_summary(period_days: int = 7) -> dict:
         purpose='wc:coaching', is_active=True,
     ).count()
 
-    # Coaching drills completed this period
-    drills_completed = AliceCoachingLog.objects.filter(
-        completed=True, dt_completed__gte=period_start,
-    ).count()
-    drills_passed = AliceCoachingLog.objects.filter(
-        passed=True, dt_completed__gte=period_start,
-    ).count()
+    # Coaching drills completed this period: Log purpose coaching, action completed or passed
+    drills = Log.objects.filter(purpose='coaching', dt_created__gte=period_start)
+    drills_completed = drills.filter(action__in=('completed', 'passed')).count()
+    drills_passed = drills.filter(action='passed').count()
 
     # Escalation bundles this period
     escalation_bundles = Bundle.objects.filter(

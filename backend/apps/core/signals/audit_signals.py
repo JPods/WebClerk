@@ -1,13 +1,16 @@
-"""Auto-wire AuditLog to capture field-level changes on save.
+"""Audit: field-level changes on save, written to the one Log (purpose audit).
 
 Registers post_save signals for key models. On every update, diffs old vs new
-field values and writes to AuditLog.changes as {field: {old, new}}.
+field values and writes Log(purpose='audit', action='updated', config.changes={field: {old, new}}).
+A failed write never fails the save (Bill, 2026-10-28): the entry becomes a Pending
+(purpose log_write) that applies it to the log later, and the failure is logged as an error.
 
 Excludes: computed/cached fields, JSON blobs (too noisy), timestamps.
 Skips creates (no old values to diff) — only logs updates.
 """
 from __future__ import annotations
 
+import json
 import logging
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -58,16 +61,19 @@ def _diff_fields(old_values: dict, instance) -> dict:
 
 
 def _serialize(val):
-    """Convert a value to JSON-serializable form."""
+    """Convert a value to JSON-serializable form. A JSON field's dict or list stays JSON (it was
+    stored as its Python repr string before — the one-log move, 2026-10-28)."""
     if val is None:
         return None
     if isinstance(val, (int, float, str, bool)):
         return val
+    if isinstance(val, (dict, list)):
+        return json.loads(json.dumps(val, default=str))
     return str(val)
 
 
 def audit_post_save(sender, instance, created, **kwargs):
-    """Post-save handler that logs field changes to AuditLog."""
+    """Post-save handler that writes field changes to the Log."""
     if created:
         return  # Skip creates — no old values to diff
 
@@ -84,16 +90,18 @@ def audit_post_save(sender, instance, created, **kwargs):
     if not changes:
         return  # Nothing actually changed
 
+    entry = {'purpose': 'audit', 'action': 'updated',
+             'model_name': instance.__class__.__name__.lower(), 'record_id': instance.pk,
+             'changes': changes}
     try:
-        from apps.core.models.audit import AuditLog
-        AuditLog.log_action(
-            model_name=instance.__class__.__name__.lower(),
-            record_id=instance.pk,
-            action='updated',
-            changes=changes,
-        )
+        from apps.core.models.log import Log
+        Log.write(entry['purpose'], entry['action'], model_name=entry['model_name'],
+                  record_id=entry['record_id'], changes=entry['changes'])
     except Exception:
-        logger.debug("AuditLog write failed", exc_info=True)
+        logger.error("Audit log write failed for %s#%s; queued as a Pending",
+                     entry['model_name'], entry['record_id'], exc_info=True)
+        from apps.core.models.pending import Pending
+        Pending.queue_log_write(entry)
 
     # Clean up
     instance._audit_old_values = None

@@ -566,7 +566,7 @@ WCAPI_BLESSED_MODELS = {
     # Core models
     "contact": "core.Contact",
     "action": "core.Action",
-    "audit": "core.Audit",
+    "log": "core.Log",
     "notification": "core.Notification",
     "pending": "core.Pending",
     "report": "core.Report",
@@ -574,6 +574,7 @@ WCAPI_BLESSED_MODELS = {
     "template": "core.Template",
 
     # Accounts models
+    "audit": "accounts.Audit",
     "currency": "accounts.Currency",
     "exchange_rate": "accounts.ExchangeRate",
     "exchange_transaction": "accounts.ExchangeTransaction",
@@ -775,6 +776,12 @@ CELERY_TASK_SOFT_TIME_LIMIT = 25 * 60     # 25 minutes soft limit
 from celery.schedules import crontab  # noqa: E402
 
 CELERY_BEAT_SCHEDULE = {
+    # ── Pendings with a handler (apps.sync pending_processor): log entries whose first write
+    #    failed, bundles out. Hourly.
+    'process-pending': {
+        'task': 'apps.sync.tasks.process_pending',
+        'schedule': 3600,
+    },
     # ── Inventory pending drain (adaptive, self-re-scheduling) ──────
     # Runs every 30 s; the task adjusts its own delay based on workload.
     'inventory-pending-drain': {
@@ -802,12 +809,6 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'apps.support.scheduler.tasks.task_recompute_relationship_counts',
         'schedule': crontab(minute=0),
         'kwargs': {'limit': 5000, 'batch_size': 500},
-    },
-
-    # ── User daily log aggregation (daily 1:30 AM) ─────────────────
-    'aggregate-user-daily-logs-nightly': {
-        'task': 'apps.support.scheduler.tasks.task_aggregate_user_daily_logs',
-        'schedule': crontab(hour=1, minute=30),
     },
 
     # ── Model defaults (daily 2 AM) ────────────────────────────────

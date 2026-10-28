@@ -38,7 +38,6 @@ export const APP_DETAIL_COMPONENTS: Record<string, React.LazyExoticComponent<Rea
   rep: React.lazy(() => import('@/components/common/ModelDetailPage')),
   // Products
   item: React.lazy(() => import('@/components/common/ModelDetailPage')),
-  serial_log: React.lazy(() => import('@/apps/products/models/serial/pages/SerialDisplay')),
   // Transactions
   quote: React.lazy(() => import('@/apps/transactions/components/TransactionDetail')),
   order: React.lazy(() => import('@/apps/transactions/components/TransactionDetail')),

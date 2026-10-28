@@ -15,8 +15,8 @@ UPDATE products_item SET uuid = gen_random_uuid() WHERE uuid IS NULL;
 UPDATE orgs_orgbase SET uuid = gen_random_uuid() WHERE uuid IS NULL;
 \echo '  orgs_orgbase done'
 
-UPDATE refs_mismatch_log SET uuid = gen_random_uuid() WHERE uuid IS NULL;
-\echo '  refs_mismatch_log done'
+UPDATE logs SET uuid = gen_random_uuid() WHERE uuid IS NULL;
+\echo '  logs done'
 
 UPDATE emails SET uuid = gen_random_uuid() WHERE uuid IS NULL;
 \echo '  emails done'
@@ -106,7 +106,7 @@ UNION ALL SELECT 'tags', count(*) FROM tags WHERE uuid IS NULL
 UNION ALL SELECT 'locations', count(*) FROM locations WHERE uuid IS NULL
 UNION ALL SELECT 'qas', count(*) FROM qas WHERE uuid IS NULL
 UNION ALL SELECT 'products_catalog', count(*) FROM products_catalog WHERE uuid IS NULL
-UNION ALL SELECT 'refs_mismatch_log', count(*) FROM refs_mismatch_log WHERE uuid IS NULL
+UNION ALL SELECT 'logs', count(*) FROM logs WHERE uuid IS NULL
 UNION ALL SELECT 'acct_currencies', count(*) FROM acct_currencies WHERE uuid IS NULL
 UNION ALL SELECT 'acct_exchanges', count(*) FROM acct_exchanges WHERE uuid IS NULL
 UNION ALL SELECT 'acct_exchange_rates', count(*) FROM acct_exchange_rates WHERE uuid IS NULL

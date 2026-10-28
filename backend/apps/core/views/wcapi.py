@@ -1000,12 +1000,10 @@ class WCAPIGetView(APIView):
         field_names = {f.name for f in ModelCls._meta.get_fields()}
         if field_name not in field_names:
             return None
-
-        try:
-            ModelCls.objects.active().order_by(ordering)
-            return ordering
-        except Exception:
-            return None
+        # The field check is the validation: order_by is lazy and never raised here. The
+        # objects.active() this tried exists only on BaseModel's manager, so for a thin model
+        # (Pending, Log) every ordering was dropped (Fable review, 2026-10-28).
+        return ordering
 
     def _parse_ordering(self, request, model_key: str, ModelCls) -> Optional[str]:
         """

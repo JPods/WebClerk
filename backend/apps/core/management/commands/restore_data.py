@@ -63,7 +63,6 @@ class Command(BaseCommand):
         'pendinginventoryadjustment.json',
         'inventoryadjustmentprocessorrun.json',
         'serial.json',
-        'seriallog.json',
         
         # 7. Documents
         'document.json',

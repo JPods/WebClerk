@@ -95,7 +95,6 @@ LAYOUTS = {
     'inventory_adjustment_run': {'list': ['id', 'ida', 'dt_created'], 'detail': ['id', 'ida', 'dt_created', 'dt_modified']},
     'inventory_metrics_snapshot': {'list': ['id', 'ida', 'dt_created'], 'detail': ['id', 'ida', 'dt_created', 'dt_modified']},
     'pending_inventory_adjustment': {'list': ['id', 'ida', 'dt_created'], 'detail': ['id', 'ida', 'dt_created', 'dt_modified']},
-    'serial_log':  {'list': ['id', 'ida', 'dt_created'], 'detail': ['id', 'ida', 'dt_created', 'dt_modified']},
 
     # --- Transactions (additional) ---
     'project':              {'list': ['id', 'ida', 'name', 'is_active', 'dt_created'], 'detail': ['id', 'ida', 'name', 'is_active', 'dt_created', 'dt_modified']},

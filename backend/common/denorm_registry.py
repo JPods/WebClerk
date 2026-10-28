@@ -68,8 +68,6 @@ DENORM_REGISTRY: Dict[str, List[str]] = {
     "tag":          ["ida", "name"],
     # ── Child / Detail records ──────────────────────────────────────────
     "questionanswer": ["ida", "question"],
-    "seriallog":      ["serial", "action"],
-    "auditlog":       ["ida", "action"],
     "term":           ["ida", "name"],
     "billofmaterial": ["ida", "parent_item_id", "child_item_id", "child_ida", "child_description", "quantity", "sequence"],
 }

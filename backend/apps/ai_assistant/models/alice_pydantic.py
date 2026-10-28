@@ -1,5 +1,5 @@
 """
-Pydantic schemas for AliceObservation, AlicePreset, and AliceCoachingLog JSON envelopes.
+Pydantic schemas for AliceObservation and AlicePreset JSON envelopes.
 
 Mirrors alice.py — three models in one file.
 AliceInsight has its own file (alice_insight_pydantic.py).
@@ -47,25 +47,6 @@ class AlicePresetPrefs(RecordPrefsBase):
     pass
 
 class AlicePresetRefs(RefsBase):
-    tags: list[str] = Field(default_factory=list)
-    keywords: list[str] = Field(default_factory=list)
-    source: Optional[SourceRef] = None
-
-
-# ═══════════════════════════════════════════════════════════════════════
-# AliceCoachingLog
-# ═══════════════════════════════════════════════════════════════════════
-
-class AliceCoachingLogConfig(ConfigBase):
-    pass
-
-class AliceCoachingLogMetadata(MetadataBase):
-    pass
-
-class AliceCoachingLogPrefs(RecordPrefsBase):
-    pass
-
-class AliceCoachingLogRefs(RefsBase):
     tags: list[str] = Field(default_factory=list)
     keywords: list[str] = Field(default_factory=list)
     source: Optional[SourceRef] = None

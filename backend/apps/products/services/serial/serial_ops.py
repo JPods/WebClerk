@@ -1,7 +1,7 @@
 """Serial number lifecycle services.
 
 Operations: receive, issue, return, reference, warranty check, search.
-Every state change logs to SerialLog. Warranty calculated at issue time.
+Every state change is appended to the serial's config.actions. Warranty calculated at issue time.
 
 Pattern source: WC2 Srl_IssueSale, Srl_RcvrPO, Srl_SalvageSale, Srl_Transaction, Srl_Reference.
 """
@@ -13,7 +13,7 @@ from typing import Optional
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
-from apps.products.models.serial import Serial, SerialLog
+from apps.products.models.serial import Serial
 from apps.products.models.item import Item
 
 
@@ -79,11 +79,8 @@ def receive_serial(
         serial.refs = {'links': refs_links}
     serial.save(update_fields=['refs'])
 
-    _log(serial, 'received', config={
-        'vendor_id': vendor_id,
-        'po_id': po_id,
-        'cost': float(cost) if cost else 0,
-    })
+    serial.log_action('received', doc_type='purchase' if po_id else '', doc_id=po_id,
+                      org_id=vendor_id, cost=float(cost) if cost else 0)
     return serial
 
 
@@ -137,11 +134,8 @@ def issue_to_sale(
 
     serial.save(update_fields=['status', 'warranty', 'config', 'refs'])
 
-    _log(serial, 'issued', config={
-        'customer_id': customer_id,
-        'invoice_id': invoice_id,
-        'price': float(price) if price else 0,
-    })
+    serial.log_action('issued', doc_type='invoice' if invoice_id else '', doc_id=invoice_id,
+                      org_id=customer_id, price=float(price) if price else 0)
     return serial
 
 
@@ -177,10 +171,8 @@ def return_from_sale(
 
     serial.save(update_fields=['status', 'refs', 'warranty'])
 
-    _log(serial, 'returned', config={
-        'reason': reason,
-        'from_invoice_id': invoice_id,
-    })
+    serial.log_action('returned', doc_type='invoice' if invoice_id else '', doc_id=invoice_id,
+                      notes=reason or '')
     return serial
 
 
@@ -227,12 +219,10 @@ def reference_existing(
     serial.refs = refs
     serial.save(update_fields=['refs'])
 
-    _log(serial, 'referenced', config={
-        'customer_id': customer_id,
-        'document_type': document_type,
-        'document_id': document_id,
-        'remaining_warranty_days': remaining_warranty_days,
-    })
+    serial.log_action('referenced', doc_type=document_type or '', doc_id=document_id,
+                      org_id=customer_id,
+                      notes=f'{remaining_warranty_days} warranty days remaining'
+                      if remaining_warranty_days is not None else '')
     return serial
 
 
@@ -243,7 +233,8 @@ def change_status(serial_id: int, new_status: str, *, reason: str = '') -> Seria
     old_status = serial.status
     serial.status = new_status
     serial.save(update_fields=['status'])
-    _log(serial, f'status_change:{old_status}→{new_status}', config={'reason': reason})
+    serial.log_action(f'status_change:{old_status}→{new_status}', notes=reason or '',
+                      status_before=old_status)
     return serial
 
 
@@ -281,9 +272,10 @@ def search_by_serial_number(serial_number: str) -> list[Serial]:
     ).order_by('-dt_created'))
 
 
-def get_history(serial_id: int) -> list[SerialLog]:
-    """Full event history for a serial unit."""
-    return list(SerialLog.objects.filter(serial_id=serial_id).order_by('dt'))
+def get_history(serial_id: int) -> list[dict]:
+    """Full event history for a serial unit: its config.actions, oldest first."""
+    serial = Serial.objects.get(pk=serial_id)
+    return sorted((serial.config or {}).get('actions', []), key=lambda a: a.get('dt') or 0)
 
 
 # ---------------------------------------------------------------------------
@@ -317,15 +309,6 @@ def warranty_expired() -> list[Serial]:
 
 def _now_ms() -> int:
     return int(timezone.now().timestamp() * 1000)
-
-
-def _log(serial: Serial, action: str, config: Optional[dict] = None) -> SerialLog:
-    return SerialLog.objects.create(
-        serial=serial,
-        action=action,
-        dt=_now_ms(),
-        config=config or {},
-    )
 
 
 def _build_warranty(days: int, start_today: bool = False) -> dict:

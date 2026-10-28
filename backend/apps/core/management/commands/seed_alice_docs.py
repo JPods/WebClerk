@@ -32,7 +32,7 @@ ALICE_DOCS = [
     {
         'ida': 'ALICE-OBSERVATION-SETUP',
         'name': 'Alice — Observation Setup',
-        'description': 'AliceObservation, AlicePreset, AliceCoachingLog models; console capture; wcapi access; coaching UI; quiz engine',
+        'description': 'AliceObservation, AlicePreset models; drills logged to Log (purpose coaching); console capture; wcapi access; coaching UI; quiz engine',
         'git_path': 'readmes/alice/observation-setup.md',
         'sequence': 20,
         'tags': ['alice', 'readme', 'training', 'observations'],

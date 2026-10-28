@@ -10,7 +10,7 @@
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { getRecords, createRecord } from '@/api/wcapi';
+import { getRecords, createRecord, newRecord } from '@/api/wcapi';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -127,12 +127,16 @@ export default function HelpDashboard() {
   const sendFeedback = useCallback(async (itemId: string, vote: 'up' | 'down') => {
     setFeedback((p) => ({ ...p, [itemId]: vote }));
     try {
-      await createRecord('setting', {
-        name: `help_feedback:${itemId}`,
-        purpose: 'alice_log',
-        config: { item_id: itemId, vote, context, model, dt: Date.now() },
+      // A log row, complete in one `new` (the one Log, 2026-10-28; it was a Setting).
+      await newRecord('log', {
+        purpose: 'alice', action: 'help_feedback',
+        config: { name: `help_feedback:${itemId}`, details: { item_id: itemId, vote, context, model } },
       });
-    } catch { /* silent */ }
+    } catch (err) {
+      // Not recorded: take the vote back off the screen rather than show it as counted.
+      console.error('[Help] feedback not recorded', err);
+      setFeedback((p) => { const { [itemId]: _gone, ...rest } = p; return rest; });
+    }
   }, [context, model]);
 
   // Report problem

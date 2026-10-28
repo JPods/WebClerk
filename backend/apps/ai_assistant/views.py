@@ -387,10 +387,11 @@ class DiagnoseView(APIView):
 
     def _check_alice_db(self):
         try:
-            from .models.alice import AliceObservation, AliceCoachingLog, AliceInsight
+            from .models.alice import AliceObservation, AliceInsight
+            from apps.core.models.log import Log
             counts = {
                 'observations': AliceObservation.objects.count(),
-                'coaching_logs': AliceCoachingLog.objects.count(),
+                'coaching_logs': Log.objects.filter(purpose='coaching').count(),
                 'insights': AliceInsight.objects.count(),
             }
             return {'ok': True, **counts}
@@ -811,7 +812,7 @@ class NoteView(APIView):
             )
 
         try:
-            setting = create_note(
+            note = create_note(
                 category,
                 role=role,
                 name=name,
@@ -825,14 +826,17 @@ class NoteView(APIView):
                 error_code="invalid_note",
             )
 
+        # A log note is a Log (purpose alice, action = role); a pending note is a Setting.
+        is_log = category == "log"
         return api_response(
             status_code=status.HTTP_201_CREATED,
             data={
-                "id": setting.pk,
-                "name": setting.name,
-                "purpose": setting.purpose,
-                "role": setting.role,
-                "parent_model": setting.parent_model,
+                "id": note.pk,
+                "model": "log" if is_log else "setting",
+                "name": note.config.get("name", "") if is_log else note.name,
+                "purpose": note.purpose,
+                "role": note.action if is_log else note.role,
+                "parent_model": note.model_name if is_log else note.parent_model,
             },
         )
 
@@ -908,7 +912,7 @@ class SearchFeedbackView(APIView):
         "coaching": "I was looking for Acme West division"  // optional
     }
 
-    Always creates an alice_log (search_feedback).
+    Always writes an alice log (search_feedback).
     If rating is negative, also creates an alice_pending (keyword_gap).
     """
     permission_classes = [IsAuthenticated]

@@ -75,6 +75,7 @@ MODEL_REGISTRY: Dict[str, ModelMeta] = {
     'contact': ModelMeta('contact', 'apps.core.models.contact.Contact', 'Contact', 'Contacts', 'contacts', kind='support', aliases=['contacts']),
     'document': ModelMeta('document', 'apps.docs.models.document.Document', 'Document', 'Documents', 'documents', kind='support', aliases=['documents', 'doc']),
     'notification': ModelMeta('notification', 'apps.core.models.notification.Notification', 'Notification', 'Notifications', 'notifications', kind='support', aliases=['notifications']),
+    'log': ModelMeta('log', 'apps.core.models.log.Log', 'Log', 'Logs', 'logs', kind='support', aliases=['logs']),
     'pending': ModelMeta('pending', 'apps.core.models.pending.Pending', 'Pending', 'Pending', 'pending', kind='support', aliases=[]),
     'report': ModelMeta('report', 'apps.core.models.report.Report', 'Report', 'Reports', 'reports', kind='support', aliases=['reports']),
     'setting': ModelMeta('setting', 'apps.core.models.setting.Setting', 'Setting', 'Settings', 'settings', kind='support', aliases=['settings']),
@@ -102,7 +103,6 @@ MODEL_REGISTRY: Dict[str, ModelMeta] = {
     'item_usage': ModelMeta('item_usage', 'apps.products.models.ItemUsage', 'Item Usage', 'Item Usages', 'item-usages', kind='support', aliases=['item_usages']),
     'item_xref': ModelMeta('item_xref', 'apps.products.models.ItemXRef', 'Item XRef', 'Item XRefs', 'item-xrefs', kind='support', aliases=['item_xrefs']),
     'serial': ModelMeta('serial', 'apps.products.models.serial.Serial', 'Serial', 'Serials', 'serials', kind='support', aliases=['serials']),
-    'serial_log': ModelMeta('serial_log', 'apps.products.models.serial.SerialLog', 'Serial Log', 'Serial Logs', 'serial-logs', kind='support', aliases=['serial_logs']),
     'variant': ModelMeta('variant', 'apps.products.models.Variant', 'Variant', 'Variants', 'variants', kind='support', aliases=['variants']),
     'warehouse': ModelMeta('warehouse', 'apps.products.models.warehouse.Warehouse', 'Warehouse', 'Warehouses', 'warehouses', kind='support', aliases=['warehouses']),
 
@@ -140,7 +140,6 @@ MODEL_REGISTRY: Dict[str, ModelMeta] = {
     # Alice
     'alice_observation': ModelMeta('alice_observation', 'apps.ai_assistant.models.alice.AliceObservation', 'Alice Observation', 'Alice Observations', 'alice-observations', kind='support', aliases=['alice_observations']),
     'alice_preset': ModelMeta('alice_preset', 'apps.ai_assistant.models.alice.AlicePreset', 'Alice Preset', 'Alice Presets', 'alice-presets', kind='support', aliases=['alice_presets']),
-    'alice_coaching_log': ModelMeta('alice_coaching_log', 'apps.ai_assistant.models.alice.AliceCoachingLog', 'Alice Coaching Log', 'Alice Coaching Logs', 'alice-coaching-logs', kind='support', aliases=['alice_coaching_logs']),
     'ai_message': ModelMeta('ai_message', 'apps.ai_assistant.models.message.AiMessage', 'AI Message', 'AI Messages', 'ai-messages', kind='support', aliases=['ai_messages', 'message']),
     'order': ModelMeta('order', 'apps.transactions.models.Order', 'Order', 'Orders', 'orders', kind='header', aliases=['orders']),
     'order_line': ModelMeta('order_line', 'apps.transactions.models.OrderLine', 'Order Line', 'Order Lines', 'order-lines', kind='line', aliases=['order_lines']),

@@ -25,7 +25,7 @@ UNION ALL SELECT 'locations', uuid, count(*) FROM locations GROUP BY uuid HAVING
 UNION ALL SELECT 'work_orders', uuid, count(*) FROM work_orders GROUP BY uuid HAVING count(*) > 1
 UNION ALL SELECT 'qas', uuid, count(*) FROM qas GROUP BY uuid HAVING count(*) > 1
 UNION ALL SELECT 'products_catalog', uuid, count(*) FROM products_catalog GROUP BY uuid HAVING count(*) > 1
-UNION ALL SELECT 'refs_mismatch_log', uuid, count(*) FROM refs_mismatch_log GROUP BY uuid HAVING count(*) > 1
+UNION ALL SELECT 'logs', uuid, count(*) FROM logs GROUP BY uuid HAVING count(*) > 1
 UNION ALL SELECT 'acct_currencies', uuid, count(*) FROM acct_currencies GROUP BY uuid HAVING count(*) > 1
 UNION ALL SELECT 'acct_exchanges', uuid, count(*) FROM acct_exchanges GROUP BY uuid HAVING count(*) > 1
 UNION ALL SELECT 'acct_exchange_rates', uuid, count(*) FROM acct_exchange_rates GROUP BY uuid HAVING count(*) > 1;
@@ -54,7 +54,7 @@ UNION ALL SELECT 'locations', count(*) FROM locations WHERE uuid IS NULL HAVING 
 UNION ALL SELECT 'work_orders', count(*) FROM work_orders WHERE uuid IS NULL HAVING count(*) > 0
 UNION ALL SELECT 'qas', count(*) FROM qas WHERE uuid IS NULL HAVING count(*) > 0
 UNION ALL SELECT 'products_catalog', count(*) FROM products_catalog WHERE uuid IS NULL HAVING count(*) > 0
-UNION ALL SELECT 'refs_mismatch_log', count(*) FROM refs_mismatch_log WHERE uuid IS NULL HAVING count(*) > 0;
+UNION ALL SELECT 'logs', count(*) FROM logs WHERE uuid IS NULL HAVING count(*) > 0;
 
 \echo '=== 3. ORPHANED FK REFERENCES (populated tables) ==='
 

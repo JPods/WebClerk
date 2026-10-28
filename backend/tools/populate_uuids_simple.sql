@@ -2,7 +2,7 @@ BEGIN;
 UPDATE actions SET uuid = gen_random_uuid() WHERE uuid IS NULL;
 UPDATE products_item SET uuid = gen_random_uuid() WHERE uuid IS NULL;
 UPDATE orgs_orgbase SET uuid = gen_random_uuid() WHERE uuid IS NULL;
-UPDATE refs_mismatch_log SET uuid = gen_random_uuid() WHERE uuid IS NULL;
+UPDATE logs SET uuid = gen_random_uuid() WHERE uuid IS NULL;
 UPDATE emails SET uuid = gen_random_uuid() WHERE uuid IS NULL;
 UPDATE settings SET uuid = gen_random_uuid() WHERE uuid IS NULL;
 UPDATE products_warehouse SET uuid = gen_random_uuid() WHERE uuid IS NULL;

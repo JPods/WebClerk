@@ -1,16 +1,15 @@
 """
-Alice Notes — persistent memory layer using Setting records.
+Alice Notes — Alice's persistent memory.
 
 Two categories:
-    alice_pending   Short-term action items (keyword gaps, zero-result
-                    searches, data-quality flags).  ``is_active=True``
-                    means unresolved; set ``is_active=False`` to close.
+    pending   Short-term action items (keyword gaps, zero-result
+              searches, data-quality flags): Setting purpose alice_pending.
+              ``is_active=True`` means unresolved; set ``is_active=False`` to close.
 
-    alice_log       Longer-term audit trail (queries handled, config
-                    changes, health-check snapshots, user interactions).
-
-Both live in the core Setting model so they are visible in the admin,
-queryable via wcapi, and included in backups without any new tables.
+    log       What Alice observed (queries handled, config changes,
+              health-check snapshots, user interactions): the one Log,
+              purpose alice, action = role (Bill, 2026-10-28: logs go in the log
+              model; Setting holds only the structure of the application).
 
 Usage from any backend code::
 
@@ -32,13 +31,13 @@ from typing import Any
 from django.db.models import Count, Q
 from django.utils import timezone
 
-from apps.core.models import Setting
+from apps.core.models import Log, Setting
 
 logger = logging.getLogger(__name__)
 
 CATEGORY_PURPOSE_MAP = {
-    "pending": "alice_pending",
-    "log": "alice_log",
+    "pending": "alice_pending",   # Setting
+    "log": "alice",               # Log
 }
 
 # ── Allowed role values (sub-types) per category ────────────────────
@@ -74,8 +73,8 @@ def create_note(
     name: str,
     parent_model: str | None = None,
     details: dict[str, Any] | None = None,
-) -> Setting:
-    """Create an ``alice_pending`` or ``alice_log`` Setting record.
+) -> Setting | Log:
+    """Create a pending Setting (``alice_pending``) or a Log (purpose ``alice``).
 
     Parameters
     ----------
@@ -106,8 +105,14 @@ def create_note(
         )
 
     data = dict(details) if details else {}
-    data.setdefault("category", category)
     data.setdefault("created_by", "alice")
+
+    if category == "log":
+        entry = Log.write("alice", role, model_name=parent_model or "", name=name, details=data)
+        logger.info("Alice log written: pk=%s role=%s", entry.pk, role)
+        return entry
+
+    data.setdefault("category", category)
 
     # Settings refuse creation without authorization; a note is Alice's own record. Until
     # 2026-09-27 this save was refused on every call and each caller swallowed the refusal,
@@ -154,47 +159,52 @@ def get_report(
     Returns a dict with ``summary`` (counts by role) and ``items``
     (the most recent records, newest first).
     """
-    purposes: list[str] = []
-    if category:
-        purpose = CATEGORY_PURPOSE_MAP.get(category)
-        if purpose is None:
-            raise ValueError(f"Invalid category '{category}'.")
-        purposes = [purpose]
-    else:
-        purposes = list(CATEGORY_PURPOSE_MAP.values())
+    if category and category not in CATEGORY_PURPOSE_MAP:
+        raise ValueError(f"Invalid category '{category}'.")
+    cutoff_ms = int((timezone.now() - timedelta(days=days)).timestamp() * 1000)
+    summary: list[dict[str, Any]] = []
+    items: list[dict[str, Any]] = []
+    total = 0
 
-    cutoff = timezone.now() - timedelta(days=days)
-    cutoff_ms = int(cutoff.timestamp() * 1000)
+    if category in (None, "pending"):
+        qs = Setting.objects.filter(purpose="alice_pending", dt_created__gte=cutoff_ms)
+        if parent_model:
+            qs = qs.filter(parent_model=parent_model)
+        if role:
+            qs = qs.filter(role=role)
+        if not include_resolved:
+            qs = qs.filter(is_active=True)
+        summary += [{"category": "pending", "role": r["role"], "count": r["count"]}
+                    for r in qs.values("role").annotate(count=Count("id")).order_by("role")]
+        items += [{"category": "pending", "model": "setting", "id": r["id"], "name": r["name"],
+                   "role": r["role"], "parent_model": r["parent_model"], "data": r["config"],
+                   "is_active": r["is_active"], "dt_created": r["dt_created"]}
+                  for r in qs.order_by("-dt_created")[:limit].values(
+                      "id", "name", "role", "parent_model", "config", "is_active", "dt_created")]
+        total += qs.count()
 
-    qs = Setting.objects.filter(
-        purpose__in=purposes,
-        dt_created__gte=cutoff_ms,
-    )
+    if category in (None, "log"):
+        qs = Log.objects.filter(purpose="alice", dt_created__gte=cutoff_ms)
+        if parent_model:
+            qs = qs.filter(model_name=parent_model)
+        if role:
+            qs = qs.filter(action=role)
+        summary += [{"category": "log", "role": r["action"], "count": r["count"]}
+                    for r in qs.values("action").annotate(count=Count("id")).order_by("action")]
+        items += [{"category": "log", "model": "log", "id": r["id"], "name": (r["config"] or {}).get("name", ""),
+                   "role": r["action"], "parent_model": r["model_name"],
+                   "data": (r["config"] or {}).get("details", {}),
+                   "is_active": True, "dt_created": r["dt_created"]}
+                  for r in qs.order_by("-dt_created")[:limit].values(
+                      "id", "action", "model_name", "config", "dt_created")]
+        total += qs.count()
 
-    if parent_model:
-        qs = qs.filter(parent_model=parent_model)
-    if role:
-        qs = qs.filter(role=role)
-    if not include_resolved:
-        # For pending: only active; for log: show all
-        qs = qs.exclude(purpose="alice_pending", is_active=False)
-
-    summary = list(
-        qs.values("purpose", "role")
-        .annotate(count=Count("id"))
-        .order_by("purpose", "role")
-    )
-
-    items = list(
-        qs.order_by("-dt_created")[:limit]
-        .values("id", "name", "purpose", "role", "parent_model",
-                "data", "is_active", "dt_created")
-    )
+    items = sorted(items, key=lambda i: i["dt_created"] or 0, reverse=True)[:limit]
 
     return {
         "summary": summary,
         "items": items,
-        "total": qs.count(),
+        "total": total,
         "days": days,
         "filters": {
             "category": category,

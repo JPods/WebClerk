@@ -178,8 +178,14 @@ def _carrier_action(method_name: str, params: Dict[str, Any]) -> Dict[str, Any]:
     raise ValueError(f'Unknown carrier method: {method_name}')
 
 
+_NOT_OBSERVED = frozenset({"get_ui_config"})
+
+
 def _log_report_observation(request, action_name: str, params: Dict[str, Any], result: Dict[str, Any]) -> None:
-    """Persist a lightweight alice_log observation for report usage."""
+    """Persist a lightweight Alice log observation for report usage. A viewer's display
+    settings being read (get_ui_config) is not one: 409 of 916 such rows said only that."""
+    if action_name in _NOT_OBSERVED:
+        return
     try:
         from apps.ai_assistant.services.notes import create_note
 
@@ -206,7 +212,7 @@ def _log_report_observation(request, action_name: str, params: Dict[str, Any], r
             details=details,
         )
     except Exception:
-        logger.exception("Failed to write alice_log for report action %s", action_name)
+        logger.exception("Failed to write the alice log for report action %s", action_name)
 
 
 # ---------------------------------------------------------------------------

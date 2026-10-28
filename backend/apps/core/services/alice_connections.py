@@ -5,7 +5,7 @@ establishes one. That something is Alice, not a seed script and not a
 silent constant buried in code: the Connection is a *record*, visible in
 the UI, editable by the owner, and deactivatable at any time. Alice
 creates it the first time the installation needs something from HQ, and
-writes an alice_log note saying she did.
+writes an alice log note saying she did.
 
 What this Connection permits is narrow and stated on the record: pull the
 public recommended set (Settings, Reports, the GL role map). No business

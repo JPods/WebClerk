@@ -67,7 +67,7 @@ def _empty_year() -> Dict[str, Any]:
         'size_bands': defaultdict(lambda: {'count': 0, 'amount': Decimal('0')}),
         'channel': defaultdict(int), 'fulfillment': defaultdict(int), 'online_pickup': 0,
         'quotes': 0, 'quotes_converted': 0,
-        'touches': defaultdict(int), 'visits_in': 0, 'visits_out': 0, 'web_days': 0,
+        'touches': defaultdict(int), 'visits_in': 0, 'visits_out': 0,
     }
 
 
@@ -184,14 +184,6 @@ def compute_org_metrics(org, now: Optional[datetime] = None) -> Dict[str, Any]:
         if dt and (last_touch is None or dt > last_touch):
             last_touch = dt
 
-    # Web visits: days the customer's own contacts were active (UserDailyLog, filled nightly).
-    try:
-        UserDailyLog = dj_apps.get_model('core', 'UserDailyLog')
-        for log_date in UserDailyLog.objects.filter(user__customer_id=org.pk).values_list('log_date', flat=True):
-            years[log_date.year]['web_days'] += 1
-    except Exception:                        # a missing link is reported by the empty count, not hidden
-        pass
-
     def money(x):
         return float(Decimal(x).quantize(Decimal('0.01')))
 
@@ -216,7 +208,6 @@ def compute_org_metrics(org, now: Optional[datetime] = None) -> Dict[str, Any]:
             'online_pickup_share': round(y['online_pickup'] / y['count'] * 100, 1) if y['count'] else None,
             'quotes': y['quotes'], 'quotes_converted': y['quotes_converted'],
             'touches': dict(y['touches']), 'visits_in': y['visits_in'], 'visits_out': y['visits_out'],
-            'web_days': y['web_days'],
         })
 
     momentum = pct(periods['last_90']['amount'], periods['prior_90']['amount'])

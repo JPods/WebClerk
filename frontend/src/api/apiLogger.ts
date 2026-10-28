@@ -3,7 +3,8 @@
  * API Request Logger
  * 
  * Logs all R25 → WC3 API calls for debugging and auditing.
- * Sends log entries to the backend APILog model via /wcapi/log/api/
+ * Logs to the console in development. Nothing is sent to the backend: APILog was never
+ * routed and was removed with the one Log (2026-10-28).
  */
 
 import { AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
@@ -19,10 +20,8 @@ const LOG_CONFIG = {
   enabled: import.meta.env.VITE_API_LOGGING !== 'false',
   // Log to console in development
   consoleLog: import.meta.env.DEV,
-  // Send logs to backend
-  sendToBackend: false,
   // Endpoints to skip logging (to avoid infinite loops)
-  skipEndpoints: ['/wcapi/log/api/', '/api/token/refresh/'],
+  skipEndpoints: ['/api/token/refresh/'],
   // Max body size to log (truncate large payloads)
   maxBodySize: 10000,
 };
@@ -180,16 +179,6 @@ export const onResponseError = async (error: AxiosError): Promise<never> => {
 };
 
 /**
- * Send log entry to backend
- */
-const sendLogToBackend = async (entry: APILogEntry): Promise<void> => {
-  // Use fetch directly to avoid interceptor loops
-  // Disabled — entry preserved for future re-enablement
-  void entry;
-  return Promise.resolve();
-};
-
-/**
  * Manually log an API call (for non-axios requests)
  */
 export const logAPICall = (entry: Partial<APILogEntry>): void => {
@@ -212,7 +201,4 @@ export const logAPICall = (entry: Partial<APILogEntry>): void => {
     );
   }
   
-  if (LOG_CONFIG.sendToBackend) {
-    sendLogToBackend(fullEntry).catch(() => {});
-  }
 };

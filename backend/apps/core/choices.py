@@ -96,7 +96,6 @@ SETTING_PURPOSE_CHOICES: Final[ChoiceList] = (
     ("wc:qa_questions", "wc:qa_questions"),
     # Alice & AI
     ("alice_pending", "alice_pending"),
-    ("alice_log", "alice_log"),
     ("wc:alice_coaching", "wc:alice_coaching"),
     ("ai_prompt_history", "ai_prompt_history"),
     # Admin & system
@@ -130,6 +129,20 @@ SETTING_PURPOSE_CHOICES: Final[ChoiceList] = (
     ("wc:cash_gateway", "wc:cash_gateway"),
 )
 
+# Why a Log row was written (Log.purpose — Bill, 2026-10-28). Log.write refuses any other.
+# A foreign_<kind> purpose (none yet) points to a record kept in another database
+# (refs.foreign = {database, model, uuid}); add one only for an event that matters to this
+# database. Conversion passes do not: they stage in alice_conversion, and loading the bundle
+# is this database's own event.
+LOG_PURPOSE_CHOICES: Final[ChoiceList] = (
+    ("audit", "Audit — a change to an audited record"),
+    ("alice", "Alice — what Alice observed"),
+    ("refs_mismatch", "Refs mismatch — a record's FK and refs.links disagree"),
+    ("coaching", "Coaching — a drill a person ran"),
+)
+LOG_PURPOSES: Final[frozenset[str]] = frozenset(k for k, _ in LOG_PURPOSE_CHOICES)
+
+
 DEFAULT_SELECT_LISTS: Final[dict[str, dict[str, ChoiceList]]] = {
     "Contact": {
         "role": CONTACT_ROLE_CHOICES,
@@ -140,6 +153,9 @@ DEFAULT_SELECT_LISTS: Final[dict[str, dict[str, ChoiceList]]] = {
     },
     "Setting": {
         "purpose": SETTING_PURPOSE_CHOICES,
+    },
+    "Log": {
+        "purpose": LOG_PURPOSE_CHOICES,
     },
     "Report": {
         "output_type": (

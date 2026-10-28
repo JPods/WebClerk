@@ -333,7 +333,7 @@ def _alice_note(
 
 
 def _emit_alice_run_summary(summary: ContactCommMaintenanceSummary, dry_run: bool) -> int:
-    """Emit a single alice_log[system] note summarising the maintenance run.
+    """Emit a single alice log [system] note summarising the maintenance run.
     Returns 1 if note created, 0 otherwise."""
     emitted = _alice_note(
         "log",

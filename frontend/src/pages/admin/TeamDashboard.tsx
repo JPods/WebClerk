@@ -5,11 +5,11 @@
  * Fetches contacts grouped by `name_prefix` (each team member tags their
  * 3 contacts — customer/vendor/employee — with their first name).
  *
- * Shows four insight categories per member:
+ * Shows three insight categories per member:
  *   1. Record Completeness — filled fields, linked records
  *   2. Activity & Actions  — last modified, version, recent actions
- *   3. API Usage           — UserDailyLog stats (calls, errors, hints)
- *   4. Org Health          — linked org summary
+ *   3. Org Health          — linked org summary
+ * (API usage read UserDailyLog, which nothing ever filled; removed with it, 2026-10-28.)
  *
  * Route: /core/team-dashboard
  */
@@ -17,7 +17,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Activity,
   AlertTriangle,
-  BarChart3,
   Bot,
   Briefcase,
   CheckCircle2,
@@ -34,12 +33,9 @@ import {
   User,
   Users,
   XCircle,
-  Zap,
 } from "lucide-react";
 import { getRecords } from "@/api/wcapi";
 import { formatDt } from '@/utils/fieldFormatters';
-import { fetchUserDailyLogs } from "../../apps/core/services/userDailyLogApi";
-import type { UserDailyLog } from "../../apps/core/models/log/UserDailyLog";
 import type { ContactApiTask } from "../../apps/core/models/contact/types/contactType";
 
 /* ------------------------------------------------------------------ */
@@ -208,11 +204,9 @@ const AI_NAMES = new Set(["copilot", "deepseek", "ollama", "ai"]);
 function ContactCard({
   contact,
   orgMap,
-  dailyLogs,
 }: {
   contact: ContactApiTask;
   orgMap: Map<number, OrgSummary>;
-  dailyLogs: UserDailyLog[];
 }) {
   const [expanded, setExpanded] = useState(false);
   const pct = computeCompleteness(contact);
@@ -374,71 +368,6 @@ function ContactCard({
             </div>
           </div>
 
-          {/* 3. API Usage (from UserDailyLog) */}
-          <div className="space-y-2">
-            <h4 className="font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1">
-              <BarChart3 size={14} /> API Usage (7 days)
-            </h4>
-            {dailyLogs.length === 0 ? (
-              <p className="text-xs text-gray-400 italic">
-                No API activity recorded
-              </p>
-            ) : (
-              <div className="space-y-1 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Total calls</span>
-                  <span className="font-mono font-semibold">
-                    {dailyLogs.reduce((s, d) => s + d.total_calls, 0)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Total errors</span>
-                  <span className="font-mono text-red-500">
-                    {dailyLogs.reduce((s, d) => s + d.total_errors, 0)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Avg duration</span>
-                  <span className="font-mono">
-                    {Math.round(
-                      dailyLogs.reduce(
-                        (s, d) => s + d.avg_duration_ms,
-                        0,
-                      ) / dailyLogs.length,
-                    )}{" "}
-                    ms
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Days active</span>
-                  <span className="font-mono">{dailyLogs.length}</span>
-                </div>
-                {/* Hint summary */}
-                {dailyLogs.some((d) => d.hints?.length > 0) && (
-                  <div className="pt-1 border-t border-gray-100 dark:border-gray-700">
-                    <span className="text-gray-500">Hints:</span>
-                    {dailyLogs
-                      .flatMap((d) => d.hints ?? [])
-                      .slice(0, 3)
-                      .map((h, i) => (
-                        <div
-                          key={i}
-                          className={`mt-1 px-2 py-1 rounded text-xs ${
-                            h.level === "error"
-                              ? "bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300"
-                              : h.level === "warning"
-                                ? "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300"
-                                : "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300"
-                          }`}
-                        >
-                          {h.message}
-                        </div>
-                      ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
 
           {/* 4. Org Health */}
           <div className="space-y-2">
@@ -509,11 +438,9 @@ function ContactCard({
 function MemberSection({
   member,
   orgMap,
-  dailyLogsMap,
 }: {
   member: MemberGroup;
   orgMap: Map<number, OrgSummary>;
-  dailyLogsMap: Map<number, UserDailyLog[]>;
 }) {
   const avgCompleteness = Math.round(
     member.contacts.reduce((s, c) => s + computeCompleteness(c), 0) /
@@ -560,7 +487,6 @@ function MemberSection({
             key={c.id}
             contact={c}
             orgMap={orgMap}
-            dailyLogs={dailyLogsMap.get(c.id) ?? []}
           />
         ))}
       </div>
@@ -577,9 +503,6 @@ export default function TeamDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [contacts, setContacts] = useState<ContactApiTask[]>([]);
   const [orgMap, setOrgMap] = useState<Map<number, OrgSummary>>(new Map());
-  const [dailyLogsMap, setDailyLogsMap] = useState<
-    Map<number, UserDailyLog[]>
-  >(new Map());
 
   /* ---- Data fetching ---- */
 
@@ -624,31 +547,6 @@ export default function TeamDashboard() {
         setOrgMap(map);
       }
 
-      // 3. Fetch last 7 days of UserDailyLog for each team contact
-      const since = new Date();
-      since.setDate(since.getDate() - 7);
-      const sinceStr = since.toISOString().split("T")[0];
-
-      const logMap = new Map<number, UserDailyLog[]>();
-      // Batch — one call for all, then distribute
-      const userIds = teamContacts.map((c) => c.id);
-      if (userIds.length > 0) {
-        const logRes = await fetchUserDailyLogs({
-          log_date__gte: sinceStr,
-          ordering: "-log_date",
-          limit: userIds.length * 7,
-        });
-        for (const log of logRes.results) {
-          const uid =
-            (log as unknown as Record<string, unknown>).user_id ??
-            (log as unknown as Record<string, unknown>).user;
-          if (typeof uid === "number") {
-            if (!logMap.has(uid)) logMap.set(uid, []);
-            logMap.get(uid)!.push(log);
-          }
-        }
-      }
-      setDailyLogsMap(logMap);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to load team data");
     } finally {
@@ -698,21 +596,13 @@ export default function TeamDashboard() {
     const withOrg = contacts.filter(
       (c) => getOrgAssociations(c).length > 0,
     ).length;
-    const totalApiCalls = Array.from(dailyLogsMap.values())
-      .flat()
-      .reduce((s, d) => s + d.total_calls, 0);
-    const totalErrors = Array.from(dailyLogsMap.values())
-      .flat()
-      .reduce((s, d) => s + d.total_errors, 0);
     return {
       totalMembers,
       totalContacts,
       avgCompleteness,
       withOrg,
-      totalApiCalls,
-      totalErrors,
     };
-  }, [contacts, memberGroups, dailyLogsMap]);
+  }, [contacts, memberGroups]);
 
   /* ---- Render ---- */
 
@@ -755,7 +645,7 @@ export default function TeamDashboard() {
       )}
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard
           icon={<Users size={18} />}
           label="Team Members"
@@ -779,18 +669,6 @@ export default function TeamDashboard() {
           label="With Org Link"
           value={stats.withOrg}
           color="text-emerald-600 dark:text-emerald-400"
-        />
-        <StatCard
-          icon={<Zap size={18} />}
-          label="API Calls (7d)"
-          value={stats.totalApiCalls}
-          color="text-amber-600 dark:text-amber-400"
-        />
-        <StatCard
-          icon={<XCircle size={18} />}
-          label="Errors (7d)"
-          value={stats.totalErrors}
-          color="text-red-600 dark:text-red-400"
         />
       </div>
 
@@ -825,7 +703,6 @@ export default function TeamDashboard() {
               key={m.name}
               member={m}
               orgMap={orgMap}
-              dailyLogsMap={dailyLogsMap}
             />
           ))}
         </div>

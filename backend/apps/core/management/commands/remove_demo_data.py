@@ -40,7 +40,6 @@ FK_CLEANUP = [
     ('touches', 'contact_id', 'contacts'),
     ('statement_lines', 'contact_id', 'contacts'),
     ('alice_observations', 'contact_id', 'contacts'),
-    ('alice_coaching_log', 'contact_id', 'contacts'),
     ('erosion', 'contact_id', 'contacts'),
     # Item dependents
     ('products_itemxref', 'item_id', 'products_item'),

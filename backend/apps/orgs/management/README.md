@@ -63,7 +63,7 @@ This registry tracks permanent org maintenance commands so critical operations r
 
 ## Daily Observation Record
 
-`--mode daily` writes an `alice_log` (`role=health_check`) record containing:
+`--mode daily` writes a Log row (`purpose=alice`, `action=health_check`) containing:
 - Receivables aging refresh counts (`customer` + `vendor` updates)
 - Recent transaction activity summary (default last 24 hours)
 - Pending processing result counts

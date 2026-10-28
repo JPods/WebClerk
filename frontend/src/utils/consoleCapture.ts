@@ -12,7 +12,7 @@ import { formatDt } from '@/utils/fieldFormatters';
  *   consoleCapture.start();  // begin capturing (call once at app init)
  *   consoleCapture.stop();   // stop capturing
  *   consoleCapture.getEntries();  // get captured entries
- *   consoleCapture.sendToAlice(); // POST to wcapi as alice_log
+ *   consoleCapture.sendToAlice(); // POST to wcapi as an alice_observation
  *   consoleCapture.clear();  // clear buffer
  */
 

@@ -65,13 +65,6 @@ SCHEDULED_TASK_DEFINITIONS: dict[str, dict[str, Any]] = {
         "frequency": "daily",
         "run_at_hour": 5,
     },
-    "aggregate_user_daily_logs": {
-        "task_path": f"{TASK_MODULE_PATH}.task_aggregate_user_daily_logs",
-        "description": "Aggregate APILog entries into UserDailyLog summaries",
-        "frequency": "daily",
-        "run_at_hour": 1,
-        "run_at_minute": 30,
-    },
     "reconcile_aging": {
         "task_path": f"{TASK_MODULE_PATH}.task_reconcile_aging",
         "description": "Recalculate AR aging buckets for all active orgs",

@@ -64,7 +64,7 @@ class Command(BaseCommand):
             )
             activity_summary = recent_transaction_activity(hours=activity_hours)
 
-            alice_log = {"created": False, "setting_id": None}
+            alice_log = {"created": False, "log_id": None}
             if write_alice_log:
                 alice_log = write_daily_alice_observation(
                     scrub_summary=scrub_summary,
@@ -121,9 +121,9 @@ class Command(BaseCommand):
                 f"tx_last_{activity.get('window_hours', 24)}h={activity_total}"
             )
             if alice_obs.get("created"):
-                self.stdout.write(f"  alice_log: created setting_id={alice_obs.get('setting_id')}")
+                self.stdout.write(f"  alice log: created log_id={alice_obs.get('log_id')}")
             else:
-                self.stdout.write("  alice_log: not written")
+                self.stdout.write("  alice log: not written")
 
             # Keep full detail available but below the badges/quick line.
             self.stdout.write(f"  scrub: {scrub}")

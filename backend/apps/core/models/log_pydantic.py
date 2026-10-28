@@ -1,74 +1,42 @@
 """
-Pydantic schemas for APILog and UserDailyLog JSON envelopes.
+Pydantic schemas for Log JSON envelopes.
 
-Mirrors log.py structure — both log models in one file.
+Log — the one log (CoreModel + RefsMixin). Why a row exists is the `purpose` scalar; which
+record it is about is `model_name` / `record_id`; who is `user` — never duplicated here.
 """
 from __future__ import annotations
 
 from typing import Optional
+
 from pydantic import BaseModel, Field
 
-from common.schemas.envelopes import (
-    ConfigBase, MetadataBase, RecordPrefsBase, RefsBase,
-    CommentsBase, ActionsBase, SourceRef,
-)
+from common.schemas.envelopes import ConfigBase, RefsBase
 
 
-# ═══════════════════════════════════════════════════════════════════════
-# ApiLog (Django class: APILog)
-# ═══════════════════════════════════════════════════════════════════════
+class LogConfig(ConfigBase):
+    """The entry's content: three typed leaves, so access can name them (an untyped key is no
+    leaf and no reader sees it). What each purpose puts in details:
 
-class ApiLogConfig(ConfigBase):
-    """ApiLog config. Request/response data on model fields."""
-    pass
+    audit           changes {field: {old, new}}; details: ip_address, user_agent, session_id
+    alice           name (the readable line); details: what Alice observed
+    refs_mismatch   details: related_model, fk_field, fk_ids, refs_ids, only_in_fk, only_in_refs, caller
+    coaching        details: drill_id, drill_name, category, score, duration_seconds,
+                    dt_started, dt_completed, document_id, contact_id
+    foreign_*       details: a summary of the foreign event; the record stays in its database
+    """
+    name: str = ''
+    changes: dict = Field(default_factory=dict)
+    details: dict = Field(default_factory=dict)
 
-class ApiLogMetadata(MetadataBase):
-    pass
 
-class ApiLogPrefs(RecordPrefsBase):
-    pass
+class ForeignRef(BaseModel):
+    """A record kept in another database (Bill, 2026-10-28): the path to it, never a copy."""
+    database: str
+    model: str
+    uuid: str
 
-class ApiLogRefs(RefsBase):
-    """Relationship cache. user FK is truth."""
+
+class LogRefs(RefsBase):
     tags: list[str] = Field(default_factory=list)
     keywords: list[str] = Field(default_factory=list)
-    source: Optional[SourceRef] = None
-
-class ApiLogComments(CommentsBase):
-    pass
-
-class ApiLogActions(ActionsBase):
-    pass
-
-class ApiLogSettingDefaults(BaseModel):
-    status: str = "active"
-
-
-# ═══════════════════════════════════════════════════════════════════════
-# UserDailyLog
-# ═══════════════════════════════════════════════════════════════════════
-
-class UserDailyLogConfig(ConfigBase):
-    """UserDailyLog config. Aggregated data on model fields."""
-    pass
-
-class UserDailyLogMetadata(MetadataBase):
-    pass
-
-class UserDailyLogPrefs(RecordPrefsBase):
-    pass
-
-class UserDailyLogRefs(RefsBase):
-    """Relationship cache. user FK is truth."""
-    tags: list[str] = Field(default_factory=list)
-    keywords: list[str] = Field(default_factory=list)
-    source: Optional[SourceRef] = None
-
-class UserDailyLogComments(CommentsBase):
-    pass
-
-class UserDailyLogActions(ActionsBase):
-    pass
-
-class UserDailyLogSettingDefaults(BaseModel):
-    status: str = "active"
+    foreign: Optional[ForeignRef] = None

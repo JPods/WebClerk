@@ -44,7 +44,7 @@ class CoreConfig(AppConfig):
         from apps.core.signals.access_signals import register_access_signals
         register_access_signals()
 
-        # Auto-wire AuditLog to capture field-level changes on save
+        # Audit: field-level changes on save, written to the Log (purpose audit)
         try:
             from apps.core.signals.audit_signals import register_audit_signals
             register_audit_signals()

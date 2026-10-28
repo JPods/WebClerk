@@ -11,7 +11,7 @@ the serial and shape the response.
 from __future__ import annotations
 from typing import Dict, List
 from django.db import transaction
-from apps.products.models.serial import Serial, SerialLog
+from apps.products.models.serial import Serial
 
 
 def create_serial_on_receive(
@@ -86,15 +86,11 @@ def return_serial(
 
 
 def get_serial_history(serial_id: int) -> Dict:
-    """Complete history: archived SerialLog rows, then config.actions[].
+    """Complete history: the serial's config.actions[].
 
     Returns: {serial_id, serial_number, model_ida, status, warranty, site, history: [...]}
     """
     serial = Serial.objects.get(pk=serial_id)
-    archived = [
-        {'action': log.action, 'dt': log.dt, **(log.config or {})}
-        for log in SerialLog.objects.filter(serial=serial).order_by('dt')
-    ]
     return {
         'serial_id': serial.pk,
         'serial_number': serial.serial_ida,
@@ -102,7 +98,7 @@ def get_serial_history(serial_id: int) -> Dict:
         'status': serial.status,
         'warranty': serial.warranty or {},
         'site': serial.site or {},
-        'history': archived + list((serial.config or {}).get('actions', [])),
+        'history': list((serial.config or {}).get('actions', [])),
     }
 
 

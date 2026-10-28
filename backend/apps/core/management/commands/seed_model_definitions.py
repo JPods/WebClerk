@@ -376,9 +376,9 @@ SERIAL_LIST_COLUMNS = [
     _lc('ida', width=100), _lc('purpose', width=140), _lc('name', width=200),
     _lc('status', width=80), _lc('comments.process', width=200),
 ]
-SERIAL_LOG_LIST_COLUMNS = [
-    _lc('ida', width=100), _lc('purpose', width=140), _lc('status', width=80),
-    _lc('dt_created', width=90), _lc('comments.process', width=200),
+LOG_LIST_COLUMNS = [
+    _lc('dt_created', width=110), _lc('purpose', width=120), _lc('action', width=120),
+    _lc('model_name', width=100), _lc('record_id', width=80), _lc('user', width=120),
 ]
 SERVICE_LIST_COLUMNS = [
     _lc('ida', width=100), _lc('name', width=200), _lc('purpose', width=140),
@@ -475,7 +475,7 @@ MODEL_LIST_COLUMNS = {
     'item': ITEM_LIST_COLUMNS, 'bill_of_material': BOM_LIST_COLUMNS,
     'catalog': CATALOG_LIST_COLUMNS, 'item_xref': ITEM_XREF_LIST_COLUMNS,
     'item_usage': ITEM_USAGE_LIST_COLUMNS,
-    'serial': SERIAL_LIST_COLUMNS, 'serial_log': SERIAL_LOG_LIST_COLUMNS,
+    'serial': SERIAL_LIST_COLUMNS,
     'service': SERVICE_LIST_COLUMNS, 'variant': VARIANT_LIST_COLUMNS,
     'warehouse': WAREHOUSE_LIST_COLUMNS,
     'inventory_metrics_snapshot': INVENTORY_CHECK_LIST_COLUMNS,
@@ -484,7 +484,7 @@ MODEL_LIST_COLUMNS = {
     'contact': CONTACT_LIST_COLUMNS, 'action': ACTION_LIST_COLUMNS,
     'project': PROJECT_LIST_COLUMNS, 'setting': SETTING_LIST_COLUMNS,
     'report': REPORT_LIST_COLUMNS, 'notification': NOTIFICATION_LIST_COLUMNS,
-    'workspace': WORKSPACE_LIST_COLUMNS, 'gantt': GANTT_LIST_COLUMNS,
+    'workspace': WORKSPACE_LIST_COLUMNS, 'gantt': GANTT_LIST_COLUMNS, 'log': LOG_LIST_COLUMNS,
     'databrowser': DATABROWSER_LIST_COLUMNS,
     # Communications
     'phone': PHONE_LIST_COLUMNS, 'email': EMAIL_LIST_COLUMNS,
@@ -504,7 +504,7 @@ MODEL_LIST_COLUMNS = {
     # Sync
     'connection': CONNECTION_LIST_COLUMNS, 'bundle': BUNDLE_LIST_COLUMNS,
     # Alice
-    'alice_coaching_log': ALICE_LIST_COLUMNS, 'alice_observation': ALICE_LIST_COLUMNS,
+    'alice_observation': ALICE_LIST_COLUMNS,
     'alice_preset': ALICE_LIST_COLUMNS,
     # Other
 }

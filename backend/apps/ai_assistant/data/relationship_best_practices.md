@@ -152,7 +152,7 @@ Alice flags items sourced from only one vendor:
 
 ### Training Progress Tracking
 
-Alice tracks AliceCoachingLog per employee:
+Alice tracks coaching drills per employee (Log rows, purpose coaching):
 - Which drills completed, which skipped
 - Score trends — improving or plateauing
 - Skill gaps — what categories have low scores

@@ -3,7 +3,7 @@ from .item_xref import ItemXRef
 from .bill_of_material import BillOfMaterial
 from .warehouse import Warehouse
 from .inventory_layer import InventoryLayer, SiteInventory, InventoryMovement
-from .serial import Serial, SerialLog
+from .serial import Serial
 from .catalog import Catalog, CatalogLine
 from .usage import ItemUsage
 from .metrics import InventoryMetricsSnapshot
@@ -19,7 +19,6 @@ __all__ = [
 	"SiteInventory",
 	"InventoryMovement",
 	"Serial",
-	"SerialLog",
 	"Catalog",
 	"CatalogLine",
 	"ItemUsage",

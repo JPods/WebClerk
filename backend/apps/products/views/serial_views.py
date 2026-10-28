@@ -128,10 +128,7 @@ class SerialHistoryView(APIView):
     @extend_schema(operation_id="products_serial_history")
     def get(self, request, serial_id: int):
         get_object_or_404(Serial, pk=serial_id)
-        logs = svc.get_history(serial_id)
-        data = [{
-            'id': l.id, 'action': l.action, 'dt': l.dt, 'config': l.config,
-        } for l in logs]
+        data = svc.get_history(serial_id)
         return api_response(data={'results': data, 'total': len(data)})
 
 

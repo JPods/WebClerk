@@ -38,8 +38,6 @@ from django.db import models
 # ── Alias map for WCAPI_BLESSED_MODELS entries whose class name ──
 # ── doesn't match the actual Django model class name.          ──
 MODEL_ALIASES: dict[str, str] = {
-    "core.Audit": "core.AuditLog",
-
     "transactions.PurchaseReceipt": "transactions.Receipt",
     "transactions.ProjectLinks": "transactions.Project",  # no separate model
     "docs.Linkage": "docs.LinkageEntry",

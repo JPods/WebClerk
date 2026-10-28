@@ -5,7 +5,7 @@
 
 ## Overview
 
-Serial numbers track individual units through their lifecycle: received from a vendor, issued to a customer, returned, serviced, scrapped. Every state change logs to SerialLog. Warranty is calculated at issue time. Related records (Q&A, documents, actions) link via refs.
+Serial numbers track individual units through their lifecycle: received from a vendor, issued to a customer, returned, serviced, scrapped. Every state change is appended to the serial's own `config.actions` (SerialLog was removed 2026-10-28; the serial carries its history). Warranty is calculated at issue time. Related records (Q&A, documents, actions) link via refs.
 
 ---
 
@@ -24,7 +24,7 @@ Serial
   ├── refs.links           → {vendor_id, po_id, customer_id, invoice_id, order_id}
   └── inventory_layer FK   → cost layer this unit came from
 
-SerialLog (one per event)
+config.actions[] (one entry per event, Serial.log_action)
   ├── serial FK
   ├── action               → 'received', 'issued', 'returned', 'referenced', 'status_change:X→Y'
   ├── dt                   → epoch ms
@@ -75,7 +75,7 @@ All require authentication. Base path: `/products/`
 | GET | `/serials/warranty/` | Expiring (`?days_ahead=30`) or expired (`?expired=true`) |
 | POST | `/serials/{id}/issue/` | Issue to sale → status=issued, warranty starts |
 | POST | `/serials/{id}/return/` | Return from sale → status=available |
-| GET | `/serials/{id}/history/` | Full SerialLog event list |
+| GET | `/serials/{id}/history/` | The serial's config.actions, oldest first |
 | POST | `/serials/{id}/status/` | Generic status change with reason |
 
 ---
@@ -90,7 +90,7 @@ serial = receive_serial(
     cost=Decimal('4.80'), warranty_days=365
 )
 # → status='available', refs.links.vendor_id=42, refs.links.po_id=100
-# → SerialLog: action='received', config={vendor_id, po_id, cost}
+# → config.actions: action='received', doc_type='purchase', doc_id=po_id, org_id=vendor_id, cost
 ```
 
 ### Issue to Sale
@@ -102,7 +102,7 @@ serial = issue_to_sale(
 # → status='issued'
 # → warranty.dt_start = now, warranty.dt_end = now + 365 days
 # → refs.links.customer_id=55, refs.links.invoice_id=200
-# → SerialLog: action='issued', config={customer_id, invoice_id, price}
+# → config.actions: action='issued', doc_type='invoice', doc_id=invoice_id, org_id=customer_id, price
 ```
 
 ### Return from Sale
@@ -111,7 +111,7 @@ serial = return_from_sale(serial_id=serial.id, reason='Defective')
 # → status='available'
 # → customer/invoice/order refs cleared
 # → warranty dates cleared (days definition preserved)
-# → SerialLog: action='returned', config={reason, from_invoice_id}
+# → config.actions: action='returned', doc_type='invoice', doc_id=invoice_id, notes=reason
 ```
 
 ### Reference Existing (customer-owned)
@@ -122,7 +122,7 @@ serial = reference_existing(
     remaining_warranty_days=90
 )
 # → status='referenced', warranty starts with 90 days remaining
-# → SerialLog: action='referenced', config={customer_id, document_type, document_id}
+# → config.actions: action='referenced', doc_type, doc_id, org_id=customer_id
 ```
 
 ### Search
@@ -158,7 +158,7 @@ Related: [History ↗] [Q&A ↗] [Documents ↗] [Actions ↗] [Customer ↗] [V
 ```
 
 Each button opens a new DataBrowser window filtered to related records:
-- **History** → SerialLog where serial_id = this serial
+- **History** → this serial's config.actions
 - **Q&A** → QuestionAnswer linked via refs.links
 - **Documents** → Document linked via refs.links
 - **Actions** → Action linked via refs.links
@@ -226,7 +226,7 @@ Queryable via Django JSON lookups: `Serial.objects.filter(refs__links__customer_
 
 | File | Purpose |
 |------|---------|
-| `apps/products/models/serial.py` | Serial + SerialLog models |
+| `apps/products/models/serial.py` | Serial model (log_action writes config.actions) |
 | `apps/products/services/serial_services.py` | 12 lifecycle operations |
 | `apps/products/views/serial_views.py` | 9 API endpoints |
 | `apps/products/urls.py` | URL routing |

@@ -69,6 +69,10 @@ class ModelBehaviour:
     #: case (Bill, 2026-09-26).
     NEW_REQUIRES: Tuple[str, ...] = ()
 
+    #: Fields `new` also takes when sent, for a record that is complete at birth and never
+    #: saved again (a Log row: append-only). Empty for every other model.
+    NEW_ACCEPTS: Tuple[str, ...] = ()
+
     def hook(self, moment: str, ctx: HookContext) -> None:
         method = getattr(self, f'{moment}_{ctx.verb}', None)
         if callable(method):
@@ -121,6 +125,27 @@ class SettingBehaviour(ModelBehaviour):
                        if isinstance(stored, dict) else '?')
             console_logger.warning("[SAVE] SETTING SAVED id=%s parent_model=%s list=%s",
                                    ctx.obj.id, getattr(ctx.obj, 'parent_model', '?'), preview)
+
+
+class LogBehaviour(ModelBehaviour):
+    """A Log row is complete at birth (Bill, 2026-10-28: the browser writes through wcapi
+    create): `new` takes its purpose and content, the writer is the signed-in user, and it is
+    never saved again, so it is not left marked is_new."""
+
+    NEW_REQUIRES = ('purpose',)
+    NEW_ACCEPTS = ('action', 'model_name', 'record_id', 'config', 'refs')
+
+    def before_save(self, ctx: HookContext) -> None:
+        from apps.core.models.log import Log
+        from apps.core.services.door import Refused
+        try:
+            Log.validate_entry(ctx.obj.purpose, ctx.obj.refs)
+        except ValueError as e:
+            raise Refused(400, 'log_refused', str(e), {'purpose': ctx.obj.purpose})
+        if ctx.obj.user_id is None and getattr(ctx.user, 'is_authenticated', False):
+            ctx.obj.user_id = ctx.user.pk
+        from apps.core.services.new import clear_mark
+        clear_mark(ctx.obj)
 
 
 class ActionBehaviour(ModelBehaviour):
@@ -291,6 +316,7 @@ def _link_action_attachments(obj, pending) -> Optional[str]:
 
 def _register_defaults() -> None:
     register('setting', SettingBehaviour())
+    register('log', LogBehaviour())
     register('action', ActionBehaviour())
     for comm in ('email', 'address', 'domain'):
         register(comm, CommunicationBehaviour())

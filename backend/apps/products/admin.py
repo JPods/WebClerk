@@ -4,7 +4,7 @@ from common.admin_schema_labels import SchemaLabelsAdminMixin
 from common.admin_mixins import ScalarFirstFieldsetMixin  # noqa: F401 re-exported for app use
 from .models import (
     Item, ItemXRef, BillOfMaterial, Warehouse, InventoryLayer, SiteInventory, 
-    InventoryMovement, Serial, SerialLog, Catalog, CatalogLine,
+    InventoryMovement, Serial, Catalog, CatalogLine,
     ItemUsage,
     InventoryMetricsSnapshot, InventoryAdjustmentProcessorRun, Variant
 )
@@ -72,14 +72,6 @@ class InventoryMovementAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, a
 class SerialAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
     # Scalar fields: description, dt_created, dt_modified, health_rating, is_active, is_archived, is_deleted, item_ida, model_ida, qr_code, security_level, serial_ida, status, uuid, version
     list_display = ("description", "status", "health_rating", "item_ida", "model_ida", "is_active", "dt_created")
-    list_filter = ("is_active",)
-    search_fields = ("ida", "description")
-
-
-@admin.register(SerialLog)
-class SerialLogAdmin(SchemaLabelsAdminMixin, ScalarFirstFieldsetMixin, admin.ModelAdmin):
-    # Scalar fields: action, dt, dt_created, dt_modified, health_rating, is_active, is_archived, is_deleted, security_level, uuid, version
-    list_display = ("action", "dt", "health_rating", "security_level", "is_active", "dt_created")
     list_filter = ("is_active",)
     search_fields = ("ida", "description")
 

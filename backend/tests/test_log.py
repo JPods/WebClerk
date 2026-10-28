@@ -1,0 +1,140 @@
+"""The one Log (Bill, 2026-10-28): one writer, append-only, purposes enforced, audit writes it,
+a failed audit write becomes a Pending, Alice's log notes are Log rows."""
+import pytest
+
+from apps.core.models import Log, Pending, Setting
+from apps.core.services.door import Refused
+
+
+@pytest.mark.django_db
+class TestLogWrite:
+    def test_write_keeps_purpose_action_record_and_content(self):
+        entry = Log.write('audit', 'updated', model_name='order', record_id=7,
+                          changes={'status': {'old': 'a', 'new': 'b'}})
+        entry.refresh_from_db()
+        assert (entry.purpose, entry.action, entry.model_name, entry.record_id) == ('audit', 'updated', 'order', 7)
+        assert entry.config == {'changes': {'status': {'old': 'a', 'new': 'b'}}}
+        assert entry.ida == str(entry.pk) and entry.uuid and entry.dt_created > 0
+
+    def test_unknown_purpose_is_refused(self):
+        with pytest.raises(ValueError, match='Unknown log purpose'):
+            Log.write('whatever', 'x')
+
+    def test_a_foreign_purpose_needs_its_pointer(self, monkeypatch):
+        import apps.core.choices as choices
+        monkeypatch.setattr(choices, 'LOG_PURPOSES', choices.LOG_PURPOSES | {'foreign_test'})
+        with pytest.raises(ValueError, match='refs.foreign'):
+            Log.write('foreign_test', 'committed')
+        entry = Log.write('foreign_test', 'committed', refs={'foreign': {
+            'database': 'other_db', 'model': 'app.Model', 'uuid': 'u-1'}})
+        assert entry.refs['foreign']['database'] == 'other_db'
+
+    def test_a_written_entry_is_never_changed(self):
+        entry = Log.write('alice', 'system', name='a note')
+        entry.action = 'edited'
+        with pytest.raises(Refused):
+            entry.save()
+
+
+@pytest.mark.django_db
+class TestAuditWritesTheLog:
+    def test_an_update_to_an_audited_record_writes_a_log(self):
+        from apps.core.models import Contact
+        contact = Contact.objects.create(name_first='Log', name_last='Test')
+        before = Log.objects.filter(purpose='audit').count()
+        contact.name_last = 'Tested'
+        contact.save()
+        entry = Log.objects.filter(purpose='audit', model_name='contact', record_id=contact.pk).latest('id')
+        assert Log.objects.filter(purpose='audit').count() == before + 1
+        assert entry.config['changes']['name_last'] == {'old': 'Test', 'new': 'Tested'}
+
+    def test_a_failed_audit_write_keeps_the_save_and_queues_a_pending(self, monkeypatch):
+        from apps.core.models import Contact
+        contact = Contact.objects.create(name_first='Log', name_last='Fail')
+
+        def refuse(*a, **k):
+            raise RuntimeError('log table unavailable')
+        monkeypatch.setattr(Log, 'write', classmethod(lambda cls, *a, **k: refuse()))
+        contact.name_last = 'Kept'
+        contact.save()
+        contact.refresh_from_db()
+        assert contact.name_last == 'Kept'
+        queued = Pending.objects.filter(purpose='log_write', record_id=str(contact.pk)).latest('id')
+        assert queued.dt_processed == 0
+        assert queued.changes['changes']['name_last']['new'] == 'Kept'
+
+        monkeypatch.undo()
+        assert queued.try_apply() is True
+        assert Log.objects.filter(purpose='audit', model_name='contact', record_id=contact.pk,
+                                  config__changes__name_last__new='Kept').exists()
+
+
+@pytest.mark.django_db
+class TestAliceNotes:
+    def test_a_log_note_is_a_log_and_a_pending_note_stays_a_setting(self):
+        from apps.ai_assistant.services.notes import create_note, get_report
+        log_note = create_note('log', role='system', name='checked', details={'n': 1})
+        pending = create_note('pending', role='action_required', name='look at this')
+        assert isinstance(log_note, Log) and log_note.purpose == 'alice'
+        assert log_note.config == {'name': 'checked', 'details': {'n': 1, 'created_by': 'alice'}}
+        assert isinstance(pending, Setting) and pending.purpose == 'alice_pending'
+        assert not Setting.objects.filter(purpose='alice_log').exists()
+        report = get_report(days=1)
+        assert {i['category'] for i in report['items']} == {'log', 'pending'}
+
+
+def _client():
+    import secrets
+    from django.contrib.auth import get_user_model
+    from rest_framework.test import APIClient
+    from rest_framework_simplejwt.tokens import RefreshToken
+    user = get_user_model().objects.create_superuser(email='log-channel@example.com',
+                                                     password=secrets.token_urlsafe(16))
+    token = RefreshToken.for_user(user)
+    token['role'] = 'admin'
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION=f'Bearer {token.access_token}')
+    return client, user
+
+
+@pytest.mark.django_db
+class TestLogThroughWcapi:
+    """The browser writes a Log with one wcapi `new` (Bill: wcapi create on log)."""
+
+    @pytest.fixture(autouse=True)
+    def _log_model_setting(self):
+        from django.core.management import call_command
+        call_command('seed_model_definitions', model='log', verbosity=0)
+        from apps.core.services import access
+        access.clear_cache('log')
+
+    def test_new_writes_a_complete_log_row_by_the_signed_in_user(self):
+        client, user = _client()
+        res = client.post('/wcapi/log/', {'purpose': 'alice', 'action': 'help_feedback',
+                                          'config': {'name': 'help_feedback:x', 'details': {'vote': 'up'}}},
+                          format='json')
+        assert res.status_code in (200, 201), res.content
+        entry = Log.objects.get(pk=res.json()['data']['id'])
+        assert (entry.purpose, entry.action, entry.user_id) == ('alice', 'help_feedback', user.pk)
+        assert entry.config == {'name': 'help_feedback:x', 'details': {'vote': 'up'}}
+
+    def test_an_unknown_purpose_is_refused_with_coaching(self):
+        client, _ = _client()
+        res = client.post('/wcapi/log/', {'purpose': 'nonsense'}, format='json')
+        assert res.status_code == 400 and 'Unknown log purpose' in res.json()['message']
+
+    def test_a_log_row_cannot_be_changed_through_the_channel(self):
+        client, _ = _client()
+        entry = Log.write('alice', 'system', name='fixed')
+        res = client.put(f'/wcapi/log/{entry.pk}/', {'action': 'edited'}, format='json')
+        assert res.status_code == 409
+        entry.refresh_from_db()
+        assert entry.action == 'system'
+
+    def test_list_reads_and_orders_logs(self):
+        client, _ = _client()
+        Log.write('alice', 'system', name='first')
+        Log.write('alice', 'system', name='second')
+        res = client.get('/wcapi/log/?purpose=alice&ordering=dt_created&limit=50')
+        names = [r['config'].get('name') for r in res.json()['data']['results']]
+        assert names.index('first') < names.index('second')

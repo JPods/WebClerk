@@ -28,8 +28,13 @@ def _handle_bundle_out(pending):
     return handle_bundle_out(pending)
 
 
+def _handle_log_write(pending):
+    return pending.try_apply()
+
+
 HANDLERS = {
     "sync.bundle_out": _handle_bundle_out,
+    "log_write": _handle_log_write,
     # "sync.bundle_in":        _handle_bundle_in,
     # "alice.pattern_review":  _handle_pattern_review,
     # "allie.nightly_reflect": _handle_nightly_reflect,
@@ -45,8 +50,9 @@ def process_all_pending():
     """
     pending_qs = (
         Pending.objects
-        .filter(dt_processed=0, is_active=True, purpose__isnull=False)
-        .exclude(purpose="")
+        # Only purposes with a handler: an open inventory deficit stays unprocessed by design,
+        # and the oldest of those filled every batch before.
+        .filter(dt_processed=0, is_active=True, purpose__in=list(HANDLERS))
         .order_by("dt_created")[:BATCH_SIZE]
     )
 
