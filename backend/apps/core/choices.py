@@ -138,6 +138,7 @@ LOG_PURPOSE_CHOICES: Final[ChoiceList] = (
     ("alice", "Alice — what Alice observed"),
     ("refs_mismatch", "Refs mismatch — a record's FK and refs.links disagree"),
     ("coaching", "Coaching — a drill a person ran"),
+    ("inventory", "Inventory — a document line changed an item's quantity"),
 )
 LOG_PURPOSES: Final[frozenset[str]] = frozenset(k for k, _ in LOG_PURPOSE_CHOICES)
 

@@ -2,7 +2,7 @@
 Pydantic schemas for AliceObservation and AlicePreset JSON envelopes.
 
 Mirrors alice.py — three models in one file.
-AliceInsight has its own file (alice_insight_pydantic.py).
+(AliceInsight became core.Lesson, 2026-10-28.)
 """
 from __future__ import annotations
 

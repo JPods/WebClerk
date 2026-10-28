@@ -387,12 +387,13 @@ class DiagnoseView(APIView):
 
     def _check_alice_db(self):
         try:
-            from .models.alice import AliceObservation, AliceInsight
+            from .models.alice import AliceObservation
+            from apps.core.models import Lesson
             from apps.core.models.log import Log
             counts = {
                 'observations': AliceObservation.objects.count(),
                 'coaching_logs': Log.objects.filter(purpose='coaching').count(),
-                'insights': AliceInsight.objects.count(),
+                'lessons': Lesson.objects.count(),
             }
             return {'ok': True, **counts}
         except Exception as e:

@@ -22,6 +22,9 @@ class LogConfig(ConfigBase):
     refs_mismatch   details: related_model, fk_field, fk_ids, refs_ids, only_in_fk, only_in_refs, caller
     coaching        details: drill_id, drill_name, category, score, duration_seconds,
                     dt_started, dt_completed, document_id, contact_id
+    inventory       name: the readable line; details: item_code, document {model, id, ida},
+                    line_id, quantity_before / after / delta, unit_cost, unit_price, on_hand,
+                    on_order, on_purchase, available, reorder_point, org_id
     foreign_*       details: a summary of the foreign event; the record stays in its database
     """
     name: str = ''

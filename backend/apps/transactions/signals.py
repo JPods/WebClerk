@@ -60,23 +60,44 @@ def _get_quantity(line) -> Decimal:
     return Decimal(str(staged))
 
 
-def _emit_line_event(event_type: str, line, transaction, quantity_before=None):
-    """Emit inventory event for LLM observational learning."""
-    try:
-        from apps.ai_assistant.services.event_emitter import (
-            InventoryEventEmitter,
-            is_inventory_events_enabled,
-        )
-        if not is_inventory_events_enabled():
-            return
-        InventoryEventEmitter.emit_line_event(
-            event_type=event_type,
-            line=line,
-            transaction=transaction,
-            quantity_before=quantity_before,
-        )
-    except Exception:
-        pass  # Silent fail - don't break transaction processing
+def _num(v):
+    return float(v) if v is not None else None
+
+
+def _log_line_event(event_type: str, line, transaction, quantity_before=None):
+    """A line's inventory change, in the one Log (purpose inventory — Bill, 2026-10-28; it was
+    InventoryEvent, with an LLM call per event to restate it). The line save stands whatever
+    happens here (Log.write_or_queue)."""
+    from apps.core.models.log import Log
+    from apps.products.models import Item
+    item_ref = getattr(line, 'item', {}) or {}
+    item_id = item_ref.get('id_num') or item_ref.get('id') or item_ref.get('item_id')
+    item = Item.objects.filter(pk=item_id).values('ida', 'quantity').first() if item_id else None
+    buckets = (item or {}).get('quantity') or {}
+    qty = getattr(line, 'quantity', {}) or {}
+    after = qty.get('active', 0) or 0
+    delta = (Decimal(str(after)) - Decimal(str(quantity_before))) if quantity_before is not None else None
+    doc_ida = getattr(transaction, 'ida', '') if transaction is not None else ''
+    item_code = (item or {}).get('ida') or f'item #{item_id}'
+    name = ' '.join(p for p in (event_type.replace('_', ' '), item_code,
+                                f'({delta:+g})' if delta is not None else '',
+                                f'on {doc_ida}' if doc_ida else '') if p)
+    Log.write_or_queue(
+        'inventory', event_type, model_name='item', record_id=item_id, name=name,
+        details={
+            'item_code': (item or {}).get('ida', ''),
+            'document': {'model': transaction._meta.model_name, 'id': transaction.pk, 'ida': doc_ida}
+                        if transaction is not None else {},
+            'line_id': line.pk,
+            'quantity_before': _num(quantity_before), 'quantity_after': _num(after),
+            'quantity_delta': _num(delta),
+            'unit_cost': _num((getattr(line, 'cost', {}) or {}).get('unit')),
+            'unit_price': _num((getattr(line, 'price', {}) or {}).get('unit')),
+            'on_hand': buckets.get('on_hand'), 'on_order': buckets.get('on_so'),
+            'on_purchase': buckets.get('on_po'), 'available': buckets.get('available'),
+            'reorder_point': buckets.get('reorder_point'),
+            'org_id': getattr(transaction, 'customer_id', None) or getattr(transaction, 'vendor_id', None),
+        })
 
 
 # =============================================================================
@@ -106,14 +127,14 @@ def register_line_inventory_signals(
     @receiver(post_save, sender=line_model)
     def line_saved(sender, instance, created, **kwargs):
         post_line_change(instance)
-        _emit_line_event(f'{transaction_type}_line_{"add" if created else "update"}',
+        _log_line_event(f'{transaction_type}_line_{"add" if created else "update"}',
                          instance, getattr(instance, parent_attr, None),
                          (getattr(instance, '_loaded', None) or {}).get('active'))
 
     @receiver(post_delete, sender=line_model)
     def line_deleted(sender, instance, **kwargs):
         post_line_change(instance, deleted=True)
-        _emit_line_event(f'{transaction_type}_line_delete', instance,
+        _log_line_event(f'{transaction_type}_line_delete', instance,
                          getattr(instance, parent_attr, None), _get_quantity(instance))
 
 

@@ -457,9 +457,6 @@ EMAIL_ADDITIONAL_RECIPIENTS = config('EMAIL_ADDITIONAL_RECIPIENTS', default='')
 EMAIL_BCC_ADMIN = config('EMAIL_BCC_ADMIN', default=False, cast=bool)
 EMAIL_ADMIN_RECIPIENT = config('EMAIL_ADMIN_RECIPIENT', default='')
 
-# LLM Inventory Observer
-# Enable/disable inventory event logging for LLM observational learning
-INVENTORY_EVENTS_ENABLED = config('INVENTORY_EVENTS_ENABLED', default=True, cast=bool)
 
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = config('TIME_ZONE', default='UTC')
@@ -566,6 +563,7 @@ WCAPI_BLESSED_MODELS = {
     # Core models
     "contact": "core.Contact",
     "action": "core.Action",
+    "lesson": "core.Lesson",
     "log": "core.Log",
     "notification": "core.Notification",
     "pending": "core.Pending",

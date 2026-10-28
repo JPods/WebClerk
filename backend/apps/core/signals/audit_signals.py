@@ -91,18 +91,8 @@ def audit_post_save(sender, instance, created, **kwargs):
         return  # Nothing actually changed
 
     from apps.core.models.log import Log
-    user_id, refs = Log.responsible()
-    entry = {'purpose': 'audit', 'action': 'updated',
-             'model_name': instance.__class__.__name__.lower(), 'record_id': instance.pk,
-             'changes': changes, 'user': user_id, 'refs': refs}
-    try:
-        Log.write(entry['purpose'], entry['action'], user=user_id, model_name=entry['model_name'],
-                  record_id=entry['record_id'], changes=entry['changes'], refs=refs)
-    except Exception:
-        logger.error("Audit log write failed for %s#%s; queued as a Pending",
-                     entry['model_name'], entry['record_id'], exc_info=True)
-        from apps.core.models.pending import Pending
-        Pending.queue_log_write(entry)
+    Log.write_or_queue('audit', 'updated', model_name=instance.__class__.__name__.lower(),
+                       record_id=instance.pk, changes=changes)
 
     # Clean up
     instance._audit_old_values = None

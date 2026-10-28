@@ -8,10 +8,10 @@ Scans for:
 4. Dead stock (on_hand > 0, no sales in 90+ days)
 5. Quantity mismatches (available != on_hand - allocated)
 
-Extends the existing InventoryEventEmitter alert system with periodic
-batch scanning. The emitter catches real-time threshold crossings;
-this watchdog catches accumulated drift and items that were never set
-up with proper thresholds.
+The one place stock thresholds are checked: a nightly batch scan for
+accumulated drift and items never given thresholds. (The per-event
+alerts in the old InventoryEventEmitter never fired and were removed
+with it, 2026-10-28.)
 
 Creates AliceObservation records for anything requiring attention.
 

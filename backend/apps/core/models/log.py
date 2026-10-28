@@ -107,5 +107,20 @@ class Log(CoreModel, RefsMixin):
                 refs=refs,
             )
 
+    @classmethod
+    def write_or_queue(cls, purpose: str, action: str = '', **kwargs) -> None:
+        """For a writer inside a business save (an audit, a line's inventory change): the save
+        stands whatever happens here (Bill, 2026-10-28). A failed write is reported and queued
+        as a Pending (log_write) applied to the log later; who was responsible is captured now."""
+        user_id, refs = cls.responsible(kwargs.pop('user', None), kwargs.pop('refs', None))
+        entry = {'purpose': purpose, 'action': action, 'user': user_id, 'refs': refs, **kwargs}
+        try:
+            cls.write(purpose, action, user=user_id, refs=refs, **kwargs)
+        except Exception:
+            logger.error("Log write failed (%s/%s %s#%s); queued as a Pending", purpose, action,
+                         kwargs.get('model_name'), kwargs.get('record_id'), exc_info=True)
+            from apps.core.models.pending import Pending
+            Pending.queue_log_write(entry)
+
 
 __all__ = ['Log']

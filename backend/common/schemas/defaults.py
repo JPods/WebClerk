@@ -52,7 +52,6 @@ _APP_SCHEMA_MAP = {
     'term':                          'apps.accounts.models.term_pydantic',
     # ai_assistant
     'ai_message':                    'apps.ai_assistant.models.ai_message_pydantic',
-    'alice_insight':                 'apps.ai_assistant.models.alice_insight_pydantic',
     'alice_observation':             'apps.ai_assistant.models.alice_pydantic',
     'alice_preset':                  'apps.ai_assistant.models.alice_pydantic',
     'episode':                       'apps.ai_assistant.models.episode_pydantic',
@@ -70,6 +69,7 @@ _APP_SCHEMA_MAP = {
     'model_role_config':             'apps.core.models.rbac_pydantic',
     'notification':                  'apps.core.models.notification_pydantic',
     'pending':                       'apps.core.models.pending_pydantic',
+    'lesson':                        'apps.core.models.lesson_pydantic',
     'log':                           'apps.core.models.log_pydantic',
     'report':                        'apps.core.models.report_pydantic',
     'role_config':                   'apps.core.models.rbac_pydantic',

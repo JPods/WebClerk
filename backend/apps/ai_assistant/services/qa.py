@@ -12,7 +12,7 @@ the distribution so Bill can see where users struggle.
 Storage:
   - alice_log (allie DB): every question + answer logged
   - AliceObservation (commerce_expert): escalations + patterns
-  - AliceInsight (commerce_expert): per-topic frequency tracking
+  - Lesson (core): per-topic frequency tracking (agent alice, flow / qa_frequency)
 
 Called by: alice_qa_task (Celery) for batch processing of queued questions,
            or directly from ask_alice MCP tool for real-time answers.
@@ -258,69 +258,35 @@ def _log_question(question: str, topic: str, norm_key: str,
 
 
 def _update_frequency(topic: str, norm_key: str, raw_question: str):
-    """Update question frequency tracking in AliceInsight.
+    """Question frequency (Pareto) as a Lesson: agent alice, about no one person
+    (contact_id 0), subject flow / qa_frequency. config.details holds topics, top_questions
+    and total_questions."""
+    from apps.core.models import Lesson
 
-    Uses a system-level AliceInsight record (contact_id=system_contact)
-    with subject_type='flow', subject_key='qa_frequency'.
-    The config JSON accumulates topic counts and top questions.
-    """
-    try:
-        from apps.ai_assistant.models.alice import AliceInsight
-        from apps.core.models import Contact
+    lesson, _ = Lesson.objects.get_or_create(
+        agent='alice', contact_id=0, subject_type='flow', subject_key='qa_frequency',
+        defaults={'summary': 'Question frequency distribution (Pareto tracking)',
+                  'config': {'details': {'topics': {}, 'top_questions': {}, 'total_questions': 0}}},
+    )
+    details = (lesson.config or {}).get('details') or {}
+    topics = details.get('topics', {})
+    top_q = details.get('top_questions', {})
+    total = details.get('total_questions', 0)
 
-        # Use the system contact (claude@jpods.com or first superuser)
-        system_contact = Contact.objects.filter(
-            email__iexact='claude@jpods.com'
-        ).first()
-        if not system_contact:
-            system_contact = Contact.objects.filter(
-                is_superuser=True
-            ).first()
-        if not system_contact:
-            return
+    topics[topic] = topics.get(topic, 0) + 1
+    # Track normalized question frequency (keep top 100)
+    top_q[norm_key] = top_q.get(norm_key, {'count': 0, 'sample': ''})
+    top_q[norm_key]['count'] += 1
+    top_q[norm_key]['sample'] = raw_question[:200]
+    if len(top_q) > 100:
+        top_q = dict(sorted(top_q.items(), key=lambda x: x[1]['count'], reverse=True)[:100])
 
-        insight, created = AliceInsight.objects.get_or_create(
-            agent='alice',
-            contact_id=system_contact.pk,
-            subject_type='flow',
-            subject_key='qa_frequency',
-            defaults={
-                'summary': 'Question frequency distribution (Pareto tracking)',
-                'config': {'topics': {}, 'top_questions': {}, 'total_questions': 0},
-            }
-        )
-
-        config = insight.config or {}
-        topics = config.get('topics', {})
-        top_q = config.get('top_questions', {})
-        total = config.get('total_questions', 0)
-
-        # Increment topic count
-        topics[topic] = topics.get(topic, 0) + 1
-
-        # Track normalized question frequency (keep top 100)
-        top_q[norm_key] = top_q.get(norm_key, {'count': 0, 'sample': ''})
-        top_q[norm_key]['count'] += 1
-        top_q[norm_key]['sample'] = raw_question[:200]
-
-        # Prune to top 100 by count
-        if len(top_q) > 100:
-            sorted_q = sorted(top_q.items(), key=lambda x: x[1]['count'], reverse=True)
-            top_q = dict(sorted_q[:100])
-
-        config['topics'] = topics
-        config['top_questions'] = top_q
-        config['total_questions'] = total + 1
-
-        insight.config = config
-        insight.observation_count = total + 1
-        insight.dt_last_interaction = _now_ms()
-        insight.dt_last_updated = _now_ms()
-        insight.save(update_fields=['config', 'observation_count',
-                                     'dt_last_interaction', 'dt_last_updated'])
-
-    except Exception as e:
-        logger.debug("Failed to update frequency: %s", e)
+    lesson.config = {**(lesson.config or {}), 'details': {
+        'topics': topics, 'top_questions': top_q, 'total_questions': total + 1}}
+    lesson.observation_count = total + 1
+    lesson.dt_last_interaction = lesson.dt_last_updated = _now_ms()
+    lesson.save(update_fields=['config', 'observation_count', 'dt_last_interaction',
+                               'dt_last_updated'])
 
 
 def _escalate_to_bill(question: str, topic: str, norm_key: str,
@@ -381,14 +347,14 @@ def get_question_distribution() -> dict:
         "escalation_rate": 0.0,
     }
 
-    # Get frequency data from AliceInsight
+    # Get frequency data from the qa_frequency Lesson
     try:
-        from apps.ai_assistant.models.alice import AliceInsight
-        insight = AliceInsight.objects.filter(
-            agent='alice', subject_type='flow', subject_key='qa_frequency'
+        from apps.core.models import Lesson
+        lesson = Lesson.objects.filter(
+            agent='alice', contact_id=0, subject_type='flow', subject_key='qa_frequency'
         ).first()
-        if insight and insight.config:
-            config = insight.config
+        if lesson and (lesson.config or {}).get('details'):
+            config = lesson.config['details']
             result["topics"] = config.get("topics", {})
             result["total_questions"] = config.get("total_questions", 0)
 

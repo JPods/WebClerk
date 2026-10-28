@@ -75,6 +75,7 @@ MODEL_REGISTRY: Dict[str, ModelMeta] = {
     'contact': ModelMeta('contact', 'apps.core.models.contact.Contact', 'Contact', 'Contacts', 'contacts', kind='support', aliases=['contacts']),
     'document': ModelMeta('document', 'apps.docs.models.document.Document', 'Document', 'Documents', 'documents', kind='support', aliases=['documents', 'doc']),
     'notification': ModelMeta('notification', 'apps.core.models.notification.Notification', 'Notification', 'Notifications', 'notifications', kind='support', aliases=['notifications']),
+    'lesson': ModelMeta('lesson', 'apps.core.models.lesson.Lesson', 'Lesson', 'Lessons', 'lessons', kind='support', aliases=['lessons']),
     'log': ModelMeta('log', 'apps.core.models.log.Log', 'Log', 'Logs', 'logs', kind='support', aliases=['logs']),
     'pending': ModelMeta('pending', 'apps.core.models.pending.Pending', 'Pending', 'Pending', 'pending', kind='support', aliases=[]),
     'report': ModelMeta('report', 'apps.core.models.report.Report', 'Report', 'Reports', 'reports', kind='support', aliases=['reports']),

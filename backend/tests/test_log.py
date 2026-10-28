@@ -196,3 +196,34 @@ class TestLogThroughWcapi:
         res = client.get('/wcapi/log/?purpose=alice&ordering=dt_created&limit=50')
         names = [r['config'].get('name') for r in res.json()['data']['results']]
         assert names.index('first') < names.index('second')
+
+
+@pytest.mark.django_db
+class TestInventoryLog:
+    """A document line's change is a Log row, purpose inventory (it was InventoryEvent, with an
+    LLM call per event)."""
+
+    def test_a_line_save_writes_an_inventory_log_row(self, order_line_factory):
+        before = Log.objects.filter(purpose='inventory').count()
+        line = order_line_factory()
+        entries = Log.objects.filter(purpose='inventory', action='order_line_add',
+                                     config__details__line_id=line.pk)
+        assert Log.objects.filter(purpose='inventory').count() > before
+        entry = entries.latest('id')
+        assert entry.model_name == 'item'
+        assert entry.config['name'].startswith('order line add')
+        assert entry.config['details']['document']['model'] == 'order'
+
+
+@pytest.mark.django_db
+class TestLesson:
+    def test_question_frequency_is_one_lesson_about_no_one(self):
+        from apps.core.models import Lesson
+        from apps.ai_assistant.services.qa import _update_frequency
+        _update_frequency('inventory', 'how do i count stock', 'How do I count stock?')
+        _update_frequency('inventory', 'how do i count stock', 'How do I count stock?')
+        [lesson] = Lesson.objects.filter(agent='alice', subject_key='qa_frequency')
+        assert lesson.contact_id == 0
+        assert lesson.config['details']['total_questions'] == 2
+        assert lesson.config['details']['top_questions']['how do i count stock']['count'] == 2
+        assert lesson.observation_count == 2

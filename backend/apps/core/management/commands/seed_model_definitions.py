@@ -376,6 +376,10 @@ SERIAL_LIST_COLUMNS = [
     _lc('ida', width=100), _lc('purpose', width=140), _lc('name', width=200),
     _lc('status', width=80), _lc('comments.process', width=200),
 ]
+LESSON_LIST_COLUMNS = [
+    _lc('agent', width=80), _lc('subject_type', width=100), _lc('subject_key', width=140),
+    _lc('summary', width=260), _lc('observation_count', width=70), _lc('dt_last_updated', width=110),
+]
 LOG_LIST_COLUMNS = [
     _lc('dt_created', width=110), _lc('purpose', width=120), _lc('action', width=120),
     _lc('model_name', width=100), _lc('record_id', width=80), _lc('user', width=120),
@@ -485,6 +489,7 @@ MODEL_LIST_COLUMNS = {
     'project': PROJECT_LIST_COLUMNS, 'setting': SETTING_LIST_COLUMNS,
     'report': REPORT_LIST_COLUMNS, 'notification': NOTIFICATION_LIST_COLUMNS,
     'workspace': WORKSPACE_LIST_COLUMNS, 'gantt': GANTT_LIST_COLUMNS, 'log': LOG_LIST_COLUMNS,
+    'lesson': LESSON_LIST_COLUMNS,
     'databrowser': DATABROWSER_LIST_COLUMNS,
     # Communications
     'phone': PHONE_LIST_COLUMNS, 'email': EMAIL_LIST_COLUMNS,
