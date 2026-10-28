@@ -350,9 +350,8 @@ export default function DedupPanel({ model, matchFields, onMergeComplete, onClos
                       const otherId = currentGroup.records.find(r => r.id !== rec.id)?.id;
                       if (!otherId) return;
                       try {
-                        const { getRecords, saveRecord } = await import('@/api/wcapi');
-                        const res = await getRecords(model, { id: otherId, limit: 1 }) as any;
-                        const target = res?.results?.[0];
+                        const { getRecord, saveRecord } = await import('@/api/wcapi');
+                        const target = (await getRecord(model, Number(otherId)) as any)?.record;
                         if (!target) { alert('Could not load target record'); return; }
                         const comments = target.comments && typeof target.comments === 'object' ? { ...target.comments } : {};
                         const process = Array.isArray(comments.process) ? [...comments.process] : [];

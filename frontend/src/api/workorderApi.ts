@@ -115,3 +115,9 @@ export async function getInventoryLayers(params: Record<string, unknown>): Promi
   const res = await apiClient.get('/wcapi/products/inventory/layers/', { params: { item_id: params.item_id } });
   return res.data?.data || [];
 }
+
+/** Stock figures for several items at once (GET products/items/inventory — a service view). */
+export async function getItemsInventory(params: Record<string, unknown>): Promise<any[]> {
+  const res = await apiClient.get('/wcapi/products/items/inventory/', { params: { ids: params.ids } });
+  return res.data?.data || [];
+}

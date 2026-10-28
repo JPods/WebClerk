@@ -11,7 +11,7 @@
  * Admin-only. Non-admin users never see this dialog.
  */
 import React, { useCallback, useEffect, useState } from 'react';
-import { getRecords, saveRecord } from '@/api/wcapi';
+import { getRecord, getRecords, saveRecord } from '@/api/wcapi';
 
 const WIDGET_TYPES = [
   'text', 'number', 'currency', 'email', 'phone', 'url', 'address', 'zip',
@@ -117,8 +117,7 @@ export default function BehaviorOverrideDialog({ open, onClose, onReload, model,
       }
 
       // Fetch current config, merge the override, save
-      const res = await getRecords('setting', { id: settingId }) as any;
-      const rec = (res?.results || [])[0];
+      const rec = (await getRecord('setting', Number(settingId)) as any)?.record;
       if (!rec) { setMessage('Setting not found'); setSaving(false); return; }
 
       // Only config.behaviors is sent — as a whole, since a field name such as totals.cost
@@ -143,8 +142,7 @@ export default function BehaviorOverrideDialog({ open, onClose, onReload, model,
     setMessage('');
 
     try {
-      const res = await getRecords('setting', { id: settingId }) as any;
-      const rec = (res?.results || [])[0];
+      const rec = (await getRecord('setting', Number(settingId)) as any)?.record;
       if (!rec) { setMessage('Setting not found'); setSaving(false); return; }
 
       const behaviors = { ...(rec.config?.behaviors || {}) };

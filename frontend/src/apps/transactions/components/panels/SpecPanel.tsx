@@ -1,63 +1,26 @@
-/* LastChecked: 2026-08-13 | WhereUsed: LinesCard | WhoCreated: Claude */
+/* LastChecked: 2026-10-27 | WhereUsed: LineCardRenderer | WhoCreated: Claude */
 // Specification panel — "S" button in WC2.
 // Shows the selected line item's spec/detail. Read-only in line context.
-// Edit by opening item in floating window.
-import React from 'react';
-import { getRecords } from '@/api/wcapi';
+// Edit by opening item in floating window. The line card's panel frame draws the label and status.
+import { getRecord } from '@/api/wcapi';
+import { usePanelRecords } from '@/hooks/usePanelRecords';
+import { usePanelFrame } from '@/apps/common/components/CollapsiblePanel';
 
 interface SpecPanelProps {
-  itemId: number | null;
-  itemCode: string;
+  itemId: number;
 }
 
-const SpecPanel: React.FC<SpecPanelProps> = ({ itemId, itemCode }) => {
-  const [item, setItem] = React.useState<any>(null);
-  const [loading, setLoading] = React.useState(false);
+/** One record has its own path (/wcapi/item/<id>/); a list read with ?id= is refused. */
+const readItem = async ({ itemId }: Record<string, unknown>) => {
+  const res: any = await getRecord('item', Number(itemId));
+  return res?.record ? [res.record] : [];
+};
 
-  React.useEffect(() => {
-    if (!itemId) { setItem(null); return; }
-
-    let cancelled = false;
-    setLoading(true);
-
-    (async () => {
-      try {
-        const res = await getRecords('item', { id: itemId, limit: 1 });
-        const rec = res?.records?.[0];
-        if (!cancelled) setItem(rec || null);
-      } catch {
-        if (!cancelled) setItem(null);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-
-    return () => { cancelled = true; };
-  }, [itemId]);
-
-  if (!itemId) {
-    return (
-      <div className="px-3 py-2 text-xs db-text-dim">
-        Select a line to view item specification
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="px-3 py-2 text-xs db-text-muted">
-        Loading specification for {itemCode}...
-      </div>
-    );
-  }
-
-  if (!item) {
-    return (
-      <div className="px-3 py-2 text-xs db-text-dim">
-        Item not found
-      </div>
-    );
-  }
+const SpecPanel = ({ itemId }: SpecPanelProps) => {
+  const { records, status } = usePanelRecords('item', { itemId }, { read: readItem, emptyText: 'Item not found' });
+  usePanelFrame({ status });
+  const item: any = records[0];
+  if (!item) return null;
 
   const price = item.price || {};
   const cost = item.cost || {};

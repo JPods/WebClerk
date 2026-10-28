@@ -19,7 +19,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { getRecords } from '@/api/wcapi';
+import { getRecord, getRecords } from '@/api/wcapi';
 import { showToast } from '@/store/slices/toastSlice';
 
 /** Column shape compatible with legacy TableColumn */
@@ -159,8 +159,7 @@ export function useListFieldConfig<T>(
       // ── Tier 2: Report config (context-specific override) ──
       if (!resolved && options?.reportId) {
         try {
-          const res = await getRecords('report', { id: options.reportId, limit: 1 }) as any;
-          const report = res?.results?.[0] ?? res?.records?.[0];
+          const report = (await getRecord('report', Number(options.reportId)) as any)?.record;
           if (report) {
             const layout = report?.config?.layout?.list?.default as ListLayoutDefault | undefined;
             const parsed = parseLayout(layout);

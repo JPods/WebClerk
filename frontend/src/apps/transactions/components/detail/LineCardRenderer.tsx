@@ -9,7 +9,9 @@ import { showToast } from '@/store/slices/toastSlice';
 import InventoryPanel from '../panels/InventoryPanel';
 import MarginPanel from '../panels/MarginPanel';
 import SpecPanel from '../panels/SpecPanel';
-import XRefPanel from '../panels/XRefPanel';
+import ProductListPanel from '@/apps/products/components/ProductListPanel';
+import XRefCard from '@/apps/products/components/XRefCard';
+import CollapsiblePanel from '@/apps/common/components/CollapsiblePanel';
 import CommissionPanel from '../panels/CommissionPanel';
 import { TransactionItemSearch, resolveItemCode, resolveItemDescription, resolveQtyAvailable } from '../TransactionItemSearch';
 import { priceLines } from '../../services/linePricing';
@@ -363,6 +365,12 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
     </div>
   );
 
+  const selectedItemId: number | null = lc.selectedLineRecord?._itemId ?? null;
+  const selectedCode = lc.selectedLineRecord?.item_code ?? '';
+  const needsLine = (lc.activePanel === 'spec' || lc.activePanel === 'xref') && !selectedItemId;
+  const subPanelLabel = lc.activePanel === 'inventory' ? 'Inventory'
+    : `${lc.activePanel === 'spec' ? 'Spec' : 'XRef'}${selectedCode ? ` ${selectedCode}` : ''}`;
+
   const panelContent = (
     <>
       {showItemSearch && lc.canEdit && (
@@ -384,11 +392,21 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
         </div>
       )}
       {lc.activePanel !== 'none' && lc.activePanel !== 'margin' && (
-        <div className="max-h-[250px] overflow-y-auto" style={{ borderTop: '1px solid var(--db-border, #dee2e6)', background: 'var(--db-surface, #fff)' }}>
-          {lc.activePanel === 'inventory' && <InventoryPanel itemIds={lc.inventoryItemIds} itemCodes={[]} />}
-          {lc.activePanel === 'spec' && <SpecPanel itemId={lc.selectedLineRecord?._itemId ?? null} itemCode={lc.selectedLineRecord?.item_code ?? ''} />}
-          {lc.activePanel === 'xref' && <XRefPanel itemId={lc.selectedLineRecord?._itemId ?? null} itemCode={lc.selectedLineRecord?.item_code ?? ''} />}
-        </div>
+        // A frame per sub-panel and item: a count declared by one never shows on another.
+        <CollapsiblePanel key={`${lc.activePanel}-${selectedItemId ?? ''}`} collapsible={false} label={subPanelLabel}
+          status={needsLine ? { empty: true, emptyText: 'Select a line to see its item' } : undefined}>
+          {/* The one scroller: the frame's label and the panel's column labels stay put */}
+          <div className="max-h-[250px] overflow-y-auto">
+            {lc.activePanel === 'inventory' && <InventoryPanel itemIds={lc.inventoryItemIds} />}
+            {lc.activePanel === 'spec' && selectedItemId && <SpecPanel itemId={selectedItemId} />}
+            {lc.activePanel === 'xref' && selectedItemId && (
+              <ProductListPanel model="item_xref" itemId={selectedItemId} CardComponent={XRefCard}
+                headers={['Type', 'XRef Code', 'Description', 'Org']}
+                headerWidths={['w-16', 'w-28', 'flex-1', 'w-20']}
+                onCardClick={(id: number) => windowManager.ensureWindow(`/item_xref?id=${id}`, `XRef #${id}`)} />
+            )}
+          </div>
+        </CollapsiblePanel>
       )}
     </>
   );

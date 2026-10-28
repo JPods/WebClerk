@@ -48,6 +48,20 @@ class WcapiFilterRejectsUnknownTests(TestCase):
         self.assertIn('?status__in=open,in_progress', message)
         self.assertEqual(message.count('Send filters flat'), 1)
 
+    def test_a_list_read_with_id_is_refused_and_coached_to_the_record_path(self):
+        """?id= once dropped the id and answered with the first record (2026-10-27: a line's
+        Spec showed another item). One record is its own path; several are id__in."""
+        resp = self.client.get('/wcapi/contact/', {'id': self.user.pk})
+        self.assertEqual(resp.status_code, 400)
+        body = resp.json()
+        self.assertEqual(body['error']['code'], 'unknown_filter')
+        self.assertIn(f'/wcapi/contact/{self.user.pk}/', body['message'])
+        self.assertIn('id__in', body['message'])
+
+        several = self.client.get('/wcapi/contact/', {'id__in': str(self.user.pk)})
+        self.assertEqual(several.status_code, 200, several.content)
+        self.assertEqual(len(several.json()['data']['results']), 1)
+
     def test_valid_model_name_returns_success(self):
         """A valid model_name returns a success envelope."""
         resp = wcapi_get(self.client, {'model_name': 'contact'})

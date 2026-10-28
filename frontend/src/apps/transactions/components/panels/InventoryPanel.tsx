@@ -1,15 +1,15 @@
-/* LastChecked: 2026-08-13 | WhereUsed: LinesCard | WhoCreated: Claude */
+/* LastChecked: 2026-10-27 | WhereUsed: LineCardRenderer | WhoCreated: Claude */
 // Inventory peek panel — "L" button in WC2.
-// Shows inventory for selected (or all) line items in a compact table below the grid.
-import React from 'react';
-import { getRecords } from '@/api/wcapi';
+// Shows inventory for selected (or all) line items in a compact table below the grid. The
+// line card's panel frame draws the label, count and status.
+import { getItemsInventory } from '@/api/workorderApi';
+import { usePanelRecords } from '@/hooks/usePanelRecords';
+import { usePanelFrame } from '@/apps/common/components/CollapsiblePanel';
 import { formatCurrency } from '@/utils/stringUtils';
 
 interface InventoryPanelProps {
   /** Item IDs to show inventory for */
   itemIds: number[];
-  /** Item codes for display (parallel array) */
-  itemCodes: string[];
 }
 
 interface InventoryRow {
@@ -28,82 +28,16 @@ const formatNum = (v: number | null | undefined): string =>
   v == null ? '—' : v.toLocaleString();
 
 
-const InventoryPanel: React.FC<InventoryPanelProps> = ({ itemIds }) => {
-  const [rows, setRows] = React.useState<InventoryRow[]>([]);
-  const [loading, setLoading] = React.useState(false);
-
-  React.useEffect(() => {
-    if (!itemIds.length) { setRows([]); return; }
-
-    let cancelled = false;
-    setLoading(true);
-
-    // Fetch inventory via bulk endpoint or fallback to individual item queries
-    const fetchInventory = async () => {
-      try {
-        // Try bulk endpoint first
-        const resp = await fetch(`/wcapi/products/items/inventory/?ids=${itemIds.join(',')}`, {
-          credentials: 'include',
-        });
-        if (resp.ok) {
-          const json = await resp.json();
-          if (!cancelled) setRows(json.data || []);
-        } else {
-          // Fallback: fetch each item individually via wcapi
-          const results: InventoryRow[] = [];
-          for (const id of itemIds.slice(0, 50)) { // cap at 50
-            try {
-              const res = await getRecords('item', { id, limit: 1 });
-              const item = res?.records?.[0];
-              if (item) {
-                const qty = item.quantity || {};
-                results.push({
-                  id: item.id,
-                  ida: item.ida || '',
-                  name: item.name || '',
-                  available: qty.available ?? null,
-                  on_hand: qty.on_hand ?? null,
-                  on_so: qty.on_so ?? null,
-                  on_po: qty.on_po ?? null,
-                  lead_time: item.config?.lead_time ?? null,
-                  price_retail: item.price?.retail ?? null,
-                });
-              }
-            } catch { /* skip failed items */ }
-          }
-          if (!cancelled) setRows(results);
-        }
-      } catch {
-        if (!cancelled) setRows([]);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-
-    fetchInventory();
-    return () => { cancelled = true; };
-  }, [itemIds.join(',')]);
-
-  if (loading) {
-    return (
-      <div className="px-3 py-2 text-xs" style={{ color: 'var(--db-text-muted)' }}>
-        Loading inventory…
-      </div>
-    );
-  }
-
-  if (!rows.length) {
-    return (
-      <div className="px-3 py-2 text-xs" style={{ color: 'var(--db-text-dim)' }}>
-        No inventory data available
-      </div>
-    );
-  }
+const InventoryPanel = ({ itemIds }: InventoryPanelProps) => {
+  const { records: rows, status } = usePanelRecords<InventoryRow>('item inventory', { ids: itemIds.join(',') },
+    { enabled: itemIds.length > 0, read: getItemsInventory, emptyText: 'No inventory data available' });
+  usePanelFrame({ badge: rows.length, status });
+  if (!rows.length) return null;
 
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-xs border-collapse">
-        <thead>
+        <thead className="sticky top-0">
           <tr style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' }}>
             <th className="text-left px-2 py-1 font-medium">Item</th>
             <th className="text-left px-2 py-1 font-medium">Description</th>

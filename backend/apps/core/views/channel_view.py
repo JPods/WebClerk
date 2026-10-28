@@ -36,8 +36,10 @@ class ModelChannelView(SaveWcapiView):
     def get(self, request, model_name: str, record_id=None):
         from apps.core.services.door import Actor, Refused
         from apps.core.services.get import read
+        if record_id is None and 'id' in request.query_params:
+            return _id_is_not_a_filter(model_name, request.query_params.get('id'))
         params = {k: (v if len(v) > 1 else v[0]) for k, v in request.query_params.lists()
-                  if k not in ('model_name', 'id')}
+                  if k != 'model_name'}
         try:
             data = read(Actor.from_request(request), model_name, record_id, params)
         except Refused as refused:
@@ -73,6 +75,18 @@ def _wrong_method(method: str, model_name: str, record_id):
                         error={'code': 'method_not_allowed',
                                'details': {'method': method, 'path': where,
                                            'verbs': METHOD_VERBS}})
+
+
+def _id_is_not_a_filter(model_name: str, value):
+    """A list read with ?id= once dropped the id and answered with the first record — the
+    caller could not tell it got the wrong one (found 2026-10-27: a line's Spec showed another
+    item). One record has its own path; several are id__in."""
+    one = f'/wcapi/{model_name}/{value}/' if str(value).isdigit() else f'/wcapi/{model_name}/<id>/'
+    return api_response(success=False, status_code=400,
+                        message=f'{model_name}: ?id= is not a filter. Read one record at {one}; '
+                                f'several with ?id__in=1,2,3.',
+                        error={'code': 'unknown_filter',
+                               'details': {'model_name': model_name, 'fields': ['id']}})
 
 
 #: Commands that write nothing (verbs.py says which). Throttled as reads, not as money.

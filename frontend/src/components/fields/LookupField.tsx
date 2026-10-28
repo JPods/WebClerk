@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { LookupFieldProps } from './types';
 import BaseField from './BaseField';
-import { getRecords } from '@/api/wcapi';
+import { getRecord, getRecords } from '@/api/wcapi';
 
 export default function LookupField(props: LookupFieldProps) {
   const { value: v, onChange, disabled, model } = props;
@@ -16,8 +16,8 @@ export default function LookupField(props: LookupFieldProps) {
   // Resolve display name from ID on mount or value change
   useEffect(() => {
     if (!v) { setDisplayName(''); return; }
-    getRecords(model, { id: v, limit: 1 }).then((res: any) => {
-      const rec = (res?.results || [])[0];
+    getRecord(model, Number(v)).then((res: any) => {
+      const rec = res?.record;
       if (rec) {
         setDisplayName(rec.display_name || rec.name || rec.company || rec.ida || `#${rec.id}`);
       }

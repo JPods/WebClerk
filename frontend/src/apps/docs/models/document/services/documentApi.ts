@@ -1,5 +1,5 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
-import { getRecords, createRecord, deleteRecord } from "@/api/wcapi";
+import { getRecord, getRecords, createRecord, deleteRecord } from "@/api/wcapi";
 import type {
   DocumentApiTask,
 } from "../types/documentType";
@@ -18,8 +18,8 @@ export const fetchDocuments = async (params?: any) => {
  * API: wcapi/get/?model_name=document&id=X
  */
 export const fetchDocumentById = async (id: number | string) => {
-  const res = await getRecords("document", { id });
-  return { status: 200, data: { items: res.results || [] } };
+  const res: any = await getRecord("document", Number(id));
+  return { status: 200, data: { items: res?.record ? [res.record] : [] } };
 };
 
 export const fetchDocument = async (): Promise<DocumentApiTask[]> => {
