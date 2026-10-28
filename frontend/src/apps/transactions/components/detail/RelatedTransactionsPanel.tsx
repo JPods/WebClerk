@@ -11,7 +11,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { getRecord, getRecords } from '@/api/wcapi';
 import { useWindowManager } from '@/context/WindowManagerContext';
 import { formatCurrency } from '@/utils/stringUtils';
-import CollapsiblePanel from '@/apps/common/components/CollapsiblePanel';
+import { PanelFrame } from '@/apps/common/components/CollapsiblePanel';
 
 type Rec = Record<string, any>;
 
@@ -136,7 +136,7 @@ const RelatedTransactionsPanel: React.FC<Props> = ({ modelName, record, onNaviga
   // The one frame draws the header, count, collapse and status; the tabs are this panel's own.
   return (
     <div data-wc="related-transactions" className="no-print">
-      <CollapsiblePanel
+      <PanelFrame
         label="Related"
         storageKey={`panel_${modelName}_related`}
         badge={total}
@@ -181,7 +181,7 @@ const RelatedTransactionsPanel: React.FC<Props> = ({ modelName, record, onNaviga
             </tbody>
           </table>
         )}
-      </CollapsiblePanel>
+      </PanelFrame>
     </div>
   );
 };

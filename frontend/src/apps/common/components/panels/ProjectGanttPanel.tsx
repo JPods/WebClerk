@@ -9,8 +9,9 @@
  *
  * LastChecked: 2026-08-05 | WhereUsed: ContactDetailJson tabs | WhoCreated: Bill+Claude
  */
-import React, { useState, useEffect, useMemo } from 'react';
-import { getRecords } from '@/api/wcapi';
+import { useMemo } from 'react';
+import { usePanelRecords } from '@/hooks/usePanelRecords';
+import { usePanelFrame } from '@/apps/common/components/CollapsiblePanel';
 import { formatDt } from '@/utils/fieldFormatters';
 
 // ---------------------------------------------------------------------------
@@ -69,18 +70,13 @@ function fmtDateFull(ms: number): string {
 // ---------------------------------------------------------------------------
 
 export default function ProjectGanttPanel({ contactId }: ProjectGanttPanelProps) {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    getRecords('project', { contact_id: contactId, is_active: true })
-      .then((res: any) => {
-        const rows = res?.results || res?.records || res?.data?.results || [];
-        setProjects(rows.filter((p: Project) => p.dt_start || p.dt_end));
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [contactId]);
+  const { records, status } = usePanelRecords<Project>('project', { contact_id: contactId, is_active: true });
+  const projects = useMemo(() => records.filter((p) => p.dt_start || p.dt_end), [records]);
+  const frameStatus = useMemo(() => ({
+    ...status, empty: status.empty || (records.length > 0 && projects.length === 0),
+    emptyText: 'No projects with dates for this contact',
+  }), [status, records.length, projects.length]);
+  usePanelFrame({ badge: projects.length, status: frameStatus });
 
   // Compute timeline range
   const { minDate, maxDate, rangeMs } = useMemo(() => {
@@ -126,8 +122,7 @@ export default function ProjectGanttPanel({ contactId }: ProjectGanttPanelProps)
   // Today marker
   const todayPct = ((Date.now() - minDate) / rangeMs) * 100;
 
-  if (loading) return <div style={{ padding: 16, color: 'var(--db-text-muted)', fontSize: 12 }}>Loading projects...</div>;
-  if (projects.length === 0) return <div style={{ padding: 16, color: 'var(--db-text-dim)', fontSize: 12, textAlign: 'center' }}>No projects with dates for this contact</div>;
+  if (projects.length === 0) return null;
 
   // Sort by start date, then priority
   const sorted = [...projects].sort((a, b) => (a.dt_start || 0) - (b.dt_start || 0) || a.priority - b.priority);

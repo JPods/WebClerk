@@ -9,8 +9,9 @@
  *
  * LastChecked: 2026-08-24 | WhereUsed: panelRegistry (project_gantt) | WhoCreated: Bill+Claude
  */
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { getRecords } from '@/api/wcapi';
+import { useState, useMemo, useRef } from 'react';
+import { usePanelRecords } from '@/hooks/usePanelRecords';
+import { usePanelFrame } from '@/apps/common/components/CollapsiblePanel';
 import { formatDt } from '@/utils/fieldFormatters';
 import { getUI } from '@/utils/contactUI';
 
@@ -39,7 +40,6 @@ interface GanttAction {
 
 interface ProjectActionGanttProps {
   projectId: number;
-  projectName?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -207,51 +207,45 @@ function calculateCriticalPath(actions: GanttAction[]): GanttAction[] {
 // Component
 // ---------------------------------------------------------------------------
 
-export default function ProjectActionGantt({ projectId, projectName }: ProjectActionGanttProps) {
+/** Dated actions with the critical path marked, in sequence. */
+function toGanttActions(rows: any[]): GanttAction[] {
+  const mapped: GanttAction[] = rows
+    .map((r: any, idx: number) => ({
+      id: r.id,
+      ida: r.ida || '',
+      sequence: r.sequence || idx + 1,
+      action: extractTitle(r.action),
+      dt_start: parseEpoch(r.dt_start),
+      dt_deadline: parseEpoch(r.dt_deadline) || parseEpoch(r.dt_end),
+      dt_completed: parseEpoch(r.dt_completed),
+      percent_complete: r.percent_complete || 0,
+      priority: typeof r.priority === 'number' ? r.priority : 2,
+      difficulty: r.difficulty || 4,
+      kanban_column: r.kanban_column || 'Backlog',
+      assigned_to: Array.isArray(r.assigned_to)
+        ? r.assigned_to.map((a: any) => a.name || a.email || '').join(', ')
+        : '',
+      depends_on: extractDeps(r),
+      card_number: r.ida || r.card_number || String(idx + 1),
+      isCritical: false,
+      slack: 0,
+    }))
+    .filter((a: GanttAction) => a.dt_start || a.dt_deadline);
+
+  // Calculate critical path
+  const withCritical = calculateCriticalPath(mapped);
+  // Sort by sequence
+  withCritical.sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
+  return withCritical;
+}
+
+export default function ProjectActionGantt({ projectId }: ProjectActionGanttProps) {
   const active = getUI<string>('theme.active', 'dark');
   const baseFontSize = getUI<number>(`theme.${active}.font.size`, 13);
-  const [actions, setActions] = useState<GanttAction[]>([]);
-  const [loading, setLoading] = useState(true);
   const [showCriticalOnly, setShowCriticalOnly] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
-
-  // Fetch actions for this project
-  useEffect(() => {
-    getRecords('action', { project_id: projectId, is_active: true, limit: 500 })
-      .then((res: any) => {
-        const rows = res?.results || res?.records || res?.data?.results || [];
-        const mapped: GanttAction[] = rows
-          .map((r: any, idx: number) => ({
-            id: r.id,
-            ida: r.ida || '',
-            sequence: r.sequence || idx + 1,
-            action: extractTitle(r.action),
-            dt_start: parseEpoch(r.dt_start),
-            dt_deadline: parseEpoch(r.dt_deadline) || parseEpoch(r.dt_end),
-            dt_completed: parseEpoch(r.dt_completed),
-            percent_complete: r.percent_complete || 0,
-            priority: typeof r.priority === 'number' ? r.priority : 2,
-            difficulty: r.difficulty || 4,
-            kanban_column: r.kanban_column || 'Backlog',
-            assigned_to: Array.isArray(r.assigned_to)
-              ? r.assigned_to.map((a: any) => a.name || a.email || '').join(', ')
-              : '',
-            depends_on: extractDeps(r),
-            card_number: r.ida || r.card_number || String(idx + 1),
-            isCritical: false,
-            slack: 0,
-          }))
-          .filter((a: GanttAction) => a.dt_start || a.dt_deadline);
-
-        // Calculate critical path
-        const withCritical = calculateCriticalPath(mapped);
-        // Sort by sequence
-        withCritical.sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
-        setActions(withCritical);
-      })
-      .catch((err) => console.error('ProjectActionGantt fetch error:', err))
-      .finally(() => setLoading(false));
-  }, [projectId]);
+  const { records, status } = usePanelRecords('action', { project_id: projectId, is_active: true, limit: 500 });
+  const actions = useMemo(() => toGanttActions(records), [records]);
 
   // Filter
   const displayed = showCriticalOnly ? actions.filter(a => a.isCritical) : actions;
@@ -324,52 +318,37 @@ export default function ProjectActionGantt({ projectId, projectName }: ProjectAc
   const criticalCount = actions.filter(a => a.isCritical).length;
   const completeCount = actions.filter(a => a.kanban_column === 'Complete').length;
 
-  if (loading) {
-    return <div style={{ padding: 16, color: 'var(--db-text-muted)', fontSize: 12 }}>Loading actions...</div>;
-  }
+  const headerActions = useMemo(() => actions.length ? (
+    <>
+      <span style={{ fontSize: 11, color: 'var(--db-text-muted)' }}>
+        <span style={{ color: '#ef4444', fontWeight: 600 }}>{criticalCount}</span> critical path
+        &nbsp;&middot;&nbsp;
+        <span style={{ color: '#22c55e' }}>{completeCount}</span> complete
+      </span>
+      <label style={{ fontSize: 11, color: 'var(--db-text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+        <input
+          type="checkbox"
+          checked={showCriticalOnly}
+          onChange={e => setShowCriticalOnly(e.target.checked)}
+          style={{ accentColor: '#ef4444' }}
+        />
+        Critical path only
+      </label>
+    </>
+  ) : null, [actions.length, criticalCount, completeCount, showCriticalOnly]);
+  const frameStatus = useMemo(() => ({
+    ...status, empty: status.empty || (records.length > 0 && actions.length === 0),
+    emptyText: 'No actions with dates for this project — set dt_start and dt_deadline on actions to see them here.',
+  }), [status, records.length, actions.length]);
+  usePanelFrame({ badge: actions.length, headerActions, status: frameStatus });
 
-  if (actions.length === 0) {
-    return (
-      <div style={{ padding: 16, color: 'var(--db-text-dim)', fontSize: 12, textAlign: 'center' }}>
-        No actions with dates for this project.
-        <br />
-        <span style={{ fontSize: 11, color: 'var(--db-text-muted)' }}>
-          Set dt_start and dt_deadline on actions to see them here.
-        </span>
-      </div>
-    );
-  }
+  if (actions.length === 0) return null;
 
   const chartWidth = 800;
   const chartHeight = displayed.length * ROW_HEIGHT + 30;
 
   return (
     <div data-wc="project-action-gantt" style={{ fontSize: baseFontSize - 1 }}>
-      {/* Toolbar */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 16, padding: '8px 12px',
-        borderBottom: '1px solid var(--db-border)',
-        flexWrap: 'wrap',
-      }}>
-        <span style={{ fontWeight: 600, color: 'var(--db-text)' }}>
-          {projectName || 'Project'} &mdash; {actions.length} actions
-        </span>
-        <span style={{ fontSize: 11, color: 'var(--db-text-muted)' }}>
-          <span style={{ color: '#ef4444', fontWeight: 600 }}>{criticalCount}</span> critical path
-          &nbsp;&middot;&nbsp;
-          <span style={{ color: '#22c55e' }}>{completeCount}</span> complete
-        </span>
-        <label style={{ fontSize: 11, color: 'var(--db-text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
-          <input
-            type="checkbox"
-            checked={showCriticalOnly}
-            onChange={e => setShowCriticalOnly(e.target.checked)}
-            style={{ accentColor: '#ef4444' }}
-          />
-          Critical path only
-        </label>
-      </div>
-
       <div style={{ display: 'flex', overflowX: 'auto' }}>
         {/* Left labels */}
         <div style={{ flexShrink: 0, width: LABEL_WIDTH }}>

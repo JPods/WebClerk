@@ -10,10 +10,14 @@
  *
  * LastChecked: 2026-08-05 | WhereUsed: ContactDetailJson tabs | WhoCreated: Bill+Claude
  */
-import React, { useState, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
+import { useDispatch } from 'react-redux';
+import { showToast } from '@/store/slices/toastSlice';
+import { usePanelRecords } from '@/hooks/usePanelRecords';
+import { usePanelFrame } from '@/apps/common/components/CollapsiblePanel';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { getRecords, saveRecord } from '@/api/wcapi';
+import { saveRecord } from '@/api/wcapi';
 import { getUI } from '@/utils/contactUI';
 
 // ---------------------------------------------------------------------------
@@ -161,37 +165,22 @@ function KanbanCol({ colKey, label, color, projects, onDrop }: {
 // ---------------------------------------------------------------------------
 
 export default function ProjectKanbanPanel({ contactId }: ProjectKanbanPanelProps) {
-  const active = getUI<string>('theme.active', 'dark');
-  const baseFontSize = getUI<number>(`theme.${active}.font.size`, 13);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { records: projects, refresh, status } = usePanelRecords<Project>('project',
+    { contact_id: contactId, is_active: true }, { emptyText: 'No projects for this contact' });
+  usePanelFrame({ badge: projects.length, status });
+  const dispatch = useDispatch();
 
-  const fetchProjects = useCallback(async () => {
-    try {
-      const res = await getRecords('project', { contact_id: contactId, is_active: true });
-      const rows = res?.results || res?.records || res?.data?.results || [];
-      setProjects(rows);
-    } catch (e) {
-      console.error('[ProjectKanbanPanel] fetch failed:', e);
-    } finally {
-      setLoading(false);
-    }
-  }, [contactId]);
-
-  useEffect(() => { fetchProjects(); }, [fetchProjects]);
-
+  // The server's status, not a local guess: save, then read again (TFTS 2026-10-26).
   const handleDrop = useCallback(async (projectId: number, newStatus: string) => {
-    // Optimistic update
-    setProjects(prev => prev.map(p => p.id === projectId ? { ...p, status: newStatus } : p));
     try {
       await saveRecord('project', { id: projectId, status: newStatus });
-    } catch {
-      fetchProjects(); // revert on failure
+    } catch (e: any) {
+      dispatch(showToast({ message: e?.response?.data?.message || 'Project status not saved', type: 'error' }));
     }
-  }, [fetchProjects]);
+    refresh();
+  }, [refresh, dispatch]);
 
-  if (loading) return <div style={{ padding: 16, color: 'var(--db-text-muted)', fontSize: baseFontSize - 1 }}>Loading projects...</div>;
-  if (projects.length === 0) return <div style={{ padding: 16, color: 'var(--db-text-dim)', fontSize: baseFontSize - 1, textAlign: 'center' }}>No projects for this contact</div>;
+  if (!projects.length) return null;
 
   return (
     <DndProvider backend={HTML5Backend}>

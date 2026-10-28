@@ -127,10 +127,7 @@ const registry: Record<string, PanelRenderer> = {
   gantt: (ctx) => {
     // For projects: show action-level Gantt with dependencies + critical path
     if (ctx.modelName === 'project' || ctx.modelName === 'tx_projects') {
-      return wrap(createElement(ProjectActionGantt, {
-        projectId: ctx.data.id,
-        projectName: ctx.data.name,
-      }));
+      return wrap(createElement(ProjectActionGantt, { projectId: ctx.data.id }));
     }
     // For contacts: show project-level timeline
     const contactId = ctx.modelName === 'contact' ? ctx.data.id : ctx.data.contact_id;
