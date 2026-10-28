@@ -252,3 +252,55 @@ class TestInventoryLogCheck:
         assert result['log_only']['order_line_add']['count'] == 1
         assert result['no_stock_change'] == {'order_line_update': 1}
         assert result['pending_only']['line changed']['count'] == 1
+
+
+@pytest.mark.django_db
+class TestStaffWriteTheirOwnRows:
+    """Bill, 2026-10-28: staff write quiz answers and Alice feedback to the Log and read only
+    the rows they are responsible for; every other purpose is the system's."""
+
+    @pytest.fixture
+    def staff(self, django_user_model):
+        from django.utils.crypto import get_random_string
+        from rest_framework.test import APIClient
+        from apps.core.services import access
+        from tests.conftest import make_setting
+        Setting.objects.filter(purpose='wc:model', parent_model='log').delete()
+        make_setting(purpose='wc:model', parent_model='log', name='log',
+                     config={'access': access.default_access('log')})
+        access.clear_cache()
+
+        def login(email):
+            person = django_user_model.objects.create_user(
+                email=email, password=get_random_string(20), role='sales')
+            client = APIClient()
+            client.force_authenticate(person)
+            return person, client
+        return login
+
+    def test_a_quiz_answer_is_the_answerers_own_row(self, staff):
+        person, client = staff('quiz-taker@example.com')
+        r = client.post('/wcapi/log/', {'purpose': 'quiz', 'action': 'answer',
+                                        'config': {'details': {'question_ida': 'q1', 'correct': True}}},
+                        format='json')
+        assert r.status_code in (200, 201), r.content
+        entry = Log.objects.filter(purpose='quiz').latest('id')
+        assert entry.user_id == person.pk and entry.config['details']['question_ida'] == 'q1'
+
+    def test_staff_may_not_write_an_audit_row(self, staff):
+        _person, client = staff('forger@example.com')
+        r = client.post('/wcapi/log/', {'purpose': 'audit', 'action': 'updated'}, format='json')
+        assert r.status_code == 403
+        assert r.json()['error']['code'] == 'log_purpose_not_permitted'
+
+    def test_staff_read_only_their_own_rows(self, staff):
+        me, client = staff('reader@example.com')
+        _other, other_client = staff('someone-else@example.com')
+        for c in (client, other_client):
+            assert c.post('/wcapi/log/', {'purpose': 'quiz', 'action': 'answer'},
+                          format='json').status_code in (200, 201)
+        Log.write('audit', 'updated', user=me)          # the system's row: level 0, staff never see it
+        r = client.get('/wcapi/log/')
+        assert r.status_code == 200, r.content
+        seen = {row['id'] for row in r.json()['data']['results']}
+        assert seen == set(Log.objects.filter(purpose='quiz', user_id=me.pk).values_list('id', flat=True))

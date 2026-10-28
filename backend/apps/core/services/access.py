@@ -353,6 +353,18 @@ PORTAL_CUSTOMER_ACCESS = {
                       'metadata.images.md', 'metadata.images.hr'],
              'edit': [], 'scope': {}, 'create': False, 'delete': False},
 }
+#: Staff below admin and the Log (Bill, 2026-10-28): they write rows for the purposes in
+#: LOG_STAFF_PURPOSES (LogBehaviour refuses the rest) and read only the rows they are
+#: responsible for. Admin, agent and superuser keep the whole Log.
+LOG_STAFF_ROLES = tuple(r for r in STAFF_ROLES if r not in ('superuser', 'admin', 'agent'))
+STAFF_LOG_ACCESS = {
+    'view': ['id', 'ida', 'dt_created', 'purpose', 'action', 'model_name', 'record_id',
+             'config.name', 'config.details', 'user_id'],
+    'edit': ['purpose', 'action', 'model_name', 'record_id', 'config.name', 'config.details'],
+    'scope': {'user_id': '$user.contact_id'},
+    'create': True, 'delete': False,
+}
+
 #: Commands a portal person may run; every other command is staff's.
 PORTAL_COMMANDS = frozenset({('cash', 'pay')})
 #: Open support actions one portal contact may hold at a time (Bill, 2026-09-28).
@@ -381,6 +393,9 @@ def default_access(key: str) -> dict:
     if key in ACCOUNTING_MODELS:
         agent.update(edit=[], create=False)
     roles = {'superuser': full, 'admin': dict(full), 'agent': agent}
+    if key == 'log':
+        roles.update({r: {k: (list(v) if isinstance(v, list) else dict(v) if isinstance(v, dict) else v)
+                          for k, v in STAFF_LOG_ACCESS.items()} for r in LOG_STAFF_ROLES})
     portal = portal_customer_block(key)
     if portal:
         # Not '@all': that expands to every leaf including the opaque (untyped) ones,

@@ -21,7 +21,7 @@
  *   config.responses[] = { question_ida, answer_ida, correct, dt }
  */
 import { useCallback, useEffect, useState } from 'react';
-import { getRecords, saveRecord, createRecord } from '@/api/wcapi';
+import { getRecords, newRecord } from '@/api/wcapi';
 import { useAppSelector } from '@/store/hooks';
 import { formatDt } from '@/utils/fieldFormatters';
 
@@ -58,7 +58,6 @@ export default function AliceQuiz() {
   const [quizSets, setQuizSets] = useState<QuizSet[]>([]);
   const [selectedSet, setSelectedSet] = useState<QuizSet | null>(null);
   const [responses, setResponses] = useState<QuizResponse[]>([]);
-  const [responseSettingId, setResponseSettingId] = useState<number | null>(null);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
@@ -90,18 +89,22 @@ export default function AliceQuiz() {
     }
   }, []);
 
-  // Load user's prior responses
+  // The person's answers: one Log row each (purpose quiz), the latest per question counts
   const loadResponses = useCallback(async () => {
     if (!user?.id) return;
     try {
-      const res = await getRecords('setting', {
-        name: `alice-employee-qa-response-${user.id}`,
-        limit: 1,
-      });
-      const rec = (res?.results || [])[0];
-      setResponseSettingId(rec?.id ?? null);
-      setResponses(rec?.config?.responses || []);
-    } catch { /* ignore */ }
+      const res = await getRecords('log', { purpose: 'quiz', user_id: user.id, ordering: 'dt_created', limit: 1000 });
+      const latest = new Map<string, QuizResponse>();
+      for (const row of (res?.results || []) as any[]) {
+        const d = row.config?.details || {};
+        if (!d.question_ida) continue;
+        latest.set(d.question_ida, { question_ida: d.question_ida, answer_ida: d.answer_ida,
+                                     correct: !!d.correct, dt: new Date(row.dt_created).toISOString() });
+      }
+      setResponses([...latest.values()]);
+    } catch (err) {
+      console.error('[AliceQuiz] Failed to load responses:', err);
+    }
   }, [user?.id]);
 
   useEffect(() => {
@@ -109,8 +112,8 @@ export default function AliceQuiz() {
     loadResponses();
   }, [loadQuizSets, loadResponses]);
 
-  // Save a response
-  const saveResponse = useCallback(async (questionIda: string, answerIda: string, isCorrect: boolean) => {
+  // Record an answer: a Log row (purpose quiz) the person is responsible for (Bill, 2026-10-28)
+  const saveResponse = useCallback(async (setId: number, questionIda: string, answerIda: string, isCorrect: boolean) => {
     if (!user?.id) return;
     const newResponse: QuizResponse = {
       question_ida: questionIda,
@@ -118,26 +121,20 @@ export default function AliceQuiz() {
       correct: isCorrect,
       dt: new Date().toISOString(),
     };
-    const updated = [...responses.filter(r => r.question_ida !== questionIda), newResponse];
-    setResponses(updated);
-
+    const before = responses;
+    setResponses([...responses.filter(r => r.question_ida !== questionIda), newResponse]);
     try {
-      // One response Setting per user: save it when it exists, else make it.
-      const config = { responses: updated, user_id: user.id, user_email: user.email };
-      if (responseSettingId) {
-        await saveRecord('setting', { id: responseSettingId, config });
-      } else {
-        const made: any = await createRecord('setting', {
-          name: `alice-employee-qa-response-${user.id}`,
-          purpose: 'alice_quiz_response',
-          config,
-        });
-        if (made?.id) setResponseSettingId(made.id);
-      }
+      await newRecord('log', {
+        purpose: 'quiz', action: 'answer', model_name: 'setting', record_id: setId,
+        config: { name: `quiz:${questionIda}`,
+                  details: { question_ida: questionIda, answer_ida: answerIda, correct: isCorrect } },
+      });
     } catch (err) {
-      console.error('[AliceQuiz] Failed to save response:', err);
+      // Not recorded: take the answer back off the screen rather than show it as kept.
+      console.error('[AliceQuiz] answer not recorded', err);
+      setResponses(before);
     }
-  }, [user, responses, responseSettingId]);
+  }, [user, responses]);
 
   const startQuiz = (set: QuizSet) => {
     setSelectedSet(set);
@@ -156,7 +153,7 @@ export default function AliceQuiz() {
     if (selectedAnswer === null || !selectedSet) return;
     const q = selectedSet.questions[currentIdx];
     const isCorrect = q.correct ? selectedAnswer === q.correct : false;
-    saveResponse(q.ida, selectedAnswer, isCorrect);
+    saveResponse(selectedSet.setting_id, q.ida, selectedAnswer, isCorrect);
     setSubmitted(true);
   };
 

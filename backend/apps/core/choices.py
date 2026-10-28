@@ -139,8 +139,12 @@ LOG_PURPOSE_CHOICES: Final[ChoiceList] = (
     ("refs_mismatch", "Refs mismatch — a record's FK and refs.links disagree"),
     ("coaching", "Coaching — a drill a person ran"),
     ("inventory", "Inventory — a document line changed an item's quantity"),
+    ("quiz", "Quiz — a person's answer to a training question"),
 )
 LOG_PURPOSES: Final[frozenset[str]] = frozenset(k for k, _ in LOG_PURPOSE_CHOICES)
+#: What staff write themselves (Bill, 2026-10-28: own rows, named purposes). Every other
+#: purpose is written by the system; admin, agent and superuser are not limited.
+LOG_STAFF_PURPOSES: Final[frozenset[str]] = frozenset({"quiz", "alice"})
 
 
 DEFAULT_SELECT_LISTS: Final[dict[str, dict[str, ChoiceList]]] = {

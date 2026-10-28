@@ -142,7 +142,16 @@ class LogBehaviour(ModelBehaviour):
             Log.validate_entry(ctx.obj.purpose, ctx.obj.refs)
         except ValueError as e:
             raise Refused(400, 'log_refused', str(e), {'purpose': ctx.obj.purpose})
-        ctx.obj.user_id, ctx.obj.refs = Log.responsible(ctx.obj.user_id, ctx.obj.refs)
+        from apps.core.choices import LOG_STAFF_PURPOSES
+        from apps.core.services.access import LOG_STAFF_ROLES
+        if ctx.actor.is_guarded and ctx.actor.role in LOG_STAFF_ROLES \
+                and ctx.obj.purpose not in LOG_STAFF_PURPOSES:
+            raise Refused(403, 'log_purpose_not_permitted',
+                          f'{ctx.obj.purpose} log rows are written by the system; staff write '
+                          f'{", ".join(sorted(LOG_STAFF_PURPOSES))}.', {'purpose': ctx.obj.purpose})
+        # Staff rows are their own: the responsible person is the one writing.
+        ctx.obj.user_id, ctx.obj.refs = Log.responsible(
+            None if ctx.actor.role in LOG_STAFF_ROLES else ctx.obj.user_id, ctx.obj.refs)
         from apps.core.services.new import clear_mark
         clear_mark(ctx.obj)
 

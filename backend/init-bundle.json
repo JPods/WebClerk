@@ -89854,6 +89854,168 @@
               "scope": {},
               "create": true,
               "delete": true
+            },
+            "accounting": {
+              "view": [
+                "id",
+                "ida",
+                "dt_created",
+                "purpose",
+                "action",
+                "model_name",
+                "record_id",
+                "config.name",
+                "config.details",
+                "user_id"
+              ],
+              "edit": [
+                "purpose",
+                "action",
+                "model_name",
+                "record_id",
+                "config.name",
+                "config.details"
+              ],
+              "scope": {
+                "user_id": "$user.contact_id"
+              },
+              "create": true,
+              "delete": false
+            },
+            "sales": {
+              "view": [
+                "id",
+                "ida",
+                "dt_created",
+                "purpose",
+                "action",
+                "model_name",
+                "record_id",
+                "config.name",
+                "config.details",
+                "user_id"
+              ],
+              "edit": [
+                "purpose",
+                "action",
+                "model_name",
+                "record_id",
+                "config.name",
+                "config.details"
+              ],
+              "scope": {
+                "user_id": "$user.contact_id"
+              },
+              "create": true,
+              "delete": false
+            },
+            "production": {
+              "view": [
+                "id",
+                "ida",
+                "dt_created",
+                "purpose",
+                "action",
+                "model_name",
+                "record_id",
+                "config.name",
+                "config.details",
+                "user_id"
+              ],
+              "edit": [
+                "purpose",
+                "action",
+                "model_name",
+                "record_id",
+                "config.name",
+                "config.details"
+              ],
+              "scope": {
+                "user_id": "$user.contact_id"
+              },
+              "create": true,
+              "delete": false
+            },
+            "warehouse": {
+              "view": [
+                "id",
+                "ida",
+                "dt_created",
+                "purpose",
+                "action",
+                "model_name",
+                "record_id",
+                "config.name",
+                "config.details",
+                "user_id"
+              ],
+              "edit": [
+                "purpose",
+                "action",
+                "model_name",
+                "record_id",
+                "config.name",
+                "config.details"
+              ],
+              "scope": {
+                "user_id": "$user.contact_id"
+              },
+              "create": true,
+              "delete": false
+            },
+            "employee": {
+              "view": [
+                "id",
+                "ida",
+                "dt_created",
+                "purpose",
+                "action",
+                "model_name",
+                "record_id",
+                "config.name",
+                "config.details",
+                "user_id"
+              ],
+              "edit": [
+                "purpose",
+                "action",
+                "model_name",
+                "record_id",
+                "config.name",
+                "config.details"
+              ],
+              "scope": {
+                "user_id": "$user.contact_id"
+              },
+              "create": true,
+              "delete": false
+            },
+            "rep": {
+              "view": [
+                "id",
+                "ida",
+                "dt_created",
+                "purpose",
+                "action",
+                "model_name",
+                "record_id",
+                "config.name",
+                "config.details",
+                "user_id"
+              ],
+              "edit": [
+                "purpose",
+                "action",
+                "model_name",
+                "record_id",
+                "config.name",
+                "config.details"
+              ],
+              "scope": {
+                "user_id": "$user.contact_id"
+              },
+              "create": true,
+              "delete": false
             }
           }
         },
