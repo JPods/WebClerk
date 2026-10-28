@@ -223,74 +223,53 @@ def test_wcapi_get_saved_search_rejects_other_roles(client):
     assert body.get("error", {}).get("code") == "saved_search_forbidden"
 
 
-@pytest.mark.django_db
-def test_wcapi_save_saved_search_requires_admin(client):
-    user = User.objects.create_user(
-        email="saved-search-writer@example.com",
-        password="pw12345",
-        name_first="Writer",
-        name_last="User",
-        role="user",
-        username="",
-    )
-    client.force_login(user)
-
-    resp = wcapi_save(client, data=json.dumps(
-            {
-                "model_name": "setting",
-                "name": "non_admin_saved_search",
-                "purpose": "wc:search",
-                "parent_model": "customer",
-                "role": "sales",
-                "data": {"keyword": "acme"},
-            }
-        ),
-        content_type="application/json",
-    )
-
-    assert resp.status_code == 403
-    body = resp.json()
-    assert_envelope(body, expect_status="fail")
-    assert body.get("error", {}).get("code") == "saved_search_admin_required"
+def _viewer(email, role):
+    """A login whose role reads customers (or not), its model Setting granting exactly that."""
+    from apps.core.services import access
+    roles = {"sales": {"view": ["id", "company"], "edit": [], "scope": {}, "create": False, "delete": False}}
+    setting = Setting.objects.filter(purpose="wc:model", parent_model="customer").first()
+    if setting is None:
+        make_setting(purpose="wc:model", parent_model="customer", name="customer",
+                     config={"access": {"roles": roles}})
+    else:
+        setting.config = {**(setting.config or {}), "access": {"roles": roles}}
+        setting._setting_update_authorized = True
+        setting.save()
+    access.clear_cache()
+    from django.utils.crypto import get_random_string
+    return User.objects.create_user(email=email, password=get_random_string(20), name_first="S",
+                                    name_last="U", role=role, username="")
 
 
 @pytest.mark.django_db
-def test_wcapi_save_saved_search_allows_admin(client):
-    user = User.objects.create_user(
-        email="saved-search-admin@example.com",
-        password="pw12345",
-        name_first="Admin",
-        name_last="Writer",
-        role="admin",
-        username="",
-        is_staff=True,
-        is_superuser=True,
-    )
-    client.force_login(user)
-
-    resp = wcapi_save(client, data=json.dumps(
-            {
-                "model_name": "setting",
-                "name": "admin_saved_search",
-                "purpose": "wc:search",
-                "parent_model": "customer",
-                "role": "sales",
-                "config": {"request_keyword": "company", "ordering": "-dt_created"},
-            }
-        ),
-        content_type="application/json",
-    )
-
+def test_staff_who_read_the_model_keep_a_shared_search(client):
+    """Bill, 2026-10-28: a saved search belongs to the model, not a person; anyone whose
+    role reads the model may keep one."""
+    from apps.core.models.report import Report
+    client.force_login(_viewer("saved-search-sales@example.com", "sales"))
+    body = {"name": "active", "target_model": "customer", "filters": {"status": "active"},
+            "rules": [{"field": "status", "lookup": "exact", "value": "active"}]}
+    resp = client.post("/wcapi/_save_search/", body, content_type="application/json")
     assert resp.status_code == 200, resp.content
-    body = resp.json()
-    data = assert_envelope(body, expect_status="success")
-    setting_id = data.get("id") or data.get("record", {}).get("id")
-    assert setting_id is not None
+    report = Report.objects.get(pk=resp.json()["data"]["id"])
+    assert report.purpose == "search_stored" and "owner_user_id" not in report.config
+    assert report.config["rules"][0]["field"] == "status"
 
-    saved = Setting.objects.get(id=setting_id)
-    assert saved.purpose == "wc:search"
-    assert saved.parent_model == "customer"
-    assert saved.config.get("request_keyword") == "company", "the criteria were stored"
+    again = client.post("/wcapi/_save_search/", {**body, "filters": {"status": "inactive"}},
+                        content_type="application/json")
+    assert again.json()["data"]["id"] == report.id, "one search per name and model"
+
+    gone = client.delete("/wcapi/_save_search/", {"id": report.id}, content_type="application/json")
+    assert gone.status_code == 200 and not Report.objects.filter(pk=report.id).exists()
+
+
+@pytest.mark.django_db
+def test_a_role_that_cannot_read_the_model_keeps_no_search_of_it(client):
+    client.force_login(_viewer("saved-search-support@example.com", "support"))
+    resp = client.post("/wcapi/_save_search/", {"name": "x", "target_model": "customer"},
+                       content_type="application/json")
+    assert resp.status_code == 403
+    assert resp.json().get("error", {}).get("code") == "saved_search_forbidden"
 
 
 @pytest.mark.django_db
@@ -324,7 +303,7 @@ def test_wcapi_search_presets_lists_role_visible_and_global(client):
         config={"keyword": "ticket"},
     )
 
-    resp = client.get("/wcapi/search-presets/", {"model_name": "customer"})
+    resp = client.get("/wcapi/_search_presets/", {"model_name": "customer"})
     assert resp.status_code == 200
     data = assert_envelope(resp.json(), expect_status="success")
     result_ids = {row.get("id") for row in (data.get("results") or []) if isinstance(row, dict)}
@@ -355,7 +334,7 @@ def test_wcapi_search_presets_admin_sees_all_roles(client):
         config={"keyword": "support"},
     )
 
-    resp = client.get("/wcapi/search-presets/", {"model_name": "customer"})
+    resp = client.get("/wcapi/_search_presets/", {"model_name": "customer"})
     assert resp.status_code == 200
     data = assert_envelope(resp.json(), expect_status="success")
     result_ids = {row.get("id") for row in (data.get("results") or []) if isinstance(row, dict)}

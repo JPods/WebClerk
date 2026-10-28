@@ -659,6 +659,7 @@ export interface SearchPresetRecord {
   request_keyword?: string | null;
   request_filters?: Record<string, { field: string; lookup?: string }> | null;
   relative_period?: { field: string; preset: string } | null;
+  rules?: any[] | null;
   dt_modified?: number | null;
 }
 
@@ -793,6 +794,29 @@ export async function runSearchPreset(
   return getRecords(model_name, params, {
     cacheExempt: options?.cacheExempt,
   });
+}
+
+/**
+ * Keep a search on its model, shared by everyone who reads the model (Bill, 2026-10-28: a
+ * saved search belongs to no person). It is a Report with purpose search_stored; one per
+ * name and model, so saving a name again replaces it.
+ */
+export async function saveSearch(search: { name: string; target_model: string; filters?: Record<string, any>;
+                                           rules?: any[] }): Promise<{ id: number; created: boolean }> {
+  try {
+    return await wcapiPost<{ id: number; created: boolean }>("_save_search/",
+      { ...search, target_model: resolveModelName(search.target_model) });
+  } catch (err: any) {
+    throw new Error(getBackendErrorMessage(err, 'The search could not be saved'));
+  }
+}
+
+export async function removeSearch(id: number): Promise<void> {
+  try {
+    await apiClient.delete("/wcapi/_save_search/", { data: { id } });
+  } catch (err: any) {
+    throw new Error(getBackendErrorMessage(err, 'The search could not be removed'));
+  }
 }
 
 export async function getSearchPresets(

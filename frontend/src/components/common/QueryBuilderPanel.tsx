@@ -9,7 +9,9 @@
  */
 import React, { useState, useEffect, useCallback } from 'react';
 import { OPERATORS_BY_TYPE, type FilterOperator } from '@/constants/filterOperators';
-import { getRecords, createRecord } from '@/api/wcapi';
+import { useDispatch } from 'react-redux';
+import { getSearchPresets, saveSearch, removeSearch } from '@/api/wcapi';
+import { showToast } from '@/store/slices/toastSlice';
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -166,26 +168,18 @@ const QueryBuilderPanel: React.FC<QueryBuilderPanelProps> = ({
   const [pasteText, setPasteText] = useState('');
   const [copyFeedback, setCopyFeedback] = useState(false);
 
-  // Load saved searches for this model
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await getRecords('setting', {
-          purpose: 'saved_search',
-          parent_model: model,
-          limit: 50,
-        }) as any;
-        const records = res?.results || [];
-        setSavedSearches(
-          records.map((r: any) => ({
-            id: r.id,
-            name: r.name || r.ida || `#${r.id}`,
-            rules: r.config?.rules || [],
-          }))
-        );
-      } catch { /* no saved searches */ }
-    })();
+  const dispatch = useDispatch();
+  const failed = useCallback((e: any) => {
+    dispatch(showToast({ message: e?.message || String(e), type: 'error' }));
+  }, [dispatch]);
+
+  // The model's saved searches: Reports (search_stored), shared by everyone who reads the model
+  const loadSaved = useCallback(async () => {
+    const presets = await getSearchPresets(model);
+    setSavedSearches(presets.map((p) => ({ id: p.id, name: p.name, rules: (p.rules || []) as QueryRule[] })));
   }, [model]);
+
+  useEffect(() => { loadSaved().catch(failed); }, [loadSaved, failed]);
 
   const sortedFields = [...fields].sort();
 
@@ -248,22 +242,13 @@ const QueryBuilderPanel: React.FC<QueryBuilderPanelProps> = ({
     const name = prompt('Search name:');
     if (!name?.trim()) return;
     try {
-      const params = rulesToParams(rules, fieldBehaviors);
-      await createRecord('setting', {
-        name: name.trim(),
-        purpose: 'saved_search',
-        parent_model: model,
-        config: { rules, filters: params },
-      });
-      // Refresh list
-      const res = await getRecords('setting', { purpose: 'saved_search', parent_model: model, limit: 50 }) as any;
-      setSavedSearches((res?.results || []).map((r: any) => ({
-        id: r.id, name: r.name || r.ida, rules: r.config?.rules || [],
-      })));
+      await saveSearch({ name: name.trim(), target_model: model, rules,
+                         filters: rulesToParams(rules, fieldBehaviors) });
+      await loadSaved();
     } catch (e) {
-      console.error('[QueryBuilder] Save failed:', e);
+      failed(e);
     }
-  }, [rules, fieldBehaviors, model]);
+  }, [rules, fieldBehaviors, model, loadSaved, failed]);
 
   const handleLoadSaved = useCallback((name: string) => {
     const saved = savedSearches.find((s) => s.name === name);
@@ -337,16 +322,15 @@ const QueryBuilderPanel: React.FC<QueryBuilderPanelProps> = ({
   const handleDeleteSaved = useCallback(async () => {
     const saved = savedSearches.find((s) => s.name === selectedSaved);
     if (!saved) return;
-    if (!confirm(`Delete saved search "${saved.name}"?`)) return;
+    if (!confirm(`Delete saved search "${saved.name}" for everyone?`)) return;
     try {
-      const { deleteRecord } = await import('@/api/wcapi');
-      await deleteRecord('setting', saved.id);
+      await removeSearch(saved.id);
       setSavedSearches((prev) => prev.filter((s) => s.id !== saved.id));
       setSelectedSaved('');
     } catch (e) {
-      console.error('[QueryBuilder] Delete failed:', e);
+      failed(e);
     }
-  }, [savedSearches, selectedSaved]);
+  }, [savedSearches, selectedSaved, failed]);
 
   return (
     <div className="db-query-panel">
@@ -468,7 +452,7 @@ const QueryBuilderPanel: React.FC<QueryBuilderPanelProps> = ({
             <option key={s.id} value={s.name}>{s.name}</option>
           ))}
         </select>
-        <button className="db-btn db-btn--small" onClick={handleSave} title="Save current search">Save</button>
+        <button className="db-btn db-btn--small" onClick={handleSave} title="Save current search for everyone who uses this model">Save</button>
         {selectedSaved && (
           <button className="db-btn db-btn--small db-btn--danger" onClick={handleDeleteSaved} title="Delete saved search">Del</button>
         )}

@@ -1,117 +1,88 @@
-"""Save Search — a stored search is a Report record.
+"""Save Search — a stored search is a Report record, shared by everyone who reads its model.
 
     purpose = 'search_stored'      what makes it a search and not a print form
-    config                          the search spec (keyword, filters, ordering...)
     target_model                    what it searches
-    config.owner_user_id            set = personal to that user; absent = shared
-    role_required                   which role a shared search is visible to
+    config                          the search spec (keyword, filters, ordering, rules...)
+    role_required                   empty = everyone who reads the model; a role = that role
 
-Personal and shared differ only in who can see them. Both are records, so both
-can be listed, edited, exported and carried in a bundle — a search kept in a
-user's prefs blob could do none of that.
+A search belongs to no person (Bill, 2026-10-28: "They are not associated with any specific
+user"); one name per model. Anyone signed in whose role reads the model may add, replace or
+remove one (Bill, same day). Report records otherwise stay an admin's to write.
 
-POST /wcapi/save-search/
-{
-    "name": "Active customers in my territory",
-    "target_model": "customer",
-    "keyword": "active",
-    "filters": {"status": "active", "rep_id": 5},
-    "ordering": "-dt_created",
-    "scope": "personal"  // or "shared"
-}
+POST   /wcapi/_save_search/  {name, target_model, keyword?, filters?, ordering?, rules?, role?}
+DELETE /wcapi/_save_search/  {id}
 """
-from rest_framework.views import APIView
 from rest_framework import status
+from rest_framework.views import APIView
 
+from apps.core.services import access
+from apps.core.services.door import Actor, Refused, acts
 from apps.core.services.report_registry import REPORT_PURPOSE_SEARCH
 from common.api_responses import api_response
 
+#: What a search keeps. ``rules`` rebuild the query builder's rows.
+SPEC_KEYS = ('keyword', 'search_fields', 'filters', 'ordering', 'limit', 'relative_period',
+             'request_filters', 'request_keyword', 'rules')
+
+
+def _may_search(actor: Actor, model_key: str) -> None:
+    if actor.user is None:
+        raise Refused(401, 'authentication_required', 'Sign in to keep a search.')
+    if access.is_portal(actor):
+        raise Refused(403, 'saved_search_staff_only', 'Searches are kept by company staff.')
+    if not access.is_admin(actor) and not (access.block_for(actor, model_key) or {}).get('view'):
+        raise Refused(403, 'saved_search_forbidden',
+                      f'Your role may not read {model_key} records, so it may not keep searches of them.',
+                      {'model': model_key})
+
+
+@acts
+def save_search(actor: Actor, data: dict) -> dict:
+    from apps.core.models.report import Report
+    name = (data.get('name') or '').strip()
+    target_model = (data.get('target_model') or '').strip()
+    if not name or not target_model:
+        raise Refused(400, 'search_name_and_model', 'Name the search and the model it searches.')
+    _may_search(actor, target_model)
+    spec = {k: data[k] for k in SPEC_KEYS if data.get(k) is not None}
+    report = (Report.objects.filter(name=name, target_model=target_model, purpose=REPORT_PURPOSE_SEARCH)
+              .order_by('-dt_modified').first())
+    created = report is None
+    if created:
+        report = Report(name=name, target_model=target_model, purpose=REPORT_PURPOSE_SEARCH,
+                        output_type='screen', category='list')
+    report.config = spec
+    report.role_required = data.get('role', '') or ''
+    report.is_active = True
+    report.save()
+    return {'id': report.id, 'name': report.name, 'target_model': report.target_model,
+            'created': created}
+
+
+@acts
+def remove_search(actor: Actor, data: dict) -> dict:
+    from apps.core.models.report import Report
+    report = Report.objects.filter(pk=data.get('id'), purpose=REPORT_PURPOSE_SEARCH).first()
+    if report is None:
+        raise Refused(404, 'search_not_found', 'No saved search with that id.')
+    _may_search(actor, report.target_model)
+    report.delete()
+    return {'id': data.get('id'), 'removed': True}
+
 
 class SaveSearchView(APIView):
-    http_method_names = ["post", "options", "head"]
+    http_method_names = ["post", "delete", "options", "head"]
+
+    def _answer(self, request, verb):
+        try:
+            result = verb(Actor.from_request(request), request.data or {})
+        except Refused as refused:
+            return api_response(success=False, status_code=refused.status,
+                                message=refused.message, error={'code': refused.code})
+        return api_response(data=result, status_code=status.HTTP_200_OK)
 
     def post(self, request):
-        if not request.user or not request.user.is_authenticated:
-            return api_response(
-                success=False,
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                message="Authentication required",
-            )
+        return self._answer(request, save_search)
 
-        data = request.data or {}
-        name = (data.get("name") or "").strip()
-        target_model = (data.get("target_model") or "").strip()
-        scope = (data.get("scope") or "personal").strip().lower()
-
-        if not name or not target_model:
-            return api_response(
-                success=False,
-                status_code=status.HTTP_400_BAD_REQUEST,
-                message="name and target_model are required",
-            )
-
-        search_spec = {
-            "keyword": data.get("keyword"),
-            "search_fields": data.get("search_fields", []),
-            "filters": data.get("filters", {}),
-            "ordering": data.get("ordering"),
-            "limit": data.get("limit"),
-            "relative_period": data.get("relative_period"),
-            "request_filters": data.get("request_filters"),
-            "request_keyword": data.get("request_keyword"),
-        }
-
-        if scope == "shared" and not (request.user.is_superuser or request.user.is_staff):
-            return api_response(
-                success=False,
-                status_code=status.HTTP_403_FORBIDDEN,
-                message="Only admin users can create shared searches",
-                error={"code": "saved_search_admin_required"},
-            )
-
-        from apps.core.models.report import Report
-
-        owner_id = None if scope == "shared" else request.user.pk
-        if owner_id is not None:
-            search_spec["owner_user_id"] = owner_id
-
-        # A user's own search and a shared one of the same name are different
-        # records; ownership is part of the identity.
-        lookup = {
-            "name": name,
-            "target_model": target_model,
-            "purpose": REPORT_PURPOSE_SEARCH,
-        }
-        existing = Report.objects.filter(**lookup)
-        existing = (existing.filter(config__owner_user_id=owner_id) if owner_id is not None
-                    else existing.exclude(config__has_key="owner_user_id"))
-        report = existing.order_by("-dt_modified").first()
-
-        defaults = {
-            "config": search_spec,
-            "output_type": data.get("output_type", "screen"),
-            "category": data.get("category", "list"),
-            "role_required": data.get("role", ""),
-            "description": data.get("description", ""),
-            "is_active": True,
-        }
-
-        if report is None:
-            report = Report.objects.create(**lookup, **defaults)
-            created = True
-        else:
-            for field, value in defaults.items():
-                setattr(report, field, value)
-            report.save()
-            created = False
-
-        return api_response(
-            data={
-                "id": report.id,
-                "name": report.name,
-                "target_model": report.target_model,
-                "scope": "personal" if owner_id is not None else "shared",
-                "created": created,
-            },
-            status_code=status.HTTP_200_OK,
-        )
+    def delete(self, request):
+        return self._answer(request, remove_search)

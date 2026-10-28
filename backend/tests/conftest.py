@@ -296,8 +296,7 @@ def make_setting(**kwargs):
     return setting
 
 
-def make_saved_search(*, name, model_name, role="", config=None, owner_user_id=None,
-                      is_active=True, **kwargs):
+def make_saved_search(*, name, model_name, role="", config=None, is_active=True, **kwargs):
     """Create a stored search in a test.
 
     A stored search is a Report record marked `purpose='search_stored'`
@@ -306,15 +305,12 @@ def make_saved_search(*, name, model_name, role="", config=None, owner_user_id=N
     Report and the read path now filters on the marker, so a fixture that creates
     a Setting is creating something the system no longer recognises.
 
-    owner_user_id set = personal to that user, visible to nobody else.
-    role set, no owner = shared with that role.
+    A search belongs to no person (Bill, 2026-10-28); role set = shared with that role.
     """
     from apps.core.models.report import Report
     from apps.core.services.report_registry import REPORT_PURPOSE_SEARCH
 
     spec = dict(config or {})
-    if owner_user_id is not None:
-        spec["owner_user_id"] = owner_user_id
     return Report.objects.create(
         name=name,
         target_model=model_name,

@@ -777,8 +777,8 @@ class WCAPIGetView(APIView):
         Without that filter this matched any report on the model, so asking for
         a saved search could return a print form.
 
-        A search carrying config.owner_user_id is personal to that user. One
-        without is shared, and role_required says to whom.
+        A search belongs to no person (Bill, 2026-10-28); role_required, when set, says
+        which role it is shared with.
         """
         search_id = request.query_params.get("saved_search_id") or request.query_params.get("search_id")
         search_name = request.query_params.get("saved_search") or request.query_params.get("saved_search_name")
@@ -807,20 +807,12 @@ class WCAPIGetView(APIView):
             raise LookupError("saved search not found")
 
         data = report.config if isinstance(report.config, dict) else {}
-        owner_id = data.get("owner_user_id")
         user = getattr(request, "user", None)
-
-        if owner_id is not None:
-            # Personal: the owner, and no one else. Not even an admin — an
-            # admin who needs it can be given a shared copy.
-            if not user or getattr(user, "pk", None) != owner_id:
-                raise PermissionError("saved search belongs to another user")
-        else:
-            required_role = str(report.role_required or "").strip().lower()
-            user_role = str(getattr(user, "role", "") or "").strip().lower()
-            role_open = required_role in {"", "all", "*"}
-            if not role_open and not access.is_admin(Actor.from_request(request)) and user_role != required_role:
-                raise PermissionError("saved search is not shared with your role")
+        required_role = str(report.role_required or "").strip().lower()
+        user_role = str(getattr(user, "role", "") or "").strip().lower()
+        role_open = required_role in {"", "all", "*"}
+        if not role_open and not access.is_admin(Actor.from_request(request)) and user_role != required_role:
+            raise PermissionError("saved search is not shared with your role")
 
         return {
             "id": report.id,
@@ -1501,14 +1493,14 @@ Retrieve records from any configured model with comprehensive query support.
                 type=int,
                 required=False,
                 location=OpenApiParameter.QUERY,
-                description="Apply a stored search Setting by ID (purpose=wc:search, parent_model=model_name)",
+                description="Apply a saved search by ID (Report purpose search_stored, target_model=model_name)",
             ),
             OpenApiParameter(
                 name="saved_search",
                 type=str,
                 required=False,
                 location=OpenApiParameter.QUERY,
-                description="Apply a stored search Setting by name (purpose=wc:search)",
+                description="Apply a saved search by name (Report purpose search_stored)",
             ),
             OpenApiParameter(
                 name="limit",
@@ -1611,7 +1603,7 @@ class ModelNameListView(APIView):
 
 
 class SearchPresetListView(APIView):
-    """List role-visible saved searches (Setting purpose=wc:search) for a model."""
+    """List the role-visible saved searches (Report purpose search_stored) for a model."""
 
     http_method_names = ["get", "options", "head"]
 
@@ -1620,7 +1612,7 @@ class SearchPresetListView(APIView):
         operation_id="search_preset_list",
         summary="List saved search presets",
         description=(
-            "Returns saved search presets for a model (Setting purpose=wc:search). "
+            "Returns saved search presets for a model (Report purpose search_stored). "
             "Non-admin users see role-matching and global presets; admins see all."
         ),
         parameters=[
@@ -1663,12 +1655,13 @@ class SearchPresetListView(APIView):
 
         presets = []
 
-        # Primary: Report records (the new home for shared searches)
         from apps.core.models.report import Report
+        from apps.core.services.report_registry import REPORT_PURPOSE_SEARCH
 
         rpt_qs = Report.objects.filter(
             is_active=True,
             target_model=model_key,
+            purpose=REPORT_PURPOSE_SEARCH,
         )
         if not is_admin:
             rpt_qs = rpt_qs.filter(
@@ -1698,47 +1691,8 @@ class SearchPresetListView(APIView):
                     "request_keyword": payload.get("request_keyword"),
                     "request_filters": payload.get("request_filters"),
                     "relative_period": payload.get("relative_period"),
+                    "rules": payload.get("rules"),
                     "dt_modified": getattr(report, "dt_modified", None),
-                }
-            )
-
-        # Fallback: legacy Setting records (purpose='wc:search')
-        from apps.core.models import Setting
-
-        setting_qs = Setting.objects.filter(
-            is_active=True,
-            purpose="wc:search",
-            parent_model=model_key,
-        )
-        if not is_admin:
-            role_filters = (
-                Q(role__isnull=True)
-                | Q(role="")
-                | Q(role="*")
-                | Q(role__iexact="all")
-            )
-            if user_role:
-                role_filters |= Q(role__iexact=user_role)
-            setting_qs = setting_qs.filter(role_filters)
-
-        for setting in setting_qs.order_by("name", "-dt_modified"):
-            payload = setting.config if isinstance(setting.config, dict) else {}
-            presets.append(
-                {
-                    "id": setting.id,
-                    "name": setting.name,
-                    "role": setting.role,
-                    "model_name": setting.parent_model,
-                    "source": "setting",
-                    "keyword": payload.get("keyword"),
-                    "search_fields": payload.get("search_fields"),
-                    "filters": payload.get("filters"),
-                    "ordering": payload.get("ordering"),
-                    "pagination": payload.get("pagination"),
-                    "request_keyword": payload.get("request_keyword"),
-                    "request_filters": payload.get("request_filters"),
-                    "relative_period": payload.get("relative_period"),
-                    "dt_modified": getattr(setting, "dt_modified", None),
                 }
             )
 
