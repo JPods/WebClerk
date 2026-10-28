@@ -173,16 +173,16 @@ Any new panel component must use `DbColumns` as its base. No custom table render
 
 | File | What |
 |------|------|
-| `DbColumns.tsx` | Base list component — all panels inherit from this |
+| `../CollapsiblePanel.tsx` | The one panel frame — header, count, actions, collapse, loading/error/empty; panels declare theirs with `usePanelFrame` |
+| `@/hooks/usePanelRecords.ts` | The one panel read — records plus the status the frame shows |
+| `DbColumns.tsx` | The one panel table — sticky column labels; inside the frame when given `sectionLabel` |
 | `PanelTable.tsx` | Re-export: `DbColumns as PanelTable` |
 | `LinkedRecordsPanel.tsx` | Universal any-model-to-any-model linking panel |
 | `ContactPanel.tsx` | Specialized contact panel with purpose/role |
 | `getModelDetailPath.ts` | Model → detail route + window size mapping |
-| `index.ts` | Barrel exports |
 | `types.ts` | Shared types |
 | `usePermissions.ts` | Role-based access hook |
 | `documentUpload.ts` | Upload utilities |
-| `qaUtils.ts` | Q&A helpers |
 
 ### Entity panels (specialized behavior beyond LinkedRecordsPanel)
 
@@ -192,22 +192,14 @@ Any new panel component must use `DbColumns` as its base. No custom table render
 | `CommentsPanel.tsx` | Four-tab comment editor (Public/Process/Partner/Notes) |
 | `DocumentsPanel.tsx` | File upload, preview, download, virus scan |
 | `FinancialsPanel.tsx` | Margin calculation, aging summary, credit display |
-| `LinkagesPanel.tsx` | Transaction flow visualization (Quote→Order→Invoice→Cash) |
-| `CashPanel.tsx` | Cash-specific actions (apply, refund) |
-| `SerialPanel.tsx` | Serial lifecycle tracking |
-| `ShippingPanel.tsx` | Carrier, tracking, freight |
 
-These exist because they have domain-specific behavior that a generic linked-records list can't provide. They should still use `DbColumns` internally.
+These exist because they have domain-specific behavior that a generic linked-records list can't provide. They still draw no header, loading or empty text of their own: the frame does (`usePanelFrame`), lists read through `usePanelRecords`, and tables are `DbColumns`.
 
 ### Admin panels
 
 | File | Visible to |
 |------|-----------|
-| `MetadataPanel.tsx` | admin — `.metadata` JSON editor |
 | `RefsPanel.tsx` | admin — `.refs` JSON viewer |
-| `PrefsPanel.tsx` | admin — `.prefs` JSON editor |
-| `RawDataPanel.tsx` | admin — raw JSON viewer |
-| `HistoryPanel.tsx` | admin — record history |
 
 ---
 
@@ -221,8 +213,6 @@ All panels read from `BaseModel` JSONB fields:
 | `.refs.links.{model}` | LinkedRecordsPanel (self-discovering) |
 | `.refs.links.document` | LinkedRecordsPanel or DocumentsPanel |
 | `.comments` | CommentsPanel |
-| `.metadata` | MetadataPanel |
-| `.prefs` | PrefsPanel |
 | `.config` | DynamicDetail form fields |
 
 The `refs.links` pattern is the universal association mechanism:
@@ -247,22 +237,20 @@ Any key in `refs.links` triggers a panel. The key is the model name. The value i
 ## Quick Import Reference
 
 ```tsx
-// Universal panel
-import { LinkedRecordsPanel } from '@/apps/common/components/panels';
+// The frame, the read, the table
+import CollapsiblePanel, { usePanelFrame } from '@/apps/common/components/CollapsiblePanel';
+import { usePanelRecords } from '@/hooks/usePanelRecords';
+import { DbColumns } from '@/apps/common/components/panels/DbColumns';
+import type { DbColumnDef } from '@/apps/common/components/panels/DbColumns';
 
-// Specialized panels
-import { ContactPanel } from '@/apps/common/components/panels';
-import { ActionsPanel } from '@/apps/common/components/panels';
-import { CommentsPanel } from '@/apps/common/components/panels';
-import { DocumentsPanel } from '@/apps/common/components/panels';
-
-// Base component (for building new panels)
-import { DbColumns } from '@/apps/common/components/panels';
-import type { DbColumnDef } from '@/apps/common/components/panels';
+// Panels (default exports, imported by path — there is no barrel)
+import { LinkedRecordsPanel } from '@/apps/common/components/panels/LinkedRecordsPanel';
+import ContactPanel from '@/apps/common/components/panels/ContactPanel';
+import type { RefContact } from '@/apps/common/components/panels/ContactPanel';
+import ActionsPanel from '@/apps/common/components/panels/ActionsPanel';
+import CommentsPanel from '@/apps/common/components/panels/CommentsPanel';
+import DocumentsPanel from '@/apps/common/components/panels/DocumentsPanel';
 
 // Column config hook
 import { useListFieldConfig } from '@/hooks/useListFieldConfig';
-
-// Types
-import type { RefContact } from '@/apps/common/components/panels';
 ```

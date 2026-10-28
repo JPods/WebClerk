@@ -31,16 +31,9 @@ import { useAppSelector } from "@/store/hooks";
 //   - FinancialsPanel     (tab: financials)
 //   - JsonFieldEditor     (tab: raw)
 //
-// Additional panels available via `additionalTabs[].content` (manual render):
-//   - BasicInformationPanel, CommunicationsPanel, ContactPanel,
-//     LinkagesPanel, MetadataPanel, PrefsPanel, QAPanel,
-//     RawDataPanel, ShippingPanel
-// Full inventory: src/apps/common/components/panels/index.ts
-import {
-  ActionsPanel,
-  CommentsPanel,
-  DocumentsPanel,
-} from "@/apps/common/components/panels";
+import ActionsPanel from "@/apps/common/components/panels/ActionsPanel";
+import CommentsPanel from "@/apps/common/components/panels/CommentsPanel";
+import DocumentsPanel from "@/apps/common/components/panels/DocumentsPanel";
 import type { EntityType } from "@/apps/common/components/panels/types";
 import FinancialsPanel from "@/apps/common/components/panels/FinancialsPanel";
 import JsonFieldEditor from "@/apps/common/components/JsonFieldEditor";
