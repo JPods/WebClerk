@@ -227,3 +227,28 @@ class TestLesson:
         assert lesson.config['details']['total_questions'] == 2
         assert lesson.config['details']['top_questions']['how do i count stock']['count'] == 2
         assert lesson.observation_count == 2
+
+
+@pytest.mark.django_db
+class TestInventoryLogCheck:
+    """The inventory Log against the stock Pendings (Bill, 2026-10-28: an easy service to check
+    the logs against pending)."""
+
+    def _log(self, action, line_id, doc='order', **qty):
+        return Log.write('inventory', action, model_name='item', record_id=1,
+                         details={'document': {'model': doc, 'id': 1}, 'line_id': line_id, **qty})
+
+    def test_pairs_and_differences(self):
+        from apps.products.services.inventory.log_check import reconcile_inventory_log
+        self._log('order_line_add', 501, quantity_after=3.0)
+        Pending.objects.create(model_name='item', record_id='1', purpose='inventory_line_add',
+                               name='orderline 501: line added', changes={}, dt_processed=1)
+        self._log('order_line_add', 502, quantity_after=2.0)          # moved, no Pending
+        self._log('order_line_update', 503, quantity_delta=0.0)       # moved nothing
+        Pending.objects.create(model_name='item', record_id='1', purpose='inventory_line_add',
+                               name='orderline 504: line changed', changes={}, dt_processed=1)
+        result = reconcile_inventory_log(days=1)
+        assert result['matched'] == 1
+        assert result['log_only']['order_line_add']['count'] == 1
+        assert result['no_stock_change'] == {'order_line_update': 1}
+        assert result['pending_only']['line changed']['count'] == 1

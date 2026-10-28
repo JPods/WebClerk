@@ -1162,6 +1162,7 @@ _ACTION_DISPATCH = {
     # ── Dashboard card summaries ──
     "get_action_summary": lambda p: __import__('apps.core.services.action_report', fromlist=['get_action_summary']).get_action_summary(p),
     "get_item_summary": lambda p: __import__('apps.core.services.dashboard.dashboard_item', fromlist=['get_item_summary']).get_item_summary(p),
+    "get_inventory_log_check": lambda p: __import__('apps.products.services.inventory.log_check', fromlist=['reconcile_inventory_log']).reconcile_inventory_log(int(p.get('days', 30))),
     "get_customer_summary": lambda p: __import__('apps.core.services.dashboard.dashboard_customer', fromlist=['get_customer_summary']).get_customer_summary(p),
     "get_vendor_summary": lambda p: __import__('apps.core.services.dashboard.dashboard_vendor', fromlist=['get_vendor_summary']).get_vendor_summary(p),
     "get_rep_summary": lambda p: __import__('apps.core.services.dashboard.dashboard_rep', fromlist=['get_rep_summary']).get_rep_summary(p),
