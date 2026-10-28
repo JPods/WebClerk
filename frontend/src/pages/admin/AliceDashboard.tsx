@@ -8,13 +8,15 @@
  */
 import React, { useCallback, useEffect, useMemo, useState, Suspense } from 'react';
 import { getRecords, saveRecord, createRecord } from '@/api/wcapi';
+import { createAliceNote } from '@/apps/support/services/aiApi';
 
-/** A question for Alice: a pending Setting she reviews in her next coaching cycle. */
-function askAlice(question: string, email?: string) {
-  return createRecord('setting', {
+/** A question for Alice: an Alice to-do (Action) she reviews in her next coaching cycle; the
+ *  asker is recorded as the responsible person by the server. */
+function askAlice(question: string) {
+  return createAliceNote({
+    category: 'pending', role: 'question',
     name: `Ask Alice: ${question.slice(0, 200)}`,
-    purpose: 'alice_pending',
-    config: { question, user: email, dt: Date.now() },
+    details: { question },
   });
 }
 import { formatDt } from '@/utils/fieldFormatters';
@@ -835,7 +837,7 @@ Allie ──nightly──► reads process/inbox/, sessions/, retrospections/
             onKeyDown={async (e) => {
               if (e.key === 'Enter' && askText.trim()) {
                 try {
-                  await askAlice(askText, user?.email);
+                  await askAlice(askText);
                   setAskText('');
                   alert('Question sent to Alice. She will respond in her next review.');
                 } catch { alert('Failed to send question.'); }
@@ -846,7 +848,7 @@ Allie ──nightly──► reads process/inbox/, sessions/, retrospections/
           <button onClick={async () => {
             if (!askText.trim()) return;
             try {
-              await askAlice(askText, user?.email);
+              await askAlice(askText);
               setAskText('');
               alert('Question sent to Alice.');
             } catch { alert('Failed to send.'); }

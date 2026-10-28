@@ -71,16 +71,74 @@ class TestAuditWritesTheLog:
 
 @pytest.mark.django_db
 class TestAliceNotes:
-    def test_a_log_note_is_a_log_and_a_pending_note_stays_a_setting(self):
-        from apps.ai_assistant.services.notes import create_note, get_report
+    def test_a_log_note_is_a_log_and_a_to_do_is_an_action(self):
+        from apps.core.models import Action
+        from apps.ai_assistant.services.notes import create_note, get_report, resolve_pending
         log_note = create_note('log', role='system', name='checked', details={'n': 1})
-        pending = create_note('pending', role='action_required', name='look at this')
+        todo = create_note('pending', role='action_required', name='look at this', parent_model='item',
+                           details={'item_id': 5})
         assert isinstance(log_note, Log) and log_note.purpose == 'alice'
-        assert log_note.config == {'name': 'checked', 'details': {'n': 1, 'created_by': 'alice'}}
-        assert isinstance(pending, Setting) and pending.purpose == 'alice_pending'
-        assert not Setting.objects.filter(purpose='alice_log').exists()
+        assert log_note.config == {'name': 'checked', 'details': {'n': 1}}
+        assert isinstance(todo, Action) and (todo.purpose, todo.status) == ('alice', 'open')
+        assert todo.config['alice'] == {'role': 'action_required', 'model': 'item', 'details': {'item_id': 5}}
+        assert not Setting.objects.filter(purpose__in=('alice_log', 'alice_pending')).exists()
         report = get_report(days=1)
         assert {i['category'] for i in report['items']} == {'log', 'pending'}
+        assert resolve_pending(todo.pk).status == 'complete'
+        assert get_report(category='pending', days=1)['total'] == 0
+
+
+@pytest.mark.django_db
+class TestResponsible:
+    """Bill, 2026-10-28: future logs record who is responsible for triggering them."""
+
+    def test_inside_the_door_the_acting_person_is_responsible(self, django_user_model):
+        from apps.core.services.door import Actor, acts
+        person = django_user_model.objects.create_user(email='responsible@example.com', password='x')
+
+        @acts
+        def verb(actor):
+            return Log.write('alice', 'system', name='inside')
+        entry = verb(Actor(user=person, kind='user', source='wcapi'))
+        assert entry.user_id == person.pk
+        assert entry.refs['actor'] == {'kind': 'user', 'source': 'wcapi'}
+
+    def test_a_system_actor_is_named_by_kind_and_channel(self):
+        from apps.core.services.door import Actor, acts
+
+        @acts
+        def task(actor):
+            return Log.write('alice', 'system', name='nightly')
+        entry = task(Actor.system('task'))
+        assert entry.user_id is None
+        assert entry.refs['actor'] == {'kind': 'system', 'source': 'task'}
+
+    def test_an_audit_records_the_person_whose_save_it_was(self, django_user_model):
+        from apps.core.models import Contact
+        from apps.core.services.door import Actor, acts
+        person = django_user_model.objects.create_user(email='saver@example.com', password='x')
+        contact = Contact.objects.create(name_first='Who', name_last='Saved')
+
+        @acts
+        def save(actor):
+            contact.name_last = 'Me'
+            contact.save()
+        save(Actor(user=person, kind='user', source='wcapi'))
+        entry = Log.objects.filter(purpose='audit', record_id=contact.pk).latest('id')
+        assert entry.user_id == person.pk
+
+    def test_an_action_credits_its_creator_not_a_made_up_contact(self, django_user_model):
+        from apps.core.models import Action
+        from apps.core.services.door import Actor, acts
+        person = django_user_model.objects.create_user(email='creator@example.com', password='x')
+
+        @acts
+        def make(actor):
+            return Action.objects.create(action={'en': 'by a person'})
+        made = make(Actor(user=person, kind='user', source='wcapi'))
+        assert made.created_by[-1]['id'] == person.pk
+        orphan = Action.objects.create(action={'en': 'by no one'})
+        assert orphan.created_by[-1]['id'] is None
 
 
 def _client():

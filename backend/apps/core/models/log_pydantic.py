@@ -36,7 +36,15 @@ class ForeignRef(BaseModel):
     uuid: str
 
 
+class ActorRef(BaseModel):
+    """The kind of actor behind an entry and its channel; the person is Log.user."""
+    kind: str                       # user, staff, public, sync, system
+    source: str                     # wcapi, admin, command, task, sync
+    connection_id: Optional[int] = None
+
+
 class LogRefs(RefsBase):
     tags: list[str] = Field(default_factory=list)
     keywords: list[str] = Field(default_factory=list)
+    actor: Optional[ActorRef] = None
     foreign: Optional[ForeignRef] = None

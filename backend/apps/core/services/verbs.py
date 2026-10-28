@@ -25,7 +25,7 @@ from typing import Any, Callable, Dict, Optional
 from django.db import transaction
 
 from apps.core.services.behaviours import HookContext, behaviour_for
-from apps.core.services.door import Actor, Refused
+from apps.core.services.door import Actor, Refused, acts
 
 console_logger = logging.getLogger('console')
 
@@ -109,6 +109,7 @@ def register_command(model_key: str, verb: str, base: Callable, *,
                                    'public': public, 'admit': admit}
 
 
+@acts
 def run_command(actor: Actor, verb: str, model_key: str, record_id, payload: dict):
     """A command on a record: code before → user before → base → flush → code after → user
     after, in one transaction, on the record locked. The base may register work for after
@@ -173,6 +174,7 @@ METHOD_VERBS = {'GET': 'get', 'POST': 'new', 'PUT': 'save', 'PATCH': 'save',
                 'DELETE': 'delete'}
 
 
+@acts
 def run(actor: Actor, verb: str, model_key: str, payload: dict):
     """Every channel's way in: an actor, a verb, a model, a payload."""
     base = VERBS.get(verb)

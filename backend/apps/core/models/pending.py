@@ -622,8 +622,9 @@ class Pending(CoreModel):
     @classmethod
     def queue_log_write(cls, entry: dict) -> None:
         """A Log entry that could not be written now (Bill, 2026-10-28: the save stands; make a
-        pending to apply to the log). entry = Log.write's arguments: purpose, action, model_name,
-        record_id, name, changes, details.
+        pending to apply to the log). entry = Log.write's arguments: purpose, action, user,
+        model_name, record_id, name, changes, details, refs (who was responsible, captured at
+        the time).
         Saving tries it once more; the hourly drain (apps.sync process_pending) retries after."""
         try:
             with transaction.atomic():
@@ -636,9 +637,10 @@ class Pending(CoreModel):
         from apps.core.models.log import Log
         e = self.changes if isinstance(self.changes, dict) else {}
         try:
-            Log.write(e['purpose'], e.get('action', ''), model_name=e.get('model_name', ''),
-                      record_id=e.get('record_id'), name=e.get('name', ''),
-                      changes=e.get('changes'), details=e.get('details'))
+            Log.write(e['purpose'], e.get('action', ''), user=e.get('user'),
+                      model_name=e.get('model_name', ''), record_id=e.get('record_id'),
+                      name=e.get('name', ''), changes=e.get('changes'),
+                      details=e.get('details'), refs=e.get('refs'))
         except Exception:
             logger.error("Pending %s: log write failed again", self.pk, exc_info=True)
             if self.pk:

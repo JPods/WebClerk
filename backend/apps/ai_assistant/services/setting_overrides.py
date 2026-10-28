@@ -4,7 +4,6 @@ import re
 from pathlib import Path
 from typing import Any
 
-from apps.core.models import Setting
 
 
 TO_ALICE_PATTERN = re.compile(r"<!--\s*To_Alice:\s*(.*?)\s*-->", re.IGNORECASE | re.DOTALL)
@@ -60,21 +59,18 @@ def _load_report_comment_overrides(repo_root: Path) -> list[dict[str, Any]]:
 
 def _load_pending_note_overrides() -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
-    notes = Setting.objects.filter(
-        purpose="alice_pending",
-        role="config_suggestion",
-        is_active=True,
-    ).order_by("dt_created")
-
-    for note in notes:
-        payload = dict(note.config or {})
-        if note.parent_model and "model" not in payload:
-            payload["model"] = note.parent_model
-        if note.name and "name" not in payload:
-            payload["name"] = note.name
+    from apps.ai_assistant.services.notes import open_alice_actions
+    for action in open_alice_actions("config_suggestion").order_by("dt_created"):
+        alice = (action.config or {}).get("alice") or {}
+        payload = dict(alice.get("details") or {})
+        if alice.get("model") and "model" not in payload:
+            payload["model"] = alice["model"]
+        title = (action.action or {}).get("en", "")
+        if title and "name" not in payload:
+            payload["name"] = title
         rows.append({
             "source": "pending_note",
-            "setting_id": note.pk,
+            "action_id": action.pk,
             "payload": payload,
         })
     return rows

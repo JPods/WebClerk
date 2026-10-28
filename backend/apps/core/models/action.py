@@ -264,9 +264,17 @@ class Action(BaseModel):
         # set the _by based on changed_fields
         from django.utils import timezone
         now_ms = int(timezone.now().timestamp() * 1000)
-        contact_id = None
-        contact_email = None
-        if self.assigned_to and isinstance(self.assigned_to, list) and self.assigned_to:
+        # Who is responsible for this change (Bill, 2026-10-28): the person a caller names
+        # (_responsible_user), else the acting person behind the request, else — as before —
+        # the first assignee. Never a made-up contact: with no one, the id is None and the
+        # actor's kind says what did it.
+        from apps.core.services.door import acting_actor
+        actor = acting_actor()
+        named = getattr(self, '_responsible_user', None)
+        person = named if named is not None else (actor.user if actor is not None and actor.user_id else None)
+        contact_id = getattr(person, 'pk', None)
+        contact_email = getattr(person, 'email', None)
+        if contact_id is None and self.assigned_to and isinstance(self.assigned_to, list) and self.assigned_to:
             first_assigned = self.assigned_to[0]
             if isinstance(first_assigned, dict):
                 contact_id = first_assigned.get('id')
@@ -296,8 +304,8 @@ class Action(BaseModel):
                 except Contact.DoesNotExist:
                     pass
         if not contact_id:
-            contact_id = 1
-            contact_email = 'system@example.com'
+            contact_id = None
+            contact_email = ''
         for field in changed_fields:
             if field == 'dt_due':
                 due_by = self.due_by or []

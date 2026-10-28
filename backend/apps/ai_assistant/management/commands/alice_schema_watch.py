@@ -586,7 +586,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS("Alice schema watch completed."))
             self.stdout.write(f"alice log id: {log_note.pk}")
             if pending_id:
-                self.stdout.write(self.style.WARNING(f"alice_pending id: {pending_id}"))
+                self.stdout.write(self.style.WARNING(f"alice to-do (action) id: {pending_id}"))
             self.stdout.write(
                 f"drift issues: total={drift_report.get('total_issues', 0)} "
                 f"high={drift_report.get('severity_counts', {}).get('high', 0)} "

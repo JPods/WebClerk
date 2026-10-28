@@ -195,7 +195,8 @@ export type AlicePendingRole =
   | "zero_result"
   | "data_quality"
   | "config_suggestion"
-  | "action_required";
+  | "action_required"
+  | "question";
 
 export type AliceLogRole =
   | "search"
@@ -215,6 +216,8 @@ export interface AliceNoteRequest {
 
 export interface AliceNoteResponse {
   id: number;
+  /** "action" for a to-do (category pending), "log" for a log note. */
+  model: "action" | "log";
   name: string;
   purpose: string;
   role: string;

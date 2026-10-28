@@ -8,6 +8,8 @@ hold in common, defined once so the three cannot drift apart.
 """
 from __future__ import annotations
 
+import contextvars
+import functools
 import logging
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Type, cast
@@ -153,6 +155,30 @@ class Actor:
         if self.kind == 'sync':
             return f"sync connection #{getattr(self.connection, 'pk', '?')}"
         return f"{self.kind} actor" + (f" #{self.user_id}" if self.user_id else '')
+
+
+# ── who is acting, for the records a verb writes on the way (the Log's responsible person) ──
+
+_ACTING: contextvars.ContextVar[Optional['Actor']] = contextvars.ContextVar('wc_acting_actor',
+                                                                           default=None)
+
+
+def acting_actor() -> Optional['Actor']:
+    """The Actor whose verb is running now, or None outside the door (a task, a command)."""
+    return _ACTING.get()
+
+
+def acts(fn):
+    """A door entry ``fn(actor, …)``: the actor is the acting one while it runs, so a Log
+    written anywhere inside records who triggered it (Bill, 2026-10-28)."""
+    @functools.wraps(fn)
+    def run(actor, *args, **kwargs):
+        token = _ACTING.set(actor)
+        try:
+            return fn(actor, *args, **kwargs)
+        finally:
+            _ACTING.reset(token)
+    return run
 
 
 def as_actor(actor) -> 'Actor':

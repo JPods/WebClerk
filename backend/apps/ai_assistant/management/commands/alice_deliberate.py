@@ -13,7 +13,7 @@ Alice writes the result as:
 
 Usage:
   python manage.py alice_deliberate --prompt "Should Alice index product codes by supplier prefix?"
-  python manage.py alice_deliberate --alice-pending   # deliberate on open alice_pending items
+  python manage.py alice_deliberate --alice-pending   # deliberate on open Alice to-dos (Actions)
   python manage.py alice_deliberate --prompt "..." --rounds 2
   python manage.py alice_deliberate --dry-run --prompt "..."
 
@@ -77,7 +77,7 @@ def prompt_reasoner(question: str) -> str:
     return f"""\
 You are Alice — the database and pattern-recognition agent inside WebClerk3.
 You are not a general assistant. You govern search indexing, keyword denormalization,
-pattern detection across user behavior, and alice_pending coordination notes.
+pattern detection across user behavior, and Alice to-dos (Actions).
 
 Your task: produce the best synthesis or answer to the question below.
 Be specific. Name models, fields, endpoints, and patterns by name.
@@ -95,7 +95,7 @@ You are the adversarial observer in a three-stage deliberation inside WebClerk3.
 Your job: probe the claim below for hallucinations, contradictions, and overreach.
 
 WebClerk3 invariants you know:
-- Alice governs search, keywords, and alice_pending notes. Allie governs the person.
+- Alice governs search, keywords, and her to-dos (Actions). Allie governs the person.
 - Allie does not write WebClerk schema or queue config — that is Alice's domain.
 - Every durable follow-up (actions, WhatIf, unresolved diagnostics) belongs in WC3, not in prose.
 - The sovereignty rule: sovereign data stays local (CarryOn), collaborative data lives in WebClerk.
@@ -219,7 +219,7 @@ class Command(BaseCommand):
         src = parser.add_mutually_exclusive_group(required=True)
         src.add_argument("--prompt",        help="Question or claim to deliberate on")
         src.add_argument("--alice-pending", action="store_true",
-                         help="Deliberate on open alice_pending items from WC3")
+                         help="Deliberate on open Alice to-dos (Actions) from WC3")
 
         parser.add_argument("--reasoner",  default=DEFAULT_REASONER)
         parser.add_argument("--adversary", default=DEFAULT_ADVERSARY)
@@ -358,13 +358,13 @@ class Command(BaseCommand):
         self.stdout.write(verdict)
 
     def _gather_pending_question(self) -> str:
-        """Pull open alice_pending items and form a deliberation question."""
+        """Pull open Alice to-dos (Actions) and form a deliberation question."""
         try:
             from apps.ai_assistant.models import Message
             # Read recent pending notes from WC3 via internal query
             token = get_alice_token()
             if not token:
-                return "What are the highest-priority open alice_pending items and what should be done about them?"
+                return "What are the highest-priority open Alice to-dos (Actions) and what should be done about them?"
             req = urllib.request.Request(
                 "http://localhost:8000/wcapi/ai/report/?category=pending&days=14",
                 headers={"Authorization": f"Bearer {token}"},
@@ -374,13 +374,14 @@ class Command(BaseCommand):
                 data = json.loads(resp.read())
             items = data.get("data", []) if isinstance(data, dict) else data
             if not items:
-                return "No open alice_pending items found. Is the pattern recognition system producing observations?"
-            lines = ["Open alice_pending items (last 14 days):"]
+                return "No open Alice to-dos (Actions) found. Is the pattern recognition system producing observations?"
+            lines = ["Open Alice to-dos (last 14 days):"]
+            items = items.get("items", []) if isinstance(items, dict) else items
             for item in items[:10]:
-                body = item.get("body", "")[:100]
+                body = item.get("name", "")[:100]
                 role = item.get("role", "")
                 lines.append(f"- [{role}] {body}")
             lines.append("\nFor each item: should it be promoted to a Setting feature, added as a WhatIf, or resolved? What is the correct action?")
             return "\n".join(lines)
         except Exception as e:
-            return f"Analyze open alice_pending items in WebClerk3. Error fetching them: {e}"
+            return f"Analyze open Alice to-dos (Actions) in WebClerk3. Error fetching them: {e}"

@@ -234,7 +234,16 @@ class ActionInquiry(BaseModel):
         extra = 'forbid'
 
 
+class ActionAlice(BaseModel):
+    """An Alice to-do (Bill, 2026-10-28: Alice's to-do belongs in Action, not Setting). The
+    Action is purpose 'alice', metadata.source_agent 'alice'; status open → complete."""
+    role: str = ''                            # keyword_gap, zero_result, data_quality, config_suggestion, action_required, question
+    model: str = ''                           # the model it is about
+    details: dict = Field(default_factory=dict)
+
+
 class ActionConfig(ConfigBase):
+    alice: Optional[ActionAlice] = None
     inquiry: Optional[ActionInquiry] = None
     times: Optional[ActionTimes] = None
     billable: Optional[ActionBillable] = None

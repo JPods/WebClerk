@@ -11,6 +11,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { getRecords, createRecord, newRecord } from '@/api/wcapi';
+import { createAliceNote } from '@/apps/support/services/aiApi';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -142,10 +143,11 @@ export default function HelpDashboard() {
   // Report problem
   const reportProblem = useCallback(async (description: string) => {
     try {
-      await createRecord('setting', {
+      // An Alice to-do: an Action (2026-10-28; it was a Setting).
+      await createAliceNote({
+        category: 'pending', role: 'action_required', parent_model: model || undefined,
         name: `Help problem: ${description.slice(0, 200)}`,
-        purpose: 'alice_pending',
-        config: { description, context, model, field, dt: Date.now(), url: window.location.href },
+        details: { description, context, model, field, url: window.location.href },
       });
       alert('Problem reported. Alice will review.');
     } catch { alert('Failed to report.'); }

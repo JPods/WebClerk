@@ -129,8 +129,8 @@ class SettingBehaviour(ModelBehaviour):
 
 class LogBehaviour(ModelBehaviour):
     """A Log row is complete at birth (Bill, 2026-10-28: the browser writes through wcapi
-    create): `new` takes its purpose and content, the writer is the signed-in user, and it is
-    never saved again, so it is not left marked is_new."""
+    create): `new` takes its purpose and content, the responsible person is the acting user
+    (Log.responsible), and it is never saved again, so it is not left marked is_new."""
 
     NEW_REQUIRES = ('purpose',)
     NEW_ACCEPTS = ('action', 'model_name', 'record_id', 'config', 'refs')
@@ -142,8 +142,7 @@ class LogBehaviour(ModelBehaviour):
             Log.validate_entry(ctx.obj.purpose, ctx.obj.refs)
         except ValueError as e:
             raise Refused(400, 'log_refused', str(e), {'purpose': ctx.obj.purpose})
-        if ctx.obj.user_id is None and getattr(ctx.user, 'is_authenticated', False):
-            ctx.obj.user_id = ctx.user.pk
+        ctx.obj.user_id, ctx.obj.refs = Log.responsible(ctx.obj.user_id, ctx.obj.refs)
         from apps.core.services.new import clear_mark
         clear_mark(ctx.obj)
 

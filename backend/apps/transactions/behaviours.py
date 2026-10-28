@@ -232,12 +232,10 @@ def flag_over_receipts(receipt) -> None:
 
 
 def _flag_over_receipt(receipt, pol, ordered: float, received: float) -> None:
-    """One alice_pending note per purchase line and received total: a re-save of the same
-    receipt does not repeat it; a further receipt against the line does."""
-    from apps.ai_assistant.services.notes import create_note
-    from apps.core.models import Setting
-    if Setting.objects.filter(purpose='alice_pending', role='action_required', is_active=True,
-                              config__purchase_line_id=pol.pk, config__received=received).exists():
+    """One Alice to-do per purchase line and received total: a re-save of the same receipt
+    does not repeat it; a further receipt against the line does."""
+    from apps.ai_assistant.services.notes import create_note, open_alice_actions
+    if open_alice_actions('action_required', purchase_line_id=pol.pk, received=received).exists():
         return
     create_note('pending', role='action_required', parent_model='receipt',
                 name=f'Over-received: purchase {pol.purchase_id} line {pol.pk} ordered {ordered:g}, '

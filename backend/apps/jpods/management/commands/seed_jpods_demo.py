@@ -239,13 +239,9 @@ class Command(BaseCommand):
     # ── Alice Action: Encrypt keys before release ─────────────────────
 
     def _seed_encryption_action(self):
-        from apps.core.models import Setting
-        exists = Setting.objects.filter(
-            purpose="alice_pending",
-            role="action_required",
-            name__icontains="Encrypt API keys",
-            is_active=True,
-        ).exists()
+        from apps.ai_assistant.services.notes import open_alice_actions
+        exists = open_alice_actions("action_required").filter(
+            action__en__icontains="Encrypt API keys").exists()
 
         if exists:
             self.stdout.write("  Encryption action: already exists")

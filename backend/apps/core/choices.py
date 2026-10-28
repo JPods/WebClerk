@@ -95,7 +95,6 @@ SETTING_PURPOSE_CHOICES: Final[ChoiceList] = (
     ("wc:qa_counters", "wc:qa_counters"),
     ("wc:qa_questions", "wc:qa_questions"),
     # Alice & AI
-    ("alice_pending", "alice_pending"),
     ("wc:alice_coaching", "wc:alice_coaching"),
     ("ai_prompt_history", "ai_prompt_history"),
     # Admin & system

@@ -2,9 +2,10 @@
 Alice Notes — Alice's persistent memory.
 
 Two categories:
-    pending   Short-term action items (keyword gaps, zero-result
-              searches, data-quality flags): Setting purpose alice_pending.
-              ``is_active=True`` means unresolved; set ``is_active=False`` to close.
+    pending   Alice's to-dos (keyword gaps, zero-result searches, data-quality
+              flags, questions): an Action, purpose alice, metadata.source_agent
+              alice, config.alice = {role, model, details}; status open until
+              resolved (Bill, 2026-10-28: Alice's to-do belongs in Action).
 
     log       What Alice observed (queries handled, config changes,
               health-check snapshots, user interactions): the one Log,
@@ -31,13 +32,13 @@ from typing import Any
 from django.db.models import Count, Q
 from django.utils import timezone
 
-from apps.core.models import Log, Setting
+from apps.core.models import Action, Log
 
 logger = logging.getLogger(__name__)
 
 CATEGORY_PURPOSE_MAP = {
-    "pending": "alice_pending",   # Setting
-    "log": "alice",               # Log
+    "pending": "alice",   # Action
+    "log": "alice",       # Log
 }
 
 # ── Allowed role values (sub-types) per category ────────────────────
@@ -47,6 +48,7 @@ PENDING_ROLES = frozenset({
     "data_quality",        # data inconsistency detected
     "config_suggestion",   # Alice recommends a config change
     "action_required",     # general human-action-needed
+    "question",            # a person asked Alice something
 })
 
 LOG_ROLES = frozenset({
@@ -73,8 +75,12 @@ def create_note(
     name: str,
     parent_model: str | None = None,
     details: dict[str, Any] | None = None,
-) -> Setting | Log:
-    """Create a pending Setting (``alice_pending``) or a Log (purpose ``alice``).
+    user=None,
+) -> Action | Log:
+    """Create an Alice to-do (Action, purpose ``alice``) or a Log (purpose ``alice``).
+
+    ``user`` is who is responsible for the note: the person whose request raised it. With
+    none named and no request acting, it is Alice's own login.
 
     Parameters
     ----------
@@ -84,11 +90,11 @@ def create_note(
         Sub-type within the category (e.g. ``"keyword_gap"``,
         ``"search"``).  Must be in the allow-list for the category.
     name
-        Human-readable summary (stored in ``Setting.name``).
+        Human-readable summary (the Action's title; the Log's config.name).
     parent_model
         Optional canonical model key (e.g. ``"customer"``).
     details
-        Arbitrary JSON payload stored in ``Setting.data``.
+        Arbitrary JSON payload (config.alice.details / config.details).
     """
     purpose = CATEGORY_PURPOSE_MAP.get(category)
     if purpose is None:
@@ -105,42 +111,65 @@ def create_note(
         )
 
     data = dict(details) if details else {}
-    data.setdefault("created_by", "alice")
+    user = user if user is not None else _alice_unless_someone_acts()
 
     if category == "log":
-        entry = Log.write("alice", role, model_name=parent_model or "", name=name, details=data)
+        entry = Log.write("alice", role, user=user, model_name=parent_model or "", name=name,
+                          details=data)
         logger.info("Alice log written: pk=%s role=%s", entry.pk, role)
         return entry
 
-    data.setdefault("category", category)
-
-    # Settings refuse creation without authorization; a note is Alice's own record. Until
-    # 2026-09-27 this save was refused on every call and each caller swallowed the refusal,
-    # so no note reached Alice (found building R3's over-receipt flag).
-    setting = Setting.authorized_create(
-        name=name,
-        purpose=purpose,
-        role=role,
-        parent_model=parent_model or "",
-        config=data,
-        is_active=True,
+    action = Action(
+        purpose="alice",
+        action={"en": name},
+        description={"en": str(data.get("description", ""))} if data.get("description") else {},
+        status="open",
+        kanban_column="Backlog",
+        config={"alice": {"role": role, "model": parent_model or "", "details": data}},
+        metadata={"agent": True, "source_agent": "alice"},
     )
-    logger.info("Alice %s note created: pk=%s role=%s", category, setting.pk, role)
-    return setting
+    action._responsible_user = user          # created_by (Action.save)
+    action.save()
+    logger.info("Alice to-do created: action=%s role=%s", action.pk, role)
+    return action
+
+
+def _alice_unless_someone_acts():
+    """Alice's login when no request is acting (a task, a command); else None, so the acting
+    person is recorded."""
+    from django.conf import settings
+    from apps.core.services.door import acting_actor
+    actor = acting_actor()
+    if actor is not None and actor.user_id:
+        return None
+    email = (getattr(settings, "ALICE_WC_EMAIL", "") or "").strip().lower()
+    if not email:
+        return None
+    from django.contrib.auth import get_user_model
+    return get_user_model().objects.filter(email__iexact=email).first()
+
+
+def open_alice_actions(role: str | None = None, **details):
+    """Alice's open to-dos, optionally one role and matching details keys."""
+    qs = Action.objects.filter(purpose="alice", status="open")
+    if role:
+        qs = qs.filter(config__alice__role=role)
+    for key, value in details.items():
+        qs = qs.filter(**{f"config__alice__details__{key}": value})
+    return qs
 
 
 # ── Resolve ─────────────────────────────────────────────────────────
 
-def resolve_pending(setting_id: int) -> Setting:
-    """Mark an ``alice_pending`` record as resolved (``is_active=False``)."""
-    setting = Setting.objects.get(pk=setting_id, purpose="alice_pending")
-    setting.is_active = False
-    if setting.config is None:
-        setting.config = {}
-    setting.config["resolved_at"] = timezone.now().isoformat()
-    setting.save(update_fields=["is_active", "config", "dt_modified"])
-    logger.info("Alice pending resolved: pk=%s", setting.pk)
-    return setting
+def resolve_pending(action_id: int) -> Action:
+    """Mark an Alice to-do done."""
+    action = Action.objects.get(pk=action_id, purpose="alice")
+    action.status = "complete"
+    action.kanban_column = "Complete"
+    action.dt_completed = int(timezone.now().timestamp() * 1000)
+    action.save(update_fields=["status", "kanban_column", "dt_completed", "dt_modified"])
+    logger.info("Alice to-do resolved: action=%s", action.pk)
+    return action
 
 
 # ── Report ──────────────────────────────────────────────────────────
@@ -167,20 +196,26 @@ def get_report(
     total = 0
 
     if category in (None, "pending"):
-        qs = Setting.objects.filter(purpose="alice_pending", dt_created__gte=cutoff_ms)
+        qs = Action.objects.filter(purpose="alice", dt_created__gte=cutoff_ms)
         if parent_model:
-            qs = qs.filter(parent_model=parent_model)
+            qs = qs.filter(config__alice__model=parent_model)
         if role:
-            qs = qs.filter(role=role)
+            qs = qs.filter(config__alice__role=role)
         if not include_resolved:
-            qs = qs.filter(is_active=True)
-        summary += [{"category": "pending", "role": r["role"], "count": r["count"]}
-                    for r in qs.values("role").annotate(count=Count("id")).order_by("role")]
-        items += [{"category": "pending", "model": "setting", "id": r["id"], "name": r["name"],
-                   "role": r["role"], "parent_model": r["parent_model"], "data": r["config"],
-                   "is_active": r["is_active"], "dt_created": r["dt_created"]}
-                  for r in qs.order_by("-dt_created")[:limit].values(
-                      "id", "name", "role", "parent_model", "config", "is_active", "dt_created")]
+            qs = qs.filter(status="open")
+        rows = list(qs.order_by("-dt_created")[:limit].values(
+            "id", "action", "status", "config", "dt_created"))
+        roles: dict[str, int] = {}
+        for r in qs.values_list("config__alice__role", flat=True):
+            roles[r or ""] = roles.get(r or "", 0) + 1
+        summary += [{"category": "pending", "role": k, "count": v} for k, v in sorted(roles.items())]
+        items += [{"category": "pending", "model": "action", "id": r["id"],
+                   "name": (r["action"] or {}).get("en", ""),
+                   "role": ((r["config"] or {}).get("alice") or {}).get("role", ""),
+                   "parent_model": ((r["config"] or {}).get("alice") or {}).get("model", ""),
+                   "data": ((r["config"] or {}).get("alice") or {}).get("details", {}),
+                   "is_active": r["status"] == "open", "dt_created": r["dt_created"]}
+                  for r in rows]
         total += qs.count()
 
     if category in (None, "log"):

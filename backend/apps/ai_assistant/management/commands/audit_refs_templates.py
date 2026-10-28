@@ -29,7 +29,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--no-alice",
             action="store_true",
-            help="Do not create alice_pending notes; print report only.",
+            help="Do not create Alice to-dos; print report only.",
         )
 
     def handle(self, *args, **options):

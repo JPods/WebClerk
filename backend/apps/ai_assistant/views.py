@@ -795,7 +795,7 @@ class NoteView(APIView):
 
     PATCH /wcapi/ai/note/
     Body: { "id": 123 }
-    Resolves an alice_pending record (sets is_active=False).
+    Resolves an Alice to-do (the Action is marked complete).
     """
     permission_classes = [IsAuthenticated]
 
@@ -826,19 +826,15 @@ class NoteView(APIView):
                 error_code="invalid_note",
             )
 
-        # A log note is a Log (purpose alice, action = role); a pending note is a Setting.
-        is_log = category == "log"
-        return api_response(
-            status_code=status.HTTP_201_CREATED,
-            data={
-                "id": note.pk,
-                "model": "log" if is_log else "setting",
-                "name": note.config.get("name", "") if is_log else note.name,
-                "purpose": note.purpose,
-                "role": note.action if is_log else note.role,
-                "parent_model": note.model_name if is_log else note.parent_model,
-            },
-        )
+        # A log note is a Log (purpose alice, action = role); a pending note is an Action.
+        if category == "log":
+            data = {"id": note.pk, "model": "log", "name": note.config.get("name", ""),
+                    "purpose": note.purpose, "role": note.action, "parent_model": note.model_name}
+        else:
+            alice = note.config["alice"]
+            data = {"id": note.pk, "model": "action", "name": note.action.get("en", ""),
+                    "purpose": note.purpose, "role": alice["role"], "parent_model": alice["model"]}
+        return api_response(status_code=status.HTTP_201_CREATED, data=data)
 
     def patch(self, request):
         note_id = request.data.get("id")
@@ -849,7 +845,7 @@ class NoteView(APIView):
                 error_code="missing_id",
             )
         try:
-            setting = resolve_pending(int(note_id))
+            action = resolve_pending(int(note_id))
         except Exception as exc:
             return api_response(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -858,9 +854,9 @@ class NoteView(APIView):
             )
 
         return api_response(data={
-            "id": setting.pk,
-            "is_active": setting.is_active,
-            "resolved_at": setting.config.get("resolved_at"),
+            "id": action.pk,
+            "status": action.status,
+            "dt_completed": action.dt_completed,
         })
 
 
@@ -913,7 +909,7 @@ class SearchFeedbackView(APIView):
     }
 
     Always writes an alice log (search_feedback).
-    If rating is negative, also creates an alice_pending (keyword_gap).
+    If rating is negative, also creates an Alice to-do (Action, keyword_gap).
     """
     permission_classes = [IsAuthenticated]
 

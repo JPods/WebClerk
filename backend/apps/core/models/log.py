@@ -7,11 +7,13 @@ written once and never changed.
 
 - purpose  why the row was written (CoreModel: "Why this record exists"); LOG_PURPOSE_CHOICES
 - action   what happened (update, delete, viewed, mismatch, drill …)
-- user     who: a person or an agent login (alice@, claude@)
+- user     who is responsible: the person or agent login whose request triggered it (filled
+           from the acting Actor when the caller names no one — Bill, 2026-10-28)
 - model_name / record_id  the record it is about
 - config   the content (CoreModel: "type-specific content"): name, changes, details (LogConfig)
-- refs     refs.foreign = {database, model, uuid} on a foreign_* row: a pointer to a record kept
-           in another database, written only when that event matters here — never a copy
+- refs     refs.actor = {kind, source[, connection_id]}: the kind of actor behind it (user, staff,
+           sync, system …) and its channel; refs.foreign = {database, model, uuid} on a foreign_*
+           row: a pointer to a record kept in another database — never a copy
 - dt_created  when (UTC epoch ms)
 
 Before this, eight places: AuditLog, RefsMismatchLog, APILog, UserDailyLog, SerialLog,
@@ -67,6 +69,24 @@ class Log(CoreModel, RefsMixin):
         if purpose.startswith('foreign_') and not (refs or {}).get('foreign'):
             raise ValueError(f"A {purpose} log needs refs.foreign = {{database, model, uuid}}")
 
+    @staticmethod
+    def responsible(user=None, refs: dict | None = None) -> tuple:
+        """(user_id, refs) for a new entry: the caller's user, else the acting Actor's login;
+        refs.actor names the actor's kind and channel. Captured when the event happens, so an
+        entry applied later (a queued audit write) keeps who triggered it."""
+        from apps.core.services.door import acting_actor
+        actor = acting_actor()
+        user_id = getattr(user, 'pk', user)
+        if user is not None and getattr(user, 'is_authenticated', True) is False:
+            user_id = None
+        if user_id is None and actor is not None:
+            user_id = actor.user_id
+        refs = dict(refs or {})
+        if actor is not None and 'actor' not in refs:
+            refs['actor'] = {'kind': actor.kind, 'source': actor.source,
+                             **({'connection_id': actor.connection.pk} if actor.connection else {})}
+        return user_id, refs
+
     @classmethod
     def write(cls, purpose: str, action: str = '', *, user=None, model_name: str = '',
               record_id=None, name: str = '', changes: dict | None = None,
@@ -77,16 +97,14 @@ class Log(CoreModel, RefsMixin):
         aborted; the error is raised to the caller.
         """
         cls.validate_entry(purpose, refs)
-        user_id = getattr(user, 'pk', user)
-        if user is not None and getattr(user, 'is_authenticated', True) is False:
-            user_id = None
+        user_id, refs = cls.responsible(user, refs)
         with transaction.atomic():
             return cls.objects.create(
                 purpose=purpose, action=action or '', user_id=user_id,
                 model_name=model_name or '', record_id=record_id,
                 config={k: v for k, v in (('name', name), ('changes', changes),
                                           ('details', details)) if v},
-                refs=refs if refs is not None else {},
+                refs=refs,
             )
 
 

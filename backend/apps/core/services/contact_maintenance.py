@@ -349,7 +349,7 @@ def _emit_alice_run_summary(summary: ContactCommMaintenanceSummary, dry_run: boo
 
 
 def _emit_alice_dangling_unlinked(orphans: dict[str, list[int]]) -> int:
-    """Emit an alice_pending[data_quality] note when comm records can't be matched."""
+    """Emit an Alice to-do [data_quality] when comm records can't be matched."""
     total = sum(len(v) for v in orphans.values())
     if not total:
         return 0
@@ -364,7 +364,7 @@ def _emit_alice_dangling_unlinked(orphans: dict[str, list[int]]) -> int:
 
 
 def _emit_alice_maintenance_errors(count: int) -> int:
-    """Emit an alice_pending[action_required] note when maintenance raises exceptions."""
+    """Emit an Alice to-do [action_required] when maintenance raises exceptions."""
     if not count:
         return 0
     emitted = _alice_note(
