@@ -39,7 +39,7 @@
  *   />
  */
 import React, { useMemo } from "react";
-import CollapsiblePanel from "@/apps/common/components/CollapsiblePanel";
+import { PanelFrame } from "@/apps/common/components/CollapsiblePanel";
 import { FaSlidersH } from "react-icons/fa";
 import FieldOrderDialog from "@/components/common/FieldOrderDialog";
 import { useListFieldConfig } from "@/hooks/useListFieldConfig";
@@ -260,11 +260,16 @@ export function DbColumns<T extends Record<string, unknown>>({
     </>
   );
 
+  const assign = React.useMemo(() => onAssign ? (
+    <button type="button" className="db-section-header__action" onClick={onAssign}>assign</button>
+  ) : undefined, [onAssign]);
+
   if (!hasSectionHeader) return <div>{table}</div>;
 
-  // A labelled table is a panel: the one frame draws its header, count, collapse and status.
+  // A labelled table is a panel: the one frame draws its header, count, collapse and status —
+  // its own frame standing alone, the frame around it when it sits in one (a record's tab).
   return (
-    <CollapsiblePanel
+    <PanelFrame
       label={sectionLabel!}
       icon={sectionIcon}
       storageKey={`${storageKey}:collapsed`}
@@ -273,15 +278,13 @@ export function DbColumns<T extends Record<string, unknown>>({
       keepMounted
       badge={data.length}
       onRemove={onRemove}
-      headerActions={onAssign ? (
-        <button type="button" className="db-section-header__action" onClick={onAssign}>assign</button>
-      ) : undefined}
+      headerActions={assign}
       status={{ loading: !!loading && data.length === 0, error: error ?? null, onRetry,
                 empty: !loading && !error && data.length === 0 && !hasChildren,
                 emptyText: emptyMessage ?? `No ${sectionLabel!.toLowerCase()}` }}
     >
       {table}
-    </CollapsiblePanel>
+    </PanelFrame>
   );
 }
 

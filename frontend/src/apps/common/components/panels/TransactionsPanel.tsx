@@ -16,13 +16,10 @@
  */
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-  FaChevronDown,
-  FaChevronUp,
-  FaExchangeAlt,
   FaFilter,
-  FaSpinner,
 } from "react-icons/fa";
 import { useWindowManager } from "@/context/WindowManagerContext";
+import { PanelFrame } from "@/apps/common/components/CollapsiblePanel";
 import { getRecords } from "@/api/wcapi";
 import { usePermissions } from "./usePermissions";
 import { getModelDetailPath, getModelWindowTitle } from "./getModelDetailPath";
@@ -137,7 +134,6 @@ const TransactionsPanel: React.FC<TransactionsPanelProps> = ({
   title = "Transactions",
   defaultCollapsed = false,
 }) => {
-  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [data, setData] = useState<Record<string, TransactionRecord[]>>({});
   const [loading, setLoading] = useState(true);
@@ -289,32 +285,10 @@ const TransactionsPanel: React.FC<TransactionsPanelProps> = ({
   };
 
   return (
-    <div
-      className={`rounded-lg border ${className}`}
-      style={{ background: 'var(--db-surface)', borderColor: 'var(--db-border)' }}
-    >
-      {/* Header */}
-      <div
-        className="flex items-center justify-between px-4 py-3 border-b cursor-pointer"
-        style={{ borderColor: 'var(--db-border)' }}
-        onClick={() => setIsCollapsed(!isCollapsed)}
-      >
-        <div className="flex items-center gap-2">
-          <FaExchangeAlt style={{ color: 'var(--db-text-dim)' }} size={14} />
-          <h3 className="text-sm font-semibold" style={{ color: 'var(--db-text)' }}>
-            {title}
-          </h3>
-          {totalCount > 0 && (
-            <span className="px-1.5 py-0.5 text-xs rounded-full" style={{ background: 'var(--db-surface-alt)' }}>
-              {totalCount}
-            </span>
-          )}
-        </div>
-        {isCollapsed ? <FaChevronDown size={12} /> : <FaChevronUp size={12} />}
-      </div>
-
-      {!isCollapsed && (
-        <div className={compact ? "p-2" : "p-4"}>
+    <div className={className}>
+      <PanelFrame label={title} defaultCollapsed={defaultCollapsed} badge={totalCount || undefined}
+        status={{ loading, empty: !loading && totalCount === 0, emptyText: 'No transactions found.' }}>
+        <div className={compact ? "p-1" : "p-2"}>
           {/* Filters */}
           {tables.length > 1 && (
             <div className="flex items-center gap-2 mb-3 flex-wrap">
@@ -355,15 +329,7 @@ const TransactionsPanel: React.FC<TransactionsPanelProps> = ({
             </div>
           )}
 
-          {loading ? (
-            <div className="flex items-center justify-center py-8" style={{ color: 'var(--db-text-dim)' }}>
-              <FaSpinner className="animate-spin mr-2" /> Loading…
-            </div>
-          ) : totalCount === 0 ? (
-            <p className="text-sm text-center py-6" style={{ color: 'var(--db-text-dim)' }}>
-              No transactions found.
-            </p>
-          ) : (
+          {totalCount > 0 && (
             <div className="space-y-4">
               {filteredTables.map((t) => {
                 const records = data[t.model] ?? [];
@@ -389,7 +355,7 @@ const TransactionsPanel: React.FC<TransactionsPanelProps> = ({
             </div>
           )}
         </div>
-      )}
+      </PanelFrame>
     </div>
   );
 };

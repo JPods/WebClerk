@@ -16,9 +16,9 @@
  * Entry label: "datetime — username"
  * Text is directly editable inline. No send button.
  */
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { PanelFrame } from "@/apps/common/components/CollapsiblePanel";
 import {
-  FaComment,
   FaTrash,
   FaChevronDown,
   FaChevronUp,
@@ -274,9 +274,29 @@ const CommentsPanel: React.FC<CommentsPanelProps> = ({
   defaultCollapsed = false,
   message,
 }) => {
-  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
   const [isSaving, setIsSaving] = useState(false);
   const authUser = useAppSelector((s) => s.auth.user);
+  const {
+    canView,
+    canEdit: permCanEdit,
+    isAdmin,
+  } = usePermissions({
+    panelType: "comments",
+    viewRoles,
+    editRoles,
+    forceReadOnly: readOnly,
+  });
+  const headerActions = useMemo(() => (isAdmin || isSaving) ? (
+    <>
+      {isAdmin && <span className="px-1.5 py-0.5 db-font-xs rounded db-text-gold">Admin</span>}
+      {isSaving && (
+        <span className="flex items-center gap-1 db-font-xs db-text-accent">
+          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-500" />
+          Saving...
+        </span>
+      )}
+    </>
+  ) : null, [isAdmin, isSaving]);
   const displayName = currentUser
     || [authUser?.name_first, authUser?.name_last].filter(Boolean).join(' ')
     || authUser?.username
@@ -293,16 +313,6 @@ const CommentsPanel: React.FC<CommentsPanelProps> = ({
     comments[ch.key] = ensureArray((commentsProp as Record<string, any>)?.[ch.key]);
   }
 
-  const {
-    canView,
-    canEdit: permCanEdit,
-    isAdmin,
-  } = usePermissions({
-    panelType: "comments",
-    viewRoles,
-    editRoles,
-    forceReadOnly: readOnly,
-  });
 
   const isEditing = isEditingProp && !!onChange && permCanEdit !== false;
 
@@ -353,35 +363,10 @@ const CommentsPanel: React.FC<CommentsPanelProps> = ({
   );
 
   return (
-    <div className={`rounded-lg db-panel ${className}`}>
-      {/* Header */}
-      <div
-        className="flex items-center justify-between px-4 py-3 cursor-pointer rounded-t-lg db-section-bg"
-        onClick={() => setIsCollapsed(!isCollapsed)}
-      >
-        <div className="flex items-center gap-2">
-          <FaComment className="db-text-muted" size={14} />
-          <h3 className="db-font-sm font-semibold db-text">{title}</h3>
-          {totalCount > 0 && (
-            <span className="px-1.5 py-0.5 db-font-xs rounded-full db-row-active-accent">
-              {totalCount}
-            </span>
-          )}
-          {isAdmin && (
-            <span className="px-1.5 py-0.5 db-font-xs rounded db-text-gold">Admin</span>
-          )}
-          {isSaving && (
-            <span className="flex items-center gap-1 db-font-xs db-text-accent">
-              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-500" />
-              Saving...
-            </span>
-          )}
-        </div>
-        {isCollapsed ? <FaChevronDown size={12} /> : <FaChevronUp size={12} />}
-      </div>
-
-      {!isCollapsed && (
-        <div className="p-3 space-y-1">
+    <div className={className}>
+      <PanelFrame label={title} defaultCollapsed={defaultCollapsed} badge={totalCount || undefined}
+        headerActions={headerActions}>
+        <div className="space-y-1">
           {message && (
             <div className="mb-2 px-2 py-1 bg-yellow-100 text-yellow-800 rounded db-font-xs text-center">
               {message}
@@ -400,7 +385,7 @@ const CommentsPanel: React.FC<CommentsPanelProps> = ({
             />
           ))}
         </div>
-      )}
+      </PanelFrame>
     </div>
   );
 };

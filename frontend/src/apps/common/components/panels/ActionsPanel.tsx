@@ -43,10 +43,9 @@
  * />
  */
 import React, { useState, useEffect } from "react";
+import { PanelFrame } from "@/apps/common/components/CollapsiblePanel";
 import {
   FaTasks,
-  FaChevronDown,
-  FaChevronUp,
   FaPlus,
   FaEdit,
   FaTrash,
@@ -1428,9 +1427,6 @@ const ActionsPanel: React.FC<ActionsPanelProps> = ({
   parentIdOverride,
   autoPersistActions = true,
 }) => {
-  console.log("[ActionsPanel] assigneeOptions:", assigneeOptions);
-  console.log("[ActionsPanel] projectOptions:", projectOptions);
-  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
   const [showModal, setShowModal] = useState(false);
   const [editingAction, setEditingAction] = useState<ActionEntry | undefined>();
   const [isSaving, setIsSaving] = useState(false);
@@ -1457,7 +1453,7 @@ const ActionsPanel: React.FC<ActionsPanelProps> = ({
       setIsLoadingApi(true);
       setApiError(null);
       try {
-        const response = await getRecords(actionModelName, { ids: actionIds });
+        const response = await getRecords(actionModelName, { id__in: actionIds.join(','), limit: actionIds.length });
         // Handle various response formats
         const resp = response as
           | { results?: unknown[]; data?: unknown[] }
@@ -1654,89 +1650,37 @@ const ActionsPanel: React.FC<ActionsPanelProps> = ({
     }
   };
 
+  const headerActions = (
+    <>
+      {pendingCount > 0 && (
+        <span className="px-1.5 py-0.5 text-xs rounded-full db-surface-alt-gold">{pendingCount} pending</span>
+      )}
+      {hasRequired && <span className="px-1.5 py-0.5 text-xs rounded db-text-red">Required</span>}
+      {isSaving && (
+        <span className="flex items-center gap-1 text-xs db-text-accent">
+          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-500" />
+          Saving...
+        </span>
+      )}
+      {canEdit && (
+        <button onClick={handleAdd} className="flex items-center gap-1 text-xs db-text-green" type="button">
+          <FaPlus size={10} /> Add Action
+        </button>
+      )}
+    </>
+  );
+
   return (
-    <div
-      className={`rounded-lg db-panel ${className}`}
-    >
-      {/* Header */}
-      <div
-        className="flex items-center justify-between px-4 py-3 cursor-pointer rounded-t-lg db-section-bg"
-        onClick={() => setIsCollapsed(!isCollapsed)}
-      >
-        <div className="flex items-center gap-2">
-          <FaTasks className="db-text-green" size={14} />
-          <h3 className="text-sm font-semibold db-text">
-            {title}
-          </h3>
+    <div className={className}>
+      <PanelFrame label={title} defaultCollapsed={defaultCollapsed} badge={actions.length || undefined}
+        headerActions={headerActions}
+        status={{ loading: isLoadingApi, error: apiError, empty: !isLoadingApi && !apiError && actions.length === 0,
+                  emptyText: 'No actions defined' }}>
+        <div className={`${compact ? "p-1" : "p-2"} space-y-2`}>
           {actions.length > 0 && (
-            <span className="px-1.5 py-0.5 text-xs rounded-full db-surface-alt-muted">
-              {actions.length}
-            </span>
-          )}
-          {pendingCount > 0 && (
-            <span className="px-1.5 py-0.5 text-xs rounded-full db-surface-alt-gold">
-              {pendingCount} pending
-            </span>
-          )}
-          {hasRequired && (
-            <span className="px-1.5 py-0.5 text-xs rounded db-text-red">
-              Required
-            </span>
-          )}
-          {isSaving && (
-            <span className="flex items-center gap-1 text-xs db-text-accent">
-              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-500" />
-              Saving...
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {isCollapsed ? (
-            <FaChevronDown size={12} />
-          ) : (
-            <FaChevronUp size={12} />
-          )}
-        </div>
-      </div>
-
-      {/* Content */}
-      {!isCollapsed && (
-        <div className={`${compact ? "p-2" : "p-4"} space-y-2`}>
-          {/* Loading state for API mode */}
-          {isLoadingApi && (
-            <div className="text-center py-6 text-sm db-text-muted">
-              <div className="animate-spin rounded-full h-6 w-6 mx-auto mb-2" style={{ borderBottom: '2px solid var(--db-accent-green)' }} />
-              Loading actions...
-            </div>
-          )}
-
-          {/* Error state */}
-          {apiError && !isLoadingApi && (
-            <div className="text-center py-4 text-red-500 text-sm">
-              <p>{apiError}</p>
-            </div>
-          )}
-
-          {/* Empty state */}
-          {!isLoadingApi && !apiError && actions.length === 0 ? (
-            <div className="text-center py-4 text-sm db-text-dim">
-              <FaTasks size={24} className="mx-auto mb-2 opacity-50" />
-              <p>No actions defined</p>
-              {canEdit && (
-                <button
-                  onClick={handleAdd}
-                  className="mt-2 hover:underline text-xs db-text-green"
-                  type="button"
-                >
-                  + Add first action
-                </button>
-              )}
-            </div>
-          ) : !isLoadingApi && !apiError ? (
             // Render based on viewMode
             viewMode === "table" ? (
-              <>
-                <ActionsTable
+              <ActionsTable
                   actions={actions as any}
                   isEditing={canEdit}
                   visibleColumns={visibleCols}
@@ -1754,17 +1698,6 @@ const ActionsPanel: React.FC<ActionsPanelProps> = ({
                     if (idx >= 0) handleStatusChange(idx, "completed");
                   }}
                 />
-                {canEdit && (
-                  <button
-                    onClick={handleAdd}
-                    className="mt-3 flex items-center gap-1 text-sm db-text-green"
-                    type="button"
-                  >
-                    <FaPlus size={10} />
-                    Add Action
-                  </button>
-                )}
-              </>
             ) : (
               <>
                 {actions.map((action, index) => (
@@ -1780,21 +1713,11 @@ const ActionsPanel: React.FC<ActionsPanelProps> = ({
                     }
                   />
                 ))}
-                {canEdit && (
-                  <button
-                    onClick={handleAdd}
-                    className="mt-2 flex items-center gap-1 text-sm db-text-green"
-                    type="button"
-                  >
-                    <FaPlus size={10} />
-                    Add Action
-                  </button>
-                )}
               </>
             )
-          ) : null}
+          )}
         </div>
-      )}
+      </PanelFrame>
 
       {/* Edit Modal */}
       <ActionEditModal

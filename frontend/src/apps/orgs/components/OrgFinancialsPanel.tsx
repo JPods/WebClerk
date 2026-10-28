@@ -19,6 +19,7 @@ import type {
   OrgFinancialCommon, OrgType
 } from '../types/orgTypes';
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
+import { PanelFrame } from '@/apps/common/components/CollapsiblePanel';
 import { formatDt } from '@/utils/fieldFormatters';
 import { formatCurrency, formatPercent } from '@/utils/stringUtils';
 
@@ -420,11 +421,6 @@ const OrgFinancialsPanel: React.FC<OrgFinancialsPanelProps> = ({
   currency = 'USD',
   className = '',
 }) => {
-  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const authUser = useAppSelector((s) => s.auth.user);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const isStaff = authUser?.is_staff || authUser?.is_superuser || false;
 
   // Determine which categories to show based on org type(s)
   const allOrgTypes = orgType ? [orgType, ...orgTypes] : orgTypes;
@@ -481,33 +477,18 @@ const OrgFinancialsPanel: React.FC<OrgFinancialsPanelProps> = ({
     );
   };
 
-  return (
-    <div className={`bg-white dark:bg-slate-800 rounded-lg border border-green-200 dark:border-green-800 ${className}`}>
-      {/* Header */}
-      <div
-        className="flex items-center justify-between px-4 py-3 bg-green-50 dark:bg-green-900/20 border-b border-green-200 dark:border-green-800 cursor-pointer rounded-t-lg"
-        onClick={() => setIsCollapsed(!isCollapsed)}
-      >
-        <div className="flex items-center gap-2">
-          <FaDollarSign className="text-green-500" size={14} />
-          <h3 className="text-sm font-semibold text-green-700 dark:text-green-300">{title}</h3>
-          {financial?.common?.account?.hold && (
-            <span className="px-2 py-0.5 text-xs bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300 rounded">
-              HOLD
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {isCollapsed ? <FaChevronDown size={12} /> : <FaChevronUp size={12} />}
-        </div>
-      </div>
+  const hold = financial?.common?.account?.hold ? (
+    <span className="px-2 py-0.5 text-xs bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300 rounded">HOLD</span>
+  ) : null;
 
-      {/* Content — all categories stacked */}
-      {!isCollapsed && (
-        <div className={`${compact ? 'p-2' : 'p-3'} space-y-3 max-h-[700px] overflow-y-auto`}>
+  return (
+    <div className={className}>
+      <PanelFrame label={title} defaultCollapsed={defaultCollapsed} headerActions={hold}>
+        {/* All categories stacked */}
+        <div className={`${compact ? 'p-1' : 'p-2'} space-y-3 max-h-[700px] overflow-y-auto`}>
           {visibleCategories.map((catKey) => renderCategory(catKey))}
         </div>
-      )}
+      </PanelFrame>
     </div>
   );
 };

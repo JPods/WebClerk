@@ -7,7 +7,8 @@
  * header actions), collapse remembered per viewer (storageKey), Option+Cmd/Alt+Ctrl click to
  * remove (onRemove), and the status of its body — loading, error with retry, empty — worded
  * the same everywhere. A panel rendered inside the frame (a registry panel, whose frame is
- * PanelSectionRenderer's) declares its badge, actions and status with usePanelFrame();
+ * PanelSectionRenderer's) declares its badge, actions and status with usePanelFrame(), or wraps
+ * its body in PanelFrame, which frames it when it stands alone;
  * props set by the caller take precedence. Before this, 20 panels drew a second header inside
  * the frame, 26 their own loading text and 19 their own empty text.
  *
@@ -170,6 +171,25 @@ const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
       )}
     </div>
   );
+};
+
+/** Inside a frame: pass the panel's header items up to it. */
+const DeclareToFrame: React.FC<PanelFrameDeclaration & { children: React.ReactNode }> = ({ badge, headerActions, status, children }) => {
+  usePanelFrame({ badge, headerActions, status });
+  return <>{children}</>;
+};
+
+/**
+ * PanelFrame — what a panel wraps its body in. Standing alone it is the panel's frame; inside
+ * a frame (a registry tab, a section) it declares the badge, actions and status to that frame
+ * instead. Either way the panel has exactly one header, wherever it is placed.
+ */
+export const PanelFrame: React.FC<CollapsiblePanelProps> = ({ children, ...frame }) => {
+  const insideFrame = useContext(PanelFrameContext) !== null;
+  if (insideFrame) {
+    return <DeclareToFrame badge={frame.badge} headerActions={frame.headerActions} status={frame.status}>{children}</DeclareToFrame>;
+  }
+  return <CollapsiblePanel {...frame}>{children}</CollapsiblePanel>;
 };
 
 export default CollapsiblePanel;

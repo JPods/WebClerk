@@ -534,7 +534,7 @@ export const LinkedRecordsPanel: React.FC<LinkedRecordsPanelProps> = ({
       key={collapseWhenEmpty ? `${panelKey}-${initialLoadDone}-${records.length > 0}` : panelKey}
       compact
       loading={loading}
-      emptyMessage={`No ${linkedModel}s linked`}
+      emptyMessage={`No ${(sectionLabel || linkedModel).toLowerCase()} linked`}
     >
       {missingPanelDef && (
         <div className="px-3 py-2 db-font-xs font-mono" style={{ color: 'var(--db-accent-red, #e05252)', background: 'var(--db-surface-alt)' }}>

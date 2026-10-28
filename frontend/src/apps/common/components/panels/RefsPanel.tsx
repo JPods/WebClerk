@@ -35,6 +35,7 @@ import {
 import { usePermissions } from "./usePermissions";
 import type { BasePanelProps, EntityRefs, RefLink } from "./types";
 import { withDevIdentifier } from "@/components/common/DevIdentifier";
+import { PanelFrame } from "@/apps/common/components/CollapsiblePanel";
 import { HighlightedJson } from "../syntaxHighlightJson";
 
 // ---------------------------------------------------------------------------
@@ -258,8 +259,6 @@ const RefsPanel: React.FC<RefsPanelProps> = ({
   navigable = true,
   onNavigate,
 }) => {
-  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
-
   // Check permissions (admin only by default)
   const {
     canView,
@@ -305,32 +304,10 @@ const RefsPanel: React.FC<RefsPanelProps> = ({
   }, 0);
 
   return (
-    <div
-      className={`rounded-lg db-panel ${className}`}
-    >
-      {/* Header */}
-      <div
-        className="flex items-center justify-between px-4 py-3 cursor-pointer rounded-t-lg db-section-bg"
-        onClick={() => setIsCollapsed(!isCollapsed)}
-      >
-        <div className="flex items-center gap-2">
-          <FaLink className="db-text-accent" size={14} />
-          <h3 className="text-sm font-semibold db-text">
-            {title}
-          </h3>
-          <span className="px-1.5 py-0.5 text-xs rounded db-surface-alt-text">
-            Admin
-          </span>
-          <span className="text-xs db-text-muted">
-            {totalLinks} {totalLinks === 1 ? "link" : "links"}
-          </span>
-        </div>
-        {isCollapsed ? <FaChevronDown size={12} /> : <FaChevronUp size={12} />}
-      </div>
-
-      {/* Content */}
-      {!isCollapsed && (
-        <div className={`${compact ? "p-2" : "p-4"}`}>
+    <div className={className}>
+      <PanelFrame label={title} defaultCollapsed={defaultCollapsed} badge={totalLinks || undefined}
+        headerActions={<span className="px-1.5 py-0.5 text-xs rounded db-surface-alt-text">Admin</span>}>
+        <div className={compact ? "p-1" : "p-2"}>
           {/* Lineage */}
           <Lineage
             lineage={data?.lineage}
@@ -371,7 +348,7 @@ const RefsPanel: React.FC<RefsPanelProps> = ({
             </details>
           )}
         </div>
-      )}
+      </PanelFrame>
     </div>
   );
 };

@@ -15,12 +15,11 @@
  *
  * @see readmes/topics/document-uploads.md
  */
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useMemo } from "react";
+import { PanelFrame, PanelLabels } from "@/apps/common/components/CollapsiblePanel";
 import { formatDt } from '@/utils/fieldFormatters';
 import {
   FaFile,
-  FaChevronDown,
-  FaChevronUp,
   FaPlus,
   FaTrash,
   FaDownload,
@@ -211,7 +210,6 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
   title = "Documents",
   defaultCollapsed = false,
 }) => {
-  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
@@ -229,6 +227,17 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
   // Can edit only if we have onChange callback AND (parent_model/parentId for API mode OR just onChange for local mode)
   const canEdit = permCanEdit && !!onChange;
   const hasApiPersistence = !!(parent_model && parentId);
+
+  const headerActions = useMemo(() => canEdit ? (
+    <button
+      onClick={() => fileInputRef.current?.click()}
+      disabled={isUploading}
+      className="p-1 rounded disabled:opacity-50 db-text-accent"
+      title="Upload document"
+    >
+      {isUploading ? <FaSpinner className="animate-spin" size={12} /> : <FaPlus size={12} />}
+    </button>
+  ) : null, [canEdit, isUploading]);
 
   if (!canView) return null;
 
@@ -370,51 +379,9 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
     : undefined;
 
   return (
-    <div
-      className={`rounded-lg db-panel ${className}`}
-    >
-      {/* Header */}
-      <div
-        className="flex items-center justify-between px-4 py-3 cursor-pointer rounded-t-lg db-section-bg"
-        onClick={() => setIsCollapsed(!isCollapsed)}
-      >
-        <div className="flex items-center gap-2">
-          <FaFile className="db-text-muted" size={14} />
-          <h3 className="text-sm font-semibold db-text">
-            {title}
-          </h3>
-          {data.length > 0 && (
-            <span className="px-1.5 py-0.5 text-xs rounded-full db-surface-alt-muted">
-              {data.length}
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {canEdit && !isCollapsed && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                fileInputRef.current?.click();
-              }}
-              disabled={isUploading}
-              className="p-1 rounded disabled:opacity-50 db-text-accent"
-              title="Upload document"
-            >
-              {isUploading ? (
-                <FaSpinner className="animate-spin" size={12} />
-              ) : (
-                <FaPlus size={12} />
-              )}
-            </button>
-          )}
-          {isCollapsed ? (
-            <FaChevronDown size={12} />
-          ) : (
-            <FaChevronUp size={12} />
-          )}
-        </div>
-      </div>
-
+    <div className={className}>
+    <PanelFrame label={title} defaultCollapsed={defaultCollapsed} badge={data.length || undefined}
+      headerActions={headerActions}>
       {/* Hidden file input */}
       <input
         ref={fileInputRef}
@@ -426,8 +393,7 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
       />
 
       {/* Content */}
-      {!isCollapsed && (
-        <div className={compact ? "p-2" : "p-4"}>
+        <div className={compact ? "p-1" : "p-2"}>
           {/* Dropzone */}
           {canEdit && (
             <div
@@ -534,14 +500,14 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
           ) : (
             <div>
               {/* Column headers */}
-              <div className="flex items-center gap-3 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider db-surface-alt-muted">
+              <PanelLabels>
                 <span className="w-5 shrink-0" />
                 <span className="min-w-[100px] flex-1">name</span>
                 <span className="w-[70px] shrink-0 text-right">size</span>
                 <span className="w-[90px] shrink-0">date</span>
                 <span className="w-[80px] shrink-0">uploader</span>
                 <span className="shrink-0 w-[52px]" />
-              </div>
+              </PanelLabels>
               {data.map((doc, index) => (
                 <DocumentRow
                   key={doc.id || index}
@@ -555,7 +521,7 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
             </div>
           )}
         </div>
-      )}
+    </PanelFrame>
     </div>
   );
 };
