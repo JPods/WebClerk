@@ -100,6 +100,7 @@ Last updated: 2026-09-03
 | [TypeScript](https://typescriptlang.org) | 5.7.x | Apache-2.0 | Type system |
 | [ESLint](https://eslint.org) | 9.x | MIT | Linting |
 | [Vitest](https://vitest.dev) | 4.x | MIT | Unit testing |
+| [Playwright Test](https://playwright.dev) | 1.64.1 | Apache-2.0 | Panel read sweep: opens every record page's panels in a real browser against the dev backend (`e2e/`) |
 | [vite-plugin-svgr](https://github.com/pd4d10/vite-plugin-svgr) | 4.x | MIT | SVG React component loader |
 
 ---

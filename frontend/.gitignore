@@ -29,3 +29,7 @@ dist-ssr
 * 2
 # switching databases
 tools/dev-config.json
+# Playwright panel sweep output
+e2e/results/
+test-results/
+playwright-report/

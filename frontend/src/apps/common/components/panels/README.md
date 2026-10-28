@@ -254,3 +254,26 @@ import DocumentsPanel from '@/apps/common/components/panels/DocumentsPanel';
 // Column config hook
 import { useListFieldConfig } from '@/hooks/useListFieldConfig';
 ```
+
+---
+
+## The panel read sweep
+
+`npm run sweep:panels` (Playwright, `frontend/e2e/panel-reads.e2e.ts`) opens every record page —
+the newest record of each model plus a few with linked data — clicks every tab, expands every
+panel, selects a line and opens its Inventory / Spec / XRef. It fails on:
+
+- a `/wcapi/` read the backend refuses or fails (the backend refuses filters it does not know)
+- a panel showing its error line (`data-wc-panel-error`)
+- an uncaught page error
+- a write sent by merely opening a page (writes are blocked; read-only POSTs — the record
+  channel's preview commands and `_manage` `get_*`/`check_*` — pass)
+- one address read more than 10 times on one page
+
+It runs against the dev servers already up (vite :5173, Django :8000), signs in as
+claude@jpods.com, and paces itself under the backend's limits (sign-in 10/min, reads 1000/min).
+Results: `frontend/e2e/results/panel-reads.json`. Run it before pushing panel or read changes.
+
+The hooks it uses: `data-wc-panel`, `data-wc-panel-toggle`, `data-wc-collapsed`,
+`data-wc-panel-error` (CollapsiblePanel), `data-wc-tab` (DetailTabs, TabsRenderer),
+`data-wc="line-cards"`, `data-wc-subpanel` (LineCardRenderer). Keep them when changing those.

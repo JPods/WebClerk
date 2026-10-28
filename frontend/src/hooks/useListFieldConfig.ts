@@ -175,7 +175,9 @@ export function useListFieldConfig<T>(
       }
 
       // ── Tier 3: Setting wc:model (system-wide default) ──
-      try {
+      // A panel's key ('panel:…') names no model: nothing to read (it asked parent_model=,
+      // which matches no setting, twice per panel — the panel sweep, 2026-10-28).
+      if (modelName) try {
         const res = await getRecords('setting', {
           parent_model: modelName,
           purpose: 'wc:model',
@@ -202,7 +204,7 @@ export function useListFieldConfig<T>(
       // visibleKeys stays null → effectiveKeys falls back to allKeys
 
       // Load field behaviors
-      try {
+      if (modelName) try {
         const faRes = await getRecords('setting', { parent_model: modelName, purpose: 'wc:field_access' }) as any;
         const faRec = (faRes?.results || [])[0];
         if (faRec?.config?.field_behaviors) setFieldBehaviors(faRec.config.field_behaviors);

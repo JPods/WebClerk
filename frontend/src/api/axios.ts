@@ -215,7 +215,11 @@ export const authClient = axios.create({
 });
 
 const attachAuthInterceptors = (client: AxiosInstance) => {
-  client.interceptors.request.use((config) => {
+  client.interceptors.request.use(async (config) => {
+    // Until the page's first sign-in has answered, a read waits for it: sent without a token it
+    // is refused (401), retried, and counted against the anonymous limit (60 a minute per
+    // address) — the panel sweep, 2026-10-28: every page load sent its first reads unsigned.
+    if (!isValidToken(accessToken)) await bootstrapAuth();
     updateLoading();
     // Add correlation ID and start time for logging
     onRequestStart(config);
@@ -384,7 +388,12 @@ wrapGetWithCache(notionClient);
 /** Return the current in-memory access token (for diagnostics / dev tools). */
 export const getAccessToken = (): string | null => accessToken;
 
-export const bootstrapAuth = async (): Promise<string | null> => {
+/** The page's first sign-in, from the refresh cookie. Once per page: AuthInitializer and every
+ *  read sent before it answers share the one request. */
+let bootstrap: Promise<string | null> | null = null;
+export const bootstrapAuth = (): Promise<string | null> => (bootstrap ??= signInFromCookie());
+
+const signInFromCookie = async (): Promise<string | null> => {
   try {
     const res = await authClient.post(AuthURL.REFRESH_TOKEN, {});
     const body: any = res?.data ?? {};

@@ -62,6 +62,7 @@ const TabsRenderer: React.FC<TabsRendererProps> = ({ section, data, isEditing, m
         {section.tabs.map((tab) => (
           <button
             key={tab.content}
+            data-wc-tab={tab.content}
             onClick={() => onTabChange(tab.content)}
             className={`px-4 py-2 db-font-xs font-medium whitespace-nowrap border-b-2 transition-colors ${
               currentTab === tab.content
@@ -75,6 +76,7 @@ const TabsRenderer: React.FC<TabsRendererProps> = ({ section, data, isEditing, m
         {extraTabs.map((tab) => (
           <button
             key={tab}
+            data-wc-tab={tab}
             onClick={() => onTabChange(tab)}
             className={`px-4 py-2 db-font-xs font-medium whitespace-nowrap border-b-2 transition-colors ${
               currentTab === tab

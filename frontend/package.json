@@ -16,7 +16,8 @@
     "typecheck:applycash": "tsc -p tsconfig.strict.applycash.json --pretty false",
     "sass": "sass ./src:./src/",
     "sass-min": "sass ./src:./src --style compressed",
-    "generate:types": "cd ../webClerk3 && python manage.py generate_ts_types --out ../React2025/src/generated/modelTypes.ts"
+    "generate:types": "cd ../webClerk3 && python manage.py generate_ts_types --out ../React2025/src/generated/modelTypes.ts",
+    "sweep:panels": "playwright test"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",
@@ -49,6 +50,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.19.0",
+    "@playwright/test": "1.64.1",
     "@tailwindcss/postcss": "^4.0.8",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",

@@ -95,7 +95,7 @@ const PanelBodyStatus: React.FC<{ status?: PanelStatus; label: string; children:
   return (
     <>
       {status?.error ? (
-        <div className={STATUS_TEXT} style={{ color: 'var(--db-accent-red, #c92a2a)' }}>
+        <div data-wc-panel-error className={STATUS_TEXT} style={{ color: 'var(--db-accent-red, #c92a2a)' }}>
           {status.error}
           {status.onRetry && (
             <button type="button" className="ml-2 underline" onClick={status.onRetry}>Try again</button>
@@ -132,10 +132,12 @@ const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
   const shownStatus = status ?? declared.status;
 
   return (
-    <div className="bg-[var(--db-surface,#fff)] rounded-lg border border-[var(--db-border,#dee2e6)]">
+    <div data-wc-panel={label} data-wc-collapsed={collapsed || undefined}
+      className="bg-[var(--db-surface,#fff)] rounded-lg border border-[var(--db-border,#dee2e6)]">
       <div className="flex items-center px-3 py-2 hover:bg-[var(--db-surface-alt,#f8f9fa)] transition-colors rounded-t-lg">
         <button
           type="button"
+          data-wc-panel-toggle
           onClick={(e) => {
             if (onRemove && e.altKey && (e.metaKey || e.ctrlKey)) { onRemove(); return; }
             if (collapsible) toggle();

@@ -28,7 +28,6 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
     } else {
       document.documentElement.classList.remove("dark");
     }
-    setUI('theme.active', theme);
   }, [theme]);
 
   // The Font size setting is per theme (theme.<active>.font.size). --wc-font-size is the one place
@@ -42,8 +41,12 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
     return () => window.removeEventListener('wc3-font-size-changed', onChange);
   }, [theme]);
 
+  // Saved only when the viewer changes it. Saving on mount wrote the default ('dark', before the
+  // server's config.ui arrived) over the viewer's saved theme on every fresh browser (2026-10-28).
   const toggleTheme = () => {
-    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+    const next: Theme = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+    setUI('theme.active', next);
   };
 
   return (

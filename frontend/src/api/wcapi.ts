@@ -138,9 +138,23 @@ function getBackendErrorMessage(err: any, fallback: string): string {
 /**
  * The REST channel lives at /wcapi/ — one mount, no fallback.
  */
+/** Reads in flight, by path and params. The same read asked again before the first answers
+ *  shares that answer — a page's panels each read their parent record at once (12 reads of one
+ *  contact on load, the panel sweep 2026-10-28). Nothing is kept after the answer: wcapi reads
+ *  are never cached. */
+const inFlight = new Map<string, Promise<unknown>>();
+
 async function wcapiGet<T>(path: string, config?: any): Promise<T> {
-  const res = await apiClient.get<ApiEnvelope<T>>(`/wcapi/${path}`, config);
-  return res.data.data;
+  const key = `${path}?${JSON.stringify(config?.params ?? {})}`;
+  let read = inFlight.get(key) as Promise<T> | undefined;
+  if (!read) {
+    read = apiClient.get<ApiEnvelope<T>>(`/wcapi/${path}`, config)
+      .then((res) => res.data.data)
+      .finally(() => inFlight.delete(key));
+    inFlight.set(key, read);
+  }
+  // Each caller its own copy: some set fields on what they read (record._contact).
+  return read.then((data) => structuredClone(data));
 }
 
 async function wcapiPost<T>(path: string, body: any, extraHeaders?: Record<string, string>): Promise<T> {

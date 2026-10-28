@@ -197,6 +197,7 @@ interface TabButtonProps {
 const TabButton: React.FC<TabButtonProps> = ({ tab, isActive, onClick }) => (
   <button
     type="button"
+    data-wc-tab={tab.id}
     onClick={onClick}
     className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 whitespace-nowrap ${
       isActive

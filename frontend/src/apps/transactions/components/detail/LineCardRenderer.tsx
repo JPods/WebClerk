@@ -232,16 +232,16 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
             title="Search and add items">+ Item</button>
         )}
         <span className="flex items-center gap-1 font-bold">
-          <button type="button" onClick={() => lc.togglePanel('inventory')}
+          <button type="button" data-wc-subpanel="inventory" onClick={() => lc.togglePanel('inventory')}
             className={`px-1.5 py-0.5 rounded transition-colors ${lc.activePanel === 'inventory' ? 'bg-blue-600 text-white' : 'text-slate-500 dark:text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30'}`}
             title="Inventory lookup (L)">L</button>
-          <button type="button" onClick={() => lc.togglePanel('spec')}
+          <button type="button" data-wc-subpanel="spec" onClick={() => lc.togglePanel('spec')}
             className={`px-1.5 py-0.5 rounded transition-colors ${lc.activePanel === 'spec' ? 'bg-blue-600 text-white' : 'text-slate-500 dark:text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30'}`}
             title="Specification (S)">S</button>
-          <button type="button" onClick={() => lc.togglePanel('xref')}
+          <button type="button" data-wc-subpanel="xref" onClick={() => lc.togglePanel('xref')}
             className={`px-1.5 py-0.5 rounded transition-colors ${lc.activePanel === 'xref' ? 'bg-blue-600 text-white' : 'text-slate-500 dark:text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30'}`}
             title="Cross-references (XR)">XR</button>
-          <button type="button" onClick={() => lc.togglePanel('margin')}
+          <button type="button" data-wc-subpanel="margin" onClick={() => lc.togglePanel('margin')}
             className={`px-1.5 py-0.5 rounded transition-colors ${lc.activePanel === 'margin' ? 'bg-green-600 text-white' : 'text-slate-500 dark:text-slate-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30'}`}
             title="Margin view (M)">M</button>
           {isSellSide && isStaff && (
@@ -548,11 +548,11 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
   );
 
   return (
-    <>
+    <div data-wc="line-cards">
       {lc.viewMode === 'cards' ? cardsView : lc.viewMode === 'detail' ? detailView : listView}
       {lc.imagePopup}
       {lc.itemCard}
-    </>
+    </div>
   );
 };
 

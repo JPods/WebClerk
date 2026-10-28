@@ -23,7 +23,10 @@
  */
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useWindowManager } from "@/context/WindowManagerContext";
+import { useDispatch } from "react-redux";
 import { getRecord, getRecords, saveRecord, createRecord, getModelDetail } from "@/api/wcapi";
+import { usePanelRecords } from "@/hooks/usePanelRecords";
+import { showToast } from "@/store/slices/toastSlice";
 import { DbColumns } from "./DbColumns";
 import type { DbColumnDef } from "./DbColumns";
 import { getModelDetailPath, getModelWindowTitle, getModelWindowPreset } from "./getModelDetailPath";
@@ -288,11 +291,9 @@ export const LinkedRecordsPanel: React.FC<LinkedRecordsPanelProps> = ({
   onRemovePanel,
 }) => {
   const windowManager = useWindowManager();
-  const [records, setRecords] = useState<Rec[]>([]);
+  const dispatch = useDispatch();
   const [linkedIds, setLinkedIds] = useState<number[]>([]);
   const [assigning, setAssigning] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [initialLoadDone, setInitialLoadDone] = useState(false);
   const [settingPanelCols, setSettingPanelCols] = useState<DbColumnDef<Rec>[] | null>(null);
   const [settingLoaded, setSettingLoaded] = useState(false);
   const panelKey = `${parentModel}:${parentId}:${linkedModel}`;
@@ -343,53 +344,34 @@ export const LinkedRecordsPanel: React.FC<LinkedRecordsPanelProps> = ({
     setAssigning(true);
   }, [panelKey]);
 
-  // Load linked record IDs from parent's refs.links.{linkedModel}
-  const loadLinks = useCallback(async () => {
-    try {
-      const res = await getRecord(parentModel, parentId);
-      const parent = res?.record || res;
-      const links = parent?.refs?.links?.[linkedModel] || [];
-      const ids: number[] = links.map((l: any) => typeof l === 'number' ? l : l?.id).filter(Boolean);
-      setLinkedIds(ids);
-      return ids;
-    } catch {
-      return [];
-    }
+  // The linked ids are the parent's refs.links.{linkedModel}; the rows are those records. One
+  // read through the panel hook: a failure shows in the frame (it read as "none linked" before).
+  const readLinked = useCallback(async (): Promise<Rec[]> => {
+    const res = await getRecord(parentModel, parentId);
+    const parent = res?.record || res;
+    const links = parent?.refs?.links?.[linkedModel] || [];
+    const ids: number[] = links.map((l: any) => typeof l === 'number' ? l : l?.id).filter(Boolean);
+    setLinkedIds(ids);
+    if (ids.length === 0) return [];
+    const rows = await getRecords(linkedModel, { id__in: ids.join(','), limit: 100 }) as any;
+    return rows?.results || [];
   }, [parentModel, parentId, linkedModel]);
-
-  // Fetch the actual records by IDs
-  const fetchRecords = useCallback(async (ids: number[]) => {
-    if (ids.length === 0) { setRecords([]); return; }
-    setLoading(true);
-    try {
-      const res = await getRecords(linkedModel, { id__in: ids.join(','), limit: 100 }) as any;
-      setRecords(res?.results || []);
-    } catch { setRecords([]); }
-    setLoading(false);
-  }, [linkedModel]);
-
-  // Initial load
-  useEffect(() => {
-    loadLinks().then(async (ids) => {
-      await fetchRecords(ids);
-      setInitialLoadDone(true);
-    });
-  }, [loadLinks, fetchRecords]);
+  const { records, loading, error, refresh, status } = usePanelRecords<Rec>(linkedModel,
+    { parentModel, parentId, linkedModel }, { read: readLinked });
+  const initialLoadDone = status.empty || records.length > 0 || !!error;
 
   // Reload when refs.links changes (e.g. touch added from ContactPanel)
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
-      if (detail?.model === parentModel && detail?.id === parentId) {
-        loadLinks().then(fetchRecords);
-      }
+      if (detail?.model === parentModel && detail?.id === parentId) refresh();
     };
     window.addEventListener('refs-links-changed', handler);
     return () => window.removeEventListener('refs-links-changed', handler);
-  }, [parentModel, parentId, loadLinks, fetchRecords]);
+  }, [parentModel, parentId, refresh]);
 
-  // Save updated links to parent record
-  const saveLinks = useCallback(async (newIds: number[]) => {
+  // Save updated links to parent record, then read the server again. A refused save says so.
+  const saveLinks = useCallback(async (newIds: number[]): Promise<boolean> => {
     const linkRefs = newIds.map(id => ({ id }));
     try {
       if (linkedModel === 'contact' && ORG_ROLES.includes(parentModel)) {
@@ -403,19 +385,19 @@ export const LinkedRecordsPanel: React.FC<LinkedRecordsPanelProps> = ({
         id: parentId,
         [`refs.links.${linkedModel}`]: linkRefs,
       });
-      setLinkedIds(newIds);
       onLinksChanged?.(newIds);
-    } catch (err) {
-      console.error(`Failed to save ${linkedModel} links:`, err);
+      return true;
+    } catch (err: any) {
+      dispatch(showToast({ message: `Could not save ${linkedModel} links: ${err?.response?.data?.message || err?.message || err}`, type: 'error' }));
+      return false;
+    } finally {
+      refresh();
     }
-  }, [parentModel, parentId, linkedModel, linkedIds, onLinksChanged]);
+  }, [parentModel, parentId, linkedModel, linkedIds, onLinksChanged, dispatch, refresh]);
 
   // Assign an existing record (search → link)
   const handleAssign = useCallback(async (record: Rec) => {
-    const newIds = [...linkedIds, record.id];
-    await saveLinks(newIds);
-    setRecords(prev => [...prev, record]);
-    setAssigning(false);
+    if (await saveLinks([...linkedIds, record.id])) setAssigning(false);
   }, [linkedIds, saveLinks]);
 
   // Create a new record and link it — opens in floating window for editing
@@ -438,25 +420,21 @@ export const LinkedRecordsPanel: React.FC<LinkedRecordsPanelProps> = ({
       const res: any = await createRecord(linkedModel, values);
       const created = res?.id ? { ...(res.record || {}), id: res.id } : null;
       if (created?.id) {
-        const newIds = [...linkedIds, created.id];
-        await saveLinks(newIds);
-        setRecords(prev => [...prev, created]);
+        await saveLinks([...linkedIds, created.id]);
         // Open in floating window — uses App or Admin view per user preference
         const path = getModelDetailPath(linkedModel, created.id);
         const title = getModelWindowTitle(linkedModel, created.id, created.ida);
         const options = getModelWindowPreset(linkedModel);
         windowManager.ensureWindow(path, title, options);
       }
-    } catch (err) {
-      console.error(`Failed to create ${linkedModel}:`, err);
+    } catch (err: any) {
+      dispatch(showToast({ message: `Could not make ${linkedModel}: ${err?.response?.data?.message || err?.message || err}`, type: 'error' }));
     }
-  }, [linkedModel, parentModel, parentId, linkedIds, saveLinks, windowManager]);
+  }, [linkedModel, parentModel, parentId, linkedIds, saveLinks, windowManager, dispatch]);
 
   // Remove a linked record
   const handleRemove = useCallback(async (recordId: number) => {
-    const newIds = linkedIds.filter(id => id !== recordId);
-    await saveLinks(newIds);
-    setRecords(prev => prev.filter(r => r.id !== recordId));
+    await saveLinks(linkedIds.filter(id => id !== recordId));
   }, [linkedIds, saveLinks]);
 
   // Open record in floating window — never navigate current view
@@ -534,6 +512,8 @@ export const LinkedRecordsPanel: React.FC<LinkedRecordsPanelProps> = ({
       key={collapseWhenEmpty ? `${panelKey}-${initialLoadDone}-${records.length > 0}` : panelKey}
       compact
       loading={loading}
+      error={error}
+      onRetry={refresh}
       emptyMessage={`No ${(sectionLabel || linkedModel).toLowerCase()} linked`}
     >
       {missingPanelDef && (

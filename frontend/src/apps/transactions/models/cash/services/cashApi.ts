@@ -74,12 +74,6 @@ export const processGatewayCash = async (
   };
 };
 
-/** Cash methods lookup */
-export const fetchCashMethods = async () => {
-  const res = await getRecords('cash_method', { is_active: true, limit: 50 });
-  return res?.results || [];
-};
-
 /**
  * Add cash from a document (release #9, Bill 2026-09-26): POST /wcapi/<model>/<id>/add_cash/.
  * amount is what the document is paid (+) or credited (−). The Cash is saved, then applied on an
