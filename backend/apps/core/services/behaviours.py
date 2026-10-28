@@ -116,6 +116,17 @@ class SettingBehaviour(ModelBehaviour):
         ctx.obj._setting_update_authorized = True
         ctx.obj._setting_create_authorized = True
 
+    def before_delete(self, ctx: HookContext) -> None:
+        # Bill, 2026-10-28: Settings are the application's structure, protected from deletion
+        # through the normal channel. Removing one is a deliberate act in a migration or a
+        # command, where Setting.delete's own guard is lifted on purpose.
+        from apps.core.services.door import Refused
+        raise Refused(403, 'setting_protected',
+                      'Settings define how the application is built, so they are not deleted '
+                      'from the screen or the API. Change it instead, or ask an administrator '
+                      'to retire it with a migration.',
+                      {'id': getattr(ctx.obj, 'pk', None), 'purpose': getattr(ctx.obj, 'purpose', '')})
+
     def after_save(self, ctx: HookContext) -> None:
         purpose = getattr(ctx.obj, 'purpose', '')
         if purpose in ('wc:workbench_fields', 'wc:model'):

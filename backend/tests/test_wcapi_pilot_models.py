@@ -89,30 +89,17 @@ def test_customer_crud(admin_client):
 
 
 @pytest.mark.django_db
-def test_setting_crud(admin_client):
-    # Create
-    resp = wcapi_save(admin_client, data=json.dumps({
-            "model_name": "setting",
-            "name": "pilot_test_setting",
-            "purpose": "test",
-            "is_active": True,
-        }),
-        content_type="application/json",
-    )
-    assert resp.status_code == 200
-    data = assert_envelope(resp.json(), expect_status="success")
-    sid = data["id"]
-    assert sid is not None
+def test_setting_read_and_protected_delete(admin_client):
+    from tests.conftest import make_setting
+    sid = make_setting(name="pilot_test_setting", purpose="test", is_active=True).id
 
-    # Read
     resp = wcapi_get(admin_client, {"model_name": "setting", "id": sid})
     assert resp.status_code == 200
     data = assert_envelope(resp.json(), expect_status="success")
-    record = data.get("record") or {}
-    assert record.get("id") == sid
+    assert (data.get("record") or {}).get("id") == sid
 
-    # Delete
+    # Settings are structure; the channel refuses their delete (Bill, 2026-10-28)
     resp = admin_client.delete(f"/wcapi/setting/{sid}/")
-    assert resp.status_code == 200
-    data = assert_envelope(resp.json(), expect_status="success")
-    assert data.get("deleted") is True
+    assert resp.status_code == 403
+    assert resp.json()["error"]["code"] == "setting_protected"
+
