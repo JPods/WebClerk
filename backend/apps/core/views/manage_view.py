@@ -813,7 +813,7 @@ def _reassign_project(params):
 
 def _flush_frontend(params):
     """Bump wc-flush so every open browser tab reloads its cached data. Alice calls this
-    after seed_panel_columns or any Setting change that must reach tabs already open."""
+    after seed_layouts or any Setting change that must reach tabs already open."""
     from apps.core.services.frontend_flush import flush_frontend
     return {'flushed': True, 'dt_changed': flush_frontend()['dt_changed'],
             'message': 'Frontend will reload within 60 seconds (or immediately on next poll)'}

@@ -97,7 +97,7 @@ const UiDetailView: React.FC<UiDetailProps> = ({
   const loggedInUserName = authUser?.name || authUser?.email || 'User';
 
   // ── Layout ───────────────────────────────────────────────────────
-  const { layout, loading: layoutLoading } = useDetailLayout(modelName);
+  const { layout, loading: layoutLoading, error: layoutError } = useDetailLayout(modelName);
 
   // ── Record state ─────────────────────────────────────────────────
   const [data, setData] = useState<any>(null);
@@ -370,6 +370,9 @@ const UiDetailView: React.FC<UiDetailProps> = ({
     );
   }
 
+  if (!layout && layoutError) {
+    return <div className="flex items-center justify-center py-20 text-slate-400">{layoutError}</div>;
+  }
   if (!data || !layout) {
     return (
       <div className="flex items-center justify-center py-20 text-slate-400">

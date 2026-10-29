@@ -328,4 +328,4 @@ export function registerPanel(content: string, renderer: PanelRenderer): void {
 }
 
 // Tab declarations live in wc:model Settings (config.layout.form.default → tabs section).
-// The seed script (seed_detail_layouts) writes them. No hardcoded tab config here.
+// seed_layouts writes them (apps/core/layouts). No hardcoded tab config here.

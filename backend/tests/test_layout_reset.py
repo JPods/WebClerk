@@ -5,7 +5,8 @@ from django.utils.crypto import get_random_string
 
 from apps.core.models import Setting
 from apps.core.models.log import Log
-from apps.core.services import access, layouts
+from apps.core import layouts
+from apps.core.services import access
 from apps.core.services.door import Actor, Refused
 from tests.conftest import make_setting
 

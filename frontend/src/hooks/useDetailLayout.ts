@@ -69,42 +69,6 @@ export interface DetailLayout {
   behaviors?: Record<string, any>;
 }
 
-// Default layout for models without form sections
-function defaultLayout(modelName: string): DetailLayout {
-  const isSell = ['order', 'invoice', 'quote'].includes(modelName);
-  return {
-    model: modelName,
-    family: isSell ? 'sell' : 'exec',
-    sections: [
-      {
-        type: 'header',
-        rows: [
-          { fields: ['ida', 'status'], cols: 2 },
-          { fields: ['dt_created', 'dt_modified'], cols: 2 },
-        ],
-      },
-      {
-        type: 'line_card',
-        family: isSell ? 'sell' : 'exec',
-        toolbar: ['L', 'S', 'XR', 'M'],
-        actions: [],
-      },
-      {
-        type: 'tabs',
-        tabs: [
-          { label: 'summary', content: 'summary' },
-          { label: 'actions', content: 'actions' },
-          { label: 'documents', content: 'documents' },
-        ],
-      },
-    ],
-    edit_rules: {
-      locked_statuses: ['completed', 'cancelled', 'void'],
-      status_field: 'status',
-    },
-  };
-}
-
 // Cache layouts by model name
 const layoutCache = new Map<string, DetailLayout>();
 // Expose cache for debugging — window.__wc_layout_cache.clear() to force re-fetch
@@ -115,6 +79,8 @@ export function useDetailLayout(modelName: string) {
     layoutCache.get(modelName) ?? null
   );
   const [loading, setLoading] = useState(!layoutCache.has(modelName));
+  // Every model's form is in its definition (backend apps/core/layouts); one missing is said, not guessed.
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (layoutCache.has(modelName)) {
@@ -164,17 +130,12 @@ export function useDetailLayout(modelName: string) {
           layoutCache.set(modelName, parsed);
           setLayout(parsed);
         } else {
-          console.warn('%c[useDetailLayout] FALLBACK — using defaultLayout!', 'color: red; font-size: 16px; font-weight: bold', debugInfo);
-          const fallback = defaultLayout(modelName);
-          layoutCache.set(modelName, fallback);
-          setLayout(fallback);
+          console.warn('[useDetailLayout] no form for', modelName, debugInfo);
+          setError(`${modelName} has no form in its definition. A staff member can run seed_layouts or reset the form.`);
         }
       } catch (err) {
-        console.error('%c[useDetailLayout] FETCH ERROR', 'color: red; font-size: 16px; font-weight: bold', modelName, err);
-        if (!cancelled) {
-          const fallback = defaultLayout(modelName);
-          setLayout(fallback);
-        }
+        console.error('[useDetailLayout] fetch error', modelName, err);
+        if (!cancelled) setError(`Could not read the ${modelName} form.`);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -186,8 +147,9 @@ export function useDetailLayout(modelName: string) {
   const invalidate = useCallback(() => {
     layoutCache.delete(modelName);
     setLayout(null);
+    setError(null);
     setLoading(true);
   }, [modelName]);
 
-  return { layout, loading, invalidate };
+  return { layout, loading, error, invalidate };
 }

@@ -35,87 +35,6 @@ const PanelSectionRenderer = lazy(() => import('@/apps/transactions/components/d
 const JsonSectionRenderer = lazy(() => import('@/apps/transactions/components/detail/JsonSectionRenderer'));
 
 // ---------------------------------------------------------------------------
-// Default layout sections — card-style headers per model
-// Numbers together, text separate, actions on left.
-// ---------------------------------------------------------------------------
-
-const DEFAULT_SECTIONS: Record<string, any[]> = {
-  action: [
-    { type: 'header', columns: [
-      { title: 'Task', fields: [
-        { field: 'ida', label: 'id', type: 'readonly' },
-        { field: 'action', label: 'action', type: 'json-text' },
-        { field: 'description', label: 'description', type: 'json-text' },
-      ]},
-      { title: 'Assignment', fields: [
-        { field: 'assigned_to', label: 'assigned to', type: 'contact-select' },
-        { field: 'project_name', label: 'project', type: 'readonly' },
-        { field: 'status', label: 'status', type: 'select', options: [
-          { value: 'open', label: 'Open' }, { value: 'in_progress', label: 'In Progress' },
-          { value: 'complete', label: 'Complete' }, { value: 'on_hold', label: 'On Hold' },
-          { value: 'cancelled', label: 'Cancelled' },
-        ]},
-        { field: 'kanban_column', label: 'column' },
-      ]},
-      { title: 'Schedule', fields: [
-        { field: 'priority', label: 'priority', type: 'select', options: [
-          { value: 1, label: '1 - Highest' }, { value: 2, label: '2 - High' },
-          { value: 3, label: '3 - Medium' }, { value: 4, label: '4 - Normal' },
-          { value: 5, label: '5 - Low' }, { value: 6, label: '6 - Lowest' },
-        ]},
-        { field: 'difficulty', label: 'difficulty', type: 'select', options: [
-          { value: 1, label: 'Easy (1)' }, { value: 4, label: 'Average (4)' },
-          { value: 8, label: 'Hard (8)' }, { value: 13, label: 'Complex (13)' },
-          { value: 21, label: 'Expert (21)' },
-        ]},
-        { field: 'percent_complete', label: '% complete', type: 'select', options: [
-          { value: 0, label: '0%' }, { value: 20, label: '20%' },
-          { value: 50, label: '50%' }, { value: 70, label: '70%' },
-          { value: 100, label: '100%' },
-        ]},
-        { field: 'dt_start', label: 'start', type: 'date' },
-        { field: 'dt_deadline', label: 'deadline', type: 'date' },
-        { field: 'dt_completed', label: 'completed', type: 'date' },
-      ]},
-    ]},
-  ],
-  touch: [
-    { type: 'header', columns: [
-      { title: 'Touch', fields: [
-        { field: 'ida', label: 'id', type: 'readonly' },
-        { field: 'channel', label: 'channel', type: 'select', options: [
-          { value: 'call', label: 'Call' }, { value: 'email', label: 'Email' },
-          { value: 'visit', label: 'Visit' }, { value: 'text', label: 'Text' },
-          { value: 'meeting', label: 'Meeting' },
-        ]},
-        { field: 'direction', label: 'direction', type: 'select', options: [
-          { value: 'out', label: 'Outbound' }, { value: 'in', label: 'Inbound' },
-        ]},
-        { field: 'subject', label: 'subject' },
-        { field: 'summary', label: 'summary', type: 'textarea' },
-      ]},
-      { title: 'Result', fields: [
-        { field: 'outcome', label: 'outcome', type: 'select', options: [
-          { value: '', label: '—' }, { value: 'connected', label: 'Connected' },
-          { value: 'voicemail', label: 'Voicemail' }, { value: 'no_answer', label: 'No Answer' },
-          { value: 'bounced', label: 'Bounced' }, { value: 'rescheduled', label: 'Rescheduled' },
-        ]},
-        { field: 'purpose', label: 'purpose' },
-        { field: 'impact', label: 'impact', type: 'number' },
-        { field: 'duration', label: 'duration (min)', type: 'number' },
-        { field: 'plan', label: 'follow-up (days)', type: 'number' },
-      ]},
-      { title: 'People', fields: [
-        { field: 'contact_id', label: 'contact', type: 'readonly' },
-        { field: 'logged_by', label: 'logged by', type: 'readonly' },
-        { field: 'dt_created', label: 'created', type: 'date' },
-        { field: 'dt_next', label: 'next touch', type: 'date' },
-      ]},
-    ]},
-  ],
-};
-
-// ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
@@ -176,7 +95,7 @@ const ModelDetailPage: React.FC<ModelDetailPageProps> = ({
   const logos = useSelector(selectLogos);
   const documentText = useSelector((s: RootState) => (s as any).company?.document_text) || {};
 
-  const { layout, loading: layoutLoading, invalidate: invalidateLayout } = useDetailLayout(modelName);
+  const { layout, loading: layoutLoading, error: layoutError, invalidate: invalidateLayout } = useDetailLayout(modelName);
 
   const [data, setData] = useState<any>(null);
   const [editData, setEditData] = useState<any>(null);
@@ -345,6 +264,9 @@ const ModelDetailPage: React.FC<ModelDetailPageProps> = ({
   if (loading || layoutLoading) {
     return <div className="flex items-center justify-center py-20 text-slate-400">Loading {modelName}...</div>;
   }
+  if (!activeLayout && layoutError) {
+    return <div className="flex items-center justify-center py-20 text-slate-400">{layoutError}</div>;
+  }
   if (!data || !activeLayout) {
     return <div className="flex items-center justify-center py-20 text-slate-400">Record not found</div>;
   }
@@ -356,9 +278,7 @@ const ModelDetailPage: React.FC<ModelDetailPageProps> = ({
     ...Object.fromEntries(Object.entries(COMMUNICATION_FIELDS[modelName])
       .map(([f, c]) => [f, communicationValue(c, editedData)])),
   } : editedData;
-  const sections = activeLayout.sections?.length > 0
-    ? activeLayout.sections
-    : (DEFAULT_SECTIONS[modelName] || []);
+  const sections = activeLayout.sections || [];
 
   // Resolve tabs from layout or defaults
   const tabsSection = sections.find((s: any) => s.type === 'tabs');
@@ -500,14 +420,6 @@ const ModelDetailPage: React.FC<ModelDetailPageProps> = ({
         {/* Render sections: header, line_card, panel (not tabs or json_tree) */}
         {sections.filter((s: any) => s.type !== 'tabs' && s.type !== 'json_tree').map((section: any, idx: number) => renderSection(section, idx))}
 
-        {/* If no header section in layout, render default fallback header */}
-        {!sections.some((s: any) => s.type === 'header') && (
-          <div className="bg-[var(--db-surface,#fff)] dark:bg-slate-800 rounded-lg border border-[var(--db-border,#dee2e6)] dark:border-slate-700 p-3">
-            <div className="text-xs font-bold text-[var(--db-text,#212529)] dark:text-slate-200 mb-2">
-              {data.ida || `${modelName} #${data.id}`}
-            </div>
-          </div>
-        )}
 
         {/* Tabs */}
         {tabs.length > 0 && (

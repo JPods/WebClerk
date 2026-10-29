@@ -1,11 +1,11 @@
-"""Reset one part of a model's layout to the code default (layouts.py). Staff only.
+"""Reset one part of a model's layout to the code default (apps/core/layouts). Staff only.
 
 POST /wcapi/_layout_reset/  {model, part}     part: list, column, detail, form, panel, card, tabs, active
 """
 from rest_framework import status
 from rest_framework.views import APIView
 
-from apps.core.services import layouts
+from apps.core import layouts
 from apps.core.services.door import Actor, Refused
 from common.api_responses import api_response
 

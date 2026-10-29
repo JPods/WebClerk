@@ -518,7 +518,7 @@ export const LinkedRecordsPanel: React.FC<LinkedRecordsPanelProps> = ({
     >
       {missingPanelDef && (
         <div className="px-3 py-2 db-font-xs font-mono" style={{ color: 'var(--db-accent-red, #e05252)', background: 'var(--db-surface-alt)' }}>
-          missing: setting.config.layout.panel for {linkedModel} — run seed_panel_columns or ask Alice
+          missing: setting.config.layout.panel for {linkedModel} — run seed_layouts or ask Alice
         </div>
       )}
       {assigning && (

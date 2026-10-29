@@ -9,7 +9,7 @@ Usage:
     ./bin/python manage.py flush_frontend
 
 When to use:
-    - After seed_panel_columns or any seed_* command
+    - After seed_layouts or any seed_* command
     - After bulk Setting updates
     - During initial setup when pages loaded before Settings existed
     - Alice calls this after detecting missing panel definitions
