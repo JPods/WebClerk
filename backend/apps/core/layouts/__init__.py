@@ -144,6 +144,20 @@ def reset(name: str, part: str, *, actor):
     return default
 
 
+def without_fields(value, names: set):
+    """A definition (or any part of one) with every reference to the named fields taken out —
+    a bare name, a dotted path under one ('end_by.dt') or a field spec {field: …} — for a
+    migration that drops a column."""
+    def named(v):
+        ref = v if isinstance(v, str) else v.get('field') if isinstance(v, dict) else None
+        return isinstance(ref, str) and ref.split('.')[0] in names
+    if isinstance(value, dict):
+        return {k: without_fields(v, names) for k, v in value.items()}
+    if isinstance(value, list):
+        return [without_fields(v, names) for v in value if not named(v)]
+    return value
+
+
 def capture(layouts: dict) -> None:
     """Write {model: layout} into layouts.json (seed_layouts --capture): design work becomes code."""
     global _designed

@@ -171,7 +171,7 @@ export interface ContactApiTask {
   // Auth fields (from AbstractBaseUser)
   is_staff?: boolean;
   is_superuser?: boolean;
-  dt_joined?: string;
+  dt_joined?: number;
   last_login?: string | null;
   // Timestamps & lifecycle
   dt_created?: number;

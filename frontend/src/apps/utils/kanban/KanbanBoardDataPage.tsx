@@ -115,11 +115,7 @@ const rawKanbanData: ApiKanbanItem[] = [
     dt_end: null,
     created_by: null,
     updated_by: null,
-    expected_by: null,
     due_by: null,
-    completed_by: null,
-    start_by: null,
-    end_by: null,
     assigned_to: [],
     linkage: 0,
     kanban_meta: null,
@@ -224,11 +220,7 @@ const rawKanbanData: ApiKanbanItem[] = [
     dt_end: null,
     created_by: null,
     updated_by: null,
-    expected_by: null,
     due_by: null,
-    completed_by: null,
-    start_by: null,
-    end_by: null,
     assigned_to: [
       {
         name: "techno riju",

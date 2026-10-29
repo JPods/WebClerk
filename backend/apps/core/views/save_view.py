@@ -321,15 +321,6 @@ class SaveWcapiView(APIView):
         
         console_logger.info(f"[SAVE_VIEW] Authentication passed for user: {getattr(request.user, 'id', 'unknown')}")
 
-        # Observer mode — read-only users cannot save
-        try:
-            profile = getattr(request.user, 'userprofile', None)
-            if profile and getattr(profile, 'role', '') == 'observer':
-                return api_response(success=False, status_code=403, message='Observer mode — read only',
-                                    error={'code': 'observer_readonly', 'details': 'Demo observer accounts cannot modify data.'})
-        except Exception:
-            pass
-
         # Parse JSON body - use request.data if available (DRF already parsed), fallback to body
         try:
             console_logger.debug(f"[SAVE_VIEW] Parsing JSON body...")

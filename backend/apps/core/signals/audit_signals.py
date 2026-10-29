@@ -99,20 +99,28 @@ def audit_post_save(sender, instance, created, **kwargs):
 
 
 def audit_pre_save(sender, instance, **kwargs):
-    """Pre-save handler that captures current field values before the save."""
-    if not instance.pk:
+    """Pre-save handler: the values the record was loaded with, to diff after the save.
+
+    A record loaded from the database carries them (_original_state, by column), so no query is
+    run (C-15); one without them is read once. A failure is logged and the save goes on unaudited.
+    """
+    if not instance.pk or instance._state.adding:
         return  # New record — nothing to diff against
 
     model_key = _get_model_key(instance)
     if model_key not in AUDITED_MODELS:
         return
 
+    loaded = getattr(instance, '_original_state', None)
+    if loaded:
+        instance._audit_old_values = dict(loaded)
+        return
     try:
         old = type(instance).objects.filter(pk=instance.pk).values().first()
         if old:
             instance._audit_old_values = old
     except Exception:
-        pass
+        logger.exception('audit: could not read %s#%s before its save', model_key, instance.pk)
 
 
 def register_audit_signals():

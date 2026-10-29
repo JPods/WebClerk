@@ -1,3 +1,4 @@
+import copy
 from django.db import models
 import logging
 
@@ -66,12 +67,7 @@ class Action(BaseModel):
 
     # Audit info: who created / updated etc.
     created_by = models.JSONField(blank=True, null=True)
-    start_by = models.JSONField(blank=True, null=True)
-    deadline_by = models.JSONField(blank=True, null=True)
-    expected_by = models.JSONField(blank=True, null=True)
-    completed_by = models.JSONField(blank=True, null=True)
     updated_by = models.JSONField(blank=True, null=True)
-    end_by = models.JSONField(blank=True, null=True)
 
  
 
@@ -171,9 +167,19 @@ class Action(BaseModel):
             roster.append(AssignedPerson.model_validate(person).model_dump())
         self.assigned_to = roster
 
+    def _capture_original_state(self):
+        # The roster and parents as loaded, by value: they are resolved again only when they
+        # change (C-10: a description edit re-resolved every person and parent).
+        super()._capture_original_state()
+        refs = self.refs if isinstance(self.refs, dict) else {}
+        self._roster_at_load = copy.deepcopy(self.assigned_to)
+        self._parents_at_load = copy.deepcopy(refs.get('parents'))
+
     def save(self, *args, **kwargs):
+        adding = self._state.adding
         # assigned_to is a roster; contact_id is its responsible (first) person.
-        self._normalize_roster()
+        if adding or self.assigned_to != self._roster_at_load:
+            self._normalize_roster()
         if self.assigned_to and self.assigned_to[0].get('id'):
             self.contact_id = self.assigned_to[0]['id']
         
@@ -217,7 +223,8 @@ class Action(BaseModel):
         # Enforce parent dependency constraint: dt_start >= max(parent.dt_deadline)
         # If this action has parents in refs.parents[], ensure we don't start before they finish
         refs = getattr(self, 'refs', {}) or {}
-        if isinstance(refs, dict):
+        dates_moved = any(self._original_state.get(f) != getattr(self, f) for f in ('dt_start', 'duration'))
+        if isinstance(refs, dict) and (adding or dates_moved or refs.get('parents') != self._parents_at_load):
             parent_ids = refs.get('parents', [])
             if parent_ids and isinstance(parent_ids, list):
                 from apps.core.models import Action as ActionModel
@@ -306,15 +313,6 @@ class Action(BaseModel):
         if not contact_id:
             contact_id = None
             contact_email = ''
-        for field in changed_fields:
-            if field == 'dt_due':
-                due_by = self.due_by or []
-                due_by.append({'id': contact_id, 'email': contact_email, 'dt': now_ms})
-                self.due_by = due_by
-            elif field == 'dt_end':
-                end_by = self.end_by or []
-                end_by.append({'id': contact_id, 'email': contact_email, 'dt': now_ms})
-                self.end_by = end_by
         if changed_fields:
             updated_by = self.updated_by or []
             updated_by.append({'id': contact_id, 'email': contact_email, 'dt': now_ms})

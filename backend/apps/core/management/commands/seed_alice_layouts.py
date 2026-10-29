@@ -163,7 +163,7 @@ def _field_spec(name, field_info=None):
     elif fl in ('status', 'type', 'category', 'kind', 'org_type', 'kanban_column', 'priority'):
         spec.update(width=100, align='left')
     # Dates
-    elif fl.startswith('dt_') or 'date' in fl or '_dt' in fl or fl in ('deadline_by', 'start_by', 'end_by', 'expected_by', 'completed_by'):
+    elif fl.startswith('dt_') or 'date' in fl or '_dt' in fl:
         spec.update(width=100, align='center', format='date')
     # Booleans
     elif fl.startswith('is_'):

@@ -660,8 +660,7 @@ _JSON_ENVELOPE_FIELDS = {
     'gl_accounts', 'gls', 'tax_code',
     'impact', 'retrospection', 'project_metadata',
     'objective', 'tasks', 'logistics',
-    'created_by', 'start_by', 'deadline_by',
-    'expected_by', 'completed_by', 'updated_by', 'end_by', 'languages',
+    'created_by', 'updated_by', 'languages',
     'path', 'gateway_response',
 }
 _SYSTEM_FIELDS = {
@@ -731,8 +730,7 @@ _ENVELOPE_FIELDS = {'metadata', 'refs', 'prefs', 'config', 'comments', 'actions'
 # Declared explicitly — React does not guess.
 _I18N_FIELDS = {
     'action', 'description', 'assigned_to', 'languages',
-    'created_by', 'start_by', 'deadline_by', 'expected_by',
-    'completed_by', 'updated_by', 'end_by',
+    'created_by', 'updated_by',
 }
 
 

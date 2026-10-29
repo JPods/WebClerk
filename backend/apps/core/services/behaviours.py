@@ -148,7 +148,7 @@ class LogBehaviour(ModelBehaviour):
         from apps.core.models.log import Log
         from apps.core.services.door import Refused
         try:
-            Log.validate_entry(ctx.obj.purpose, ctx.obj.refs)
+            Log.validate_entry(ctx.obj.purpose)
         except ValueError as e:
             raise Refused(400, 'log_refused', str(e), {'purpose': ctx.obj.purpose})
         from apps.core.services.access import LOG_STAFF_ROLES

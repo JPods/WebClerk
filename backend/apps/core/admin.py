@@ -204,17 +204,13 @@ class ActionAdmin(ScalarFirstFieldsetMixin, SchemaLabelsAdminMixin, admin.ModelA
         'actions',
         'assigned_to',
         'comments',
-        'completed_by',
         'created_by',
         'description',
-        'end_by',
-        'expected_by',
         'languages',
         'metadata',
         'prefs',
         'project_metadata',
         'refs',
-        'start_by',
         'updated_by',
     )
     fields = scalar_fields + object_fields

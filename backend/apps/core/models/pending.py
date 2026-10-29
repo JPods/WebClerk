@@ -92,7 +92,7 @@ class Pending(CoreModel):
     dt_processed = models.BigIntegerField(default=0, db_index=True)
     sequence = models.PositiveIntegerField(default=0, help_text="Order within a connection. 0 = unordered.")
     attempts = models.PositiveIntegerField(default=0)
-    changes = models.JSONField(default=list, blank=True)
+    changes = models.JSONField(default=dict, blank=True)
     # What has happened to this Pending since it was made — never its inputs (config) nor
     # its change (changes). incremental_apply: [{dt, qty, unit_cost, layer_id,
     # source_pending_id, gl_journal_ids, variance}] when only part could apply

@@ -45,11 +45,7 @@ export interface ApiKanbanItem {
   dt_end?: string | null;
   created_by?: string | null;
   updated_by?: string | null;
-  expected_by?: string | null;
   due_by?: string | null;
-  completed_by?: string | null;
-  start_by?: string | null;
-  end_by?: string | null;
   assigned_to?: ApiKanbanAssignment[];
   linkage?: number | null;
   project_metadata?: unknown;

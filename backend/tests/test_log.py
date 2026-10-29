@@ -37,12 +37,15 @@ class TestLogWrite:
         Log.write('whatever', 'x')
         assert 'whatever' in select_lists.lists('log')['purpose']
 
-    def test_a_foreign_purpose_needs_its_pointer(self):
-        with pytest.raises(ValueError, match='refs.foreign'):
-            Log.write('foreign_test', 'committed')
-        entry = Log.write('foreign_test', 'committed', refs={'foreign': {
-            'database': 'other_db', 'model': 'app.Model', 'uuid': 'u-1'}})
-        assert entry.refs['foreign']['database'] == 'other_db'
+    def test_who_acted_outlives_the_contact(self, django_user_model):
+        from django.utils.crypto import get_random_string
+        person = django_user_model.objects.create_user(
+            email=f'{get_random_string(8).lower()}@example.com', password=get_random_string(20), role='user')
+        entry = Log.write('audit', 'updated', user=person, model_name='order', record_id=7)
+        person_id = person.pk
+        person.delete()
+        entry.refresh_from_db()
+        assert entry.user_id == person_id
 
     def test_a_written_entry_is_never_changed(self):
         entry = Log.write('alice', 'system', name='a note')

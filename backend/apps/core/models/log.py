@@ -8,13 +8,13 @@ written once and never changed.
 - purpose  why the row was written (CoreModel: "Why this record exists"); the log definition's
            list (config.selectlists.purpose), as every model's
 - action   what happened (update, delete, viewed, mismatch, drill …)
-- user     who is responsible: the person or agent login whose request triggered it (filled
-           from the acting Actor when the caller names no one — Bill, 2026-10-28)
+- user_id  who is responsible: the contact id of the person or agent login whose request
+           triggered it (from the acting Actor when the caller names no one — Bill, 2026-10-28);
+           a value, not a foreign key, so it outlives the contact
 - model_name / record_id  the record it is about
 - config   the content (CoreModel: "type-specific content"): name, changes, details (LogConfig)
 - refs     refs.actor = {kind, source[, connection_id]}: the kind of actor behind it (user, staff,
-           sync, system …) and its channel; refs.foreign = {database, model, uuid} on a foreign_*
-           row: a pointer to a record kept in another database — never a copy
+           sync, system …) and its channel
 - dt_created  when (UTC epoch ms)
 
 Before this, eight places: AuditLog, RefsMismatchLog, APILog, UserDailyLog, SerialLog,
@@ -24,7 +24,6 @@ from __future__ import annotations
 
 import logging
 
-from django.conf import settings
 from django.db import models, transaction
 
 from common.models import CoreModel, RefsMixin
@@ -35,9 +34,9 @@ logger = logging.getLogger(__name__)
 class Log(CoreModel, RefsMixin):
     action = models.CharField(max_length=64, blank=True, db_index=True,
                               help_text="What happened: update, delete, viewed, mismatch, drill …")
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,
-                             blank=True, related_name='logs', db_column='user_id',
-                             help_text="Who: a person or an agent login")
+    # The id as a value, not a foreign key: a deleted contact never erases who acted (C-8).
+    user_id = models.BigIntegerField(null=True, blank=True, db_index=True,
+                                     help_text="Who: the contact id of a person or an agent login")
     model_name = models.CharField(max_length=64, blank=True, default='',
                                   help_text="The record this is about …")
     record_id = models.BigIntegerField(null=True, blank=True, help_text="… and its id")
@@ -47,7 +46,7 @@ class Log(CoreModel, RefsMixin):
         indexes = [
             models.Index(fields=['purpose', 'dt_created']),
             models.Index(fields=['model_name', 'record_id']),
-            models.Index(fields=['user', 'dt_created']),
+            models.Index(fields=['user_id', 'dt_created']),
         ]
 
     def __str__(self):
@@ -62,12 +61,10 @@ class Log(CoreModel, RefsMixin):
         super().save(*args, **kwargs)
 
     @staticmethod
-    def validate_entry(purpose: str, refs: dict | None) -> None:
+    def validate_entry(purpose: str) -> None:
         """What every Log row must be, however it is written (Log.write, or wcapi `new`)."""
         if not purpose:
             raise ValueError('A log entry needs a purpose.')
-        if purpose.startswith('foreign_') and not (refs or {}).get('foreign'):
-            raise ValueError(f"A {purpose} log needs refs.foreign = {{database, model, uuid}}")
 
     @staticmethod
     def responsible(user=None, refs: dict | None = None) -> tuple:
@@ -96,7 +93,7 @@ class Log(CoreModel, RefsMixin):
         Runs in its own savepoint, so a failed write never leaves a caller's transaction
         aborted; the error is raised to the caller.
         """
-        cls.validate_entry(purpose, refs)
+        cls.validate_entry(purpose)
         # The code writes the purposes it needs: a new one joins the log's list (select_lists).
         from apps.core.services import select_lists
         if select_lists.unlisted('log', {'purpose': purpose}):

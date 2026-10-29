@@ -25,6 +25,12 @@ from common.link_mixins import StandardLinksMixin
 from apps.core.choices import CONTACT_ROLE_CHOICES
 from apps.core.services.record_keywords import build_keywords_for_record
 
+
+def now_ms() -> int:
+    """Now, as stored: UTC epoch milliseconds (Axiom 14)."""
+    return int(timezone.now().timestamp() * 1000)
+
+
 # Django requires a custom manager for custom user models.
 # ContactManager inherits from BaseUserManager (from django.contrib.auth.models)
 # and provides create_user and create_superuser methods for authentication.
@@ -166,7 +172,7 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
     )
     is_active = models.BooleanField(default=True, help_text="User account is active")
     is_staff = models.BooleanField(default=False, help_text="User can access admin")
-    dt_joined = models.DateTimeField(default=timezone.now, help_text="Account creation date")
+    dt_joined = models.BigIntegerField(default=now_ms, help_text="Account creation date (UTC epoch ms)")
     # Override AbstractBaseUser.password to allow blank — contacts without login still need records
     password = models.CharField(max_length=128, blank=True, default='', help_text="Hashed password")
     
@@ -203,10 +209,8 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
         return ' '.join(parts) if parts else self.email
     
     def get_short_name(self):
-        """Return short name for display"""
-        if self.name_first:
-            return self.name_first
-        return self.email.split('@')[0]
+        """Short name for display (the admin header calls it); a record-only contact has no email."""
+        return self.name_first or (self.email or '').split('@')[0]
     def _primary_value(self, kind: str, key: str) -> str:
         """The primary record's value, from the cache; one query only when the cache lacks it."""
         entry = self.primary_communication(kind)

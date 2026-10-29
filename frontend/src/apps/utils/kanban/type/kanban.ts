@@ -56,11 +56,7 @@ export interface KanbanTask {
   duration?: number | null;
   created_by?: unknown;
   updated_by?: unknown;
-  expected_by?: unknown;
   due_by?: unknown;
-  completed_by?: unknown;
-  start_by?: unknown;
-  end_by?: unknown;
   project_metadata?: unknown;
   tags?: string[];
   percent_complete?: number;

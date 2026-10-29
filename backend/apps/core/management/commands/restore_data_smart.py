@@ -99,7 +99,6 @@ class Command(BaseCommand):
     FIELD_MAPPINGS = {
         'dt_end': 'dt_deadline',
         'dt_due': 'dt_deadline',
-        'due_by': 'deadline_by',
     }
 
     def get_model_field_info(self, model):

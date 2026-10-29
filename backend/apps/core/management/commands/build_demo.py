@@ -138,7 +138,7 @@ def _insert_contact(cursor, ida, attention, email, company):
                 '', '', '',
                 '', '',
                 '', '', '',
-                '', NOW())
+                '', (extract(epoch from now()) * 1000)::bigint)
         RETURNING id
     """, [str(uuid.uuid4()), ida, attention, email, company, now, now])
     return cursor.fetchone()[0]

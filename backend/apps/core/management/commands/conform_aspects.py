@@ -121,8 +121,7 @@ class Command(BaseCommand):
     AGENT_KEYS = ('source_agent', 'capacity', 'hypothesis_id', 'confidence',
                   'requires_human', 'requires_claude', 'sprint_week', 'claude_prompt',
                   'claude_response', 'claude_usage', 'claude_error', 'result')
-    STAMP_FIELDS = ('created_by', 'updated_by', 'start_by', 'deadline_by',
-                    'expected_by', 'completed_by', 'end_by')
+    STAMP_FIELDS = ('created_by', 'updated_by')
 
     def step_action(self, apply: bool):
         from apps.core.constants.model_registry import MODEL_REGISTRY

@@ -37,8 +37,7 @@ DT_FIELDS = [
 JSON_FIELDS = [
     'config', 'metadata', 'refs', 'prefs', 'actions', 'comments',
     'impact', 'retrospection', 'action', 'description', 'assigned_to',
-    'created_by', 'start_by', 'deadline_by', 'expected_by',
-    'completed_by', 'updated_by', 'end_by', 'project_metadata',
+    'created_by', 'updated_by', 'project_metadata',
 ]
 
 # Header tables and their line children (lines inherit parent's shift)

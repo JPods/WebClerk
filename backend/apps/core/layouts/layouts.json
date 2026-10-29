@@ -545,12 +545,7 @@
      "languages",
      "impact",
      "created_by",
-     "start_by",
-     "deadline_by",
-     "expected_by",
-     "completed_by",
      "updated_by",
-     "end_by",
      "project_metadata",
      "retrospection",
      "dt_created",
@@ -14468,8 +14463,8 @@
       "label": "record_id"
      },
      {
-      "field": "user",
-      "label": "user"
+      "field": "user_id",
+      "label": "user_id"
      }
     ]
    },
@@ -14564,8 +14559,8 @@
           "label": "record_id"
          },
          {
-          "field": "user",
-          "label": "user"
+          "field": "user_id",
+          "label": "user_id"
          }
         ]
        },
@@ -14688,8 +14683,8 @@
       "visible": true
      },
      {
-      "field": "user",
-      "label": "user",
+      "field": "user_id",
+      "label": "user_id",
       "width": 120,
       "visible": true
      }
@@ -14763,7 +14758,7 @@
      "is_active",
      "purpose",
      "status",
-     "user",
+     "user_id",
      "model_name",
      "record_id",
      "comments",

@@ -45,8 +45,7 @@ class ActionSerializer(serializers.ModelSerializer):
             'difficulty', 'status', 'percent_complete', 'burndown',
             'dt_start', 'dt_deadline', 'dt_expected', 'dt_completed',
             'dt_updated', 'duration', 'dt_start_original', 'dt_end_original',
-            'created_by', 'start_by', 'deadline_by', 'expected_by',
-            'completed_by', 'updated_by', 'end_by', 'linkage',
+            'created_by', 'updated_by', 'linkage',
             'project_metadata', 'attachments',
         ]
         read_only_fields = _BASE_RO
