@@ -255,9 +255,9 @@ class TestInventoryLogCheck:
 
 
 @pytest.mark.django_db
-class TestStaffWriteTheirOwnRows:
-    """Bill, 2026-10-28: staff write quiz answers and Alice feedback to the Log and read only
-    the rows they are responsible for; every other purpose is the system's."""
+class TestStaffReadAllWriteTheirOwn:
+    """Bill, 2026-10-28: staff read everyone's quiz answers and Alice feedback and write only
+    their own rows. The purposes are their scope in the log Setting; the rest are the system's."""
 
     @pytest.fixture
     def staff(self, django_user_model):
@@ -287,13 +287,14 @@ class TestStaffWriteTheirOwnRows:
         entry = Log.objects.filter(purpose='quiz').latest('id')
         assert entry.user_id == person.pk and entry.config['details']['question_ida'] == 'q1'
 
-    def test_staff_may_not_write_an_audit_row(self, staff):
+    def test_staff_may_not_write_outside_their_purposes(self, staff):
         _person, client = staff('forger@example.com')
         r = client.post('/wcapi/log/', {'purpose': 'audit', 'action': 'updated'}, format='json')
         assert r.status_code == 403
-        assert r.json()['error']['code'] == 'log_purpose_not_permitted'
+        assert r.json()['error']['code'] == 'outside_scope'
+        assert not Log.objects.filter(purpose='audit', action='updated').exists()
 
-    def test_staff_read_only_their_own_rows(self, staff):
+    def test_staff_read_everyones_rows_of_their_purposes(self, staff):
         me, client = staff('reader@example.com')
         _other, other_client = staff('someone-else@example.com')
         for c in (client, other_client):
@@ -303,4 +304,16 @@ class TestStaffWriteTheirOwnRows:
         r = client.get('/wcapi/log/')
         assert r.status_code == 200, r.content
         seen = {row['id'] for row in r.json()['data']['results']}
-        assert seen == set(Log.objects.filter(purpose='quiz', user_id=me.pk).values_list('id', flat=True))
+        assert seen == set(Log.objects.filter(purpose='quiz').values_list('id', flat=True))
+        assert len(seen) == 2
+
+    def test_staff_change_only_their_own_rows(self, staff):
+        _me, client = staff('editor@example.com')
+        _other, other_client = staff('author@example.com')
+        r = other_client.post('/wcapi/log/', {'purpose': 'quiz', 'action': 'answer'}, format='json')
+        assert r.status_code in (200, 201), r.content
+        theirs = Log.objects.filter(purpose='quiz').latest('id')
+        r = client.patch(f'/wcapi/log/{theirs.pk}/', {'action': 'changed'}, format='json')
+        assert r.status_code == 403, r.content
+        theirs.refresh_from_db()
+        assert theirs.action == 'answer'

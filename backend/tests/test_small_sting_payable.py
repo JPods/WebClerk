@@ -46,7 +46,6 @@ def _set_stings(**block):
     from apps.core.models import Setting
     company = Setting.objects.get(purpose='wc:company_profile')
     company.config = {**company.config, 'small_stings': block}
-    company._setting_update_authorized = True
     company.save()
 
 
@@ -207,7 +206,6 @@ def test_a_sting_that_cannot_post_leaves_nothing_half_made(filer):
     gl = dict(company.config['gl_defaults'])
     gl.pop('small_sting_expense')
     company.config = {**company.config, 'gl_defaults': gl}
-    company._setting_update_authorized = True
     company.save()
     with pytest.raises(Refused) as refused:
         _file(filer)

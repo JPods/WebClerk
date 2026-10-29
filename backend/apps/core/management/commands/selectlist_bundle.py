@@ -238,7 +238,6 @@ def import_selectlists(stdout, style, filepath=None, dry_run=False):
         if not dry_run:
             cfg['selectlists'] = selectlists
             setting.config = cfg
-            setting._setting_update_authorized = True
             setting.save(update_fields=['config'])
 
         stdout.write(f'  {tag}Updated: {ida} — {field_count} fields, {opt_count} options')

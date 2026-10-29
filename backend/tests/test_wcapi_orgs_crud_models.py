@@ -233,7 +233,6 @@ def _viewer(email, role):
                      config={"access": {"roles": roles}})
     else:
         setting.config = {**(setting.config or {}), "access": {"roles": roles}}
-        setting._setting_update_authorized = True
         setting.save()
     access.clear_cache()
     from django.utils.crypto import get_random_string

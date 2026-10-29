@@ -31,22 +31,6 @@ export default function ZoneTooltip() {
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const durationRef = useRef(DEFAULT_DURATION_MS);
 
-  // Load duration from Setting on mount
-  useEffect(() => {
-    (async () => {
-      try {
-        const { getRecords } = await import('@/api/wcapi');
-        const res = await getRecords('setting', { purpose: 'wc:ui', limit: 1 }) as any;
-        const setting = (res?.results || [])[0];
-        if (setting?.config?.zone_tooltip_ms) {
-          durationRef.current = Number(setting.config.zone_tooltip_ms) || DEFAULT_DURATION_MS;
-        }
-      } catch {
-        // no-op
-      }
-    })();
-  }, []);
-
   const clearTimer = useCallback(() => {
     if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
   }, []);

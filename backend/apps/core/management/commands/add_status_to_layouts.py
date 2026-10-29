@@ -133,7 +133,6 @@ class Command(BaseCommand):
             # ── Save ──
             if not dry_run:
                 setting.config = config
-                setting._setting_update_authorized = True
                 setting.save(update_fields=['config', 'dt_modified'])
 
             changed_count += 1

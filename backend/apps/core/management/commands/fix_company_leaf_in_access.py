@@ -98,7 +98,6 @@ class Command(BaseCommand):
             for s, config, new_access, _n in planned:
                 config['access'] = new_access
                 s.config = config
-                s._setting_update_authorized = True   # this command is the authorization
                 s.save(update_fields=['config', 'dt_modified', 'version'])
 
         from apps.core.services import access as access_service

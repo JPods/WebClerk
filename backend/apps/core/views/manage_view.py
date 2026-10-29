@@ -813,44 +813,11 @@ def _reassign_project(params):
 # ---------------------------------------------------------------------------
 
 def _flush_frontend(params):
-    """Bump the system flush timestamp so the frontend poll detects the change.
-
-    Creates/updates a Setting with purpose='wc:system' and ida='wc-flush'.
-    The frontend polls get_bootstrap_dt every 60s — when dt_changed increases,
-    it reloads all cached settings, bootstrap data, and panel definitions.
-
-    Alice calls this after seed_panel_columns or any Setting change that
-    needs to reach already-open browser tabs without a manual reload.
-    """
-    import time
-    from apps.core.models.setting import Setting
-
-    now_ms = int(time.time() * 1000)
-    try:
-        flush_setting = Setting.objects.get(ida='wc-flush')
-        flush_setting.config = {'dt_changed': now_ms}
-        flush_setting.dt_modified = now_ms
-        flush_setting._setting_update_authorized = True
-        flush_setting.save(update_fields=['config', 'dt_modified'])
-        created = False
-    except Setting.DoesNotExist:
-        flush_setting = Setting(
-            ida='wc-flush',
-            name='Frontend Flush Signal',
-            purpose='wc:system',
-            explanation='Timestamp bumped to trigger frontend cache reload',
-            config={'dt_changed': now_ms},
-            dt_modified=now_ms,
-        )
-        flush_setting._setting_update_authorized = True
-        flush_setting.save()
-        created = True
-
-    return {
-        'flushed': True,
-        'dt_changed': now_ms,
-        'message': 'Frontend will reload within 60 seconds (or immediately on next poll)',
-    }
+    """Bump wc-flush so every open browser tab reloads its cached data. Alice calls this
+    after seed_panel_columns or any Setting change that must reach tabs already open."""
+    from apps.core.services.frontend_flush import flush_frontend
+    return {'flushed': True, 'dt_changed': flush_frontend()['dt_changed'],
+            'message': 'Frontend will reload within 60 seconds (or immediately on next poll)'}
 
 
 def _get_bootstrap_dt(params):
@@ -1026,8 +993,6 @@ _ACTION_DISPATCH = {
     "calculate_campaign_roi": lambda p: __import__('apps.transactions.services.campaign_report', fromlist=['calculate_campaign_roi']).calculate_campaign_roi(p['campaign_id']),
     "get_all_campaigns": lambda p: __import__('apps.transactions.services.campaign_report', fromlist=['get_all_campaigns']).get_all_campaigns(),
     "link_transaction_to_campaign": lambda p: __import__('apps.transactions.services.campaign_report', fromlist=['link_transaction_to_campaign']).link_transaction_to_campaign(p['model_name'], p['record_id'], p['campaign_id']),
-    # ── Layout Pending (DataBrowser) ──
-    "save_layout_pending": lambda p: __import__('apps.ai_assistant.services.layout_pending', fromlist=['save_layout_pending']).save_layout_pending(p),
     # ── Journalize (GL Posting) ──
     "journalize_invoice": lambda p: __import__('apps.accounts.services.journalize', fromlist=['journalize_invoice']).journalize_invoice(p['invoice_id'], p.get('ida_prefix', '')),
     "journalize_invoice_and_cash_entries": lambda p: __import__('apps.accounts.services.journalize', fromlist=['journalize_invoice_and_cash_entries']).journalize_invoice_and_cash_entries(p['invoice_id'], p.get('ida_prefix', '')),

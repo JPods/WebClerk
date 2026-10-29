@@ -92,7 +92,6 @@ def test_customer_rules_hide_costs(django_user_model):
     cfg['access'] = {**cfg['access'], 'roles': {**cfg['access']['roles'], 'customer': {
         'view': ['id', 'ida', 'name', 'price.$user.price_level'], 'edit': [], 'scope': {}}}}
     item.config = cfg
-    item._setting_update_authorized = True
     item.save()
     access.clear_cache()
 

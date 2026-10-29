@@ -197,6 +197,5 @@ class Command(BaseCommand):
                 elif key not in config:
                     config[key] = val
             setting.config = config
-            setting._setting_update_authorized = True     # a seed command updates it deliberately
             setting.save(update_fields=['config'])
             self.stdout.write(self.style.SUCCESS(f"Updated shipping_service Setting #{setting.id} (merged new keys)"))

@@ -148,7 +148,7 @@ class Command(BaseCommand):
                 data['related_models'] = []
 
             # Create or update the setting
-            setting, created = Setting.objects.update_or_create(
+            setting, created = Setting.authorized_update_or_create(
                 parent_model=parent_model,
                 purpose=purpose,
                 defaults={'config': data, 'is_active': True}
@@ -212,7 +212,7 @@ class Command(BaseCommand):
                         data['related_models'] = []
 
                     # Create or update setting
-                    setting, created = Setting.objects.update_or_create(
+                    setting, created = Setting.authorized_update_or_create(
                         parent_model=parent_model,
                         purpose=purpose,
                         defaults={'config': data, 'is_active': True}

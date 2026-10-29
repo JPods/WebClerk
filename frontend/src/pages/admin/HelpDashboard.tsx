@@ -87,19 +87,13 @@ export default function HelpDashboard() {
         const dRes = await getRecords('document', { status: 'published', ordering: 'name', limit: 50 }) as any;
         setLocalDocs(dRes?.results || []);
 
-        // Coaching for this model
-        const cRes = await getRecords('setting', { parent_model: model, purpose: 'wc:coaching' }) as any;
-        const cData = (cRes?.results || [])[0]?.data || null;
-        setCoaching(cData);
-
-        // Build glossary from all coaching field_help
-        const allCoaching = await getRecords('setting', { purpose: 'wc:coaching', limit: 50 }) as any;
-        const g: Record<string, string> = {};
-        (allCoaching?.results || []).forEach((s: any) => {
-          const fh = s.config?.field_help || {};
-          Object.entries(fh).forEach(([k, v]) => { g[k] = v as string; });
-        });
-        setGlossary(g);
+        // This model's help lives in its definition (wc:model config.help: fields, tips)
+        if (model) {
+          const mRes = await getRecords('setting', { parent_model: model, purpose: 'wc:model', limit: 1 }) as any;
+          const help = (mRes?.results || [])[0]?.config?.help || {};
+          setCoaching({ field_help: help.fields || {}, tips: help.tips || [] });
+          setGlossary(help.fields || {});
+        }
       } catch { /* silent */ }
       finally { setLoading(false); }
     })();

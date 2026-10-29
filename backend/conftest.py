@@ -32,7 +32,6 @@ def _ensure_company_profile():
     Term.objects.get_or_create(ida="DOR", defaults={"name": "DOR", "description": "Due on Receipt", "days_due": 0, "is_active": True})
     company.config = config
     company._setting_create_authorized = True
-    company._setting_update_authorized = True
     company.save()
 
 
@@ -61,7 +60,6 @@ def _ensure_model_access():
         config["access"] = acc
         s.config = config
         s._setting_create_authorized = True
-        s._setting_update_authorized = True
         s.save()
     access.clear_cache()
 

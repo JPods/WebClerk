@@ -125,7 +125,7 @@ class Command(BaseCommand):
             return
 
         # Look up or create the singleton
-        setting, created = Setting.objects.get_or_create(
+        setting, created = Setting.authorized_get_or_create(
             name='layout_status',
             purpose='wc:admin',
             defaults={'config': {'layouts': layouts}},

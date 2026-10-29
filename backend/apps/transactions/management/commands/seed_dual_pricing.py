@@ -38,7 +38,7 @@ class Command(BaseCommand):
         if options['enable']:
             config['enabled'] = True
 
-        setting, created = Setting.objects.get_or_create(
+        setting, created = Setting.authorized_get_or_create(
             purpose='wc:dual_pricing',
             parent_model='setting',
             defaults={

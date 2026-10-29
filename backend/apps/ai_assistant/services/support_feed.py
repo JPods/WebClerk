@@ -8,8 +8,8 @@ Four services flow through the same telemetry model as episodes:
     3. Support summary — admin dashboard showing support health
     4. Coaching feedback — instances report what's useful back to WCHQ
 
-Coaching content lives in Setting records (purpose='wc:coaching') and
-Document records. Instances pull coaching updates like they pull
+Coaching content is each model's help — its definition's config.help (tips, field help),
+one home (Bill, 2026-10-28) — and Document records. Instances pull coaching updates like they pull
 episode feeds — poll, take what's useful, leave the rest.
 
 Help patterns aggregate from support_qa escalations. When multiple
@@ -38,7 +38,7 @@ def build_coaching_feed(since_ms: int = 0) -> dict:
     """Build the coaching feed — Setting and Document records for distribution.
 
     WCHQ serves this. Instances poll it. Coaching content includes:
-      - Setting records (purpose='wc:coaching') — field help, tips, warnings
+      - each model definition's help (wc:model config.help) — tips, field help
       - Document records (config.purpose='coaching') — how-to guides
       - AlicePreset records (source='wchq') — paved paths
 
@@ -52,17 +52,13 @@ def build_coaching_feed(since_ms: int = 0) -> dict:
 
     now_ms = int(time.time() * 1000)
 
-    # Coaching settings — field help, tips per model
-    settings_qs = Setting.objects.filter(
-        purpose='wc:coaching', is_active=True,
-    )
+    # Each model's help, from its definition
+    models_qs = Setting.objects.filter(purpose='wc:model', is_active=True, config__has_key='help')
     if since_ms:
-        settings_qs = settings_qs.filter(dt_modified__gte=since_ms)
-
-    coaching_settings = []
-    for s in settings_qs.values('uuid', 'ida', 'name', 'config', 'dt_modified'):
-        s['uuid'] = str(s['uuid']) if s['uuid'] else ''
-        coaching_settings.append(s)
+        models_qs = models_qs.filter(dt_modified__gte=since_ms)
+    model_help = [{'model': m['parent_model'], 'help': (m['config'] or {}).get('help') or {},
+                   'dt_modified': m['dt_modified']}
+                  for m in models_qs.values('parent_model', 'config', 'dt_modified')]
 
     # Coaching documents — how-to guides
     docs_qs = Document.objects.filter(
@@ -83,82 +79,48 @@ def build_coaching_feed(since_ms: int = 0) -> dict:
         'version': '1.0',
         'dt_built': now_ms,
         'since_ms': since_ms,
-        'settings': coaching_settings,
+        'help': model_help,
         'documents': coaching_docs,
         'counts': {
-            'settings': len(coaching_settings),
+            'help': len(model_help),
             'documents': len(coaching_docs),
         },
     }
 
 
 def ingest_coaching(feed: dict) -> dict:
-    """Ingest coaching content from WCHQ feed into local instance.
+    """Merge WCHQ's help into this instance's model definitions.
 
-    Upserts by uuid. Local customizations are preserved — WCHQ
-    coaching merges, it doesn't overwrite.
-
-    Args:
-        feed: The coaching feed dict from build_coaching_feed().
-
-    Returns summary.
+    WCHQ coaching merges, it doesn't overwrite: tips are added when their id (or text) is
+    new, field help only for fields with none here. A model this instance does not define
+    is skipped — a feed never creates a model definition.
     """
     from apps.core.models import Setting
 
-    settings = feed.get('settings', [])
-    created = 0
     updated = 0
     skipped = 0
-
-    for s_data in settings:
-        ida = s_data.get('ida', '')
-        if not ida:
+    for entry in feed.get('help', []):
+        incoming = entry.get('help') or {}
+        definition = Setting.objects.filter(purpose='wc:model', parent_model=entry.get('model'),
+                                            is_active=True).first()
+        if definition is None or not isinstance(incoming, dict):
             skipped += 1
             continue
-
-        try:
-            existing = Setting.objects.filter(ida=ida, purpose='wc:coaching').first()
-            if existing:
-                # Merge — don't overwrite local customizations
-                incoming_config = s_data.get('config', {})
-                local_config = existing.config if isinstance(existing.config, dict) else {}
-
-                # Merge tips, field_help, warnings — append new, keep existing
-                for key in ('tips', 'warnings', 'code_examples'):
-                    incoming_items = incoming_config.get(key, [])
-                    local_items = local_config.get(key, [])
-                    # Add items not already present (by text content)
-                    local_texts = {str(item) for item in local_items}
-                    for item in incoming_items:
-                        if str(item) not in local_texts:
-                            local_items.append(item)
-                    local_config[key] = local_items
-
-                # field_help — merge keys, don't overwrite existing
-                incoming_help = incoming_config.get('field_help', {})
-                local_help = local_config.get('field_help', {})
-                for field, help_text in incoming_help.items():
-                    if field not in local_help:
-                        local_help[field] = help_text
-                local_config['field_help'] = local_help
-
-                existing.config = local_config
-                existing.save()
-                updated += 1
-            else:
-                Setting.objects.create(
-                    ida=ida,
-                    name=s_data.get('name', ''),
-                    purpose='wc:coaching',
-                    config=s_data.get('config', {}),
-                )
-                created += 1
-
-        except Exception as e:
-            logger.warning("Coaching ingest failed for %s: %s", ida, e)
-            skipped += 1
-
-    return {'created': created, 'updated': updated, 'skipped': skipped}
+        config = definition.config if isinstance(definition.config, dict) else {}
+        local = config.setdefault('help', {})
+        tips = local.setdefault('tips', [])
+        seen = {t.get('id') or str(t) for t in tips if isinstance(t, dict)}
+        added = [t for t in incoming.get('tips', [])
+                 if isinstance(t, dict) and (t.get('id') or str(t)) not in seen]
+        tips.extend(added)
+        fields = local.setdefault('fields', {})
+        new_fields = {f: h for f, h in (incoming.get('fields') or {}).items() if f not in fields}
+        fields.update(new_fields)
+        if added or new_fields:
+            definition.config = config
+            definition.save(update_fields=['config'])
+            updated += 1
+    return {'updated': updated, 'skipped': skipped}
 
 
 # ── Help Pattern Aggregation ──────────────────────────────────────────
@@ -323,7 +285,7 @@ def get_support_summary(period_days: int = 7) -> dict:
 
     # Coaching coverage
     coaching_settings = Setting.objects.filter(
-        purpose='wc:coaching', is_active=True,
+        purpose='wc:model', is_active=True, config__has_key='help',
     ).count()
 
     # Coaching drills completed this period: Log purpose coaching, action completed or passed
@@ -371,80 +333,47 @@ def get_support_summary(period_days: int = 7) -> dict:
 # ── Coaching Feedback ─────────────────────────────────────────────────
 
 def submit_coaching_feedback(feedback_items: list) -> dict:
-    """Record coaching feedback from an instance.
-
-    Instances report which coaching content was helpful and which wasn't.
-    This creates AliceObservation records for WCHQ to review and
-    optionally pushes upstream via Bundle.
+    """Record coaching feedback from an instance: one Log row per rating (purpose alice,
+    action coaching_feedback), counted when someone asks — never a running total kept in a
+    Setting. A not-helpful rating also raises an AliceObservation for improvement.
 
     Each feedback item:
         {
-            "coaching_ida": "wc:coaching:invoice",
-            "tip_index": 2,              (optional — specific tip)
-            "field": "price",            (optional — specific field help)
+            "model": "invoice",          (the model whose help it rates)
+            "tip_id": "inv-02",          (optional — one tip)
+            "field": "price",            (optional — one field's help)
             "rating": 1,                 (-1 = not helpful, 0 = neutral, 1 = helpful)
             "comment": "...",            (optional)
         }
-
-    Args:
-        feedback_items: List of feedback dicts.
-
-    Returns summary.
     """
     from apps.ai_assistant.models.alice import AliceObservation
-    from apps.core.models import Setting
+    from apps.core.models.log import Log
 
     recorded = 0
     skipped = 0
-
     for item in feedback_items:
-        coaching_ida = item.get('coaching_ida', '')
+        model = item.get('model', '')
         rating = item.get('rating', 0)
-
-        if not coaching_ida or rating not in (-1, 0, 1):
+        if not model or rating not in (-1, 0, 1):
             skipped += 1
             continue
-
-        # Update the coaching Setting's feedback counters
-        setting = Setting.objects.filter(
-            ida=coaching_ida, purpose='wc:coaching', is_active=True,
-        ).first()
-
-        if setting:
-            config = setting.config if isinstance(setting.config, dict) else {}
-            feedback = config.get('feedback', {'helpful': 0, 'not_helpful': 0, 'neutral': 0})
-
-            if rating == 1:
-                feedback['helpful'] = feedback.get('helpful', 0) + 1
-            elif rating == -1:
-                feedback['not_helpful'] = feedback.get('not_helpful', 0) + 1
-            else:
-                feedback['neutral'] = feedback.get('neutral', 0) + 1
-
-            config['feedback'] = feedback
-            setting.config = config
-            setting.save(update_fields=['config'])
-
-        # Create observation for negative feedback (signal for improvement)
+        Log.write('alice', 'coaching_feedback', model_name=model,
+                  name=f"coaching_feedback:{model}",
+                  details={k: item.get(k) for k in ('tip_id', 'field', 'rating', 'comment')
+                           if item.get(k) is not None})
         if rating == -1:
-            tip_detail = ''
-            if item.get('tip_index') is not None:
-                tip_detail = f" tip #{item['tip_index']}"
-            if item.get('field'):
-                tip_detail = f" field_help[{item['field']}]"
-
+            target = (f" tip {item['tip_id']}" if item.get('tip_id')
+                      else f" field help [{item['field']}]" if item.get('field') else '')
             AliceObservation.objects.create(
                 category='coaching',
                 source='alice',
                 priority=0,
-                message=f"Coaching feedback: {coaching_ida}{tip_detail} rated not helpful",
+                message=f"Coaching feedback: {model}{target} rated not helpful",
                 detail=item.get('comment', ''),
-                target_model='Setting',
-                dedup_key=f"cf-{coaching_ida}-{item.get('tip_index', '')}-{item.get('field', '')}",
+                target_model=model,
+                dedup_key=f"cf-{model}-{item.get('tip_id', '')}-{item.get('field', '')}",
             )
-
         recorded += 1
-
     return {'recorded': recorded, 'skipped': skipped}
 
 

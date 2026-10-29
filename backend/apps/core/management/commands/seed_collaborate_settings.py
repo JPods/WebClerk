@@ -234,7 +234,7 @@ class Command(BaseCommand):
     help = "Seed the Collaborate_WebClerk Setting record"
 
     def handle(self, *args, **options):
-        setting, created = Setting.objects.get_or_create(
+        setting, created = Setting.authorized_get_or_create(
             purpose='wc:collaborate',
             parent_model='setting',
             defaults={

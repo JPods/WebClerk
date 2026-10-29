@@ -186,6 +186,7 @@ export function useListFieldConfig<T>(
         const setting = res?.results?.[0] ?? res?.records?.[0];
         if (setting) {
           setSettingId(setting.id);
+          if (setting.config?.behaviors) setFieldBehaviors(setting.config.behaviors);
           if (!resolved) {
             const layout = setting?.config?.layout?.list?.default as ListLayoutDefault | undefined;
             const parsed = parseLayout(layout);
@@ -202,13 +203,6 @@ export function useListFieldConfig<T>(
 
       // ── Tier 4: hardcoded defaults (allColumns as-is) ──
       // visibleKeys stays null → effectiveKeys falls back to allKeys
-
-      // Load field behaviors
-      if (modelName) try {
-        const faRes = await getRecords('setting', { parent_model: modelName, purpose: 'wc:field_access' }) as any;
-        const faRec = (faRes?.results || [])[0];
-        if (faRec?.config?.field_behaviors) setFieldBehaviors(faRec.config.field_behaviors);
-      } catch { /* no behaviors */ }
 
       setLoaded(true);
     })();

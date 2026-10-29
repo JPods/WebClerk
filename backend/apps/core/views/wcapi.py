@@ -21,7 +21,6 @@ from apps.core.services import record_serialize as services
 from apps.core.services.door import Actor
 from apps.core.constants.filter_operators import ALLOWED_LOOKUPS
 from apps.core.services.field_projection import filter_response_data
-from apps.core.utils import policy
 from apps.core.utils.registry import resolve, get as get_registry_config
 from common.api_responses import api_response
 

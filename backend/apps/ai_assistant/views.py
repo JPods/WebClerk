@@ -342,7 +342,6 @@ class DiagnoseView(APIView):
     def _check_celery_tasks(self):
         expected = [
             'apps.ai_assistant.tasks.alice_schema_watch_task',
-            'apps.ai_assistant.tasks.apply_pending_layouts_task',
             'apps.ai_assistant.tasks.data_cleanup_task',
             'apps.ai_assistant.tasks.health_scoring_task',
             'apps.ai_assistant.tasks.json_optimize_task',
@@ -493,7 +492,7 @@ class DeviceStatusView(APIView):
         data['stress_rating'] = self._compute_stress(data)
         data['dt_updated'] = _utc_now_iso()
 
-        setting, created = Setting.objects.update_or_create(
+        setting, created = Setting.authorized_update_or_create(
             purpose='device_status',
             parent_model='system',
             defaults={
@@ -1553,13 +1552,13 @@ class CoachingFeedbackView(APIView):
     Body: {
         "feedback": [
             {
-                "coaching_ida": "wc:coaching:invoice",
-                "tip_index": 2,
+                "model": "invoice",
+                "tip_id": "inv-02",
                 "rating": 1,
                 "comment": "Clear and helpful"
             },
             {
-                "coaching_ida": "wc:coaching:order",
+                "model": "order",
                 "field": "shipping_method",
                 "rating": -1,
                 "comment": "Outdated — we use a different carrier now"

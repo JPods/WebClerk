@@ -223,7 +223,7 @@ class Command(BaseCommand):
         from apps.core.models import Setting
 
         with transaction.atomic():
-            setting, created = Setting.objects.get_or_create(
+            setting, created = Setting.authorized_get_or_create(
                 name='country_master',
                 purpose='wc:system',
                 defaults={

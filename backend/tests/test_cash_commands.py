@@ -432,7 +432,6 @@ def test_a_rep_cannot_charge_another_reps_invoice(db):
         acc['roles'] = {**(acc.get('roles') or {}), 'rep': block}
         config['access'] = acc
         setting.config = config
-        setting._setting_update_authorized = True
         setting._setting_create_authorized = True
         setting.save()
     access.clear_cache()

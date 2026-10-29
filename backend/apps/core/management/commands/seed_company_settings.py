@@ -152,7 +152,7 @@ class Command(BaseCommand):
     help = "Seed the company profile Setting record"
 
     def handle(self, *args, **options):
-        setting, created = Setting.objects.get_or_create(
+        setting, created = Setting.authorized_get_or_create(
             purpose='wc:company_profile',
             parent_model='setting',
             defaults={

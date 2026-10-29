@@ -48,7 +48,7 @@ class Command(BaseCommand):
     help = "Seed the cash gateway Setting record"
 
     def handle(self, *args, **options):
-        setting, created = Setting.objects.get_or_create(
+        setting, created = Setting.authorized_get_or_create(
             purpose='wc:cash_gateway',
             parent_model='setting',
             defaults={

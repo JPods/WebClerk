@@ -4,7 +4,7 @@ from decimal import Decimal
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 from django.forms.models import model_to_dict
 from django.db.models import Model, QuerySet
-from apps.core.utils import registry, policy
+from apps.core.utils import registry
 
 #: Fields no response ever carries, whatever a role may view. The password hash was served
 #: to every caller who could view a contact (FAULT 20261017T023030); whether someone has
@@ -147,8 +147,6 @@ def get_queryset(model_key: str, *, actor) -> Tuple[type[Model], QuerySet]:
     # Prefetch lines for transaction models
     if normalized_key in {'quote', 'order', 'invoice', 'purchase', 'workorder'}:
         qs = qs.prefetch_related('lines')
-
-    qs = policy.inject_constraints(qs, actor=actor, model_key=model_key)
     return ModelCls, qs
 
 def visible_queryset(model_key: str, *, actor) -> Tuple[type[Model], QuerySet]:

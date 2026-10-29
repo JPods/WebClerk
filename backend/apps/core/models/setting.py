@@ -7,13 +7,8 @@ from apps.core.constants.model_registry import VALID_MODEL_NAMES, get_model_meta
 
 
 class Setting(BaseModel):
-    """Configuration record — stores layouts, defaults, field access, and behavior rules.
-
-    Hierarchy (most specific wins):
-      user (contact_id) → role → org (org_id) → system (scope='system')
-
-    Use resolve_setting() to walk the chain and get the effective value.
-    """
+    """Configuration record — stores layouts, defaults, field access, and behavior rules:
+    the structure of the application, not its data (Bill, 2026-10-28)."""
     # config is as big as its users need — layouts and access lists grow with use
     # (Bill, 2026-10-24); the 2 MB request limit is the only ceiling.
     json_cap_overrides = {'config': None}
@@ -44,16 +39,18 @@ class Setting(BaseModel):
 
     class Meta:
         db_table = 'settings'
+        # One model definition per model: access.py, journalize and the browser read the
+        # first wc:model row for a model, so a second one would be silently ignored.
         constraints = [
             models.UniqueConstraint(
                 fields=['parent_model', 'purpose'],
                 condition=(
-                    Q(purpose='wc:list_column_config')
+                    Q(purpose='wc:model')
                     & Q(is_active=True)
                     & Q(parent_model__isnull=False)
                     & ~Q(parent_model='')
                 ),
-                name='uniq_active_list_column_config_parent_model',
+                name='uniq_active_wc_model_parent_model',
             ),
         ]
 
@@ -72,15 +69,15 @@ class Setting(BaseModel):
         # Store canonical singular key
         self.parent_model = meta.key
     
-    # ── WALL: Settings are NEVER bulk-modified ──
-    # These records represent days of careful refinement — layouts, behaviors,
-    # selectlists, schema maps. Any process that wants to create, modify, or
-    # delete Setting records must set the appropriate authorization flag:
-    #   _setting_update_authorized = True  (config changes on existing records)
+    # ── WALL: Settings define how the application is built ──
+    # Creating or deleting one is deliberate: code must set the flag first, or the
+    # operation is rejected with a ValidationError.
     #   _setting_create_authorized = True  (creating new records)
     #   _setting_delete_authorized = True  (deleting records)
-    # Without these flags, the operation is rejected with a ValidationError.
-    _setting_update_authorized = False
+    # Changing one is the door's to authorize (SettingBehaviour, a superuser only);
+    # there is no second guard here (Setting audit S-1, 2026-10-28). Migrations write
+    # Settings with queryset.update(), which skips save() and its checks: fine in a
+    # migration, never in a service.
     _setting_create_authorized = False
     _setting_delete_authorized = False
 
@@ -105,26 +102,6 @@ class Setting(BaseModel):
                 'Set record._setting_create_authorized = True before save().'
             )
 
-        # Guard: block unauthorized config changes on existing records
-        if self.pk and not self._setting_update_authorized:
-            update_fields = kwargs.get('update_fields')
-            if update_fields and 'config' in update_fields:
-                # Check if config actually changed
-                try:
-                    orig = Setting.objects.filter(pk=self.pk).values_list('config', flat=True).first()
-                    if orig is not None and orig != self.config:
-                        logger.warning(
-                            'BLOCKED: unauthorized config change on Setting #%s (%s). '
-                            'Set _setting_update_authorized=True to proceed.',
-                            self.pk, self.name or self.ida,
-                        )
-                        raise ValidationError(
-                            'Setting.config changes require explicit authorization. '
-                            'Set record._setting_update_authorized = True before save().'
-                        )
-                except Setting.DoesNotExist:
-                    pass
-
         # Use full_clean to include clean() and field validation
         try:
             self.full_clean()
@@ -144,8 +121,6 @@ class Setting(BaseModel):
                 raise ValidationError(str(e))
 
         result = super().save(*args, **kwargs)
-        # Reset flags after save
-        self._setting_update_authorized = False
         self._setting_create_authorized = False
         return result
 
@@ -172,6 +147,24 @@ class Setting(BaseModel):
         obj._setting_create_authorized = True
         obj.save()
         return obj
+
+    @classmethod
+    def authorized_get_or_create(cls, defaults=None, **lookup):
+        """get_or_create for a seed or command that creates its Setting on purpose."""
+        obj = cls.objects.filter(**lookup).first()
+        if obj is not None:
+            return obj, False
+        return cls.authorized_create(**lookup, **(defaults or {})), True
+
+    @classmethod
+    def authorized_update_or_create(cls, defaults=None, **lookup):
+        """update_or_create for a seed or command that creates its Setting on purpose."""
+        obj, created = cls.authorized_get_or_create(defaults=defaults, **lookup)
+        if not created and defaults:
+            for field, value in defaults.items():
+                setattr(obj, field, value)
+            obj.save()
+        return obj, created
 
     # Treat "comment" as a virtual field backed by data["comment"]
     @property

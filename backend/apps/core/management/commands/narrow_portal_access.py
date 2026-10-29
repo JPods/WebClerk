@@ -71,7 +71,6 @@ class Command(BaseCommand):
                     raise CommandError(f'{setting.parent_model}: {problems}')
                 config['access'] = acc
                 setting.config = config
-                setting._setting_update_authorized = True
                 try:
                     setting.save(update_fields=['config'])
                 except ValidationError as exc:

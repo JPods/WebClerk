@@ -26,7 +26,6 @@ def _grant_sales_on_orders():
                               'scope': {}, 'create': True, 'delete': False}}
     config['access'] = acc
     setting.config = config
-    setting._setting_update_authorized = True
     setting.save(update_fields=['config'])
     access.clear_cache()
 

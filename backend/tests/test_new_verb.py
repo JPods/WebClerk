@@ -27,7 +27,6 @@ def _defaults(model, defaults):
     if setting is None:
         setting = Setting(purpose='wc:model', parent_model=model, name=model, config={})
     setting.prefs = {**(setting.prefs or {}), 'defaults': defaults}
-    setting._setting_update_authorized = True
     setting._setting_create_authorized = True
     setting.save()
 

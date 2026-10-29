@@ -182,7 +182,7 @@ class Command(BaseCommand):
             return
 
         # ── Persist setting ──────────────────────────────────────────────
-        setting, created = Setting.objects.get_or_create(
+        setting, created = Setting.authorized_get_or_create(
             name='popup_choices',
             purpose='wc:admin',
             defaults={'config': data},

@@ -88,7 +88,6 @@ def test_a_rep_holds_the_sales_field_lists_not_a_narrower_copy():
     acc['roles'] = roles
     config['access'] = acc
     setting.config = config
-    setting._setting_update_authorized = True
     setting.save(update_fields=['config'])
     access.clear_cache()
 
@@ -132,7 +131,6 @@ def test_a_rep_can_price_what_they_quote_and_writes_nothing_to_items():
     acc['roles'] = roles
     config['access'] = acc
     setting.config = config
-    setting._setting_update_authorized = True
     setting.save(update_fields=['config'])
     access.clear_cache()
 

@@ -32,7 +32,6 @@ def company_profile(db):
                "inventory": {"do_serial_nums": True},
                "commissions": {"rate": 0.1}, "fiscal": {"year_start": "01-01"},
                "document_text": {"invoice_comment": "Thank you"}}
-    s._setting_update_authorized = True
     s.save()
     return s
 
@@ -128,7 +127,6 @@ def test_missing_exposure_section_fails_closed(company_profile):
     config = dict(s.config)
     config.pop("bootstrap_exposure")
     s.config = config
-    s._setting_update_authorized = True
     s.save()
     p = _payload(_get(_user("staff3@example.com", staff=True)))
     assert set(p) == {"_version"}

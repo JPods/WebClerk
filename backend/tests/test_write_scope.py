@@ -33,7 +33,6 @@ def _grant_rep_on_orders():
                             'scope': REP_SCOPE['order']}}
     config['access'] = acc
     setting.config = config
-    setting._setting_update_authorized = True
     setting.save(update_fields=['config'])
     access.clear_cache()
 
@@ -116,7 +115,6 @@ def _grant_rep(model_key, fields):
                             'scope': REP_SCOPE[model_key]}}
     config['access'] = acc
     setting.config = config
-    setting._setting_update_authorized = True
     setting.save(update_fields=['config'])
     access.clear_cache()
 
@@ -192,7 +190,6 @@ def test_a_rep_converts_their_quote_and_the_order_keeps_what_they_cannot_type(wo
                             'scope': REP_SCOPE['quote']}}
     config['access'] = acc
     setting.config = config
-    setting._setting_update_authorized = True
     setting.save(update_fields=['config'])
     access.clear_cache()
 

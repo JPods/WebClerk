@@ -93,7 +93,6 @@ def set_primary_org(org: OrgBase, *, actor=None) -> Setting:
             parent_model=PRIMARY_ORG_SETTING_PARENT_MODEL,
         )
         setting._setting_create_authorized = True
-    setting._setting_update_authorized = True
     setting.role = "system"
     setting.is_active = True
     setting.config = payload

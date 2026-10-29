@@ -35,6 +35,7 @@ never act as superuser, and every act-as is logged.
 from __future__ import annotations
 
 import logging
+import time
 from typing import Optional
 
 from django.db.models import Q
@@ -60,7 +61,12 @@ ACT_AS_REQUEST_ATTR = 'wc_act_as'
 
 BLOCK_KEYS = {'view', 'edit', 'scope', 'edit_scope', 'create', 'delete'}
 
-_cache: dict[str, dict] = {}
+#: model key -> (fingerprint of config.access, when last checked, {role: block}). Each server
+#: process keeps its own, so a change made in one process is seen by the others when they
+#: next check the fingerprint (Setting audit S-4, 2026-10-28): at most REVALIDATE_S later.
+_cache: dict[str, tuple[str, float, dict]] = {}
+REVALIDATE_S = 1.0
+_ACCESS_MD5 = "md5(coalesce(config->'access', 'null'::jsonb)::text)"
 
 
 # ── Role ────────────────────────────────────────────────────────────────
@@ -269,12 +275,20 @@ def model_access(name: str) -> dict:
     key = model_key(name)
     if key is None:
         return {}
-    if key not in _cache:
-        from apps.core.models.setting import Setting
-        s = (Setting.objects.filter(purpose='wc:model', parent_model=key)
-             .only('config').first())
-        _cache[key] = resolve_roles((s.config or {}).get('access') or {}) if s else {}
-    return _cache[key]
+    now = time.monotonic()
+    hit = _cache.get(key)
+    if hit and now - hit[1] < REVALIDATE_S:
+        return hit[2]
+    from apps.core.models.setting import Setting
+    rows = Setting.objects.filter(purpose='wc:model', parent_model=key).order_by('id')
+    fingerprint = rows.extra(select={'v': _ACCESS_MD5}).values_list('v', flat=True).first() or ''
+    if hit and hit[0] == fingerprint:
+        roles = hit[2]
+    else:
+        s = rows.only('config').first()
+        roles = resolve_roles((s.config or {}).get('access') or {}) if s else {}
+    _cache[key] = (fingerprint, now, roles)
+    return roles
 
 
 def block_for(actor, name: str) -> Optional[dict]:
@@ -353,15 +367,17 @@ PORTAL_CUSTOMER_ACCESS = {
                       'metadata.images.md', 'metadata.images.hr'],
              'edit': [], 'scope': {}, 'create': False, 'delete': False},
 }
-#: Staff below admin and the Log (Bill, 2026-10-28): they write rows for the purposes in
-#: LOG_STAFF_PURPOSES (LogBehaviour refuses the rest) and read only the rows they are
-#: responsible for. Admin, agent and superuser keep the whole Log.
+#: Staff below admin and the Log (Bill, 2026-10-28): they read everyone's rows of the purposes
+#: their scope names and write or change only their own (LogBehaviour makes the writer the
+#: responsible person). The purposes are the log wc:model Setting's to change, not the code's.
+#: Admin, agent and superuser keep the whole Log.
 LOG_STAFF_ROLES = tuple(r for r in STAFF_ROLES if r not in ('superuser', 'admin', 'agent'))
 STAFF_LOG_ACCESS = {
     'view': ['id', 'ida', 'dt_created', 'purpose', 'action', 'model_name', 'record_id',
              'config.name', 'config.details', 'user_id'],
     'edit': ['purpose', 'action', 'model_name', 'record_id', 'config.name', 'config.details'],
-    'scope': {'user_id': '$user.contact_id'},
+    'scope': {'purpose__in': ['alice', 'quiz']},
+    'edit_scope': {'user_id': '$user.contact_id'},
     'create': True, 'delete': False,
 }
 

@@ -222,7 +222,6 @@ def test_undeclared_target_refused_at_run(db, registry, invoice):
     caller = make_report('RPT-A3', {'point': 'invoice.save_post', 'after': [{'run_report': 'RPT-B'}]})
     registry.config = {'points': {**POINTS, 'invoice.save_post': {
         **POINTS['invoice.save_post'], 'may_run': []}}}
-    registry._setting_update_authorized = True
     registry.save()
 
     result = rh.run_phase(caller, 'after', record=invoice)
@@ -386,7 +385,6 @@ LOG_POINTS = {**POINTS, 'invoice.save_post': {**POINTS['invoice.save_post'],
 @pytest.fixture
 def log_registry(registry):
     registry.config = {'points': LOG_POINTS}
-    registry._setting_update_authorized = True
     registry.save()
     return registry
 

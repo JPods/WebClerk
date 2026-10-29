@@ -103,6 +103,10 @@ SETTING_PURPOSE_CHOICES: Final[ChoiceList] = (
     ("wc:react_settings", "wc:react_settings"),
     ("seed", "seed"),
     ("wc:system", "wc:system"),
+    # Structure without a model (Bill, 2026-10-28): one record each
+    ("device_status", "device_status"),
+    ("wc:test_parade", "wc:test_parade"),
+    ("wc:page_help", "wc:page_help"),
     ("wc:feature", "wc:feature"),
     ("wc:schema_map", "wc:schema_map"),
     ("calculated_function", "calculated_function"),
@@ -142,9 +146,6 @@ LOG_PURPOSE_CHOICES: Final[ChoiceList] = (
     ("quiz", "Quiz — a person's answer to a training question"),
 )
 LOG_PURPOSES: Final[frozenset[str]] = frozenset(k for k, _ in LOG_PURPOSE_CHOICES)
-#: What staff write themselves (Bill, 2026-10-28: own rows, named purposes). Every other
-#: purpose is written by the system; admin, agent and superuser are not limited.
-LOG_STAFF_PURPOSES: Final[frozenset[str]] = frozenset({"quiz", "alice"})
 
 
 DEFAULT_SELECT_LISTS: Final[dict[str, dict[str, ChoiceList]]] = {

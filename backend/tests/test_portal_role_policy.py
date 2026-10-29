@@ -52,7 +52,6 @@ def item_policy(db):
                                   'edit': STAFF_EDIT, 'scope': {}},
                 }}}
     s._setting_create_authorized = True
-    s._setting_update_authorized = True
     s.save()
     access.clear_cache()
     yield s
@@ -173,7 +172,6 @@ class TestPositiveList:
     def test_guard_refuses_a_wildcard(self, item_policy):
         from django.core.exceptions import ValidationError
         item_policy.config['access']['roles']['vendor']['view'] = ['*']
-        item_policy._setting_update_authorized = True
         with pytest.raises(ValidationError):
             item_policy.save()
 

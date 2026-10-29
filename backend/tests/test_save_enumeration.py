@@ -41,12 +41,10 @@ def order_policy(db):
                                                         'lines.quantity.active'],
                              'scope': {}, 'create': True},
             }}})
-    s._setting_update_authorized = True
     s.save(update_fields=['config'])
     access.clear_cache()
     yield s
     s.config = before
-    s._setting_update_authorized = True
     s.save(update_fields=['config'])
     access.clear_cache()
 

@@ -150,7 +150,7 @@ class Command(BaseCommand):
             
             try:
                 with transaction.atomic():
-                    setting, was_created = Setting.objects.update_or_create(
+                    setting, was_created = Setting.authorized_update_or_create(
                         purpose='wc:qa_questions',
                         name=group_name,
                         defaults={
@@ -177,7 +177,7 @@ class Command(BaseCommand):
         if not dry_run:
             try:
                 with transaction.atomic():
-                    counters, was_created = Setting.objects.update_or_create(
+                    counters, was_created = Setting.authorized_update_or_create(
                         purpose='wc:qa_counters',
                         defaults={
                             'name': 'counters',

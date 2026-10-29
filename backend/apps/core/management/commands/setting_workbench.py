@@ -21,7 +21,7 @@ class Command(BaseCommand):
                 'list': list_fields,
                 'detail': detail_fields
             }
-            setting, created = Setting.objects.get_or_create(
+            setting, created = Setting.authorized_get_or_create(
                 parent_model=model_name,
                 purpose="wc:workbench_fields",
                 defaults={'config': data}

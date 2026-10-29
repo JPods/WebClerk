@@ -322,7 +322,6 @@ class Command(BaseCommand):
                             changed = True
             if changed:
                 setting.config = config
-                setting._setting_update_authorized = True
                 setting.save(update_fields=['config', 'dt_modified', 'version'])
                 self.stdout.write(f"  Updated: {name} (#{setting.id}, merged new keys)")
             else:

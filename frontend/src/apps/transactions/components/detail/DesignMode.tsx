@@ -109,19 +109,19 @@ const DesignMode: React.FC<DesignModeProps> = ({ layout, modelName, onLayoutChan
     }
   }, [layout, onLayoutChange, dispatch]);
 
-  // Save layout to Setting
+  // Save the layout where useDetailLayout reads it: the model's definition
+  // (wc:model config.layout.form.default). A posted config merges into the stored one.
   const saveLayout = useCallback(async () => {
     setSaving(true);
     try {
-      // Find the Setting by model_name + purpose
       const { getRecords } = await import('@/api/wcapi');
-      const res = await getRecords('setting', { parent_model: modelName, purpose: 'wc:detail_layout', limit: 1 });
-      const setting = res?.results?.[0] || res?.records?.[0];
+      const res = await getRecords('setting', { parent_model: modelName, purpose: 'wc:model', limit: 1 });
+      const setting = res?.results?.[0];
       if (setting) {
-        await saveRecord('setting', { id: setting.id, config: layout });
+        await saveRecord('setting', { id: setting.id, config: { layout: { form: { default: layout } } } });
         dispatch(showToast({ message: 'Layout saved', type: 'success' }));
       } else {
-        dispatch(showToast({ message: 'Layout Setting not found', type: 'error' }));
+        dispatch(showToast({ message: `No model definition for ${modelName}`, type: 'error' }));
       }
     } catch {
       dispatch(showToast({ message: 'Failed to save layout', type: 'error' }));

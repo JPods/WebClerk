@@ -1571,7 +1571,7 @@ def mark_period_reconciled(year: int, month: int, reconciled_by: str = '') -> di
     from apps.core.models.setting import Setting
     import time
 
-    setting, _ = Setting.objects.get_or_create(
+    setting, _ = Setting.authorized_get_or_create(
         purpose='accounting_interface',
         parent_model='setting',
         defaults={'ida': 'accounting-interface', 'config': {}},

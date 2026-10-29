@@ -264,5 +264,4 @@ def _apply(obj, rec: dict, fields: set[str], *, replace: bool,
 
 def _authorize(obj) -> None:
     """Settings guard their own writes; an approved import says so."""
-    obj._setting_update_authorized = True
     obj._setting_create_authorized = True

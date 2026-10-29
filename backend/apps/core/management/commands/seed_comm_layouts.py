@@ -8,7 +8,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         # 1. Centralized Communication Behaviors
-        s, c = Setting.objects.update_or_create(ida='comm-behaviors', defaults={
+        s, c = Setting.authorized_update_or_create(ida='comm-behaviors', defaults={
             'purpose': 'wc:feature', 'parent_model': 'wc', 'name': 'Communication Behaviors',
             'config': {
                 'shared': {
@@ -42,7 +42,7 @@ class Command(BaseCommand):
         self.stdout.write(f"{'C' if c else 'U'} #{s.id}: comm-behaviors")
 
         # 2. Email layout
-        s, c = Setting.objects.update_or_create(ida='detail-layout-email', defaults={
+        s, c = Setting.authorized_update_or_create(ida='detail-layout-email', defaults={
             'purpose': 'wc:detail_layout', 'parent_model': 'email', 'name': 'Email Detail',
             'config': {
                 'model': 'email', 'family': 'comm',
@@ -62,7 +62,7 @@ class Command(BaseCommand):
         self.stdout.write(f"{'C' if c else 'U'} #{s.id}: email layout")
 
         # 3. Phone layout
-        s, c = Setting.objects.update_or_create(ida='detail-layout-phone', defaults={
+        s, c = Setting.authorized_update_or_create(ida='detail-layout-phone', defaults={
             'purpose': 'wc:detail_layout', 'parent_model': 'phone', 'name': 'Phone Detail',
             'config': {
                 'model': 'phone', 'family': 'comm',
@@ -81,7 +81,7 @@ class Command(BaseCommand):
         self.stdout.write(f"{'C' if c else 'U'} #{s.id}: phone layout")
 
         # 4. Address layout
-        s, c = Setting.objects.update_or_create(ida='detail-layout-address', defaults={
+        s, c = Setting.authorized_update_or_create(ida='detail-layout-address', defaults={
             'purpose': 'wc:detail_layout', 'parent_model': 'address', 'name': 'Address Detail',
             'config': {
                 'model': 'address', 'family': 'comm',
@@ -103,7 +103,7 @@ class Command(BaseCommand):
         self.stdout.write(f"{'C' if c else 'U'} #{s.id}: address layout")
 
         # 5. Domain layout
-        s, c = Setting.objects.update_or_create(ida='detail-layout-domain', defaults={
+        s, c = Setting.authorized_update_or_create(ida='detail-layout-domain', defaults={
             'purpose': 'wc:detail_layout', 'parent_model': 'domain', 'name': 'Domain Detail',
             'config': {
                 'model': 'domain', 'family': 'comm',
@@ -122,7 +122,7 @@ class Command(BaseCommand):
         self.stdout.write(f"{'C' if c else 'U'} #{s.id}: domain layout")
 
         # 6. Action detail_layout
-        s, c = Setting.objects.update_or_create(ida='detail-layout-action', defaults={
+        s, c = Setting.authorized_update_or_create(ida='detail-layout-action', defaults={
             'purpose': 'wc:detail_layout', 'parent_model': 'action', 'name': 'Action Detail',
             'config': {
                 'model': 'action', 'family': 'core',
@@ -151,7 +151,7 @@ class Command(BaseCommand):
         self.stdout.write(f"{'C' if c else 'U'} #{s.id}: action layout")
 
         # 7. Document detail_layout
-        s, c = Setting.objects.update_or_create(ida='detail-layout-document', defaults={
+        s, c = Setting.authorized_update_or_create(ida='detail-layout-document', defaults={
             'purpose': 'wc:detail_layout', 'parent_model': 'document', 'name': 'Document Detail',
             'config': {
                 'model': 'document', 'family': 'core',
@@ -179,7 +179,7 @@ class Command(BaseCommand):
         self.stdout.write(f"{'C' if c else 'U'} #{s.id}: document layout")
 
         # 8. Contact detail_layout
-        s, c = Setting.objects.update_or_create(ida='detail-layout-contact', defaults={
+        s, c = Setting.authorized_update_or_create(ida='detail-layout-contact', defaults={
             'purpose': 'wc:detail_layout', 'parent_model': 'contact', 'name': 'Contact Detail',
             'config': {
                 'model': 'contact', 'family': 'core',
@@ -225,7 +225,7 @@ class Command(BaseCommand):
         self.stdout.write(f"{'C' if c else 'U'} #{s.id}: contact layout")
 
         # 9. QuestionAnswer detail_layout
-        s, c = Setting.objects.update_or_create(ida='detail-layout-question-answer', defaults={
+        s, c = Setting.authorized_update_or_create(ida='detail-layout-question-answer', defaults={
             'purpose': 'wc:detail_layout', 'parent_model': 'question_answer', 'name': 'QA Detail',
             'config': {
                 'model': 'question_answer', 'family': 'core',
@@ -245,7 +245,7 @@ class Command(BaseCommand):
         self.stdout.write(f"{'C' if c else 'U'} #{s.id}: question_answer layout")
 
         # 10. Report detail_layout
-        s, c = Setting.objects.update_or_create(ida='detail-layout-report', defaults={
+        s, c = Setting.authorized_update_or_create(ida='detail-layout-report', defaults={
             'purpose': 'wc:detail_layout', 'parent_model': 'report', 'name': 'Report Detail',
             'config': {
                 'model': 'report', 'family': 'core',
@@ -300,7 +300,7 @@ class Command(BaseCommand):
         ]
 
         for model_name, title, account_fields in org_models:
-            s, c = Setting.objects.update_or_create(ida=f'detail-layout-{model_name}', defaults={
+            s, c = Setting.authorized_update_or_create(ida=f'detail-layout-{model_name}', defaults={
                 'purpose': 'wc:detail_layout', 'parent_model': model_name, 'name': f'{title} Detail',
                 'config': {
                     'model': model_name, 'family': 'org',
@@ -342,7 +342,7 @@ class Command(BaseCommand):
             self.stdout.write(f"{'C' if c else 'U'} #{s.id}: {model_name} layout")
 
         # 16. Item detail_layout
-        s, c = Setting.objects.update_or_create(ida='detail-layout-item', defaults={
+        s, c = Setting.authorized_update_or_create(ida='detail-layout-item', defaults={
             'purpose': 'wc:detail_layout', 'parent_model': 'item', 'name': 'Item Detail',
             'config': {
                 'model': 'item', 'family': 'product',
@@ -393,7 +393,7 @@ class Command(BaseCommand):
         self.stdout.write(f"{'C' if c else 'U'} #{s.id}: item layout")
 
         # 17. Serial detail_layout
-        s, c = Setting.objects.update_or_create(ida='detail-layout-serial', defaults={
+        s, c = Setting.authorized_update_or_create(ida='detail-layout-serial', defaults={
             'purpose': 'wc:detail_layout', 'parent_model': 'serial', 'name': 'Serial Detail',
             'config': {
                 'model': 'serial', 'family': 'product',
@@ -419,7 +419,7 @@ class Command(BaseCommand):
         self.stdout.write(f"{'C' if c else 'U'} #{s.id}: serial layout")
 
         # 18. Specification detail_layout
-        s, c = Setting.objects.update_or_create(ida='detail-layout-specification', defaults={
+        s, c = Setting.authorized_update_or_create(ida='detail-layout-specification', defaults={
             'purpose': 'wc:detail_layout', 'parent_model': 'specification', 'name': 'Specification Detail',
             'config': {
                 'model': 'specification', 'family': 'product',
@@ -438,7 +438,7 @@ class Command(BaseCommand):
         self.stdout.write(f"{'C' if c else 'U'} #{s.id}: specification layout")
 
         # 19. BOM detail_layout (record view — tree view is ui.tsx)
-        s, c = Setting.objects.update_or_create(ida='detail-layout-bill-of-material', defaults={
+        s, c = Setting.authorized_update_or_create(ida='detail-layout-bill-of-material', defaults={
             'purpose': 'wc:detail_layout', 'parent_model': 'bill_of_material', 'name': 'BOM Detail',
             'config': {
                 'model': 'bill_of_material', 'family': 'product',

@@ -29,7 +29,6 @@ from django.db import models, transaction, IntegrityError
 from rest_framework.views import APIView  # type: ignore
 from common.decorators import allow_write
 from apps.core.constants.model_registry import get_model, normalize_table_key, to_model_name  # explicit registry lookup
-from apps.core.utils import policy
 from apps.core.constants.model_registry import get_model_meta
 import json
 import re

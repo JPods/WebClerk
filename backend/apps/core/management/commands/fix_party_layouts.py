@@ -96,7 +96,6 @@ class Command(BaseCommand):
 
             if changed and not dry_run:
                 s.config = cfg
-                s._setting_update_authorized = True
                 s.save(update_fields=['config'])
                 updated += 1
             elif changed:

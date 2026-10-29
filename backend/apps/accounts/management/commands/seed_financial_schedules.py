@@ -55,7 +55,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         # Seed the Setting (system definition)
-        obj, created = Setting.objects.update_or_create(
+        obj, created = Setting.authorized_update_or_create(
             purpose='wc:financial_schedules',
             parent_model='setting',
             defaults={

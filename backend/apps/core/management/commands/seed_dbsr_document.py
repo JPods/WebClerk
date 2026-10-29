@@ -204,7 +204,7 @@ class Command(BaseCommand):
         # ── Build and save the health manifest ──
         manifest, issues = build_health_manifest()
 
-        health_setting, h_created = Setting.objects.update_or_create(
+        health_setting, h_created = Setting.authorized_update_or_create(
             ida=HEALTH_IDA,
             defaults={
                 'name': 'Database Health Manifest',
@@ -235,7 +235,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS('  No health issues — all DBSRs present'))
 
         # ── Create local health manifest (user-managed) ──
-        _, l_created = Setting.objects.get_or_create(
+        _, l_created = Setting.authorized_get_or_create(
             ida=HEALTH_LOCAL_IDA,
             defaults={
                 'name': 'Database Health Manifest (Local)',

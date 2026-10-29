@@ -14,39 +14,18 @@ When to use:
     - During initial setup when pages loaded before Settings existed
     - Alice calls this after detecting missing panel definitions
 """
-import time
-
 from django.core.management.base import BaseCommand
 
-from apps.core.models.setting import Setting
+from apps.core.services.frontend_flush import flush_frontend
 
 
 class Command(BaseCommand):
     help = 'Signal frontend tabs to reload cached Settings and panel definitions'
 
     def handle(self, *args, **options):
-        now_ms = int(time.time() * 1000)
-        try:
-            obj = Setting.objects.get(ida='wc-flush')
-            obj.config = {'dt_changed': now_ms}
-            obj.dt_modified = now_ms
-            obj._setting_update_authorized = True
-            obj.save()
-            created = False
-        except Setting.DoesNotExist:
-            obj = Setting(
-                ida='wc-flush',
-                name='Frontend Flush Signal',
-                purpose='wc:system',
-                explanation='Timestamp bumped to trigger frontend cache reload',
-                config={'dt_changed': now_ms},
-                dt_modified=now_ms,
-            )
-            obj._setting_update_authorized = True
-            obj.save()
-            created = True
-        verb = 'Created' if created else 'Updated'
+        result = flush_frontend()
+        verb = 'Created' if result['created'] else 'Updated'
         self.stdout.write(self.style.SUCCESS(
-            f'{verb} wc-flush signal (dt_changed={now_ms}). '
+            f"{verb} wc-flush signal (dt_changed={result['dt_changed']}). "
             f'Frontend will reload within 15 seconds.'
         ))

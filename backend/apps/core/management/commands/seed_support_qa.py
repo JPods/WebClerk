@@ -25,7 +25,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         # 1. Q&A search preset — find answers by keyword before asking
-        _, created = Setting.objects.update_or_create(
+        _, created = Setting.authorized_update_or_create(
             ida='search-document-support-qa',
             defaults={
                 'name': 'Support Q&A',
@@ -58,7 +58,7 @@ class Command(BaseCommand):
         self.stdout.write(f'  {"Created" if created else "Updated"}: search preset')
 
         # 2. Q&A Document schema — what fields a Q&A record carries
-        _, created = Setting.objects.update_or_create(
+        _, created = Setting.authorized_update_or_create(
             ida='schema-support-qa',
             defaults={
                 'name': 'Support Q&A Schema',
@@ -103,7 +103,7 @@ class Command(BaseCommand):
         self.stdout.write(f'  {"Created" if created else "Updated"}: Q&A schema')
 
         # 3. Unanswered Q&A search — for Bill/Claude/Alice to pick up
-        _, created = Setting.objects.update_or_create(
+        _, created = Setting.authorized_update_or_create(
             ida='search-document-support-qa-unanswered',
             defaults={
                 'name': 'Unanswered Questions',
@@ -135,7 +135,7 @@ class Command(BaseCommand):
         self.stdout.write(f'  {"Created" if created else "Updated"}: unanswered search')
 
         # 4. Low-scored answers — need improvement
-        _, created = Setting.objects.update_or_create(
+        _, created = Setting.authorized_update_or_create(
             ida='search-document-support-qa-low-scored',
             defaults={
                 'name': 'Low-Scored Answers',

@@ -76,7 +76,6 @@ class Command(BaseCommand):
                 acc['roles'] = roles
                 config['access'] = acc
                 setting.config = config
-                setting._setting_update_authorized = True
                 setting.save(update_fields=['config', 'dt_modified', 'version'])
                 access.clear_cache(key)
 

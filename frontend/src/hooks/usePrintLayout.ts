@@ -1,16 +1,11 @@
 /**
- * usePrintLayout — fetch and cache the print_layout Setting for a model.
- * Returns the layout JSON that drives UniversalPrint rendering.
- *
- * Falls back to a sensible default layout if no print_layout Setting exists,
- * so Cmd+P works immediately for any transaction model.
+ * usePrintLayout — the layout JSON that drives UniversalPrint rendering: a sensible default
+ * per model, so Cmd+P works for any transaction model.
  */
-import { useState, useEffect } from 'react';
-import { getRecords } from '@/api/wcapi';
+import { useMemo } from 'react';
 import type { PrintLayout } from '@/components/print/printLayoutTypes';
 
 // Cache layouts by model name to avoid re-fetching
-const layoutCache = new Map<string, PrintLayout>();
 
 /** Generate a sensible default print layout for a transaction model */
 function defaultPrintLayout(model: string): PrintLayout {
@@ -90,52 +85,14 @@ function defaultPrintLayout(model: string): PrintLayout {
   };
 }
 
+/** The print layout for a model: its default. No wc:print_layout record ever existed, so
+ *  the Setting read is gone (Setting audit S-7, 2026-10-28). */
 export function usePrintLayout(modelName: string) {
-  const [layout, setLayout] = useState<PrintLayout | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (!modelName) return;
-
-    // Check cache first
-    const cached = layoutCache.get(modelName);
-    if (cached) { setLayout(cached); return; }
-
-    setLoading(true);
-    getRecords('setting', { parent_model: modelName, purpose: 'wc:print_layout' })
-      .then((res: any) => {
-        const rec = (res?.results || [])[0];
-        const config = rec?.config as PrintLayout | undefined;
-        const pl = config?.sections ? config : defaultPrintLayout(modelName);
-        layoutCache.set(modelName, pl);
-        setLayout(pl);
-      })
-      .catch(() => {
-        const pl = defaultPrintLayout(modelName);
-        layoutCache.set(modelName, pl);
-        setLayout(pl);
-      })
-      .finally(() => setLoading(false));
-  }, [modelName]);
-
-  return { layout, loading };
+  const layout = useMemo(() => (modelName ? defaultPrintLayout(modelName) : null), [modelName]);
+  return { layout, loading: false };
 }
 
 /** Imperatively fetch a print layout (for non-hook contexts like ReportsDialog) */
 export async function fetchPrintLayout(modelName: string): Promise<PrintLayout> {
-  const cached = layoutCache.get(modelName);
-  if (cached) return cached;
-
-  try {
-    const res = await getRecords('setting', { parent_model: modelName, purpose: 'wc:print_layout' }) as any;
-    const rec = (res?.results || [])[0];
-    const config = rec?.config as PrintLayout | undefined;
-    const pl = config?.sections ? config : defaultPrintLayout(modelName);
-    layoutCache.set(modelName, pl);
-    return pl;
-  } catch {
-    const pl = defaultPrintLayout(modelName);
-    layoutCache.set(modelName, pl);
-    return pl;
-  }
+  return defaultPrintLayout(modelName);
 }

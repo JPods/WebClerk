@@ -199,46 +199,19 @@ export default function GetHelpDialog({ open, onClose, trainingMode }: GetHelpDi
       result.field_help = `Source: ${parsed.sourcePath}`;
     }
 
-    // Look up field-level help from coaching + field_access Settings
-    if (parsed.wcField) {
+    // Field-level help: the model's definition (wc:model config.help.fields), else the field's
+    // behaviour (config.behaviors) for its type.
+    if (parsed.wcField && parsed.wcModel) {
       try {
         const { getRecords } = await import('@/api/wcapi');
-        let coachHelp: string | undefined;
-
-        if (parsed.wcModel) {
-          // Model known — look up directly
-          const coachRes = await getRecords('setting', { parent_model: parsed.wcModel, purpose: 'wc:coaching', limit: 1 }) as any;
-          const coachRec = (coachRes?.results || [])[0];
-          coachHelp = coachRec?.config?.field_help?.[parsed.wcField];
-        }
-
-        if (!coachHelp) {
-          // Model unknown or field not found — search all coaching records
-          const allRes = await getRecords('setting', { purpose: 'wc:coaching', limit: 50 }) as any;
-          const allRecs = allRes?.results || [];
-          for (const rec of allRecs) {
-            const help = rec?.config?.field_help?.[parsed.wcField];
-            if (help) {
-              coachHelp = help;
-              // Update label to show which model this field belongs to
-              if (rec.parent_model && rec.parent_model !== 'system') {
-                result.label = `${rec.parent_model}.${parsed.wcField}`;
-              }
-              break;
-            }
-          }
-        }
-
-        if (coachHelp) {
-          result.field_help = coachHelp;
-        } else if (parsed.wcModel) {
-          // Fall back to field_access behaviors
-          const faRes = await getRecords('setting', { parent_model: parsed.wcModel, purpose: 'wc:field_access', limit: 1 }) as any;
-          const faRec = (faRes?.results || [])[0];
-          const fieldBehavior = faRec?.config?.field_behaviors?.[parsed.wcField];
-          if (fieldBehavior) {
-            result.field_help = `Field: ${parsed.wcField} — Type: ${fieldBehavior.type || 'text'}${fieldBehavior.help ? ` — ${fieldBehavior.help}` : ''}`;
-          }
+        const modelRes = await getRecords('setting', { parent_model: parsed.wcModel, purpose: 'wc:model', limit: 1 }) as any;
+        const definition = (modelRes?.results || [])[0]?.config || {};
+        const help = definition.help?.fields?.[parsed.wcField];
+        const behavior = definition.behaviors?.[parsed.wcField];
+        if (help) {
+          result.field_help = help;
+        } else if (behavior) {
+          result.field_help = `Field: ${parsed.wcField} — Type: ${behavior.type || 'text'}${behavior.help ? ` — ${behavior.help}` : ''}`;
         }
       } catch { /* silent */ }
     }
@@ -248,7 +221,7 @@ export default function GetHelpDialog({ open, onClose, trainingMode }: GetHelpDi
       const pageKeys = [parsed.wcId, parsed.wcField, html.trim()].filter(Boolean);
       try {
         const { getRecords } = await import('@/api/wcapi');
-        const pageRes = await getRecords('setting', { purpose: 'wc:coaching', name: 'alice_coaching:page_help', limit: 1 }) as any;
+        const pageRes = await getRecords('setting', { purpose: 'wc:page_help', limit: 1 }) as any;
         const pageRec = (pageRes?.results || [])[0];
         const pageHelpMap = pageRec?.config?.page_help || {};
         for (const key of pageKeys) {

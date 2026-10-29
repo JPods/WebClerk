@@ -26,7 +26,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         # 1. Saved search preset for actions that are questions for Bill
         preset_ida = 'search-action-questions-for-bill'
-        _, created = Setting.objects.update_or_create(
+        _, created = Setting.authorized_update_or_create(
             ida=preset_ida,
             defaults={
                 'name': 'Questions for Bill',
@@ -63,7 +63,7 @@ class Command(BaseCommand):
         #    We add it via a Setting so alice-patterns.py and MCP servers
         #    know it's a valid category without requiring a migration.
         cat_ida = 'alice-observation-extra-categories'
-        _, created = Setting.objects.update_or_create(
+        _, created = Setting.authorized_update_or_create(
             ida=cat_ida,
             defaults={
                 'name': 'Alice Observation Extra Categories',

@@ -55,7 +55,7 @@ class Command(BaseCommand):
             schema_instance = info['schema']()
             config = schema_instance.model_dump()
 
-            setting, created = Setting.objects.update_or_create(
+            setting, created = Setting.authorized_update_or_create(
                 purpose='wc:enrichment_panels',
                 parent_model=model_name,
                 defaults={

@@ -63,7 +63,7 @@ class QAService:
 
     def get_or_create_counters(self) -> Setting:
         """Get or create the qa_counters singleton."""
-        counters, created = Setting.objects.get_or_create(
+        counters, created = Setting.authorized_get_or_create(
             purpose='wc:qa_counters',
             defaults={
                 'name': 'counters',
@@ -77,37 +77,30 @@ class QAService:
             logger.info("Created qa_counters singleton")
         return counters
 
-    @db_transaction.atomic
-    def allocate_question_ids(self, count: int) -> List[int]:
-        """Allocate the next N unique question IDs."""
-        counters = Setting.objects.select_for_update().get(purpose='wc:qa_counters')
-        data = counters.config or {}
-        current_max = data.get('question_max', 0)
-        new_ids = list(range(current_max + 1, current_max + count + 1))
-        data['question_max'] = current_max + count
-        counters.config = data
-        counters.save(update_fields=['config'])
-        logger.info(f"Allocated question IDs {new_ids[0]}-{new_ids[-1]}")
-        return new_ids
+    def allocate_ids(self, kind: str, count: int) -> List[int]:
+        """The next `count` unique question or answer ids (kind 'question' | 'answer').
 
-    @db_transaction.atomic
-    def allocate_answer_ids(self, count: int) -> List[int]:
-        """Allocate the next N unique answer choice IDs."""
-        counters = Setting.objects.select_for_update().get(purpose='wc:qa_counters')
-        data = counters.config or {}
-        current_max = data.get('answer_max', 0)
-        new_ids = list(range(current_max + 1, current_max + count + 1))
-        data['answer_max'] = current_max + count
-        counters.config = data
-        counters.save(update_fields=['config'])
-        logger.info(f"Allocated answer IDs {new_ids[0]}-{new_ids[-1]}")
-        return new_ids
+        One UPDATE ... RETURNING: the counter row is locked only for that statement, never for
+        the caller's transaction, so templates saved at once do not queue on it (Bill,
+        2026-10-28: QA ids are used often). A template that then fails leaves a gap; ids are
+        unique, not dense.
+        """
+        from django.db import connection
+        key = f'{kind}_max'
+        with connection.cursor() as cur:
+            cur.execute(
+                "UPDATE settings SET config = jsonb_set(coalesce(config, '{}'::jsonb), %s, "
+                "to_jsonb(coalesce((config->>%s)::bigint, 0) + %s)) "
+                "WHERE purpose = 'wc:qa_counters' RETURNING (config->>%s)::bigint",
+                [[key], key, count, key])
+            new_max = cur.fetchone()[0]
+        logger.info(f"Allocated {kind} IDs {new_max - count + 1}-{new_max}")
+        return list(range(new_max - count + 1, new_max + 1))
 
     # -----------------------------------------------------------------
     # Template management
     # -----------------------------------------------------------------
 
-    @db_transaction.atomic
     def create_question_group(
         self,
         name: str,
@@ -144,70 +137,73 @@ class QAService:
             for q in questions
         )
 
-        question_ids = self.allocate_question_ids(len(questions))
-        answer_ids = self.allocate_answer_ids(total_answers) if total_answers > 0 else []
+        # Ids first, outside the transaction that builds the template (allocate_ids).
+        question_ids = self.allocate_ids('question', len(questions))
+        answer_ids = self.allocate_ids('answer', total_answers) if total_answers > 0 else []
 
-        answer_id_iter = iter(answer_ids)
-        processed_questions = []
+        with db_transaction.atomic():
 
-        for q_def, q_id in zip(questions, question_ids):
-            processed_q: Dict[str, Any] = {
-                'id': q_id,
-                'question': q_def['question'],
+            answer_id_iter = iter(answer_ids)
+            processed_questions = []
+
+            for q_def, q_id in zip(questions, question_ids):
+                processed_q: Dict[str, Any] = {
+                    'id': q_id,
+                    'question': q_def['question'],
+                }
+
+                raw_answers = q_def.get('answers', [])
+                if raw_answers:
+                    processed_answers = []
+                    for ans in raw_answers:
+                        if isinstance(ans, str):
+                            processed_answers.append({
+                                'id': next(answer_id_iter),
+                                'answer': ans,
+                            })
+                        elif isinstance(ans, dict):
+                            ans_copy = dict(ans)
+                            if 'id' not in ans_copy:
+                                ans_copy['id'] = next(answer_id_iter)
+                            processed_answers.append(ans_copy)
+                    processed_q['answers'] = processed_answers
+
+                for key in ['allow_freeform', 'allow_multiple', 'require_image',
+                            'image_max', 'image_types', 'category']:
+                    if key in q_def:
+                        processed_q[key] = q_def[key]
+
+                processed_questions.append(processed_q)
+
+            defaults = template_defaults or {}
+            template = {
+                'allow_freeform': defaults.get('allow_freeform', False),
+                'allow_multiple': defaults.get('allow_multiple', False),
+                'require_image': defaults.get('require_image', False),
+                'image_max': defaults.get('image_max', 5),
+                'image_types': defaults.get('image_types', ['jpg', 'png', 'webp', 'pdf']),
             }
 
-            raw_answers = q_def.get('answers', [])
-            if raw_answers:
-                processed_answers = []
-                for ans in raw_answers:
-                    if isinstance(ans, str):
-                        processed_answers.append({
-                            'id': next(answer_id_iter),
-                            'answer': ans,
-                        })
-                    elif isinstance(ans, dict):
-                        ans_copy = dict(ans)
-                        if 'id' not in ans_copy:
-                            ans_copy['id'] = next(answer_id_iter)
-                        processed_answers.append(ans_copy)
-                processed_q['answers'] = processed_answers
+            doc_refs = refs or {}
+            keywords = doc_refs.get('keywords', [])
+            if 'qa_template' not in keywords:
+                keywords.append('qa_template')
+            doc_refs['keywords'] = keywords
 
-            for key in ['allow_freeform', 'allow_multiple', 'require_image',
-                        'image_max', 'image_types', 'category']:
-                if key in q_def:
-                    processed_q[key] = q_def[key]
+            doc = Document.objects.create(
+                name=name,
+                description=description,
+                body=body,
+                status='published',
+                config={
+                    'template': template,
+                    'questions': processed_questions,
+                },
+                refs=doc_refs,
+            )
 
-            processed_questions.append(processed_q)
-
-        defaults = template_defaults or {}
-        template = {
-            'allow_freeform': defaults.get('allow_freeform', False),
-            'allow_multiple': defaults.get('allow_multiple', False),
-            'require_image': defaults.get('require_image', False),
-            'image_max': defaults.get('image_max', 5),
-            'image_types': defaults.get('image_types', ['jpg', 'png', 'webp', 'pdf']),
-        }
-
-        doc_refs = refs or {}
-        keywords = doc_refs.get('keywords', [])
-        if 'qa_template' not in keywords:
-            keywords.append('qa_template')
-        doc_refs['keywords'] = keywords
-
-        doc = Document.objects.create(
-            name=name,
-            description=description,
-            body=body,
-            status='published',
-            config={
-                'template': template,
-                'questions': processed_questions,
-            },
-            refs=doc_refs,
-        )
-
-        logger.info(f"Created question group '{name}' (doc id={doc.id}) with {len(questions)} questions")
-        return doc
+            logger.info(f"Created question group '{name}' (doc id={doc.id}) with {len(questions)} questions")
+            return doc
 
     def get_question_template(self, name: str) -> Document:
         """Fetch a QA template Document by name.

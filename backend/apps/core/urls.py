@@ -18,7 +18,6 @@ from apps.core.views.manage_view import ManageWcapiView
 from apps.core.views.report_view import ReportDownloadView
 from apps.core.views.report_fields_view import ReportFieldsView
 from apps.core.views.burndown_view import BurndownView
-from apps.core.views.setting_resolve_view import SettingResolveView
 from apps.core.views.choices import ChoiceCatalogView
 from apps.core.views.selectlist_view import SelectListCatalogView
 from apps.core.views.view_query import ViewQueryView
@@ -68,7 +67,6 @@ urlpatterns = [
     path("wcapi/_manage/", ManageWcapiView.as_view(), name="wcapi-manage"),
     path("wcapi/_report_fields/", ReportFieldsView.as_view(), name="wcapi-report-fields"),
     path("wcapi/_burndown/<int:project_id>/", BurndownView.as_view(), name="wcapi-burndown"),
-    path("wcapi/_setting_resolve/", SettingResolveView.as_view(), name="wcapi-setting-resolve"),
     path("wcapi/_model_list/", ModelNameListView.as_view(), name="model-name-list"),
     path("wcapi/_model_detail/", ModelDetailView.as_view(), name="model-detail"),
     path("wcapi/_search_presets/", SearchPresetListView.as_view(), name="search-preset-list"),

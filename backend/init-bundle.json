@@ -89877,6 +89877,12 @@
                 "config.details"
               ],
               "scope": {
+                "purpose__in": [
+                  "alice",
+                  "quiz"
+                ]
+              },
+              "edit_scope": {
                 "user_id": "$user.contact_id"
               },
               "create": true,
@@ -89904,6 +89910,12 @@
                 "config.details"
               ],
               "scope": {
+                "purpose__in": [
+                  "alice",
+                  "quiz"
+                ]
+              },
+              "edit_scope": {
                 "user_id": "$user.contact_id"
               },
               "create": true,
@@ -89931,6 +89943,12 @@
                 "config.details"
               ],
               "scope": {
+                "purpose__in": [
+                  "alice",
+                  "quiz"
+                ]
+              },
+              "edit_scope": {
                 "user_id": "$user.contact_id"
               },
               "create": true,
@@ -89958,6 +89976,12 @@
                 "config.details"
               ],
               "scope": {
+                "purpose__in": [
+                  "alice",
+                  "quiz"
+                ]
+              },
+              "edit_scope": {
                 "user_id": "$user.contact_id"
               },
               "create": true,
@@ -89985,6 +90009,12 @@
                 "config.details"
               ],
               "scope": {
+                "purpose__in": [
+                  "alice",
+                  "quiz"
+                ]
+              },
+              "edit_scope": {
                 "user_id": "$user.contact_id"
               },
               "create": true,
@@ -90012,6 +90042,12 @@
                 "config.details"
               ],
               "scope": {
+                "purpose__in": [
+                  "alice",
+                  "quiz"
+                ]
+              },
+              "edit_scope": {
                 "user_id": "$user.contact_id"
               },
               "create": true,

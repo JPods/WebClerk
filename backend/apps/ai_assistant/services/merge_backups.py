@@ -42,7 +42,6 @@ def clean_merge_backups(max_age_hours: int = 24, dry_run: bool = False) -> dict[
             if not dry_run:
                 del config['backup']
                 c.config = config
-                c._setting_update_authorized = True
                 c.save(update_fields=['config'])
             cleaned += 1
             continue

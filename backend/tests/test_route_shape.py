@@ -76,7 +76,6 @@ KNOWN_VIOLATIONS = frozenset({
     'wcapi/_setting_parade_feedback/',
     'wcapi/_setting_parade_manifest/',
     'wcapi/_setting_parade_preview/',
-    'wcapi/_setting_resolve/',
     'wcapi/_settings_bootstrap/',
     'wcapi/_settings_fetch_hq/',
     'wcapi/_settings_health/',

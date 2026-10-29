@@ -42,6 +42,5 @@ def test_a_user_can_map_a_role_to_their_own_account(chart_of_accounts):
     company = Setting.objects.get(purpose='wc:company_profile')
     company.config = {**company.config,
                       'gl_defaults': {**company.config['gl_defaults'], 'labor_applied': '2200-accrued_liabilities'}}
-    company._setting_update_authorized = True
     company.save()
     assert role_account('labor_applied') == '2200-accrued_liabilities'

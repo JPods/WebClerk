@@ -74,6 +74,5 @@ def test_yearly_reset_starts_over_in_a_new_year_and_saving_a_bad_format_is_refus
 
     company.refresh_from_db()
     company.config = {**company.config, 'sequences': {'invoice': {'tag': 'inv', 'format': '{tag}'}}}
-    company._setting_update_authorized = True
     with pytest.raises(ValidationError, match='needs {number}'):
         company.save()

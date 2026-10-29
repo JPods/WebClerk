@@ -340,7 +340,6 @@ class Command(BaseCommand):
                 layout['card'] = card_layout
                 config['layout'] = layout
                 setting.config = config
-                setting._setting_update_authorized = True
                 setting.save(update_fields=['config'])
 
             action = 'UPDATE' if has_existing else 'CREATE'

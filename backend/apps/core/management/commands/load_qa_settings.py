@@ -107,7 +107,7 @@ class Command(BaseCommand):
                     mt = None
                 
                 # Create or update Setting record
-                setting, created = Setting.objects.update_or_create(
+                setting, created = Setting.authorized_update_or_create(
                     purpose='wc:qa_questions',
                     name=group_name,
                     defaults={
@@ -133,7 +133,7 @@ class Command(BaseCommand):
                 f'question_max={max_question_id}, answer_max={max_answer_id}'
             ))
         else:
-            counter, created = Setting.objects.update_or_create(
+            counter, created = Setting.authorized_update_or_create(
                 purpose='wc:qa_counters',
                 defaults={
                     'name': 'counters',

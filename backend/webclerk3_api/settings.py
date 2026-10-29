@@ -788,13 +788,6 @@ CELERY_BEAT_SCHEDULE = {
         'kwargs': {'limit': 200},
     },
 
-    # ── Apply pending layout changes ────────────────────────────────
-    # Runs every 10 s; applies DataBrowser layout saves to Settings.
-    'apply-pending-layouts': {
-        'task': 'apps.ai_assistant.tasks.apply_pending_layouts_task',
-        'schedule': 10.0,
-    },
-
     # ── Search keywords refresh ─────────────────────────────────────
     'refresh-keywords-every-15-min': {
         'task': 'apps.support.scheduler.tasks.task_refresh_keywords',

@@ -151,7 +151,6 @@ def chart_of_accounts(db):
         ida='company-profile', name='Company Profile', purpose='wc:company_profile', scope='system', config={})
     company.config = {**(company.config or {}), 'gl_defaults': dict(GL_DEFAULTS)}
     company._setting_create_authorized = True
-    company._setting_update_authorized = True
     company.save()
     return GL_DEFAULTS
 
@@ -291,7 +290,6 @@ def make_setting(**kwargs):
     from apps.core.models import Setting
     setting = Setting(**kwargs)
     setting._setting_create_authorized = True
-    setting._setting_update_authorized = True
     setting.save()
     return setting
 

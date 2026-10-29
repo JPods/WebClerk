@@ -183,7 +183,6 @@ class Command(BaseCommand):
                     acc.update(roles)          # {sets, roles}
                     cfg['access'] = acc
                     s.config = cfg
-                    s._setting_update_authorized = True   # admin conversion, run by hand
                     s.save(update_fields=['config'])
             access.clear_cache()
 

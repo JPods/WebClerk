@@ -34,7 +34,6 @@ def _grant(model_key, role, block):
     acc['roles'] = {**(acc.get('roles') or {}), role: block}
     config['access'] = acc
     setting.config = config
-    setting._setting_update_authorized = True
     setting.save(update_fields=['config'])
     access.clear_cache()
 

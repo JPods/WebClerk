@@ -62,7 +62,6 @@ def test_an_installation_with_no_role_map_asks_hq(monkeypatch):
     # An installation that has not been given a role map.
     config.pop("gl_defaults", None)
     company.config = config
-    company._setting_update_authorized = True
     company.save()
     installation_init.reset_asked()
 

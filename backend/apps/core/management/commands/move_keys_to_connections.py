@@ -119,6 +119,5 @@ class Command(BaseCommand):
             cfg['access']['sets']['all'] = sorted(cfg['access']['sets']['all'] + new)
         if not dry:
             s.config = cfg
-            s._setting_update_authorized = True
             s.save()
             clear_cache('connection')

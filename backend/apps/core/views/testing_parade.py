@@ -313,7 +313,7 @@ def _get_stored_results():
 
 def _store_results(data):
     """Store test parade results in a Setting record."""
-    s, _ = Setting.objects.update_or_create(
+    s, _ = Setting.authorized_update_or_create(
         ida='test-parade-results',
         defaults={
             'name': 'Test Parade Results',
@@ -341,7 +341,7 @@ def _get_feedback():
 
 def _store_feedback(feedback_map):
     """Store test feedback in a Setting record."""
-    s, _ = Setting.objects.update_or_create(
+    s, _ = Setting.authorized_update_or_create(
         ida='test-parade-feedback',
         defaults={
             'name': 'Test Parade Feedback',
