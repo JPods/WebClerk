@@ -786,7 +786,7 @@ SEED_PURPOSES = {
         'wc:model', 'wc:system', 'wc:admin', 'wc:company_profile', 'wc:wchq_connection',
         'wc:cash_gateway', 'wc:shipping_service', 'wc:security', 'wc:dd_card', 'wc:escalation',
         'wc:hook_points', 'wc:ai', 'wc:page_help', 'wc:ui', 'wc:db_defaults', 'wc:keywords',
-        'wc:selectlist', 'wc:feature', 'wc:schema_map', 'wc:collaborate', 'wc:qa_counters',
+        'wc:feature', 'wc:schema_map', 'wc:collaborate', 'wc:qa_counters',
         'wc:qa_questions', 'wc:test_parade', 'device_status', 'accounting_interface',
         'user:campaign')],
 }
