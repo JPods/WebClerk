@@ -2,14 +2,14 @@
 audit_select_lists — export and review all select lists organized by use.
 
 Shows every select-type field across all models: where the options come from
-(hardcoded in service, Setting override, or config.select_lists), how many
+(hardcoded in service, Setting override, or config.selectlists), how many
 options, and the actual values. Flags inconsistencies.
 
 Flags:
   EMPTY       — select field with no options
   DUPLICATE   — identical options defined in multiple places for same field
   DRIFT       — same field name on different models has different option sets
-  ORPHAN      — select_lists entry for a field that isn't typed as select
+  ORPHAN      — selectlists entry for a field that isn't typed as select
 
 Usage:
     python manage.py audit_select_lists                # summary
@@ -187,7 +187,7 @@ class Command(BaseCommand):
             ).first()
             if model_setting and isinstance(model_setting.config, dict):
                 stored_behaviors = model_setting.config.get('behaviors', {})
-                stored_select_lists = model_setting.config.get('select_lists', {})
+                stored_select_lists = model_setting.config.get('selectlists', {})
 
             # Find all select-type fields
             for field_name, behavior in computed.items():
@@ -205,12 +205,11 @@ class Command(BaseCommand):
                         source = 'override'
                         opts = stored_opts
 
-                # Check config.select_lists
+                # Check config.selectlists (the definition's own list wins)
                 sl_entry = stored_select_lists.get(field_name)
-                if sl_entry and isinstance(sl_entry, dict):
-                    sl_choices = sl_entry.get('choices', [])
-                    if sl_choices:
-                        source = 'select_lists'
+                if isinstance(sl_entry, list) and sl_entry:
+                    source = 'selectlists'
+                    opts = sl_entry
 
                 ok = _options_key(opts)
                 entry = {
@@ -238,7 +237,7 @@ class Command(BaseCommand):
                         'detail': 'Select field with no options',
                     })
 
-            # ORPHAN flag — select_lists entry for non-select field
+            # ORPHAN flag — selectlists entry for non-select field
             for sl_field in stored_select_lists:
                 computed_beh = computed.get(sl_field, {})
                 if computed_beh.get('type') != 'select':

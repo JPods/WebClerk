@@ -78,33 +78,6 @@ def _extract_all_selectlists(setting):
                     if normalized:
                         merged[field] = normalized
 
-    # Legacy: config.select_lists.<field> (underscore variant)
-    select_lists = cfg.get('select_lists')
-    if isinstance(select_lists, dict):
-        for field, v in select_lists.items():
-            if isinstance(v, list) and v:
-                normalized = [
-                    {'value': o.get('value', ''), 'label': o.get('label', o.get('value', ''))}
-                    for o in v if isinstance(o, dict)
-                ]
-                if normalized:
-                    merged[field] = normalized
-            elif isinstance(v, dict):
-                # seed_select_lists format: {choices: [...], label: ...}
-                choices = v.get('choices', [])
-                if isinstance(choices, list) and choices:
-                    normalized = []
-                    for c in choices:
-                        if isinstance(c, dict):
-                            normalized.append({
-                                'value': c.get('value', ''),
-                                'label': c.get('label', c.get('value', '')),
-                            })
-                        elif isinstance(c, str):
-                            normalized.append({'value': c, 'label': c})
-                    if normalized:
-                        merged[field] = normalized
-
     # Canonical: config.selectlists.<field> — wins over everything
     selectlists = cfg.get('selectlists')
     if isinstance(selectlists, dict):

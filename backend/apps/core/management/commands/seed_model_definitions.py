@@ -2,7 +2,7 @@
 seed_model_definitions — One Setting record per model (purpose='wc:model').
 
 Consolidates field_access, enrichment_panels, detail_layout,
-workbench_fields, db_defaults, and select_lists into a single config per model.
+workbench_fields and db_defaults into a single config per model.
 
 Usage:
     python manage.py seed_model_definitions
@@ -15,7 +15,7 @@ Config structure:
         "access":       { roles, query_scope, publish },
         "behaviors":    { field_name: { type, action, ... }, ... },
         "field_groups":  [ { key, label, fields }, ... ],
-        "select_lists": { field: { label, choices, allow_custom }, ... },
+        "selectlists": { field: [ {value, label}, ... ] },   (purpose: the door enforces it)
         "formatting":   { currency, locale, date_format, number_precision },
         "enrichment":   { panels: [ ... ] },
         "layout":       { list: [...], panel: [...], card: [...], views: [...], detail: {...} },
@@ -31,7 +31,7 @@ from apps.core.models.setting import Setting
 from apps.core.constants.model_registry import MODEL_REGISTRY, get_model_meta
 from apps.core.services.field_behaviors import (
     get_field_behaviors, get_field_groups, get_model_field_map, get_model_fields,
-    SYSTEM_VIEW_ONLY, NEVER_EDIT,
+    SYSTEM_VIEW_ONLY, NEVER_EDIT, SEED_PURPOSES, USER_DEFINED_PURPOSE,
 )
 
 
@@ -705,7 +705,8 @@ def build_model_config(model_key):
         ),
         'behaviors': get_field_behaviors(model_key, field_map),
         'field_groups': get_field_groups(model_key, fields),
-        'select_lists': salvaged.get('select_lists', {}),
+        'selectlists': ({'purpose': SEED_PURPOSES.get(model_key) or [USER_DEFINED_PURPOSE]}
+                        if 'purpose' in field_map else {}),
         'formatting': salvaged.get('formatting') or {
             'currency': 'USD',
             'locale': 'en-US',
@@ -798,13 +799,17 @@ class Command(BaseCommand):
                 # MERGE, not REPLACE.
                 # config.layout is PROTECTED — seed never overwrites it.
                 # Seed regenerates: behaviors, access, schema, field_groups,
-                #   formatting, searches, defaults, enrichment, select_lists.
+                #   formatting, searches, defaults, enrichment. selectlists are kept, as layout is.
                 # Layout is hand-authored: form sections, detail sections,
                 #   list columns, panel specs, card definitions, active pairings.
                 # If you need to reset layout, delete the Setting and re-seed.
                 old_layout = (existing.config or {}).get('layout')
                 if old_layout and isinstance(old_layout, dict):
                     config['layout'] = old_layout
+                # Select lists are an administrator's (purposes among them): kept as they are.
+                old_lists = (existing.config or {}).get('selectlists')
+                if isinstance(old_lists, dict):
+                    config['selectlists'] = old_lists
 
                 existing.config = config
                 existing.name = f'{meta.singular} Model Definition'

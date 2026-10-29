@@ -41,7 +41,8 @@ def test_another_process_change_reaches_the_access_cache(monkeypatch):
         config={'access': {'roles': {'sales': {'view': ['id', 'company'], 'edit': [], 'scope': {},
                                                'create': False, 'delete': False}}}})
     assert access.model_access('customer')['sales']['view'] == ['id']      # within the window
-    monkeypatch.setattr(access, 'REVALIDATE_S', 0)
+    from apps.core.services import definition
+    monkeypatch.setattr(definition, 'REVALIDATE_S', 0)
     assert access.model_access('customer')['sales']['view'] == ['id', 'company']
 
 

@@ -6,8 +6,24 @@ from apps.core.models import Log, Pending, Setting
 from apps.core.services.door import Refused
 
 
+def _log_definition(*extra):
+    """The log's definition, as the seed makes it: its purposes are config.selectlists.purpose."""
+    from django.core.management import call_command
+    from apps.core.services import access
+    from apps.core.services.field_behaviors import SEED_PURPOSES
+    call_command('seed_model_definitions', model='log', verbosity=0)
+    definition = Setting.objects.get(purpose='wc:model', parent_model='log')
+    config = dict(definition.config)
+    config['selectlists'] = {'purpose': SEED_PURPOSES['log'] + [{'value': v, 'label': v} for v in extra]}
+    Setting.objects.filter(pk=definition.pk).update(config=config)
+    access.clear_cache()
+
+
 @pytest.mark.django_db
 class TestLogWrite:
+    @pytest.fixture(autouse=True)
+    def _log_model_setting(self):
+        _log_definition()
     def test_write_keeps_purpose_action_record_and_content(self):
         entry = Log.write('audit', 'updated', model_name='order', record_id=7,
                           changes={'status': {'old': 'a', 'new': 'b'}})
@@ -17,12 +33,11 @@ class TestLogWrite:
         assert entry.ida == str(entry.pk) and entry.uuid and entry.dt_created > 0
 
     def test_unknown_purpose_is_refused(self):
-        with pytest.raises(ValueError, match='Unknown log purpose'):
+        with pytest.raises(ValueError, match="'whatever' is not a log purpose"):
             Log.write('whatever', 'x')
 
-    def test_a_foreign_purpose_needs_its_pointer(self, monkeypatch):
-        import apps.core.choices as choices
-        monkeypatch.setattr(choices, 'LOG_PURPOSES', choices.LOG_PURPOSES | {'foreign_test'})
+    def test_a_foreign_purpose_needs_its_pointer(self):
+        _log_definition('foreign_test')           # an administrator lists it
         with pytest.raises(ValueError, match='refs.foreign'):
             Log.write('foreign_test', 'committed')
         entry = Log.write('foreign_test', 'committed', refs={'foreign': {
@@ -161,10 +176,7 @@ class TestLogThroughWcapi:
 
     @pytest.fixture(autouse=True)
     def _log_model_setting(self):
-        from django.core.management import call_command
-        call_command('seed_model_definitions', model='log', verbosity=0)
-        from apps.core.services import access
-        access.clear_cache('log')
+        _log_definition()
 
     def test_new_writes_a_complete_log_row_by_the_signed_in_user(self):
         client, user = _client()
@@ -179,7 +191,7 @@ class TestLogThroughWcapi:
     def test_an_unknown_purpose_is_refused_with_coaching(self):
         client, _ = _client()
         res = client.post('/wcapi/log/', {'purpose': 'nonsense'}, format='json')
-        assert res.status_code == 400 and 'Unknown log purpose' in res.json()['message']
+        assert res.status_code == 400 and 'is not a log purpose' in res.json()['message']
 
     def test_a_log_row_cannot_be_changed_through_the_channel(self):
         client, _ = _client()

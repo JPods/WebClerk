@@ -478,6 +478,20 @@ def _price_level_is_named(obj, snapshot: Dict[str, Any]) -> None:
 
 # ── what this save changed ────────────────────────────────────────────
 
+def _purpose_is_listed(obj, snapshot: Dict[str, Any], model_key: str) -> None:
+    """A purpose is one its model lists (Bill, 2026-10-28: the list is each model's, in its
+    definition). Checked when the value is set or changed, after the hooks, which may set it;
+    a value already stored is left alone until it is rewritten."""
+    if 'purpose' not in {f.name for f in obj._meta.concrete_fields}:
+        return
+    if obj.purpose == snapshot.get('purpose'):
+        return
+    from apps.core.services.purposes import unlisted
+    reason = unlisted(model_key, obj.purpose)
+    if reason:
+        raise Refused(400, 'purpose_not_listed', reason, [f'purpose: {reason}'])
+
+
 def _snapshot(obj) -> Dict[str, Any]:
     """Copies, not references: assignment merges JSON envelopes in place."""
     return {f.name: copy.deepcopy(getattr(obj, f.attname, None))
@@ -650,6 +664,7 @@ def _write(actor: Actor, obj, model_cls, model_key: str, norm_key: str, data: di
     verbs.before(ctx)
     # What the before hooks assigned is part of what this save changed.
     ctx.changed = _changed(obj, snapshot)
+    _purpose_is_listed(obj, snapshot, model_key)
 
     try:
         obj.save()

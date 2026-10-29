@@ -56,9 +56,9 @@ ADMIN_TOOLS = [
         },
         'explanation': (
             'Shows every select-type field across all models: where options come from '
-            '(hardcoded in service, Setting override, or config.select_lists), how many options, '
+            '(hardcoded in service, Setting override, or config.selectlists), how many options, '
             'and the actual values. Flags: EMPTY (no options), DRIFT (same field name has '
-            'different options on different models), ORPHAN (select_lists entry for non-select field).'
+            'different options on different models), ORPHAN (selectlists entry for non-select field).'
         ),
     },
     {

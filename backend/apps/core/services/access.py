@@ -35,7 +35,6 @@ never act as superuser, and every act-as is logged.
 from __future__ import annotations
 
 import logging
-import time
 from typing import Optional
 
 from django.db.models import Q
@@ -61,12 +60,6 @@ ACT_AS_REQUEST_ATTR = 'wc_act_as'
 
 BLOCK_KEYS = {'view', 'edit', 'scope', 'edit_scope', 'create', 'delete'}
 
-#: model key -> (fingerprint of config.access, when last checked, {role: block}). Each server
-#: process keeps its own, so a change made in one process is seen by the others when they
-#: next check the fingerprint (Setting audit S-4, 2026-10-28): at most REVALIDATE_S later.
-_cache: dict[str, tuple[str, float, dict]] = {}
-REVALIDATE_S = 1.0
-_ACCESS_MD5 = "md5(coalesce(config->'access', 'null'::jsonb)::text)"
 
 
 # ── Role ────────────────────────────────────────────────────────────────
@@ -275,20 +268,9 @@ def model_access(name: str) -> dict:
     key = model_key(name)
     if key is None:
         return {}
-    now = time.monotonic()
-    hit = _cache.get(key)
-    if hit and now - hit[1] < REVALIDATE_S:
-        return hit[2]
-    from apps.core.models.setting import Setting
-    rows = Setting.objects.filter(purpose='wc:model', parent_model=key).order_by('id')
-    fingerprint = rows.extra(select={'v': _ACCESS_MD5}).values_list('v', flat=True).first() or ''
-    if hit and hit[0] == fingerprint:
-        roles = hit[2]
-    else:
-        s = rows.only('config').first()
-        roles = resolve_roles((s.config or {}).get('access') or {}) if s else {}
-    _cache[key] = (fingerprint, now, roles)
-    return roles
+    # Cached per process, re-checked within a second of a change anywhere (definition.py).
+    from apps.core.services import definition
+    return definition.part(key, ('access',), lambda acc: resolve_roles(acc or {}))
 
 
 def block_for(actor, name: str) -> Optional[dict]:
@@ -301,10 +283,8 @@ def block_for(actor, name: str) -> Optional[dict]:
 
 
 def clear_cache(name: Optional[str] = None) -> None:
-    if name is None:
-        _cache.clear()
-    else:
-        _cache.pop(model_key(name) or name, None)
+    from apps.core.services import definition
+    definition.clear(None if name is None else (model_key(name) or name))
 
 
 # ── Defaults ────────────────────────────────────────────────────────────

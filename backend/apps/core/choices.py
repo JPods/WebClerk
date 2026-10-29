@@ -68,87 +68,6 @@ SETTING_SCOPE_CHOICES: Final[ChoiceList] = (
     ("user", "User — one person"),
 )
 
-SETTING_PURPOSE_CHOICES: Final[ChoiceList] = (
-    ("", ""),
-    # Model definition — one record per model, all definition in config
-    ("wc:model", "wc:model"),
-    ("wc:workspace", "wc:workspace"),
-    # Layout & display
-    ("wc:print_layout", "wc:print_layout"),
-    ("compact_layout", "compact_layout"),
-    ("wc:list_column_config", "wc:list_column_config"),
-    ("field_registry", "field_registry"),
-    ("detail_field_access", "detail_field_access"),
-    ("wc:workbench_fields", "wc:workbench_fields"),
-    # Defaults
-    ("wc:db_defaults", "wc:db_defaults"),
-    ("constants", "constants"),
-    ("sales_defaults", "sales_defaults"),
-    ("purchase_defaults", "purchase_defaults"),
-    ("accounting_defaults", "accounting_defaults"),
-    ("accounting_interface", "accounting_interface"),
-    ("wc:print_defaults", "wc:print_defaults"),
-    # Search & keywords
-    ("wc:keywords", "wc:keywords"),
-    ("wc:search", "wc:search"),
-    # QA
-    ("wc:qa_counters", "wc:qa_counters"),
-    ("wc:qa_questions", "wc:qa_questions"),
-    # Alice & AI
-    ("wc:alice_coaching", "wc:alice_coaching"),
-    ("ai_prompt_history", "ai_prompt_history"),
-    # Admin & system
-    ("wc:admin", "wc:admin"),
-    ("wc:selectlist", "wc:selectlist"),
-    ("wc:react_settings", "wc:react_settings"),
-    ("seed", "seed"),
-    ("wc:system", "wc:system"),
-    # Structure without a model (Bill, 2026-10-28): one record each
-    ("device_status", "device_status"),
-    ("wc:test_parade", "wc:test_parade"),
-    ("wc:page_help", "wc:page_help"),
-    ("wc:ai", "wc:ai"),
-    ("wc:feature", "wc:feature"),
-    ("wc:schema_map", "wc:schema_map"),
-    ("calculated_function", "calculated_function"),
-    # Conditions — document terms/conditions templates
-    ("wc:conditions_sales", "wc:conditions_sales"),
-    ("conditions_purchase", "conditions_purchase"),
-    # Commerce & collaboration
-    ("user:campaign", "user:campaign"),
-    ("wc:company_profile", "wc:company_profile"),
-    ("wc:collaborate", "wc:collaborate"),
-    ("wc:wchq_connection", "wc:wchq_connection"),
-    # Sync & storage
-    ("sync_config", "sync_config"),
-    ("file_storage", "file_storage"),
-    # Gantt & sprint
-    ("gantt_defaults", "gantt_defaults"),
-    ("burndown_config", "burndown_config"),
-    # Line card
-    ("line_card_fields", "line_card_fields"),
-    # UI behaviors
-    ("wc:ui", "wc:ui"),
-    # Cash
-    ("wc:cash_gateway", "wc:cash_gateway"),
-)
-
-# Why a Log row was written (Log.purpose — Bill, 2026-10-28). Log.write refuses any other.
-# A foreign_<kind> purpose (none yet) points to a record kept in another database
-# (refs.foreign = {database, model, uuid}); add one only for an event that matters to this
-# database. Conversion passes do not: they stage in alice_conversion, and loading the bundle
-# is this database's own event.
-LOG_PURPOSE_CHOICES: Final[ChoiceList] = (
-    ("audit", "Audit — a change to an audited record"),
-    ("alice", "Alice — what Alice observed"),
-    ("refs_mismatch", "Refs mismatch — a record's FK and refs.links disagree"),
-    ("coaching", "Coaching — a drill a person ran"),
-    ("inventory", "Inventory — a document line changed an item's quantity"),
-    ("quiz", "Quiz — a person's answer to a training question"),
-)
-LOG_PURPOSES: Final[frozenset[str]] = frozenset(k for k, _ in LOG_PURPOSE_CHOICES)
-
-
 DEFAULT_SELECT_LISTS: Final[dict[str, dict[str, ChoiceList]]] = {
     "Contact": {
         "role": CONTACT_ROLE_CHOICES,
@@ -156,12 +75,6 @@ DEFAULT_SELECT_LISTS: Final[dict[str, dict[str, ChoiceList]]] = {
     "Action": {
         "kanban_column": ACTION_KANBAN_COLUMNS,
         "difficulty": ACTION_DIFFICULTY_LEVELS,
-    },
-    "Setting": {
-        "purpose": SETTING_PURPOSE_CHOICES,
-    },
-    "Log": {
-        "purpose": LOG_PURPOSE_CHOICES,
     },
     "Report": {
         "output_type": (

@@ -2,7 +2,7 @@
 
 Each Report record carries:
   - name, description, category, target_model
-  - config.template: pdfme template JSON (stub — designer fills in layout)
+  - the built-in template is derived from the name (render_report._resolve_template_key)
   - config.data_source: which service/endpoint provides the data
   - config.fields: data fields available for template binding
 
@@ -25,7 +25,6 @@ REPORTS = [
                         'lines[].item_ida', 'lines[].description', 'lines[].qty', 'lines[].unit_price',
                         'lines[].amount', 'totals.amount', 'totals.tax', 'totals.shipping', 'totals.total',
                         'terms', 'due_date', 'notes'],
-            'template': {},
         },
     },
     {
@@ -39,7 +38,6 @@ REPORTS = [
                         'lines[].item_ida', 'lines[].description', 'lines[].qty', 'lines[].unit_price',
                         'lines[].amount', 'totals.amount', 'totals.tax', 'totals.total',
                         'valid_until', 'notes'],
-            'template': {},
         },
     },
     {
@@ -52,7 +50,6 @@ REPORTS = [
             'fields': ['ida', 'dt_created', 'customer.company', 'customer.address',
                         'lines[].item_ida', 'lines[].description', 'lines[].qty', 'lines[].unit_price',
                         'lines[].amount', 'totals.total', 'ship_date', 'ship_via', 'notes'],
-            'template': {},
         },
     },
     {
@@ -66,7 +63,6 @@ REPORTS = [
                         'aging.balance_due', 'aging.current', 'aging.past_1_30', 'aging.past_31_60', 'aging.past_61',
                         'lines[].type', 'lines[].number', 'lines[].date', 'lines[].total', 'lines[].balance',
                         'lines[].days', 'lines[].finance'],
-            'template': {},
         },
     },
     {
@@ -80,7 +76,6 @@ REPORTS = [
             'fields': ['ida', 'dt_created', 'customer.company', 'reason',
                         'lines[].item_ida', 'lines[].description', 'lines[].qty', 'lines[].unit_price',
                         'totals.total'],
-            'template': {},
         },
     },
     {
@@ -94,7 +89,6 @@ REPORTS = [
             'fields': ['ida', 'dt_created', 'ship_to',
                         'lines[].item_ida', 'lines[].description', 'lines[].qty_shipped',
                         'weight', 'boxes', 'ship_via', 'tracking'],
-            'template': {},
         },
     },
     {
@@ -107,7 +101,6 @@ REPORTS = [
             'fields': ['ida', 'dt_created', 'customer.company',
                         'lines[].item_ida', 'lines[].description', 'lines[].qty', 'lines[].condition',
                         'reason', 'notes'],
-            'template': {},
         },
     },
 
@@ -122,7 +115,6 @@ REPORTS = [
             'fields': ['ida', 'customer.company', 'ship_date',
                         'lines[].item_ida', 'lines[].description', 'lines[].qty',
                         'lines[].warehouse', 'lines[].aisle', 'lines[].bin'],
-            'template': {},
         },
     },
     {
@@ -136,7 +128,6 @@ REPORTS = [
                         'lines[].item_ida', 'lines[].vendor_item_num', 'lines[].description',
                         'lines[].qty', 'lines[].unit_cost', 'lines[].amount',
                         'totals.total', 'delivery_date', 'ship_to', 'notes'],
-            'template': {},
         },
     },
     {
@@ -150,7 +141,6 @@ REPORTS = [
                         'lines[].item_ida', 'lines[].description', 'lines[].qty',
                         'lines[].labor_hours', 'lines[].material_cost',
                         'due_date', 'assigned_to', 'notes'],
-            'template': {},
         },
     },
     {
@@ -165,7 +155,6 @@ REPORTS = [
                         'rows[].qty_plan', 'rows[].qty_actual', 'rows[].cost_avg',
                         'rows[].cost_extended', 'rows[].is_subassembly',
                         'total_cost'],
-            'template': {},
         },
     },
     {
@@ -178,7 +167,6 @@ REPORTS = [
             'fields': ['warehouse', 'rows[].item_ida', 'rows[].item_name', 'rows[].lot',
                         'rows[].location.aisle', 'rows[].location.shelf', 'rows[].location.bin',
                         'rows[].qr_code', 'rows[].expected_qty'],
-            'template': {},
         },
     },
     {
@@ -191,7 +179,6 @@ REPORTS = [
             'fields': ['serial_ida', 'item_ida', 'item.name', 'status',
                         'warranty.date_start', 'warranty.date_end',
                         'logs[].action', 'logs[].dt', 'logs[].config'],
-            'template': {},
         },
     },
     {
@@ -205,7 +192,6 @@ REPORTS = [
                         'lines[].item_ida', 'lines[].description',
                         'lines[].qty_ordered', 'lines[].qty_received', 'lines[].variance',
                         'notes'],
-            'template': {},
         },
     },
     {
@@ -218,7 +204,6 @@ REPORTS = [
             'fields': ['ida', 'dt_created', 'requested_by', 'approved_by',
                         'lines[].item_ida', 'lines[].description', 'lines[].qty',
                         'lines[].estimated_cost', 'reason', 'notes'],
-            'template': {},
         },
     },
 
@@ -233,7 +218,6 @@ REPORTS = [
             'fields': ['period', 'rows[].account', 'rows[].account_name',
                         'rows[].debit', 'rows[].credit', 'rows[].net',
                         'total_debit', 'total_credit', 'balanced'],
-            'template': {},
         },
     },
     {
@@ -246,7 +230,6 @@ REPORTS = [
             'fields': ['period_label', 'rows[].jurisdiction', 'rows[].tax_collected',
                         'rows[].invoice_count', 'total_tax', 'total_invoices',
                         'company.name', 'company.tax_id'],
-            'template': {},
         },
     },
     {
@@ -260,7 +243,6 @@ REPORTS = [
                         'rows[].current', 'rows[].past_30', 'rows[].past_60', 'rows[].past_90',
                         'rows[].total', 'rows[].days_avg_paid',
                         'totals.current', 'totals.past_30', 'totals.past_60', 'totals.past_90', 'totals.total'],
-            'template': {},
         },
     },
     {
@@ -273,7 +255,6 @@ REPORTS = [
             'fields': ['rows[].vendor.company', 'rows[].vendor.ida',
                         'rows[].current', 'rows[].past_30', 'rows[].past_60', 'rows[].past_90',
                         'rows[].total'],
-            'template': {},
         },
     },
     {
@@ -286,7 +267,6 @@ REPORTS = [
             'fields': ['period', 'rows[].date', 'rows[].customer', 'rows[].invoice_ida',
                         'rows[].amount', 'rows[].method', 'rows[].reference',
                         'total'],
-            'template': {},
         },
     },
     {
@@ -299,7 +279,6 @@ REPORTS = [
             'fields': ['period', 'rows[].date', 'rows[].invoice_ida', 'rows[].customer',
                         'rows[].account', 'rows[].debit', 'rows[].credit',
                         'total_debit', 'total_credit'],
-            'template': {},
         },
     },
     {
@@ -312,7 +291,6 @@ REPORTS = [
             'fields': ['period', 'rows[].date', 'rows[].po_ida', 'rows[].vendor',
                         'rows[].account', 'rows[].debit', 'rows[].credit',
                         'total_debit', 'total_credit'],
-            'template': {},
         },
     },
 
@@ -327,7 +305,6 @@ REPORTS = [
             'fields': ['period', 'rows[].customer.company', 'rows[].customer.ida',
                         'rows[].revenue', 'rows[].cost', 'rows[].margin_pct',
                         'rows[].order_count', 'rows[].invoice_count'],
-            'template': {},
         },
     },
     {
@@ -340,7 +317,6 @@ REPORTS = [
             'fields': ['period', 'rows[].item_ida', 'rows[].name',
                         'rows[].qty_sold', 'rows[].revenue', 'rows[].cost',
                         'rows[].margin_pct', 'rows[].margin_velocity', 'rows[].velocity_category'],
-            'template': {},
         },
     },
     {
@@ -352,7 +328,6 @@ REPORTS = [
             'data_source': 'sales_by_salesperson',
             'fields': ['period', 'rows[].salesperson', 'rows[].revenue', 'rows[].cost',
                         'rows[].margin_pct', 'rows[].commission', 'rows[].order_count'],
-            'template': {},
         },
     },
     {
@@ -365,7 +340,6 @@ REPORTS = [
             'fields': ['rows[].item_ida', 'rows[].name', 'rows[].margin_velocity',
                         'rows[].margin_pct', 'rows[].annual_turns', 'rows[].velocity_category',
                         'rows[].qty_on_hand', 'rows[].cost_avg'],
-            'template': {},
         },
     },
     {
@@ -378,7 +352,6 @@ REPORTS = [
             'fields': ['campaign.name', 'campaign.source_type', 'campaign.region',
                         'campaign.spend', 'contacts_attributed', 'orders_attributed',
                         'revenue_attributed', 'roi_pct', 'cost_per_acquisition'],
-            'template': {},
         },
     },
     {
@@ -391,7 +364,6 @@ REPORTS = [
             'fields': ['rows[].customer.company', 'rows[].revenue', 'rows[].cogs',
                         'rows[].margin_pct', 'rows[].days_avg_paid', 'rows[].high_credit',
                         'rows[].total_exposure', 'rows[].lifetime_value'],
-            'template': {},
         },
     },
 ]

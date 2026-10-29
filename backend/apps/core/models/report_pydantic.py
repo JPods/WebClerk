@@ -85,7 +85,6 @@ class ReportConfig(ConfigBase):
     # -- print / render --
     template: Optional[str] = None          # built-in template key (render_report._resolve_template_key)
     form: Optional[dict] = None             # PrintLayout (UniversalPrint)
-    pdfme_template: Optional[dict] = None   # pdfme {basePdf, schemas}
     statement: Optional[dict] = None        # conditional_text rules, e.g. statement.comments
     sample_data: Optional[dict] = None      # parade preview data
 

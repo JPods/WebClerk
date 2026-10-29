@@ -148,12 +148,6 @@ CASH_CATEGORY_OPTIONS = [
     {'value': 'credit_memo', 'label': 'Credit Memo'},
     {'value': 'write_off', 'label': 'Write-off'},
 ]
-PURPOSE_OPTIONS = [
-    {'value': 'standard', 'label': 'Standard'},
-    {'value': 'template', 'label': 'Template'},
-    {'value': 'test', 'label': 'Test'},
-    {'value': 'internal', 'label': 'Internal'},
-]
 CHANNEL_OPTIONS = [
     {'value': 'call', 'label': 'Phone Call'},
     {'value': 'email', 'label': 'Email'},
@@ -238,13 +232,6 @@ DOMAIN_TYPE_OPTIONS = [
     {'value': 'marketplace', 'label': 'Marketplace'},
     {'value': 'other', 'label': 'Other'},
 ]
-ADDRESS_PURPOSE_OPTIONS = [
-    {'value': 'billing', 'label': 'Billing'},
-    {'value': 'shipping', 'label': 'Shipping'},
-    {'value': 'mailing', 'label': 'Mailing'},
-    {'value': 'location', 'label': 'Location'},
-    {'value': 'other', 'label': 'Other'},
-]
 INVENTORY_MOVEMENT_OPTIONS = [
     {'value': 'receipt', 'label': 'Receipt'},
     {'value': 'shipment', 'label': 'Shipment'},
@@ -252,13 +239,6 @@ INVENTORY_MOVEMENT_OPTIONS = [
     {'value': 'transfer', 'label': 'Transfer'},
     {'value': 'return', 'label': 'Return'},
     {'value': 'scrap', 'label': 'Scrap'},
-]
-DOCUMENT_PURPOSE_OPTIONS = [
-    {'value': 'attachment', 'label': 'Attachment'},
-    {'value': 'template', 'label': 'Template'},
-    {'value': 'image', 'label': 'Image'},
-    {'value': 'reference', 'label': 'Reference'},
-    {'value': 'certificate', 'label': 'Certificate'},
 ]
 BUNDLE_DIRECTION_OPTIONS = [
     {'value': 'import', 'label': 'Import'},
@@ -569,14 +549,11 @@ def get_field_behaviors(model_key, field_map=None, overrides=None):
         if name == 'source_name':
             behaviors[name] = {'type': 'select', 'source': 'inline', 'options': SOURCE_NAME_OPTIONS}
             continue
-        if name == 'purpose' and model_key == 'address':
-            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': ADDRESS_PURPOSE_OPTIONS}
-            continue
-        if name == 'purpose' and model_key == 'document':
-            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': DOCUMENT_PURPOSE_OPTIONS}
-            continue
         if name == 'purpose':
-            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': PURPOSE_OPTIONS}
+            # A model's purposes are its definition's list (config.selectlists.purpose): the
+            # browser makes it the dropdown, the door enforces it (Bill, 2026-10-28). With no
+            # list the field is free text and unchecked.
+            behaviors[name] = {'type': 'text'}
             continue
         if name == 'channel':
             behaviors[name] = {'type': 'select', 'source': 'inline', 'options': CHANNEL_OPTIONS}
@@ -785,3 +762,31 @@ def get_leaf_declarations(model_key, field_map=None):
             leaves[name] = {'type': 'json'}
 
     return leaves
+
+
+#: The purpose lists a new model definition starts with (seed_model_definitions). After that
+#: the definition's own list (config.selectlists.purpose) is the source, kept by an admin;
+#: a model with no list here starts with USER_DEFINED_PURPOSE for an admin to replace.
+USER_DEFINED_PURPOSE = {'value': 'user_defined', 'label': 'User defined'}
+SEED_PURPOSES = {
+    'action': [{'value': 'alice', 'label': 'Alice — her to-do'}],
+    'address': [{'value': v, 'label': v.title()} for v in
+                ('billing', 'shipping', 'mailing', 'location', 'other')],
+    'document': [{'value': v, 'label': v.title()} for v in
+                 ('attachment', 'template', 'image', 'reference', 'certificate')],
+    'log': [
+        {'value': 'audit', 'label': 'Audit — a change to an audited record'},
+        {'value': 'alice', 'label': 'Alice — what Alice observed'},
+        {'value': 'refs_mismatch', 'label': "Refs mismatch — a record's FK and refs.links disagree"},
+        {'value': 'coaching', 'label': 'Coaching — a drill a person ran'},
+        {'value': 'inventory', 'label': "Inventory — a document line changed an item's quantity"},
+        {'value': 'quiz', 'label': "Quiz — a person's answer to a training question"},
+    ],
+    'setting': [{'value': v, 'label': v} for v in (
+        'wc:model', 'wc:system', 'wc:admin', 'wc:company_profile', 'wc:wchq_connection',
+        'wc:cash_gateway', 'wc:shipping_service', 'wc:security', 'wc:dd_card', 'wc:escalation',
+        'wc:hook_points', 'wc:ai', 'wc:page_help', 'wc:ui', 'wc:db_defaults', 'wc:keywords',
+        'wc:selectlist', 'wc:feature', 'wc:schema_map', 'wc:collaborate', 'wc:qa_counters',
+        'wc:qa_questions', 'wc:test_parade', 'device_status', 'accounting_interface',
+        'user:campaign')],
+}

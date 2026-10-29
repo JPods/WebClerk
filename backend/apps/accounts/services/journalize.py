@@ -251,7 +251,7 @@ def _get_org_gl_override(org_id: int, key: str) -> Optional[str]:
 def _get_category_gl(category: str) -> str:
     """GL account for an expense category bucket.
 
-    Reads gl_map from the cash model definition Setting (select_lists.category).
+    Reads gl_map from the cash model definition Setting (selectlists.category).
     A category with no mapping posts to the company default_expense account.
     """
     from apps.accounts.services.chart import role_account
@@ -259,7 +259,7 @@ def _get_category_gl(category: str) -> str:
     if category:
         Setting = dj_apps.get_model('core', 'Setting')
         setting = Setting.objects.filter(purpose='wc:model', parent_model='cash').first()
-        sl = (setting.config or {}).get('select_lists', {}).get('category', {}) if setting else {}
+        sl = (setting.config or {}).get('selectlists', {}).get('category', {}) if setting else {}
         gl = sl.get('gl_map', {}).get(category)
     return gl or role_account('default_expense', used_by=f'expense category "{category or "(none)"}"')
 
@@ -680,7 +680,7 @@ def journalize_cash(cash_id: int, ida_prefix: str = '') -> dict:
         if receipt is not None:
             debit_account, debit_purpose = _payable_account(receipt, f'cash {cash.ida}')
         else:
-            # Category → GL mapping lives in Setting select_lists
+            # Category → GL mapping lives in Setting selectlists
             debit_account, debit_purpose = _get_category_gl(getattr(cash, 'category', '')), 'expense'
         purchase_id = getattr(cash, 'purchase_id', None)
         if purchase_id:

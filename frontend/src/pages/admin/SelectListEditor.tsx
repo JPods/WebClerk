@@ -1,7 +1,7 @@
 /**
  * SelectListEditor — Edit select lists across models from one place.
  *
- * Not a source of truth — wc:model.config.select_lists IS the source.
+ * Not a source of truth — wc:model.config.selectlists IS the source (for purpose, the list the door enforces).
  * This is an authoring tool: edit a template, pick which models to push to.
  *
  * Reads all wc:model Settings, builds a matrix of shared select lists,
@@ -51,7 +51,7 @@ export default function SelectListEditor() {
         const records = res?.results || [];
         const data: ModelSelectLists[] = [];
         for (const r of records) {
-          const sl = r.config?.select_lists;
+          const sl = r.config?.selectlists;
           if (sl && typeof sl === 'object' && Object.keys(sl).length > 0) {
             const normalized: Record<string, SelectOption[]> = {};
             for (const [field, opts] of Object.entries(sl)) {
@@ -179,7 +179,7 @@ export default function SelectListEditor() {
       try {
         await saveRecord('setting', {
           id: md.settingId,
-          [`config.select_lists.${selectedField}`]: { mode: 'update', value: editOptions },
+          [`config.selectlists.${selectedField}`]: { mode: 'update', value: editOptions },
         });
         ok++;
       } catch (e) {
@@ -198,7 +198,7 @@ export default function SelectListEditor() {
     const records = res?.results || [];
     const data: ModelSelectLists[] = [];
     for (const r of records) {
-      const sl = r.config?.select_lists;
+      const sl = r.config?.selectlists;
       if (sl && typeof sl === 'object' && Object.keys(sl).length > 0) {
         const normalized: Record<string, SelectOption[]> = {};
         for (const [field, opts] of Object.entries(sl)) {
@@ -379,7 +379,7 @@ export default function SelectListEditor() {
                 {pushing ? 'Pushing...' : `Push to ${selectedModels.size} model${selectedModels.size !== 1 ? 's' : ''}`}
               </button>
               <span className="db-font-xs" style={{ color: 'var(--db-text-dim)' }}>
-                Updates wc:model.config.select_lists.{selectedField} on each selected model
+                Updates wc:model.config.selectlists.{selectedField} on each selected model
               </span>
             </div>
           </div>

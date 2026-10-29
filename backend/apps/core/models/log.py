@@ -5,7 +5,8 @@ the structure of the application; logs go here).
 Thin, as Pending is: CoreModel + RefsMixin, no keywords, health or lifecycle. A log row is
 written once and never changed.
 
-- purpose  why the row was written (CoreModel: "Why this record exists"); LOG_PURPOSE_CHOICES
+- purpose  why the row was written (CoreModel: "Why this record exists"); the log definition's
+           list (config.selectlists.purpose), as every model's
 - action   what happened (update, delete, viewed, mismatch, drill …)
 - user     who is responsible: the person or agent login whose request triggered it (filled
            from the acting Actor when the caller names no one — Bill, 2026-10-28)
@@ -63,9 +64,10 @@ class Log(CoreModel, RefsMixin):
     @staticmethod
     def validate_entry(purpose: str, refs: dict | None) -> None:
         """What every Log row must be, however it is written (Log.write, or wcapi `new`)."""
-        from apps.core.choices import LOG_PURPOSES
-        if purpose not in LOG_PURPOSES:
-            raise ValueError(f"Unknown log purpose {purpose!r}; choose from {sorted(LOG_PURPOSES)}")
+        from apps.core.services.purposes import unlisted
+        reason = unlisted('log', purpose) if purpose else 'A log entry needs a purpose.'
+        if reason:
+            raise ValueError(reason)
         if purpose.startswith('foreign_') and not (refs or {}).get('foreign'):
             raise ValueError(f"A {purpose} log needs refs.foreign = {{database, model, uuid}}")
 

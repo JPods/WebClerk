@@ -8421,27 +8421,7 @@
             "label": "linkage"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -8720,20 +8700,16 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
+              "label": "Alice — her to-do",
+              "value": "alice"
             },
             {
-              "label": "Template",
-              "value": "template"
+              "label": "episode_outcome",
+              "value": "episode_outcome"
             },
             {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "retrospection",
+              "value": "retrospection"
             }
           ],
           "priority": [
@@ -8964,176 +8940,6 @@
             ]
           }
         ],
-        "select_lists": {
-          "status": [
-            {
-              "label": "—",
-              "value": ""
-            },
-            {
-              "label": "open",
-              "value": "open"
-            },
-            {
-              "label": "active",
-              "value": "active"
-            },
-            {
-              "label": "on_hold",
-              "value": "on_hold"
-            },
-            {
-              "label": "review",
-              "value": "review"
-            },
-            {
-              "label": "completed",
-              "value": "completed"
-            },
-            {
-              "label": "cancelled",
-              "value": "cancelled"
-            }
-          ],
-          "priority": [
-            {
-              "label": "1 - Highest",
-              "value": 1
-            },
-            {
-              "label": "2 - High",
-              "value": 2
-            },
-            {
-              "label": "3 - Medium",
-              "value": 3
-            },
-            {
-              "label": "4 - Normal",
-              "value": 4
-            },
-            {
-              "label": "5 - Low",
-              "value": 5
-            },
-            {
-              "label": "6 - Lowest",
-              "value": 6
-            }
-          ],
-          "difficulty": [
-            {
-              "label": "Easy (1)",
-              "value": 1
-            },
-            {
-              "label": "Average (4)",
-              "value": 4
-            },
-            {
-              "label": "Hard (8)",
-              "value": 8
-            },
-            {
-              "label": "Complex (13)",
-              "value": 13
-            },
-            {
-              "label": "Expert (21)",
-              "value": 21
-            }
-          ],
-          "action_type": [
-            {
-              "label": "call",
-              "value": "call"
-            },
-            {
-              "label": "email",
-              "value": "email"
-            },
-            {
-              "label": "visit",
-              "value": "visit"
-            },
-            {
-              "label": "meeting",
-              "value": "meeting"
-            },
-            {
-              "label": "demo",
-              "value": "demo"
-            },
-            {
-              "label": "marketing",
-              "value": "marketing"
-            },
-            {
-              "label": "referral",
-              "value": "referral"
-            },
-            {
-              "label": "social",
-              "value": "social"
-            },
-            {
-              "label": "event",
-              "value": "event"
-            },
-            {
-              "label": "follow_up",
-              "value": "follow_up"
-            },
-            {
-              "label": "other",
-              "value": "other"
-            }
-          ],
-          "kanban_column": [
-            {
-              "label": "Backlog",
-              "value": "Backlog"
-            },
-            {
-              "label": "Planning",
-              "value": "Planning"
-            },
-            {
-              "label": "InProcess",
-              "value": "InProcess"
-            },
-            {
-              "label": "Review",
-              "value": "Review"
-            },
-            {
-              "label": "Complete",
-              "value": "Complete"
-            }
-          ],
-          "percent_complete": [
-            {
-              "label": "0%",
-              "value": 0
-            },
-            {
-              "label": "20%",
-              "value": 20
-            },
-            {
-              "label": "50%",
-              "value": 50
-            },
-            {
-              "label": "70%",
-              "value": 70
-            },
-            {
-              "label": "100%",
-              "value": 100
-            }
-          ]
-        },
         "default_collapsed": [
           "system",
           "dates",
@@ -9919,31 +9725,7 @@
             "label": "country"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Billing",
-                "value": "billing"
-              },
-              {
-                "label": "Shipping",
-                "value": "shipping"
-              },
-              {
-                "label": "Mailing",
-                "value": "mailing"
-              },
-              {
-                "label": "Location",
-                "value": "location"
-              },
-              {
-                "label": "Other",
-                "value": "other"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -10178,7 +9960,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -11013,27 +10794,7 @@
             "label": "context"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "subject": {
             "type": "text",
@@ -11170,20 +10931,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "User defined",
+              "value": "user_defined"
             }
           ]
         },
@@ -11256,7 +11005,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -12031,27 +11779,7 @@
             "label": "message"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -12207,20 +11935,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "User defined",
+              "value": "user_defined"
             }
           ],
           "priority": [
@@ -12310,7 +12026,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -13003,27 +12718,7 @@
             "label": "actions"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -13140,20 +12835,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "User defined",
+              "value": "user_defined"
             }
           ]
         },
@@ -13218,7 +12901,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -13890,27 +13572,7 @@
             "label": "changes"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -14040,20 +13702,12 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
+              "label": "ai_calculation_audit",
+              "value": "ai_calculation_audit"
             },
             {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "ai_quantity_audit",
+              "value": "ai_quantity_audit"
             }
           ],
           "priority": [
@@ -14136,7 +13790,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -14890,27 +14543,7 @@
             "label": "op data"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -15085,20 +14718,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "User defined",
+              "value": "user_defined"
             }
           ]
         },
@@ -15175,7 +14796,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -16309,27 +15929,7 @@
             "display": "ida"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -16575,20 +16175,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "User defined",
+              "value": "user_defined"
             }
           ],
           "category": [
@@ -16700,42 +16288,6 @@
             ]
           }
         ],
-        "select_lists": {
-          "status": [
-            {
-              "label": "—",
-              "value": ""
-            },
-            {
-              "label": "draft",
-              "value": "draft"
-            },
-            {
-              "label": "open",
-              "value": "open"
-            },
-            {
-              "label": "approved",
-              "value": "approved"
-            },
-            {
-              "label": "released",
-              "value": "released"
-            },
-            {
-              "label": "partial",
-              "value": "partial"
-            },
-            {
-              "label": "complete",
-              "value": "complete"
-            },
-            {
-              "label": "void",
-              "value": "void"
-            }
-          ]
-        },
         "default_collapsed": [
           "system",
           "dates",
@@ -17507,27 +17059,7 @@
             "display": "display_name"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -17703,20 +17235,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "User defined",
+              "value": "user_defined"
             }
           ],
           "priority": [
@@ -17808,7 +17328,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -18164,27 +17683,7 @@
             "label": "dt last used"
           },
           "purpose": {
-            "type": "select",
-            "source": "inline",
-            "options": [
-              {
-                "value": "standard",
-                "label": "Standard"
-              },
-              {
-                "value": "template",
-                "label": "Template"
-              },
-              {
-                "value": "test",
-                "label": "Test"
-              },
-              {
-                "value": "internal",
-                "label": "Internal"
-              }
-            ],
-            "label": "purpose"
+            "type": "text"
           },
           "status": {
             "type": "select",
@@ -18371,7 +17870,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "formatting": {
           "currency": "USD",
           "locale": "en-US",
@@ -18484,7 +17982,15 @@
           ]
         },
         "searches": [],
-        "defaults": {}
+        "defaults": {},
+        "selectlists": {
+          "purpose": [
+            {
+              "label": "User defined",
+              "value": "user_defined"
+            }
+          ]
+        }
       },
       "metadata": {
         "flow": {},
@@ -19310,27 +18816,7 @@
             "label": "changes"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "scripts": {
             "type": "json",
@@ -19463,20 +18949,12 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
+              "label": "ingest",
+              "value": "ingest"
             },
             {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "sync",
+              "value": "sync"
             }
           ]
         },
@@ -19544,7 +19022,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -20723,27 +20200,7 @@
             "label": "company"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -20962,20 +20419,12 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
+              "label": "purchase",
+              "value": "purchase"
             },
             {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "sale",
+              "value": "sale"
             }
           ]
         },
@@ -21065,38 +20514,6 @@
             ]
           }
         ],
-        "select_lists": {
-          "status": [
-            {
-              "label": "—",
-              "value": ""
-            },
-            {
-              "label": "open",
-              "value": "open"
-            },
-            {
-              "label": "active",
-              "value": "active"
-            },
-            {
-              "label": "on_hold",
-              "value": "on_hold"
-            },
-            {
-              "label": "review",
-              "value": "review"
-            },
-            {
-              "label": "completed",
-              "value": "completed"
-            },
-            {
-              "label": "cancelled",
-              "value": "cancelled"
-            }
-          ]
-        },
         "default_collapsed": [
           "system",
           "dates",
@@ -21735,27 +21152,7 @@
             "label": "actions"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -21854,20 +21251,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "User defined",
+              "value": "user_defined"
             }
           ]
         },
@@ -21929,7 +21314,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -23050,27 +22434,7 @@
             "label": "metrics"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -23331,20 +22695,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "sale",
+              "value": "sale"
             }
           ],
           "org_type": [
@@ -23359,6 +22711,10 @@
             {
               "label": "Manufacturer",
               "value": "manufacturer"
+            },
+            {
+              "label": "Employee",
+              "value": "employee"
             },
             {
               "label": "Rep",
@@ -23476,38 +22832,6 @@
             ]
           }
         ],
-        "select_lists": {
-          "status": [
-            {
-              "label": "—",
-              "value": ""
-            },
-            {
-              "label": "open",
-              "value": "open"
-            },
-            {
-              "label": "active",
-              "value": "active"
-            },
-            {
-              "label": "on_hold",
-              "value": "on_hold"
-            },
-            {
-              "label": "review",
-              "value": "review"
-            },
-            {
-              "label": "completed",
-              "value": "completed"
-            },
-            {
-              "label": "cancelled",
-              "value": "cancelled"
-            }
-          ]
-        },
         "default_collapsed": [
           "system",
           "dates",
@@ -24118,27 +23442,7 @@
             "label": "actions"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -24242,24 +23546,6 @@
               "label": "Archived",
               "value": "archived"
             }
-          ],
-          "purpose": [
-            {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
-            }
           ]
         },
         "field_groups": [
@@ -24324,7 +23610,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -25228,31 +24513,7 @@
             "label": "actions"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Attachment",
-                "value": "attachment"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Image",
-                "value": "image"
-              },
-              {
-                "label": "Reference",
-                "value": "reference"
-              },
-              {
-                "label": "Certificate",
-                "value": "certificate"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -25379,36 +24640,6 @@
           "number_precision": 2
         },
         "selectlists": {
-          "status": [
-            {
-              "label": "—",
-              "value": ""
-            },
-            {
-              "label": "open",
-              "value": "open"
-            },
-            {
-              "label": "active",
-              "value": "active"
-            },
-            {
-              "label": "on_hold",
-              "value": "on_hold"
-            },
-            {
-              "label": "review",
-              "value": "review"
-            },
-            {
-              "label": "completed",
-              "value": "completed"
-            },
-            {
-              "label": "cancelled",
-              "value": "cancelled"
-            }
-          ],
           "purpose": [
             {
               "label": "Attachment",
@@ -25429,6 +24660,70 @@
             {
               "label": "Certificate",
               "value": "certificate"
+            },
+            {
+              "label": "alice-help",
+              "value": "alice-help"
+            },
+            {
+              "label": "codemap-guru",
+              "value": "codemap-guru"
+            },
+            {
+              "label": "dbsr",
+              "value": "dbsr"
+            },
+            {
+              "label": "evaluation",
+              "value": "evaluation"
+            },
+            {
+              "label": "general",
+              "value": "general"
+            },
+            {
+              "label": "help-alice",
+              "value": "help-alice"
+            },
+            {
+              "label": "photo",
+              "value": "photo"
+            },
+            {
+              "label": "qa-alice-alice",
+              "value": "qa-alice-alice"
+            },
+            {
+              "label": "qa-alice-commerce",
+              "value": "qa-alice-commerce"
+            },
+            {
+              "label": "qa-alice-operations",
+              "value": "qa-alice-operations"
+            },
+            {
+              "label": "qa-alice-system",
+              "value": "qa-alice-system"
+            },
+            {
+              "label": "session",
+              "value": "session"
+            },
+            {
+              "label": "support_qa",
+              "value": "support_qa"
+            },
+            {
+              "label": "team-memory",
+              "value": "team-memory"
+            },
+            {
+              "label": "team_memory",
+              "value": "team_memory"
+            },
+            {
+              "label": "wc3_go_live",
+              "value": "wc3_go_live"
             }
           ]
         },
@@ -25502,38 +24797,6 @@
             ]
           }
         ],
-        "select_lists": {
-          "status": [
-            {
-              "label": "—",
-              "value": ""
-            },
-            {
-              "label": "open",
-              "value": "open"
-            },
-            {
-              "label": "active",
-              "value": "active"
-            },
-            {
-              "label": "on_hold",
-              "value": "on_hold"
-            },
-            {
-              "label": "review",
-              "value": "review"
-            },
-            {
-              "label": "completed",
-              "value": "completed"
-            },
-            {
-              "label": "cancelled",
-              "value": "cancelled"
-            }
-          ]
-        },
         "default_collapsed": [
           "system",
           "dates",
@@ -26189,27 +25452,7 @@
             "label": "actions"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -26334,20 +25577,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "User defined",
+              "value": "user_defined"
             }
           ]
         },
@@ -26410,7 +25641,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -27143,27 +26373,7 @@
             "label": "opt out"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -27296,20 +26506,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "work",
+              "value": "work"
             }
           ]
         },
@@ -27381,7 +26579,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -28407,27 +27604,7 @@
             "label": "metrics"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -28676,20 +27853,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "sale",
+              "value": "sale"
             }
           ],
           "org_type": [
@@ -28704,6 +27869,10 @@
             {
               "label": "Manufacturer",
               "value": "manufacturer"
+            },
+            {
+              "label": "Employee",
+              "value": "employee"
             },
             {
               "label": "Rep",
@@ -28821,7 +27990,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -29432,27 +28600,7 @@
             "label": "actions"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -29556,24 +28704,6 @@
               "label": "Archived",
               "value": "archived"
             }
-          ],
-          "purpose": [
-            {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
-            }
           ]
         },
         "field_groups": [
@@ -29638,7 +28768,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -30344,27 +29473,7 @@
             "label": "actions"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "type_id": {
             "type": "text",
@@ -30540,20 +29649,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "User defined",
+              "value": "user_defined"
             }
           ],
           "category": [
@@ -30653,7 +29750,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -31439,27 +30535,7 @@
             "label": "actions"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -31600,20 +30676,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "User defined",
+              "value": "user_defined"
             }
           ]
         },
@@ -31682,7 +30746,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -32413,27 +31476,7 @@
             "label": "dry run"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "summary": {
             "type": "json",
@@ -32576,20 +31619,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "User defined",
+              "value": "user_defined"
             }
           ]
         },
@@ -32660,7 +31691,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -33345,27 +32375,7 @@
             "label": "actions"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -33494,20 +32504,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "User defined",
+              "value": "user_defined"
             }
           ]
         },
@@ -33576,7 +32574,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -34149,27 +33146,7 @@
             "label": "metrics"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -34264,20 +33241,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "User defined",
+              "value": "user_defined"
             }
           ]
         },
@@ -34335,7 +33300,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -36631,27 +35595,7 @@
             "label": "finance"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -37250,20 +36194,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "sale",
+              "value": "sale"
             }
           ],
           "priority": [
@@ -37434,7 +36366,7 @@
               "value": "freight"
             }
           ],
-          "shipping.weight_unit": [
+          "shipping.weight.unit": [
             {
               "label": "lbs",
               "value": "lbs"
@@ -37543,68 +36475,6 @@
             ]
           }
         ],
-        "select_lists": {
-          "status": [
-            {
-              "label": "—",
-              "value": ""
-            },
-            {
-              "label": "draft",
-              "value": "draft"
-            },
-            {
-              "label": "open",
-              "value": "open"
-            },
-            {
-              "label": "approved",
-              "value": "approved"
-            },
-            {
-              "label": "released",
-              "value": "released"
-            },
-            {
-              "label": "partial",
-              "value": "partial"
-            },
-            {
-              "label": "complete",
-              "value": "complete"
-            },
-            {
-              "label": "void",
-              "value": "void"
-            }
-          ],
-          "priority": [
-            {
-              "label": "1 - Highest",
-              "value": 1
-            },
-            {
-              "label": "2 - High",
-              "value": 2
-            },
-            {
-              "label": "3 - Medium",
-              "value": 3
-            },
-            {
-              "label": "4 - Normal",
-              "value": 4
-            },
-            {
-              "label": "5 - Low",
-              "value": 5
-            },
-            {
-              "label": "6 - Lowest",
-              "value": 6
-            }
-          ]
-        },
         "default_collapsed": [
           "system",
           "dates",
@@ -38364,27 +37234,7 @@
             "display": "name"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -38740,20 +37590,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "cash_discount",
+              "value": "cash_discount"
             }
           ],
           "line_type": [
@@ -38865,7 +37703,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -40062,27 +38899,7 @@
             "label": "Catalog"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "qr_code": {
             "type": "text",
@@ -40364,20 +39181,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "time-billing",
+              "value": "time-billing"
             }
           ]
         },
@@ -40458,38 +39263,6 @@
             ]
           }
         ],
-        "select_lists": {
-          "status": [
-            {
-              "label": "—",
-              "value": ""
-            },
-            {
-              "label": "open",
-              "value": "open"
-            },
-            {
-              "label": "active",
-              "value": "active"
-            },
-            {
-              "label": "on_hold",
-              "value": "on_hold"
-            },
-            {
-              "label": "review",
-              "value": "review"
-            },
-            {
-              "label": "completed",
-              "value": "completed"
-            },
-            {
-              "label": "cancelled",
-              "value": "cancelled"
-            }
-          ]
-        },
         "default_collapsed": [
           "system",
           "dates",
@@ -41139,27 +39912,7 @@
             "label": "metrics"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -41262,20 +40015,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "User defined",
+              "value": "user_defined"
             }
           ]
         },
@@ -41338,7 +40079,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -41998,27 +40738,7 @@
             "label": "actions"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -42141,20 +40861,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "User defined",
+              "value": "user_defined"
             }
           ]
         },
@@ -42221,7 +40929,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -42957,27 +41664,7 @@
             "label": "actions"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -43116,20 +41803,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "User defined",
+              "value": "user_defined"
             }
           ]
         },
@@ -43199,7 +41874,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -44040,27 +42714,7 @@
             "label": "is void"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -44201,20 +42855,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "User defined",
+              "value": "user_defined"
             }
           ]
         },
@@ -44289,7 +42931,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -44960,27 +43601,7 @@
             "label": "actions"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -45091,20 +43712,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "transaction_flow",
+              "value": "transaction_flow"
             }
           ]
         },
@@ -45169,7 +43778,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -46203,27 +44811,7 @@
             "label": "metrics"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -46484,20 +45072,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "sale",
+              "value": "sale"
             }
           ],
           "org_type": [
@@ -46512,6 +45088,10 @@
             {
               "label": "Manufacturer",
               "value": "manufacturer"
+            },
+            {
+              "label": "Employee",
+              "value": "employee"
             },
             {
               "label": "Rep",
@@ -46629,38 +45209,6 @@
             ]
           }
         ],
-        "select_lists": {
-          "status": [
-            {
-              "label": "—",
-              "value": ""
-            },
-            {
-              "label": "open",
-              "value": "open"
-            },
-            {
-              "label": "active",
-              "value": "active"
-            },
-            {
-              "label": "on_hold",
-              "value": "on_hold"
-            },
-            {
-              "label": "review",
-              "value": "review"
-            },
-            {
-              "label": "completed",
-              "value": "completed"
-            },
-            {
-              "label": "cancelled",
-              "value": "cancelled"
-            }
-          ]
-        },
         "default_collapsed": [
           "system",
           "dates",
@@ -47282,27 +45830,7 @@
             "label": "actions"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -47405,20 +45933,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "User defined",
+              "value": "user_defined"
             }
           ]
         },
@@ -47479,7 +45995,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -48760,27 +47275,7 @@
             "label": "finance"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -49375,20 +47870,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "sale",
+              "value": "sale"
             }
           ],
           "priority": [
@@ -49559,7 +48042,7 @@
               "value": "freight"
             }
           ],
-          "shipping.weight_unit": [
+          "shipping.weight.unit": [
             {
               "label": "lbs",
               "value": "lbs"
@@ -49667,68 +48150,6 @@
             ]
           }
         ],
-        "select_lists": {
-          "status": [
-            {
-              "label": "—",
-              "value": ""
-            },
-            {
-              "label": "draft",
-              "value": "draft"
-            },
-            {
-              "label": "open",
-              "value": "open"
-            },
-            {
-              "label": "approved",
-              "value": "approved"
-            },
-            {
-              "label": "released",
-              "value": "released"
-            },
-            {
-              "label": "partial",
-              "value": "partial"
-            },
-            {
-              "label": "complete",
-              "value": "complete"
-            },
-            {
-              "label": "void",
-              "value": "void"
-            }
-          ],
-          "priority": [
-            {
-              "label": "1 - Highest",
-              "value": 1
-            },
-            {
-              "label": "2 - High",
-              "value": 2
-            },
-            {
-              "label": "3 - Medium",
-              "value": 3
-            },
-            {
-              "label": "4 - Normal",
-              "value": 4
-            },
-            {
-              "label": "5 - Low",
-              "value": 5
-            },
-            {
-              "label": "6 - Lowest",
-              "value": 6
-            }
-          ]
-        },
         "default_collapsed": [
           "system",
           "dates",
@@ -50488,27 +48909,7 @@
             "display": "name"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -50864,20 +49265,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "User defined",
+              "value": "user_defined"
             }
           ],
           "line_type": [
@@ -50989,7 +49378,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -51901,27 +50289,7 @@
             "label": "metrics"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -52166,20 +50534,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "sale",
+              "value": "sale"
             }
           ],
           "org_type": [
@@ -52194,6 +50550,10 @@
             {
               "label": "Manufacturer",
               "value": "manufacturer"
+            },
+            {
+              "label": "Employee",
+              "value": "employee"
             },
             {
               "label": "Rep",
@@ -52311,7 +50671,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -52982,11 +51341,38 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates"
-        ]
+        ],
+        "selectlists": {
+          "purpose": [
+            {
+              "label": "cash_application",
+              "value": "cash_application"
+            },
+            {
+              "label": "inventory_line_add",
+              "value": "inventory_line_add"
+            },
+            {
+              "label": "inventory_qty_change",
+              "value": "inventory_qty_change"
+            },
+            {
+              "label": "ledger_sync",
+              "value": "ledger_sync"
+            },
+            {
+              "label": "opening_balance",
+              "value": "opening_balance"
+            },
+            {
+              "label": "small_sting",
+              "value": "small_sting"
+            }
+          ]
+        }
       },
       "metadata": {
         "flow": {},
@@ -53687,27 +52073,7 @@
             "label": "opt out"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -53814,20 +52180,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "work",
+              "value": "work"
             }
           ]
         },
@@ -53892,7 +52246,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -54891,27 +53244,7 @@
             "label": "actions"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -55112,20 +53445,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "User defined",
+              "value": "user_defined"
             }
           ],
           "category": [
@@ -55250,64 +53571,6 @@
             ]
           }
         ],
-        "select_lists": {
-          "status": [
-            {
-              "label": "—",
-              "value": ""
-            },
-            {
-              "label": "open",
-              "value": "open"
-            },
-            {
-              "label": "active",
-              "value": "active"
-            },
-            {
-              "label": "on_hold",
-              "value": "on_hold"
-            },
-            {
-              "label": "review",
-              "value": "review"
-            },
-            {
-              "label": "completed",
-              "value": "completed"
-            },
-            {
-              "label": "cancelled",
-              "value": "cancelled"
-            }
-          ],
-          "priority": [
-            {
-              "label": "1 - Highest",
-              "value": 1
-            },
-            {
-              "label": "2 - High",
-              "value": 2
-            },
-            {
-              "label": "3 - Medium",
-              "value": 3
-            },
-            {
-              "label": "4 - Normal",
-              "value": 4
-            },
-            {
-              "label": "5 - Low",
-              "value": 5
-            },
-            {
-              "label": "6 - Lowest",
-              "value": 6
-            }
-          ]
-        },
         "default_collapsed": [
           "system",
           "dates",
@@ -57390,27 +55653,7 @@
             "label": "finance"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -58005,20 +56248,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "sale",
+              "value": "sale"
             }
           ],
           "priority": [
@@ -58189,7 +56420,7 @@
               "value": "freight"
             }
           ],
-          "shipping.weight_unit": [
+          "shipping.weight.unit": [
             {
               "label": "lbs",
               "value": "lbs"
@@ -58298,68 +56529,6 @@
             ]
           }
         ],
-        "select_lists": {
-          "status": [
-            {
-              "label": "—",
-              "value": ""
-            },
-            {
-              "label": "draft",
-              "value": "draft"
-            },
-            {
-              "label": "open",
-              "value": "open"
-            },
-            {
-              "label": "approved",
-              "value": "approved"
-            },
-            {
-              "label": "released",
-              "value": "released"
-            },
-            {
-              "label": "partial",
-              "value": "partial"
-            },
-            {
-              "label": "complete",
-              "value": "complete"
-            },
-            {
-              "label": "void",
-              "value": "void"
-            }
-          ],
-          "priority": [
-            {
-              "label": "1 - Highest",
-              "value": 1
-            },
-            {
-              "label": "2 - High",
-              "value": 2
-            },
-            {
-              "label": "3 - Medium",
-              "value": 3
-            },
-            {
-              "label": "4 - Normal",
-              "value": 4
-            },
-            {
-              "label": "5 - Low",
-              "value": 5
-            },
-            {
-              "label": "6 - Lowest",
-              "value": 6
-            }
-          ]
-        },
         "default_collapsed": [
           "system",
           "dates",
@@ -59113,27 +57282,7 @@
             "display": "name"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -59495,20 +57644,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "User defined",
+              "value": "user_defined"
             }
           ],
           "line_type": [
@@ -59620,7 +57757,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -60812,27 +58948,7 @@
             "label": "finance"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -61427,20 +59543,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "purchase",
+              "value": "purchase"
             }
           ],
           "priority": [
@@ -61611,7 +59715,7 @@
               "value": "freight"
             }
           ],
-          "shipping.weight_unit": [
+          "shipping.weight.unit": [
             {
               "label": "lbs",
               "value": "lbs"
@@ -61719,68 +59823,6 @@
             ]
           }
         ],
-        "select_lists": {
-          "status": [
-            {
-              "label": "—",
-              "value": ""
-            },
-            {
-              "label": "draft",
-              "value": "draft"
-            },
-            {
-              "label": "open",
-              "value": "open"
-            },
-            {
-              "label": "approved",
-              "value": "approved"
-            },
-            {
-              "label": "released",
-              "value": "released"
-            },
-            {
-              "label": "partial",
-              "value": "partial"
-            },
-            {
-              "label": "complete",
-              "value": "complete"
-            },
-            {
-              "label": "void",
-              "value": "void"
-            }
-          ],
-          "priority": [
-            {
-              "label": "1 - Highest",
-              "value": 1
-            },
-            {
-              "label": "2 - High",
-              "value": 2
-            },
-            {
-              "label": "3 - Medium",
-              "value": 3
-            },
-            {
-              "label": "4 - Normal",
-              "value": 4
-            },
-            {
-              "label": "5 - Low",
-              "value": 5
-            },
-            {
-              "label": "6 - Lowest",
-              "value": 6
-            }
-          ]
-        },
         "default_collapsed": [
           "system",
           "dates",
@@ -62510,27 +60552,7 @@
             "display": "name"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -62846,20 +60868,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "User defined",
+              "value": "user_defined"
             }
           ],
           "line_type": [
@@ -62970,7 +60980,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -63643,27 +61652,7 @@
             "label": "actions"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -63800,20 +61789,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "User defined",
+              "value": "user_defined"
             }
           ]
         },
@@ -63882,7 +61859,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -64891,27 +62867,7 @@
             "label": "actions"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -65066,20 +63022,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "User defined",
+              "value": "user_defined"
             }
           ]
         },
@@ -65149,42 +63093,6 @@
             ]
           }
         ],
-        "select_lists": {
-          "status": [
-            {
-              "label": "—",
-              "value": ""
-            },
-            {
-              "label": "draft",
-              "value": "draft"
-            },
-            {
-              "label": "open",
-              "value": "open"
-            },
-            {
-              "label": "approved",
-              "value": "approved"
-            },
-            {
-              "label": "released",
-              "value": "released"
-            },
-            {
-              "label": "partial",
-              "value": "partial"
-            },
-            {
-              "label": "complete",
-              "value": "complete"
-            },
-            {
-              "label": "void",
-              "value": "void"
-            }
-          ]
-        },
         "default_collapsed": [
           "system",
           "dates",
@@ -65966,27 +63874,7 @@
             "display": "name"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "receipt": {
             "type": "lookup",
@@ -66334,20 +64222,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "User defined",
+              "value": "user_defined"
             }
           ],
           "line_type": [
@@ -66465,7 +64341,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -67498,27 +65373,7 @@
             "label": "metrics"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -67767,20 +65622,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "sale",
+              "value": "sale"
             }
           ],
           "org_type": [
@@ -67795,6 +65638,10 @@
             {
               "label": "Manufacturer",
               "value": "manufacturer"
+            },
+            {
+              "label": "Employee",
+              "value": "employee"
             },
             {
               "label": "Rep",
@@ -67912,7 +65759,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -68713,27 +66559,7 @@
             "label": "content"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -68945,20 +66771,44 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
+              "label": "email",
+              "value": "email"
             },
             {
-              "label": "Template",
-              "value": "template"
+              "label": "email-template",
+              "value": "email-template"
             },
             {
-              "label": "Test",
-              "value": "test"
+              "label": "form-detail",
+              "value": "form-detail"
             },
             {
-              "label": "Internal",
-              "value": "internal"
+              "label": "function",
+              "value": "function"
+            },
+            {
+              "label": "mvp",
+              "value": "mvp"
+            },
+            {
+              "label": "report_executable",
+              "value": "report_executable"
+            },
+            {
+              "label": "search_stored",
+              "value": "search_stored"
+            },
+            {
+              "label": "seed",
+              "value": "seed"
+            },
+            {
+              "label": "svg-form-staged",
+              "value": "svg-form-staged"
+            },
+            {
+              "label": "text",
+              "value": "text"
             }
           ],
           "category": [
@@ -69097,7 +66947,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -69924,27 +67773,7 @@
             "label": "actions"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -70051,20 +67880,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "User defined",
+              "value": "user_defined"
             }
           ]
         },
@@ -70123,7 +67940,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -70851,27 +68667,7 @@
             "display": "name"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -71187,20 +68983,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "User defined",
+              "value": "user_defined"
             }
           ],
           "line_type": [
@@ -71311,7 +69095,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -71983,27 +69766,7 @@
             "label": "item id"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "qr_code": {
             "type": "text",
@@ -72140,20 +69903,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "User defined",
+              "value": "user_defined"
             }
           ]
         },
@@ -72219,7 +69970,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -72876,27 +70626,7 @@
             "label": "actions"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -73003,20 +70733,108 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
+              "label": "wc:model",
+              "value": "wc:model"
             },
             {
-              "label": "Template",
-              "value": "template"
+              "label": "wc:system",
+              "value": "wc:system"
             },
             {
-              "label": "Test",
-              "value": "test"
+              "label": "wc:admin",
+              "value": "wc:admin"
             },
             {
-              "label": "Internal",
-              "value": "internal"
+              "label": "wc:company_profile",
+              "value": "wc:company_profile"
+            },
+            {
+              "label": "wc:wchq_connection",
+              "value": "wc:wchq_connection"
+            },
+            {
+              "label": "wc:cash_gateway",
+              "value": "wc:cash_gateway"
+            },
+            {
+              "label": "wc:shipping_service",
+              "value": "wc:shipping_service"
+            },
+            {
+              "label": "wc:security",
+              "value": "wc:security"
+            },
+            {
+              "label": "wc:dd_card",
+              "value": "wc:dd_card"
+            },
+            {
+              "label": "wc:escalation",
+              "value": "wc:escalation"
+            },
+            {
+              "label": "wc:hook_points",
+              "value": "wc:hook_points"
+            },
+            {
+              "label": "wc:ai",
+              "value": "wc:ai"
+            },
+            {
+              "label": "wc:page_help",
+              "value": "wc:page_help"
+            },
+            {
+              "label": "wc:ui",
+              "value": "wc:ui"
+            },
+            {
+              "label": "wc:db_defaults",
+              "value": "wc:db_defaults"
+            },
+            {
+              "label": "wc:keywords",
+              "value": "wc:keywords"
+            },
+            {
+              "label": "wc:selectlist",
+              "value": "wc:selectlist"
+            },
+            {
+              "label": "wc:feature",
+              "value": "wc:feature"
+            },
+            {
+              "label": "wc:schema_map",
+              "value": "wc:schema_map"
+            },
+            {
+              "label": "wc:collaborate",
+              "value": "wc:collaborate"
+            },
+            {
+              "label": "wc:qa_counters",
+              "value": "wc:qa_counters"
+            },
+            {
+              "label": "wc:qa_questions",
+              "value": "wc:qa_questions"
+            },
+            {
+              "label": "wc:test_parade",
+              "value": "wc:test_parade"
+            },
+            {
+              "label": "device_status",
+              "value": "device_status"
+            },
+            {
+              "label": "accounting_interface",
+              "value": "accounting_interface"
+            },
+            {
+              "label": "user:campaign",
+              "value": "user:campaign"
             }
           ]
         },
@@ -73082,7 +70900,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -73867,27 +71684,7 @@
             "display": "ida"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -74022,20 +71819,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "User defined",
+              "value": "user_defined"
             }
           ]
         },
@@ -74114,7 +71899,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -74875,27 +72659,7 @@
             "label": "payload"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -75023,50 +72787,10 @@
           "number_precision": 2
         },
         "selectlists": {
-          "status": [
-            {
-              "label": "Active",
-              "value": "active"
-            },
-            {
-              "label": "Inactive",
-              "value": "inactive"
-            },
-            {
-              "label": "Archived",
-              "value": "archived"
-            }
-          ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
-            }
-          ],
-          "direction": [
-            {
-              "label": "Import",
-              "value": "import"
-            },
-            {
-              "label": "Export",
-              "value": "export"
-            },
-            {
-              "label": "Sync",
-              "value": "sync"
+              "label": "User defined",
+              "value": "user_defined"
             }
           ]
         },
@@ -75137,7 +72861,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -75779,27 +73502,7 @@
             "label": "actions"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -75910,20 +73613,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "User defined",
+              "value": "user_defined"
             }
           ]
         },
@@ -75986,7 +73677,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -76655,27 +74345,7 @@
             "label": "actions"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "scripts": {
             "type": "json",
@@ -76802,20 +74472,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "User defined",
+              "value": "user_defined"
             }
           ]
         },
@@ -76881,7 +74539,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -77599,27 +75256,7 @@
             "label": "actions"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -77754,20 +75391,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "User defined",
+              "value": "user_defined"
             }
           ]
         },
@@ -77836,7 +75461,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -78675,27 +76299,7 @@
             "label": "outcome"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "subject": {
             "type": "text",
@@ -78875,20 +76479,28 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
+              "label": "agent_prompt_alice",
+              "value": "agent_prompt_alice"
             },
             {
-              "label": "Template",
-              "value": "template"
+              "label": "collections",
+              "value": "collections"
             },
             {
-              "label": "Test",
-              "value": "test"
+              "label": "onboarding",
+              "value": "onboarding"
             },
             {
-              "label": "Internal",
-              "value": "internal"
+              "label": "sale",
+              "value": "sale"
+            },
+            {
+              "label": "sales",
+              "value": "sales"
+            },
+            {
+              "label": "support",
+              "value": "support"
             }
           ],
           "direction": [
@@ -78973,7 +76585,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -79620,27 +77231,7 @@
             "label": "actions"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -79761,20 +77352,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "User defined",
+              "value": "user_defined"
             }
           ]
         },
@@ -79839,7 +77418,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -80878,27 +78456,7 @@
             "label": "metrics"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -81159,20 +78717,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "sale",
+              "value": "sale"
             }
           ],
           "org_type": [
@@ -81187,6 +78733,10 @@
             {
               "label": "Manufacturer",
               "value": "manufacturer"
+            },
+            {
+              "label": "Employee",
+              "value": "employee"
             },
             {
               "label": "Rep",
@@ -81304,38 +78854,6 @@
             ]
           }
         ],
-        "select_lists": {
-          "status": [
-            {
-              "label": "—",
-              "value": ""
-            },
-            {
-              "label": "open",
-              "value": "open"
-            },
-            {
-              "label": "active",
-              "value": "active"
-            },
-            {
-              "label": "on_hold",
-              "value": "on_hold"
-            },
-            {
-              "label": "review",
-              "value": "review"
-            },
-            {
-              "label": "completed",
-              "value": "completed"
-            },
-            {
-              "label": "cancelled",
-              "value": "cancelled"
-            }
-          ]
-        },
         "default_collapsed": [
           "system",
           "dates",
@@ -81983,27 +79501,7 @@
             "label": "actions"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -82129,20 +79627,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "User defined",
+              "value": "user_defined"
             }
           ],
           "priority": [
@@ -82223,7 +79709,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -82824,27 +80309,7 @@
             "label": "actions"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -82948,24 +80413,6 @@
               "label": "Archived",
               "value": "archived"
             }
-          ],
-          "purpose": [
-            {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
-            }
           ]
         },
         "field_groups": [
@@ -83030,7 +80477,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -84142,27 +81588,7 @@
             "label": "finance"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -84753,20 +82179,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "User defined",
+              "value": "user_defined"
             }
           ],
           "priority": [
@@ -84937,7 +82351,7 @@
               "value": "freight"
             }
           ],
-          "shipping.weight_unit": [
+          "shipping.weight.unit": [
             {
               "label": "lbs",
               "value": "lbs"
@@ -85045,64 +82459,6 @@
             ]
           }
         ],
-        "select_lists": {
-          "status": [
-            {
-              "label": "—",
-              "value": ""
-            },
-            {
-              "label": "open",
-              "value": "open"
-            },
-            {
-              "label": "active",
-              "value": "active"
-            },
-            {
-              "label": "on_hold",
-              "value": "on_hold"
-            },
-            {
-              "label": "review",
-              "value": "review"
-            },
-            {
-              "label": "completed",
-              "value": "completed"
-            },
-            {
-              "label": "cancelled",
-              "value": "cancelled"
-            }
-          ],
-          "priority": [
-            {
-              "label": "1 - Highest",
-              "value": 1
-            },
-            {
-              "label": "2 - High",
-              "value": 2
-            },
-            {
-              "label": "3 - Medium",
-              "value": 3
-            },
-            {
-              "label": "4 - Normal",
-              "value": 4
-            },
-            {
-              "label": "5 - Low",
-              "value": 5
-            },
-            {
-              "label": "6 - Lowest",
-              "value": 6
-            }
-          ]
-        },
         "default_collapsed": [
           "system",
           "dates",
@@ -85815,27 +83171,7 @@
             "display": "name"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -86151,20 +83487,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "User defined",
+              "value": "user_defined"
             }
           ],
           "line_type": [
@@ -86275,7 +83599,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -86971,27 +84294,7 @@
             "label": "actions"
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -87110,20 +84413,8 @@
           ],
           "purpose": [
             {
-              "label": "Standard",
-              "value": "standard"
-            },
-            {
-              "label": "Template",
-              "value": "template"
-            },
-            {
-              "label": "Test",
-              "value": "test"
-            },
-            {
-              "label": "Internal",
-              "value": "internal"
+              "label": "User defined",
+              "value": "user_defined"
             }
           ]
         },
@@ -87190,7 +84481,6 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
@@ -90200,27 +87490,7 @@
             ]
           },
           "purpose": {
-            "type": "select",
-            "label": "purpose",
-            "source": "inline",
-            "options": [
-              {
-                "label": "Standard",
-                "value": "standard"
-              },
-              {
-                "label": "Template",
-                "value": "template"
-              },
-              {
-                "label": "Test",
-                "value": "test"
-              },
-              {
-                "label": "Internal",
-                "value": "internal"
-              }
-            ]
+            "type": "text"
           },
           "version": {
             "type": "readonly",
@@ -90342,12 +87612,39 @@
             ]
           }
         ],
-        "select_lists": {},
         "default_collapsed": [
           "system",
           "dates",
           "json"
-        ]
+        ],
+        "selectlists": {
+          "purpose": [
+            {
+              "label": "Audit — a change to an audited record",
+              "value": "audit"
+            },
+            {
+              "label": "Alice — what Alice observed",
+              "value": "alice"
+            },
+            {
+              "label": "Refs mismatch — a record's FK and refs.links disagree",
+              "value": "refs_mismatch"
+            },
+            {
+              "label": "Coaching — a drill a person ran",
+              "value": "coaching"
+            },
+            {
+              "label": "Inventory — a document line changed an item's quantity",
+              "value": "inventory"
+            },
+            {
+              "label": "Quiz — a person's answer to a training question",
+              "value": "quiz"
+            }
+          ]
+        }
       },
       "metadata": {
         "flow": {},

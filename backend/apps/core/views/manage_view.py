@@ -78,7 +78,6 @@ _ADMIN_TOOL_COMMANDS = {
     'audit_select_lists',
     'seed_model_definitions',
     'seed_company_settings',
-    'seed_select_lists',
     'seed_freshstart',
     'load_demo_data',
     'remove_demo_data',

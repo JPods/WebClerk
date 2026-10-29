@@ -84,12 +84,6 @@ PURPOSE_EXPLANATIONS = {
         'common patterns to watch for, and recommended actions. Alice reads '
         'these at startup and applies them during her observation cycles.'
     ),
-    'wc:print_layout': (
-        'Print template layout for {model} documents. Defines which fields '
-        'appear on the printed/PDF output, their positions, and formatting. '
-        'Used by the PrintDocumentLayout component and the pdfme designer. '
-        'This is the system default; users can customize per-document.'
-    ),
     'wc:model_related': (
         'Defines which related models are shown as panels when viewing a '
         '{model} record. For example, viewing a customer shows their orders, '
