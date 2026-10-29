@@ -36,7 +36,6 @@ const LayoutWorkbench = React.lazy(() => import("../pages/tools/LayoutWorkbench"
 const SelectListEditor = React.lazy(() => import("../pages/admin/SelectListEditor"));
 const Onboarding = React.lazy(() => import("../pages/Onboarding"));
 
-// Print pages archived 2026-08-06 — all printing now via pdfme report templates
 
 const S: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <React.Suspense fallback={<div style={{padding:40}}>Loading...</div>}>{children}</React.Suspense>

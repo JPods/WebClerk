@@ -414,7 +414,7 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
 
   // Route param (/:model) takes priority, then search param (?model=X), then pathname
   // Exclude known route paths that are NOT model names (e.g. /databrowser, /admin-wb, /db)
-  const ROUTE_PATHS = new Set(['browser', 'databrowser', 'admin-wb', 'db', 'dashboard', 'kanban', 'gantt', 'commerce', 'accounting', 'whitelist', 'json-viewer', 'json-tree', 'help', 'profile', 'training', 'docs', 'inventory-dashboard', 'inventory-adjust', 'cycle-count', 'administration', 'alice-dashboard', 'test-dashboard', 'report-designer', 'model-workbench']);
+  const ROUTE_PATHS = new Set(['browser', 'databrowser', 'admin-wb', 'db', 'dashboard', 'kanban', 'gantt', 'commerce', 'accounting', 'whitelist', 'json-viewer', 'json-tree', 'help', 'profile', 'training', 'docs', 'inventory-dashboard', 'inventory-adjust', 'cycle-count', 'administration', 'alice-dashboard', 'test-dashboard', 'model-workbench']);
   const rawPathname = window.location.pathname.split('/').filter(Boolean)[0] || '';
   const pathnameModel = ROUTE_PATHS.has(rawPathname) ? '' : rawPathname;
   const modelParam = routeParams.model || searchParams.get('model') || pathnameModel || defaultModel || '';

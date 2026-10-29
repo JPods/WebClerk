@@ -107,6 +107,7 @@ SETTING_PURPOSE_CHOICES: Final[ChoiceList] = (
     ("device_status", "device_status"),
     ("wc:test_parade", "wc:test_parade"),
     ("wc:page_help", "wc:page_help"),
+    ("wc:ai", "wc:ai"),
     ("wc:feature", "wc:feature"),
     ("wc:schema_map", "wc:schema_map"),
     ("calculated_function", "calculated_function"),

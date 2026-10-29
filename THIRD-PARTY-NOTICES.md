@@ -75,7 +75,6 @@ Last updated: 2026-09-03
 | [React Redux](https://react-redux.js.org) | 9.x | MIT | React-Redux bindings |
 | [Axios](https://axios-http.com) | 1.x | MIT | HTTP client |
 | [Tailwind CSS](https://tailwindcss.com) | 4.x | MIT | Utility-first CSS |
-| [pdfme](https://pdfme.com) | 6.x | MIT | PDF template design and generation |
 | [ApexCharts](https://apexcharts.com) | 4.x | MIT | Charts and dashboards |
 | [React ApexCharts](https://github.com/apexcharts/react-apexcharts) | 1.x | MIT | React chart wrapper |
 | [Lucide React](https://lucide.dev) | 0.518.x | ISC | Icon library |

@@ -3,8 +3,7 @@
  * PrintReportDropdown — dropdown listing available print reports for a model.
  *
  * Source of truth: Report records with output_type='print' and
- * target_model matching the model key. Each Report's config may hold
- * a document_type for pdfme PDF generation.
+ * target_model matching the model key.
  *
  * Reports have UUIDs — WC_HQ can push updates to fix defective templates.
  */

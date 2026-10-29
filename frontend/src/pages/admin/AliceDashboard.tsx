@@ -25,7 +25,6 @@ import { useAppSelector } from '@/store/hooks';
 import { useWindowManager } from '@/context/WindowManagerContext';
 
 const AliceQuiz = React.lazy(() => import('./AliceQuiz'));
-const PdfDesigner = React.lazy(() => import('../tools/PdfDesigner'));
 
 /** WCHQ base URL — all training content, flowcharts, and shared resources served from here. */
 const WCHQ_URL = "https://www.webclerk.com";
@@ -97,15 +96,16 @@ export default function AliceDashboard() {
     const params = new URLSearchParams(window.location.search);
     return params.get('tab') as any || 'coaching';
   }, []);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const urlReportId = useMemo(() => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get('report') || null;
-  }, []);
 
-  const [activeTab, setActiveTab] = useState<'coaching' | 'console' | 'actions' | 'training' | 'health' | 'llm' | 'quiz' | 'reports' | 'pdf-designer' | 'data-quality' | 'import' | 'library' | 'readmes' | 'parades'>(urlTab);
-  const [llmConfig, setLlmConfig] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<'coaching' | 'console' | 'actions' | 'training' | 'health' | 'llm' | 'quiz' | 'data-quality' | 'import' | 'library' | 'readmes' | 'parades'>(urlTab);
+  // Internal AI agents: one wc:ai Setting each (ida ai-<agent>); users may add agents.
+  const [aiAgents, setAiAgents] = useState<any[]>([]);
+  const [aiIndex, setAiIndex] = useState(0);
+  const [newAgent, setNewAgent] = useState('');
   const [llmSaving, setLlmSaving] = useState(false);
+  const llmConfig = aiAgents[aiIndex]?.config || null;
+  const setLlmConfig = (config: any) =>
+    setAiAgents((list) => list.map((a, i) => (i === aiIndex ? { ...a, config } : a)));
   const [importPath, setImportPath] = useState('');
   const [importStatus, setImportStatus] = useState<'idle' | 'analyzing' | 'preview' | 'reviewing' | 'ready' | 'error'>('idle');
   const [importPreview, setImportPreview] = useState<any>(null);
@@ -131,17 +131,9 @@ export default function AliceDashboard() {
         const tRes = await getRecords('document', { target_model: 'system', status: 'published', ordering: 'name', limit: 20 }) as any;
         setTrainingDocs(tRes?.results || []);
 
-        // LLM config
-        const lRes = await getRecords('setting', { name: 'alice_llm_config', purpose: 'wc:coaching' }) as any;
-        const llmRec = (lRes?.results || [])[0];
-        setLlmConfig(llmRec?.config || {
-          provider: 'ollama',
-          model: 'allie:latest',
-          endpoint: 'http://localhost:11434',
-          temperature: 0.7,
-          max_tokens: 2000,
-          system_prompt: 'You are Alice, the WebClerk coaching agent. Help users learn the system.',
-        });
+        // Internal AI agents
+        const aRes2 = await getRecords('setting', { purpose: 'wc:ai', ordering: 'ida' }) as any;
+        setAiAgents(aRes2?.results || []);
       } catch { /* silent */ }
       finally { setLoading(false); }
     })();
@@ -225,13 +217,11 @@ export default function AliceDashboard() {
             { tab: 'actions', label: 'My Actions', desc: 'Open actions assigned to you' },
             { tab: 'training', label: 'Training', desc: '41 flowcharts + training documents' },
             { tab: 'health', label: 'System Health', desc: 'Console health, open actions, training progress' },
-            { tab: 'llm', label: 'LLM Config', desc: 'Alice LLM provider, model, endpoint, prompt' },
+            { tab: 'llm', label: 'AI Agents', desc: 'Each internal agent: model, endpoint, prompt' },
             { tab: 'quiz', label: 'Quiz', desc: 'Commerce knowledge quiz from Alice' },
             { tab: 'data-quality', label: 'Data Quality', desc: '10 tasks — phone, email, dedup, address, OCR' },
             { tab: 'import', label: 'Import Data', desc: 'File → Alice analysis → mapping → Athena → bundle' },
             { tab: 'library', label: 'Library', desc: 'File upload, Celery pipeline, cloud transfer' },
-            { tab: 'reports', label: 'Reports', desc: '13 print templates + report designer' },
-            { tab: 'pdf-designer', label: 'PDF Designer', desc: 'pdfme template builder' },
             { tab: 'readmes', label: 'Readmes', desc: 'Scrollable index of all system documentation' },
             { tab: 'parades', label: 'Parades', desc: 'Review all layouts: panel, form, detail, list, card' },
           ].map((item) => (
@@ -260,8 +250,6 @@ export default function AliceDashboard() {
         {tabBtn('data-quality', 'Data Quality')}
         {tabBtn('import', 'Import Data')}
         {tabBtn('library', 'Library')}
-        {tabBtn('reports', 'Reports')}
-        {tabBtn('pdf-designer', 'PDF Designer')}
         {tabBtn('readmes', 'Readmes')}
         {tabBtn('parades', 'Parades')}
       </div>
@@ -516,75 +504,83 @@ export default function AliceDashboard() {
         </div>
       )}
 
-      {/* ═══ LLM Config ═══ */}
-      {activeTab === 'llm' && llmConfig && (
+      {/* ═══ LLM Config — one wc:ai Setting per internal agent ═══ */}
+      {activeTab === 'llm' && (
         <div className="space-y-4">
           <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-            <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-4">Alice LLM Configuration</h3>
+            <div className="flex items-center gap-2 mb-4">
+              <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">Internal AI agents</h3>
+              <select value={aiIndex} onChange={(e) => setAiIndex(Number(e.target.value))}
+                className="px-2 py-1 text-sm rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800">
+                {aiAgents.map((a, i) => <option key={a.id} value={i}>{a.name || a.ida}</option>)}
+              </select>
+              <input type="text" value={newAgent} onChange={(e) => setNewAgent(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ''))}
+                placeholder="new agent name" className="ml-auto px-2 py-1 text-sm rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800" />
+              <button disabled={!newAgent || aiAgents.some((a) => a.ida === `ai-${newAgent}`)}
+                onClick={async () => {
+                  try {
+                    const made = await createRecord('setting', {
+                      purpose: 'wc:ai', ida: `ai-${newAgent}`, name: newAgent, scope: 'system',
+                      config: { agent: newAgent, endpoint: '', model: '', timeout: 120, system_prompt: '' },
+                    }) as any;
+                    const record = made?.record || made;
+                    setAiAgents((list) => [...list, record]);
+                    setAiIndex(aiAgents.length);
+                    setNewAgent('');
+                  } catch { alert('Could not add the agent (only a superuser changes Settings).'); }
+                }}
+                className="px-3 py-1 text-sm rounded bg-gray-600 text-white disabled:opacity-40">Add agent</button>
+            </div>
+            {!llmConfig && <p className="text-sm text-gray-500">No internal agent defined.</p>}
+            {llmConfig && (<>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-1">Provider</label>
-                <select value={llmConfig.provider || 'ollama'} onChange={(e) => setLlmConfig({ ...llmConfig, provider: e.target.value })}
-                  className="w-full px-3 py-2 text-sm rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800">
-                  <option value="ollama">Ollama (Local)</option>
-                  <option value="openai">OpenAI</option>
-                  <option value="anthropic">Anthropic</option>
-                  <option value="custom">Custom Endpoint</option>
-                </select>
-              </div>
-              <div>
                 <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-1">Model</label>
-                <input type="text" value={llmConfig.model || ''} onChange={(e) => setLlmConfig({ ...llmConfig, model: e.target.value })}
-                  className="w-full px-3 py-2 text-sm rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800" placeholder="allie:latest" />
+                <input type="text" value={llmConfig.model || ""} onChange={(e) => setLlmConfig({ ...llmConfig, model: e.target.value })}
+                  className="w-full px-3 py-2 text-sm rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800" placeholder="gpt-oss:20b" />
               </div>
               <div>
-                <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-1">Endpoint URL</label>
-                <input type="text" value={llmConfig.endpoint || ''} onChange={(e) => setLlmConfig({ ...llmConfig, endpoint: e.target.value })}
+                <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-1">Endpoint URL (empty: this instance\u2019s LLM)</label>
+                <input type="text" value={llmConfig.endpoint || ""} onChange={(e) => setLlmConfig({ ...llmConfig, endpoint: e.target.value })}
                   className="w-full px-3 py-2 text-sm rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800" placeholder="http://localhost:11434" />
               </div>
               <div>
                 <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-1">Temperature</label>
-                <input type="number" step="0.1" min="0" max="2" value={llmConfig.temperature ?? 0.7} onChange={(e) => setLlmConfig({ ...llmConfig, temperature: parseFloat(e.target.value) })}
-                  className="w-full px-3 py-2 text-sm rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800" />
+                <input type="number" step="0.1" min="0" max="2" value={llmConfig.temperature ?? ""} onChange={(e) => setLlmConfig({ ...llmConfig, temperature: e.target.value === "" ? null : parseFloat(e.target.value) })}
+                  className="w-full px-3 py-2 text-sm rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800" placeholder="model default" />
               </div>
               <div>
                 <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-1">Max Tokens</label>
-                <input type="number" value={llmConfig.max_tokens ?? 2000} onChange={(e) => setLlmConfig({ ...llmConfig, max_tokens: parseInt(e.target.value) })}
-                  className="w-full px-3 py-2 text-sm rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800" />
+                <input type="number" value={llmConfig.max_tokens ?? ""} onChange={(e) => setLlmConfig({ ...llmConfig, max_tokens: e.target.value === "" ? null : parseInt(e.target.value) })}
+                  className="w-full px-3 py-2 text-sm rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800" placeholder="model default" />
               </div>
               <div>
-                <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-1">API Key (if required)</label>
-                <input type="password" value={llmConfig.api_key || ''} onChange={(e) => setLlmConfig({ ...llmConfig, api_key: e.target.value })}
-                  className="w-full px-3 py-2 text-sm rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800" placeholder="Leave blank for local models" />
+                <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-1">Timeout (seconds)</label>
+                <input type="number" value={llmConfig.timeout ?? 120} onChange={(e) => setLlmConfig({ ...llmConfig, timeout: parseInt(e.target.value) || 120 })}
+                  className="w-full px-3 py-2 text-sm rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800" />
               </div>
               <div className="col-span-2">
-                <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-1">System Prompt</label>
+                <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-1">System Prompt (who the agent is)</label>
                 <textarea value={llmConfig.system_prompt || ''} onChange={(e) => setLlmConfig({ ...llmConfig, system_prompt: e.target.value })}
                   rows={4} className="w-full px-3 py-2 text-sm rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800" />
               </div>
             </div>
+            <p className="mt-3 text-xs text-gray-500">Outside agents (other companies' AI, hosted models with keys) are Connections, not agents here: a Connection holds the key and the permissions it is given.</p>
             <div className="flex justify-end gap-2 mt-4">
               <button onClick={async () => {
                 setLlmSaving(true);
                 try {
-                  // The LLM config is the Setting's config (what the loader reads): saved when
-                  // it exists, else made.
-                  const existing = await getRecords('setting', { name: 'alice_llm_config', purpose: 'wc:coaching' }) as any;
-                  const existingRec = (existing?.results || [])[0];
-                  if (existingRec?.id) {
-                    await saveRecord('setting', { id: existingRec.id, config: llmConfig });
-                  } else {
-                    await createRecord('setting', { name: 'alice_llm_config', purpose: 'wc:coaching', config: llmConfig });
-                  }
-                  alert('LLM configuration saved.');
-                } catch { alert('Failed to save LLM config.'); }
+                  await saveRecord('setting', { id: aiAgents[aiIndex].id, config: llmConfig });
+                  alert(`${aiAgents[aiIndex].name || 'Agent'} saved; the next conversation uses it.`);
+                } catch { alert('Failed to save (only a superuser changes Settings).'); }
                 finally { setLlmSaving(false); }
               }}
                 disabled={llmSaving}
                 className="px-4 py-2 text-sm font-medium rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50">
-                {llmSaving ? 'Saving...' : 'Save Configuration'}
+                {llmSaving ? 'Saving...' : 'Save'}
               </button>
             </div>
+            </>)}
           </div>
         </div>
       )}
@@ -993,75 +989,6 @@ Allie ──nightly──► reads process/inbox/, sessions/, retrospections/
         </div>
       )}
 
-      {/* ═══ Reports ═══ */}
-      {activeTab === 'reports' && (
-        <div className="p-4 space-y-4 text-sm">
-          <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200">Reports — MVP Print Templates</h3>
-          <p className="text-gray-500 text-xs">
-            13 printable report templates. Edit visually at <a href="/report-designer" className="text-blue-500 hover:underline font-medium">/report-designer</a>.
-            Field registry API: <code className="text-xs bg-gray-100 dark:bg-gray-800 px-1 rounded">/wcapi/_report_fields/?model=order</code>
-          </p>
-
-          <div className="flex gap-3">
-            <a href="/report-designer" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-xs font-medium no-underline">
-              Open Report Designer
-            </a>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
-            {[
-              { name: 'Invoice', model: 'invoice', cat: 'customer_facing', desc: 'Line items, totals, cash terms' },
-              { name: 'Credit Memo', model: 'invoice', cat: 'customer_facing', desc: 'Reversal document with reason code' },
-              { name: 'Statement', model: 'customer', cat: 'statement', desc: 'Account statement with aging buckets' },
-              { name: 'Aging Report', model: 'customer', cat: 'report', desc: 'AR aging by customer (current/30/60/90+)' },
-              { name: 'Order Confirmation', model: 'order', cat: 'customer_facing', desc: 'Order with line items and delivery terms' },
-              { name: 'Pick Ticket', model: 'order', cat: 'operations', desc: 'Warehouse pick list with bin locations' },
-              { name: 'Packing Slip', model: 'order', cat: 'operations', desc: 'Shipment list — items and quantities, no prices' },
-              { name: 'Purchase Order', model: 'purchase', cat: 'vendor_facing', desc: 'Vendor-facing PO with costs' },
-              { name: 'Receiving Report', model: 'purchase', cat: 'operations', desc: 'What arrived vs. what was ordered' },
-              { name: 'Quote', model: 'quote', cat: 'customer_facing', desc: 'Quote with acceptance signature block' },
-              { name: 'Requisition', model: 'requisition', cat: 'operations', desc: 'Internal purchase request with approvals' },
-              { name: 'Work Order', model: 'workorder', cat: 'operations', desc: 'Job ticket with materials and labor' },
-              { name: 'Cash Receipt', model: 'cash', cat: 'customer_facing', desc: 'Proof of cash with applied invoices' },
-            ].map((r, i) => (
-              <div key={i} className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 hover:border-blue-300 dark:hover:border-blue-600 transition">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-medium text-gray-800 dark:text-gray-200">{r.name}</span>
-                  <span className={`text-[9px] px-1.5 py-0.5 rounded ${
-                    r.cat === 'customer_facing' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400'
-                    : r.cat === 'operations' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400'
-                    : r.cat === 'vendor_facing' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-400'
-                    : r.cat === 'statement' ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
-                    : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
-                  }`}>{r.cat.replace('_', ' ')}</span>
-                </div>
-                <div className="text-[10px] text-gray-500 dark:text-gray-400">{r.model} &middot; {r.desc}</div>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-xs text-gray-600 dark:text-gray-400">
-            <p className="font-medium text-gray-700 dark:text-gray-300 mb-1">How it works</p>
-            <ul className="list-disc ml-4 space-y-1">
-              <li>Templates stored in <code>Report.config.pdfme_template</code> as JSON</li>
-              <li>Visual editor: drag fields, resize, snap to alignment guides</li>
-              <li>Fields from 4 sources: direct, related models, JSON paths, line items</li>
-              <li>Table schema for repeating line item panels (coming soon)</li>
-              <li>Full readme: <code>readmes/topics/print/pdfme-template-system.md</code></li>
-            </ul>
-          </div>
-        </div>
-      )}
-
-      {/* ═══ PDF Designer ═══ */}
-      {activeTab === 'pdf-designer' && (
-        <Suspense fallback={<div className="p-4 text-sm text-gray-500">Loading PDF Designer...</div>}>
-          <div className="h-[70vh]">
-            <PdfDesigner />
-          </div>
-        </Suspense>
-      )}
-
       {/* ═══ Data Quality ═══ */}
       {activeTab === 'data-quality' && (
         <div className="p-4 space-y-4 text-sm">
@@ -1382,7 +1309,6 @@ Allie ──nightly──► reads process/inbox/, sessions/, retrospections/
                 { ida: 'README-REPORTS-DASHBOARDS', title: 'Reports & Dashboards', desc: '35 standard reports, 7 dashboards, print template system' },
                 { ida: 'README-REPORT-SCRIPTS', title: 'Report Script Pipeline', desc: 'Before/During/After — three-phase record processing' },
                 { ida: 'README-REPORT-OUTPUT', title: 'Report & Document Output', desc: 'PDF / email / API / webhook / sync bundle routing' },
-                { ida: 'README-PDFME', title: 'pdfme Template System', desc: 'WYSIWYG PDF designer — no code customization' },
               ]},
               { section: 'Inventory & Purchasing', docs: [
                 { ida: 'README-INVENTORY', title: 'Inventory System', desc: 'Buckets, costing (LIFO/FIFO/WA), adjustments' },

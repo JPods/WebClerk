@@ -369,11 +369,6 @@ Sass
   Copyright: Google Inc.
   https://github.com/sass/dart-sass
 
-@pdfme/common, @pdfme/generator, @pdfme/schemas, @pdfme/ui
-  License: MIT
-  Copyright: pdfme contributors
-  https://github.com/pdfme/pdfme
-
 =========================================================================
 Build Tools
 =========================================================================

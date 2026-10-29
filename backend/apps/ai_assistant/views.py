@@ -312,8 +312,9 @@ class DiagnoseView(APIView):
         try:
             from django.conf import settings
             import urllib.request
-            configured = getattr(settings, 'OLLAMA_MODEL', 'unknown')
-            base_url = settings.OLLAMA_BASE_URL
+            from apps.ai_assistant.services.ai_agents import agent_config
+            alice = agent_config('alice')
+            configured, base_url = alice['model'], alice['endpoint']
             if not base_url:
                 return {'ok': True, 'status': 'passenger', 'detail': 'no LLM on this hardware (OLLAMA_BASE_URL empty)'}
             resp = urllib.request.urlopen(f'{base_url}/api/tags', timeout=5)

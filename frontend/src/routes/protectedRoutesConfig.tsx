@@ -50,7 +50,6 @@ import AgendaView from "../pages/admin/AgendaView";
 import ApplyCash from "../apps/transactions/pages/ApplyCash";
 import AllModelsWorkbench from "../apps/utils/scaffold/AllModelsWorkbench";
 import TestDashboard from "../pages/admin/TestDashboard";
-const ReportDesigner = React.lazy(() => import("../pages/admin/ReportDesigner"));
 import ParadeOfReportsPage from "../pages/admin/ParadeOfReportsPage";
 import ActionDailyDashboard from "../apps/common/components/panels/ActionDailyDashboard";
 
@@ -178,7 +177,6 @@ export const protectedRoutesConfig = [
   { path: "/select-lists", element: <S><SelectListEditor /></S> },
   { path: "/help", element: <S><HelpDashboard /></S> },
   { path: "/test-dashboard", element: <TestDashboard /> },
-  { path: "/report-designer", element: <S><ReportDesigner /></S> },
   { path: "/inventory-dashboard", element: <S><InventoryDashboard /></S> },
   { path: "/action-dashboard", element: <ActionDailyDashboard /> },
   { path: "/submit-bonus", element: <Placeholder title="Submit for Bonus" /> },

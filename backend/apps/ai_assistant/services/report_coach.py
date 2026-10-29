@@ -19,7 +19,6 @@ Usage:
     findings = coach.analyze_model('quote')
     coach.apply_coaching(findings)
 """
-import json
 import logging
 from collections import defaultdict
 from typing import Any
@@ -186,20 +185,6 @@ class ReportCoach:
         tmpl1 = cfg1.get('template', '')
         tmpl2 = cfg2.get('template', '')
 
-        # Same pdfme template JSON = definitely identical
-        pdfme1 = cfg1.get('pdfme_template')
-        pdfme2 = cfg2.get('pdfme_template')
-
-        if pdfme1 and pdfme2 and json.dumps(pdfme1, sort_keys=True) == json.dumps(pdfme2, sort_keys=True):
-            return {
-                'type': 'IDENTICAL',
-                'report_ids': [r1.id, r2.id],
-                'report_names': [r1.name, r2.name],
-                'model_name': r1.target_model,
-                'reason': 'Same pdfme template JSON — these produce the same PDF',
-                'recommendation': f'Deactivate one. Keep "{r1.name}" (#{r1.id}) or "{r2.name}" (#{r2.id})',
-            }
-
         if tmpl1 and tmpl2 and tmpl1 == tmpl2:
             # Same template key — check if fields differ
             fields1 = set(str(f) for f in (cfg1.get('fields') or []))
@@ -290,13 +275,6 @@ class ReportCoach:
             return f'Summary view of {r.target_model or "records"} — aggregated totals and counts'
         if 'checklist' in name:
             return f'Preparation checklist for {r.target_model or "record"} — steps to verify before finalizing'
-
-        # Has pdfme template → describe from schema
-        if cfg.get('pdfme_template'):
-            schemas = cfg['pdfme_template'].get('schemas', [[]])
-            field_names = [s.get('name', '') for s in (schemas[0] if schemas else []) if s.get('name')]
-            if field_names:
-                return f'Custom PDF template with fields: {", ".join(field_names[:8])}'
 
         # Has fields list → describe from fields
         if cfg.get('fields'):

@@ -19,17 +19,12 @@ import logging
 from typing import Generator
 
 import httpx
-from django.conf import settings
 
 from .prompt_templates import get_system_prompt, wrap_query
 
 logger = logging.getLogger(__name__)
 
-# Defaults — override in settings.py
-# Empty = no LLM on this hardware: Alice and Andi are passengers.
-OLLAMA_BASE_URL = settings.OLLAMA_BASE_URL
-OLLAMA_MODEL = getattr(settings, "OLLAMA_MODEL", "deepseek-r1:8b")
-OLLAMA_TIMEOUT = getattr(settings, "OLLAMA_TIMEOUT", 120)
+# The agent's model, endpoint, timeout and prompt are its wc:ai Setting (ai_agents.py).
 
 # WCHQ fallback — used when Ollama is unavailable
 WCHQ_LLM_PATH = "/wcapi/alice/llm/"   # on WCHQ_URL
@@ -72,15 +67,17 @@ class OllamaClient:
     a WCHQ subscription with LLM access, falls back to WCHQ.
     """
 
-    def __init__(
-        self,
-        base_url: str = OLLAMA_BASE_URL,
-        model: str = OLLAMA_MODEL,
-        timeout: int = OLLAMA_TIMEOUT,
-    ):
-        self.base_url = base_url.rstrip("/")
-        self.model = model
-        self.timeout = timeout
+    def __init__(self, agent: str = "alice"):
+        from .ai_agents import agent_config
+        config = agent_config(agent)
+        self.agent = agent
+        self.base_url = config["endpoint"]
+        self.model = config["model"]
+        self.timeout = config["timeout"]
+        self.system_prompt = config["system_prompt"]
+        # Ollama's sampling options, only those the agent's record sets.
+        self.options = {k: v for k, v in (("temperature", config["temperature"]),
+                                          ("num_predict", config["max_tokens"])) if v is not None}
         self._wchq_available = None  # cached per instance
 
     def _build_messages(
@@ -92,6 +89,8 @@ class OllamaClient:
     ) -> list[dict]:
         """Build the message list for the chat API, using mode-specific system prompt."""
         system_prompt = get_system_prompt(mode)
+        if self.system_prompt:                      # who the agent is, then the mode's task
+            system_prompt = f"{self.system_prompt}\n\n{system_prompt}"
         messages = [{"role": "system", "content": system_prompt}]
 
         if context:
@@ -130,6 +129,7 @@ class OllamaClient:
                     json={
                         "model": self.model,
                         "messages": messages,
+                        "options": self.options,
                         "stream": False,
                     },
                 )
@@ -227,6 +227,7 @@ class OllamaClient:
                     json={
                         "model": self.model,
                         "messages": messages,
+                        "options": self.options,
                         "stream": True,
                     },
                 ) as resp:
