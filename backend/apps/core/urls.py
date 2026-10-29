@@ -14,6 +14,7 @@ from apps.core.views.wcapi import (
 )
 from apps.core.views.range_query_view import RangeQueryView
 from apps.core.views.save_search_view import SaveSearchView
+from apps.core.views.layout_reset_view import LayoutResetView
 from apps.core.views.select_list_view import SelectListView
 from apps.core.views.manage_view import ManageWcapiView
 from apps.core.views.report_view import ReportDownloadView
@@ -73,6 +74,7 @@ urlpatterns = [
     path("wcapi/_search_presets/", SearchPresetListView.as_view(), name="search-preset-list"),
     path("wcapi/_save_search/", SaveSearchView.as_view(), name="wcapi-save-search"),
     path("wcapi/_selectlist/", SelectListView.as_view(), name="wcapi-selectlist"),
+    path("wcapi/_layout_reset/", LayoutResetView.as_view(), name="wcapi-layout-reset"),
     path("wcapi/_choices/", ChoiceCatalogView.as_view(), name="wcapi-choice-catalog"),
     path("wcapi/_selectlists/", SelectListCatalogView.as_view(), name="wcapi-selectlist-catalog"),
     path("wcapi/_view/", ViewQueryView.as_view(), name="wcapi-view-query"),

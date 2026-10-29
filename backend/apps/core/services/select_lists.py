@@ -40,15 +40,6 @@ def unlisted(name: str, values: dict[str, Any]) -> dict[str, Any]:
             if v not in (None, '') and f in listed and str(v) not in listed[f]}
 
 
-def may_edit_list(actor, name: str, field: str) -> bool:
-    """Lists are changed by a login flagged is_staff, or by the code (Bill, 2026-10-29)."""
-    from apps.core.services.door import as_actor
-    actor = as_actor(actor)
-    if not actor.is_guarded:
-        return True
-    return bool(actor.user is not None and getattr(actor.user, 'is_staff', False))
-
-
 def _write(name: str, field: str, change, actor) -> list:
     """Apply change(options) -> options to one field's list; returns the new list."""
     from apps.core.models import Setting
@@ -56,7 +47,7 @@ def _write(name: str, field: str, change, actor) -> list:
     from apps.core.services import definition
     from apps.core.services.door import Refused, as_actor
     key = _key(name)
-    if actor is not None and not may_edit_list(actor, key, field):
+    if actor is not None and not definition.may_change(actor):
         raise Refused(403, 'list_edit_forbidden',
                       f"Only staff change lists; ask a staff member to add to the {key} {field} "
                       f"list.", {'model_name': key, 'field': field})

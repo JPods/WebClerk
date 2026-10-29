@@ -528,6 +528,13 @@ export async function changeSelectList(model: string, field: string,
   return res.data.data.options;
 }
 
+/** Staff: put one part of a model's layout (list, form, card, panel, …) back to the code default.
+ * The old part is kept in the Log (layouts.py). */
+export async function resetLayout(model: string, part: string) {
+  const res = await apiClient.post<ApiEnvelope<{ layout: unknown }>>('/wcapi/_layout_reset/', { model, part });
+  return res.data.data.layout;
+}
+
 /** A save refused value_not_listed: ask the person, add what they may add, and say whether
  * the save should be tried again. */
 async function addUnlistedIfAsked(err: any): Promise<boolean> {

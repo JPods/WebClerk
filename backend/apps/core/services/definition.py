@@ -47,3 +47,13 @@ def clear(key: Optional[str] = None) -> None:
     """Forget what this process read: one model's parts, or every model's."""
     for cached in [k for k in _cache if key is None or k[0] == key]:
         _cache.pop(cached, None)
+
+
+def may_change(actor) -> bool:
+    """A definition's lists and layouts are changed by a login flagged is_staff, or by the code
+    (Bill, 2026-10-29)."""
+    from apps.core.services.door import as_actor
+    actor = as_actor(actor)
+    if not actor.is_guarded:
+        return True
+    return bool(actor.user is not None and getattr(actor.user, 'is_staff', False))

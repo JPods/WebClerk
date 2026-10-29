@@ -600,52 +600,13 @@ def detect_help_patterns_task(since_days: int = 30) -> dict:
     return result
 
 
-# ─── Alice: Settings Backup (7-day cycle) ───────────────────────────
+# ─── Alice: Settings and Reports backup ─────────────────────────────
 
 @shared_task
 def config_backup_task() -> dict:
-    """Daily task: export Settings and Reports to local JSON bundles.
-
-    Alice keeps a 7-day rolling window of both. These are the only two
-    models that hold user-created configuration — everything else is
-    commerce data managed by standard user backups.
-
-    - Settings: system behavior, field layouts, model definitions
-    - Reports: form templates, print layouts, dashboard definitions
-
-    Schedule: daily at 01:00 (before any nightly intelligence tasks).
-    """
-    logger.info("Starting config backup (Settings + Reports)")
-    started = timezone.now()
-
-    from apps.core.services.setting_bootstrap import (
-        export_settings_bundle, prune_old_backups,
-        export_report_bundle, prune_old_report_backups,
-    )
-
-    settings_export = export_settings_bundle()
-    settings_prune = prune_old_backups()
-    report_export = export_report_bundle()
-    report_prune = prune_old_report_backups()
-
-    duration = (timezone.now() - started).total_seconds()
-    result = {
-        'settings': {
-            **settings_export,
-            'pruned': settings_prune['pruned'],
-            'kept': settings_prune['kept'],
-        },
-        'reports': {
-            **report_export,
-            'pruned': report_prune['pruned'],
-            'kept': report_prune['kept'],
-        },
-        'duration_seconds': duration,
-    }
-    logger.info(
-        "Config backup complete: %d settings (%d bytes), %d reports (%d bytes), %.1fs",
-        settings_export.get('count', 0), settings_export.get('size_bytes', 0),
-        report_export.get('count', 0), report_export.get('size_bytes', 0),
-        duration,
-    )
+    """Daily at 01:00: Alice's zipped, dated copy of every Setting and Report — a rolling
+    window and a monthly archive in the data folder (apps/core/services/config_backup.py)."""
+    from apps.core.services.config_backup import KINDS, back_up
+    result = {kind: back_up(kind) for kind in KINDS}
+    logger.info("Config backup complete: %s", {k: v['count'] for k, v in result.items()})
     return result

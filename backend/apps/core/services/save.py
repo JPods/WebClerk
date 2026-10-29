@@ -483,7 +483,7 @@ def _values_are_listed(actor: Actor, obj, snapshot: Dict[str, Any], model_key: s
     Checked when a value is set or changed, after the hooks, which may set it; a stored value is
     left alone until it is rewritten. Support, not police (Bill, 2026-10-29): a person is asked
     first (value_not_listed carries what to add and whether they may), code adds the value."""
-    from apps.core.services import select_lists
+    from apps.core.services import definition, select_lists
     changed = {f.name: getattr(obj, f.attname, None) for f in obj._meta.concrete_fields
                if getattr(obj, f.attname, None) != snapshot.get(f.name)}
     off = select_lists.unlisted(model_key, changed)
@@ -494,7 +494,7 @@ def _values_are_listed(actor: Actor, obj, snapshot: Dict[str, Any], model_key: s
             select_lists.add_value(model_key, field, value)
         return
     names = ', '.join(f"{field} '{value}'" for field, value in off.items())
-    may_add = {f: select_lists.may_edit_list(actor, model_key, f) for f in off}
+    may_add = {f: definition.may_change(actor) for f in off}
     ask = ('Add it to the list and save again?' if all(may_add.values())
            else 'Choose a listed value, or ask a staff member to add it.')
     raise Refused(400, 'value_not_listed', f"Not on the {model_key} list yet: {names}. {ask}",

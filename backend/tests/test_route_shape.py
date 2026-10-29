@@ -55,6 +55,7 @@ KNOWN_VIOLATIONS = frozenset({
     'wcapi/_inquiry/',
     'wcapi/_inquiry/start/',
     'wcapi/_layout_parade/',
+    'wcapi/_layout_reset/',
     'wcapi/_manage/',
     'wcapi/_model_detail/',
     'wcapi/_model_list/',

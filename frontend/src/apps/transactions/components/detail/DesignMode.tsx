@@ -7,14 +7,15 @@
  * - Click a field → it's added to that column
  * - Drag to reorder (future)
  * - Shift+click a placed field → remove it
- * - Save → updates the detail_layout Setting
+ * - Save → updates the model definition (config.layout.form.default)
+ * - Reset → staff put the form back to the default; the old one is kept in the Log
  *
  * The form IS the designer. Same components, design overlay.
  */
 import React, { useState, useCallback, useMemo } from 'react';
 import { useDispatch } from 'react-redux';
 import { showToast } from '@/store/slices/toastSlice';
-import { saveRecord } from '@/api/wcapi';
+import { resetLayout, saveRecord } from '@/api/wcapi';
 import type { DetailLayout } from '@/hooks/useDetailLayout';
 
 // All possible fields a transaction form could show
@@ -129,6 +130,17 @@ const DesignMode: React.FC<DesignModeProps> = ({ layout, modelName, onLayoutChan
     setSaving(false);
   }, [layout, modelName, dispatch]);
 
+  // Staff: the form back to the default, one part only (lists, help and access stay).
+  const resetForm = useCallback(async () => {
+    if (!window.confirm(`Reset the ${modelName} form to the default? The current form is kept in the Log.`)) return;
+    try {
+      await resetLayout(modelName, 'form');
+      window.location.reload();
+    } catch (err: any) {
+      dispatch(showToast({ message: err?.response?.data?.message || 'Failed to reset the form', type: 'error' }));
+    }
+  }, [modelName, dispatch]);
+
   // Get columns from layout
   const headerSection = layout.sections?.find((s: any) => s.type === 'header') as any;
   const columns = headerSection?.columns || [];
@@ -139,6 +151,10 @@ const DesignMode: React.FC<DesignModeProps> = ({ layout, modelName, onLayoutChan
         <span className="text-xs font-bold text-amber-700 dark:text-amber-300">DESIGN MODE</span>
         <span className="text-[10px] text-amber-600">Click a column to add fields. Shift+click a field to remove it.</span>
         <span className="flex-1" />
+        <button onClick={resetForm} disabled={saving}
+          className="px-3 py-1 text-xs font-medium border border-amber-600 text-amber-700 dark:text-amber-300 rounded hover:bg-amber-100 dark:hover:bg-amber-900/40 disabled:opacity-50">
+          Reset to default
+        </button>
         <button onClick={saveLayout} disabled={saving}
           className="px-3 py-1 text-xs font-medium bg-amber-600 text-white rounded hover:bg-amber-700 disabled:opacity-50">
           {saving ? 'Saving...' : 'Save Layout'}
