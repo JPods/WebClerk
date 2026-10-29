@@ -119,17 +119,34 @@ def create_note(
         logger.info("Alice log written: pk=%s role=%s", entry.pk, role)
         return entry
 
-    action = Action(
-        purpose="alice",
-        action={"en": name},
-        description={"en": str(data.get("description", ""))} if data.get("description") else {},
-        status="open",
-        kanban_column="Backlog",
-        config={"alice": {"role": role, "model": parent_model or "", "details": data}},
-        metadata={"agent": True, "source_agent": "alice"},
-    )
-    action._responsible_user = user          # created_by (Action.save)
-    action.save()
+    # Through the door, acting as the person responsible (core.models audit, 2026-10-29): the
+    # one named, else the person whose request raised it, else Alice's login. A role that may
+    # not make Actions does not lose the note: it is saved under Alice's login, names who
+    # raised it, and created_by stays the person whose request it was (Action.save).
+    from apps.core.services.door import Actor, Refused, acting_actor
+    from apps.core.services.save import save_record
+    record = {
+        "purpose": "alice",
+        "action": {"en": name},
+        "description": {"en": str(data.get("description", ""))} if data.get("description") else {},
+        "status": "open",
+        "kanban_column": "Backlog",
+        "config": {"alice": {"role": role, "model": parent_model or "", "details": data}},
+        "metadata": {"agent": True, "source_agent": "alice"},
+    }
+    outer = acting_actor()
+    actor = (Actor(user=user, kind="user", source="alice") if user is not None
+             else outer if outer is not None and outer.user_id
+             else Actor.system(source="alice"))
+    try:
+        action = save_record(actor, record, model_key="action").obj
+    except Refused as refused:
+        alice = _alice_login()
+        if refused.status != 403 or alice is None or actor.user == alice:
+            raise
+        record["config"]["alice"]["details"] = {**data, "raised_by": actor.user_id}
+        action = save_record(Actor(user=alice, kind="user", source="alice"), record,
+                             model_key="action").obj
     logger.info("Alice to-do created: action=%s role=%s", action.pk, role)
     return action
 
@@ -137,11 +154,16 @@ def create_note(
 def _alice_unless_someone_acts():
     """Alice's login when no request is acting (a task, a command); else None, so the acting
     person is recorded."""
-    from django.conf import settings
     from apps.core.services.door import acting_actor
     actor = acting_actor()
     if actor is not None and actor.user_id:
         return None
+    return _alice_login()
+
+
+def _alice_login():
+    """Alice's login on this instance (ALICE_WC_EMAIL), or None when it has none."""
+    from django.conf import settings
     email = (getattr(settings, "ALICE_WC_EMAIL", "") or "").strip().lower()
     if not email:
         return None

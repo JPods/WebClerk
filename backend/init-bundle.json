@@ -8610,10 +8610,6 @@
         "selectlists": {
           "status": [
             {
-              "label": "—",
-              "value": ""
-            },
-            {
               "label": "open",
               "value": "open"
             },
@@ -8698,6 +8694,22 @@
             {
               "label": "Expert (21)",
               "value": 21
+            },
+            {
+              "label": "10",
+              "value": 10
+            },
+            {
+              "label": "2",
+              "value": 2
+            },
+            {
+              "label": "3",
+              "value": 3
+            },
+            {
+              "label": "5",
+              "value": 5
             }
           ],
           "action_type": [
@@ -8744,6 +8756,14 @@
             {
               "label": "other",
               "value": "other"
+            },
+            {
+              "label": "Inquiry",
+              "value": "inquiry"
+            },
+            {
+              "label": "task",
+              "value": "task"
             }
           ],
           "kanban_column": [
@@ -8788,6 +8808,14 @@
             {
               "label": "100%",
               "value": 100
+            },
+            {
+              "label": "40",
+              "value": 40
+            },
+            {
+              "label": "60",
+              "value": 60
             }
           ]
         },
@@ -10855,6 +10883,40 @@
           "number_precision": 2
         },
         "selectlists": {
+          "kind": [
+            {
+              "label": "User feedback — tip, correction, change request",
+              "value": "feedback"
+            },
+            {
+              "label": "Help lookup — shift-for-help query",
+              "value": "help_lookup"
+            },
+            {
+              "label": "Conversational exchange",
+              "value": "chat"
+            },
+            {
+              "label": "Question expecting an answer",
+              "value": "question"
+            },
+            {
+              "label": "Answer to a question",
+              "value": "answer"
+            },
+            {
+              "label": "Agent pattern observation",
+              "value": "observation"
+            },
+            {
+              "label": "Instruction between agents",
+              "value": "directive"
+            },
+            {
+              "label": "Forwarded message",
+              "value": "forward"
+            }
+          ],
           "status": [
             {
               "label": "Active",
@@ -10867,12 +10929,76 @@
             {
               "label": "Archived",
               "value": "archived"
+            },
+            {
+              "label": "Pending — not yet processed",
+              "value": "pending"
+            },
+            {
+              "label": "Read — seen by receiver",
+              "value": "read"
+            },
+            {
+              "label": "Reviewed — classified by Alice/admin",
+              "value": "reviewed"
+            },
+            {
+              "label": "Actioned — created task, updated help, etc.",
+              "value": "actioned"
+            },
+            {
+              "label": "Forwarded to another actor",
+              "value": "forwarded"
+            },
+            {
+              "label": "Resolved — no further action needed",
+              "value": "resolved"
+            },
+            {
+              "label": "Rejected — not actionable",
+              "value": "rejected"
             }
           ],
           "purpose": [
             {
               "label": "User defined",
               "value": "user_defined"
+            }
+          ],
+          "clearance": [
+            {
+              "label": "Local only — not reviewed for forwarding",
+              "value": "local"
+            },
+            {
+              "label": "Pending Athena review",
+              "value": "pending"
+            },
+            {
+              "label": "Cleared — safe to forward",
+              "value": "cleared"
+            },
+            {
+              "label": "Blocked — contains sensitive data",
+              "value": "blocked"
+            }
+          ],
+          "classification": [
+            {
+              "label": "Technical — wc/react/system data. Safe to forward.",
+              "value": "technical"
+            },
+            {
+              "label": "Operational — usage patterns, counts. Athena reviews.",
+              "value": "operational"
+            },
+            {
+              "label": "Commercial — prices, orders, customer data. Never leaves.",
+              "value": "commercial"
+            },
+            {
+              "label": "Personal — contact info, login, PII. Never leaves.",
+              "value": "personal"
             }
           ]
         },
@@ -11860,6 +11986,24 @@
           "number_precision": 2
         },
         "selectlists": {
+          "source": [
+            {
+              "label": "Alice (local)",
+              "value": "alice"
+            },
+            {
+              "label": "WCHQ (synced)",
+              "value": "wchq"
+            },
+            {
+              "label": "Power User",
+              "value": "power_user"
+            },
+            {
+              "label": "console_capture",
+              "value": "console_capture"
+            }
+          ],
           "status": [
             {
               "label": "Active",
@@ -11880,6 +12024,56 @@
               "value": "user_defined"
             }
           ],
+          "category": [
+            {
+              "label": "Workflow Pattern",
+              "value": "pattern"
+            },
+            {
+              "label": "Data Anomaly",
+              "value": "anomaly"
+            },
+            {
+              "label": "Coaching Suggestion",
+              "value": "coaching"
+            },
+            {
+              "label": "Alert",
+              "value": "alert"
+            },
+            {
+              "label": "Search Pattern",
+              "value": "search"
+            },
+            {
+              "label": "Layout Suggestion",
+              "value": "layout"
+            },
+            {
+              "label": "Performance Issue",
+              "value": "performance"
+            },
+            {
+              "label": "Pydantic Schema Question",
+              "value": "schema"
+            },
+            {
+              "label": "Console Capture",
+              "value": "console"
+            },
+            {
+              "label": "Escalation to Claude",
+              "value": "escalation"
+            },
+            {
+              "label": "PII Correction",
+              "value": "pii_correction"
+            },
+            {
+              "label": "Question for Bill",
+              "value": "bill_question"
+            }
+          ],
           "priority": [
             {
               "label": "Low",
@@ -11896,6 +12090,18 @@
             {
               "label": "Urgent",
               "value": "urgent"
+            },
+            {
+              "label": "Normal",
+              "value": 0
+            },
+            {
+              "label": "Important",
+              "value": 1
+            },
+            {
+              "label": "Urgent",
+              "value": 2
             }
           ]
         },
@@ -12760,6 +12966,20 @@
           "number_precision": 2
         },
         "selectlists": {
+          "source": [
+            {
+              "label": "Alice (pattern detection)",
+              "value": "alice"
+            },
+            {
+              "label": "WCHQ (synced)",
+              "value": "wchq"
+            },
+            {
+              "label": "Power User",
+              "value": "power_user"
+            }
+          ],
           "status": [
             {
               "label": "Active",
@@ -12778,6 +12998,28 @@
             {
               "label": "User defined",
               "value": "user_defined"
+            }
+          ],
+          "preset_type": [
+            {
+              "label": "Search Preset",
+              "value": "search"
+            },
+            {
+              "label": "Layout",
+              "value": "layout"
+            },
+            {
+              "label": "Dashboard Config",
+              "value": "dashboard"
+            },
+            {
+              "label": "Workflow Sequence",
+              "value": "workflow"
+            },
+            {
+              "label": "Report Preset",
+              "value": "report"
             }
           ]
         },
@@ -13667,6 +13909,10 @@
             {
               "label": "Urgent",
               "value": "urgent"
+            },
+            {
+              "label": "1",
+              "value": 1
             }
           ]
         },
@@ -16052,6 +16298,14 @@
             {
               "label": "Disbursed (AP)",
               "value": "disbursed"
+            },
+            {
+              "label": "Cash In",
+              "value": "cash_in"
+            },
+            {
+              "label": "Cash Out",
+              "value": "cash_out"
             }
           ],
           "method": [
@@ -16078,13 +16332,17 @@
             {
               "label": "Other",
               "value": "other"
+            },
+            {
+              "label": "discount",
+              "value": "discount"
+            },
+            {
+              "label": "write_off",
+              "value": "write_off"
             }
           ],
           "status": [
-            {
-              "label": "—",
-              "value": ""
-            },
             {
               "label": "draft",
               "value": "draft"
@@ -16112,6 +16370,32 @@
             {
               "label": "void",
               "value": "void"
+            },
+            {
+              "label": "active",
+              "value": "active"
+            },
+            {
+              "label": "applied",
+              "value": "applied"
+            },
+            {
+              "label": "completed",
+              "value": "completed"
+            },
+            {
+              "label": "pending",
+              "value": "pending"
+            }
+          ],
+          "gateway": [
+            {
+              "label": "Manual",
+              "value": "manual"
+            },
+            {
+              "label": "Spreedly",
+              "value": "spreedly"
             }
           ],
           "purpose": [
@@ -17196,6 +17480,14 @@
             {
               "label": "Urgent",
               "value": "urgent"
+            },
+            {
+              "label": "10",
+              "value": 10
+            },
+            {
+              "label": "20",
+              "value": 20
             }
           ]
         },
@@ -17929,6 +18221,24 @@
             {
               "label": "User defined",
               "value": "user_defined"
+            }
+          ],
+          "adjustment_type": [
+            {
+              "label": "Percent Off",
+              "value": "percent_off"
+            },
+            {
+              "label": "Fixed Price",
+              "value": "fixed_price"
+            },
+            {
+              "label": "Amount Off",
+              "value": "amount_off"
+            },
+            {
+              "label": "Price Level",
+              "value": "price_level"
             }
           ]
         }
@@ -18852,6 +19162,48 @@
           "number_precision": 2
         },
         "selectlists": {
+          "role": [
+            {
+              "label": "customer",
+              "value": "customer"
+            },
+            {
+              "label": "buyer",
+              "value": "buyer"
+            },
+            {
+              "label": "vendor",
+              "value": "vendor"
+            },
+            {
+              "label": "manufacturer",
+              "value": "manufacturer"
+            },
+            {
+              "label": "rep",
+              "value": "rep"
+            },
+            {
+              "label": "employee",
+              "value": "employee"
+            },
+            {
+              "label": "accounting",
+              "value": "accounting"
+            },
+            {
+              "label": "sales",
+              "value": "sales"
+            },
+            {
+              "label": "production",
+              "value": "production"
+            },
+            {
+              "label": "warehouse",
+              "value": "warehouse"
+            }
+          ],
           "type": [
             {
               "label": "API",
@@ -18872,6 +19224,18 @@
             {
               "label": "Internal",
               "value": "internal"
+            },
+            {
+              "label": "Database",
+              "value": "database"
+            },
+            {
+              "label": "Bank Account",
+              "value": "bank"
+            },
+            {
+              "label": "Cash Gateway",
+              "value": "gateway"
             }
           ],
           "status": [
@@ -18886,6 +19250,10 @@
             {
               "label": "Archived",
               "value": "archived"
+            },
+            {
+              "label": "draft",
+              "value": "draft"
             }
           ],
           "purpose": [
@@ -20326,13 +20694,53 @@
             {
               "label": "Viewer",
               "value": "viewer"
+            },
+            {
+              "label": "employee",
+              "value": "employee"
+            },
+            {
+              "label": "superuser",
+              "value": "superuser"
+            },
+            {
+              "label": "accounting",
+              "value": "accounting"
+            },
+            {
+              "label": "sales",
+              "value": "sales"
+            },
+            {
+              "label": "production",
+              "value": "production"
+            },
+            {
+              "label": "warehouse",
+              "value": "warehouse"
+            },
+            {
+              "label": "agent",
+              "value": "agent"
+            },
+            {
+              "label": "rep",
+              "value": "rep"
+            },
+            {
+              "label": "customer",
+              "value": "customer"
+            },
+            {
+              "label": "vendor",
+              "value": "vendor"
+            },
+            {
+              "label": "manufacturer",
+              "value": "manufacturer"
             }
           ],
           "status": [
-            {
-              "label": "—",
-              "value": ""
-            },
             {
               "label": "open",
               "value": "open"
@@ -20356,6 +20764,10 @@
             {
               "label": "cancelled",
               "value": "cancelled"
+            },
+            {
+              "label": "inactive",
+              "value": "inactive"
             }
           ],
           "purpose": [
@@ -22566,49 +22978,7 @@
           "number_precision": 2
         },
         "selectlists": {
-          "terms": [
-            {
-              "label": "Due on Receipt",
-              "value": "due_on_receipt"
-            },
-            {
-              "label": "Net 10",
-              "value": "net_10"
-            },
-            {
-              "label": "Net 15",
-              "value": "net_15"
-            },
-            {
-              "label": "Net 30",
-              "value": "net_30"
-            },
-            {
-              "label": "Net 45",
-              "value": "net_45"
-            },
-            {
-              "label": "Net 60",
-              "value": "net_60"
-            },
-            {
-              "label": "2/10 Net 30",
-              "value": "2_10_net_30"
-            },
-            {
-              "label": "Prepaid",
-              "value": "prepaid"
-            },
-            {
-              "label": "COD",
-              "value": "cod"
-            }
-          ],
           "status": [
-            {
-              "label": "—",
-              "value": ""
-            },
             {
               "label": "open",
               "value": "open"
@@ -22660,6 +23030,10 @@
             {
               "label": "Rep",
               "value": "rep"
+            },
+            {
+              "label": "Other",
+              "value": "other"
             }
           ],
           "price_level": [
@@ -24666,6 +25040,28 @@
               "label": "wc3_go_live",
               "value": "wc3_go_live"
             }
+          ],
+          "confidential": [
+            {
+              "label": "Public",
+              "value": "public"
+            },
+            {
+              "label": "Internal",
+              "value": "internal"
+            },
+            {
+              "label": "Restricted",
+              "value": "restricted"
+            },
+            {
+              "label": "Confidential",
+              "value": "confidential"
+            },
+            {
+              "label": "Secret",
+              "value": "secret"
+            }
           ]
         },
         "field_groups": [
@@ -25500,6 +25896,22 @@
             {
               "label": "Other",
               "value": "other"
+            },
+            {
+              "label": "LinkedIn",
+              "value": "linkedin"
+            },
+            {
+              "label": "Facebook",
+              "value": "facebook"
+            },
+            {
+              "label": "Twitter",
+              "value": "twitter"
+            },
+            {
+              "label": "GitHub",
+              "value": "github"
             }
           ],
           "status": [
@@ -26443,6 +26855,28 @@
             {
               "label": "Archived",
               "value": "archived"
+            }
+          ],
+          "opt_out": [
+            {
+              "label": "Opted Out",
+              "value": "opted_out"
+            },
+            {
+              "label": "Bounced",
+              "value": "bounced"
+            },
+            {
+              "label": "Invalid",
+              "value": "invalid"
+            },
+            {
+              "label": "Spam Complaint",
+              "value": "spam_complaint"
+            },
+            {
+              "label": "false",
+              "value": "false"
             }
           ],
           "purpose": [
@@ -27736,44 +28170,6 @@
           "number_precision": 2
         },
         "selectlists": {
-          "terms": [
-            {
-              "label": "Due on Receipt",
-              "value": "due_on_receipt"
-            },
-            {
-              "label": "Net 10",
-              "value": "net_10"
-            },
-            {
-              "label": "Net 15",
-              "value": "net_15"
-            },
-            {
-              "label": "Net 30",
-              "value": "net_30"
-            },
-            {
-              "label": "Net 45",
-              "value": "net_45"
-            },
-            {
-              "label": "Net 60",
-              "value": "net_60"
-            },
-            {
-              "label": "2/10 Net 30",
-              "value": "2_10_net_30"
-            },
-            {
-              "label": "Prepaid",
-              "value": "prepaid"
-            },
-            {
-              "label": "COD",
-              "value": "cod"
-            }
-          ],
           "status": [
             {
               "label": "Active",
@@ -27818,6 +28214,10 @@
             {
               "label": "Rep",
               "value": "rep"
+            },
+            {
+              "label": "Other",
+              "value": "other"
             }
           ],
           "price_level": [
@@ -29572,6 +29972,30 @@
             {
               "label": "Expense",
               "value": "expense"
+            },
+            {
+              "label": "Contra Asset",
+              "value": "contra_asset"
+            },
+            {
+              "label": "Contra Equity",
+              "value": "contra_equity"
+            },
+            {
+              "label": "Contra Revenue",
+              "value": "contra_revenue"
+            },
+            {
+              "label": "Cost of Sales",
+              "value": "cost_of_sales"
+            },
+            {
+              "label": "Other Income",
+              "value": "other_income"
+            },
+            {
+              "label": "Other Expense",
+              "value": "other_expense"
             }
           ],
           "status": [
@@ -29626,6 +30050,92 @@
             {
               "label": "Equity",
               "value": "equity"
+            },
+            {
+              "label": "Prepaid & Other Current Assets",
+              "value": "other_current_assets"
+            },
+            {
+              "label": "Property & Equipment",
+              "value": "fixed_assets"
+            },
+            {
+              "label": "Current Liabilities",
+              "value": "current_liabilities"
+            },
+            {
+              "label": "Long-Term Liabilities",
+              "value": "long_term_liabilities"
+            },
+            {
+              "label": "Revenue",
+              "value": "revenue"
+            },
+            {
+              "label": "Cost of Sales",
+              "value": "cost_of_sales"
+            },
+            {
+              "label": "Operating Expenses",
+              "value": "operating_expenses"
+            },
+            {
+              "label": "Other Income & Expense",
+              "value": "other"
+            }
+          ],
+          "used_for": [
+            {
+              "label": "Posting",
+              "value": "posting"
+            },
+            {
+              "label": "Reporting (computed, never posted)",
+              "value": "reporting"
+            },
+            {
+              "label": "Cash",
+              "value": "cash"
+            },
+            {
+              "label": "Receivables",
+              "value": "receivables"
+            },
+            {
+              "label": "Payables",
+              "value": "payables"
+            },
+            {
+              "label": "Inventory",
+              "value": "inventory"
+            },
+            {
+              "label": "Sales",
+              "value": "sales"
+            },
+            {
+              "label": "Discounts",
+              "value": "discounts"
+            },
+            {
+              "label": "Cost of Goods Sold",
+              "value": "cogs"
+            },
+            {
+              "label": "Expense",
+              "value": "expense"
+            },
+            {
+              "label": "Tax",
+              "value": "tax"
+            },
+            {
+              "label": "Consolidation",
+              "value": "consolidation"
+            },
+            {
+              "label": "Other",
+              "value": "other"
             }
           ]
         },
@@ -30599,6 +31109,40 @@
             {
               "label": "Closing",
               "value": "closing"
+            },
+            {
+              "label": "Payroll",
+              "value": "payroll"
+            },
+            {
+              "label": "Inventory",
+              "value": "inventory"
+            },
+            {
+              "label": "Other",
+              "value": "other"
+            }
+          ],
+          "source": [
+            {
+              "label": "Manual Entry",
+              "value": "manual"
+            },
+            {
+              "label": "Imported",
+              "value": "import"
+            },
+            {
+              "label": "Automation",
+              "value": "automation"
+            },
+            {
+              "label": "Adjustment",
+              "value": "adjustment"
+            },
+            {
+              "label": "Integration",
+              "value": "integration"
             }
           ],
           "status": [
@@ -31562,6 +32106,16 @@
             {
               "label": "User defined",
               "value": "user_defined"
+            }
+          ],
+          "run_type": [
+            {
+              "label": "Global",
+              "value": "global"
+            },
+            {
+              "label": "Stack",
+              "value": "stack"
             }
           ]
         },
@@ -36046,65 +36600,7 @@
           "number_precision": 2
         },
         "selectlists": {
-          "terms": [
-            {
-              "label": "Fake Term for DataBrowser testing",
-              "value": "Fake Term for DataBrowser testing"
-            },
-            {
-              "label": "Cash in Advance",
-              "value": "Cash in Advance"
-            },
-            {
-              "label": "Due on Receipt",
-              "value": "Due on Receipt"
-            },
-            {
-              "label": "50% Deposit, Balance on Receipt",
-              "value": "50% Deposit, Balance on Receipt"
-            },
-            {
-              "label": "Credit Card Cash",
-              "value": "Credit Card Cash"
-            },
-            {
-              "label": "Cash on Delivery",
-              "value": "Cash on Delivery"
-            },
-            {
-              "label": "Net 10 Days",
-              "value": "Net 10 Days"
-            },
-            {
-              "label": "Net 20 Days",
-              "value": "Net 20 Days"
-            },
-            {
-              "label": "2% 10, Net 30 Days",
-              "value": "2% 10, Net 30 Days"
-            },
-            {
-              "label": "Net 30 Days",
-              "value": "Net 30 Days"
-            },
-            {
-              "label": "Net 60 Days",
-              "value": "Net 60 Days"
-            },
-            {
-              "label": "Net 90 Days",
-              "value": "Net 90 Days"
-            },
-            {
-              "label": "3 Cash Every 30 Days",
-              "value": "3 Cash Every 30 Days"
-            }
-          ],
           "status": [
-            {
-              "label": "—",
-              "value": ""
-            },
             {
               "label": "draft",
               "value": "draft"
@@ -36132,6 +36628,26 @@
             {
               "label": "void",
               "value": "void"
+            },
+            {
+              "label": "active",
+              "value": "active"
+            },
+            {
+              "label": "paid",
+              "value": "paid"
+            },
+            {
+              "label": "partially_paid",
+              "value": "partially_paid"
+            },
+            {
+              "label": "pending",
+              "value": "pending"
+            },
+            {
+              "label": "planned",
+              "value": "planned"
             }
           ],
           "purpose": [
@@ -36164,6 +36680,10 @@
             {
               "label": "6 - Lowest",
               "value": 6
+            },
+            {
+              "label": "medium",
+              "value": "medium"
             }
           ],
           "price_level": [
@@ -36224,6 +36744,58 @@
             {
               "label": "Other",
               "value": "other"
+            },
+            {
+              "label": "fable-assessor",
+              "value": "fable-assessor"
+            },
+            {
+              "label": "web",
+              "value": "web"
+            }
+          ],
+          "invoice_type": [
+            {
+              "label": "Invoice",
+              "value": "invoice"
+            },
+            {
+              "label": "Pro Forma",
+              "value": "proforma"
+            },
+            {
+              "label": "Credit Note",
+              "value": "credit_note"
+            },
+            {
+              "label": "Deposit",
+              "value": "deposit"
+            }
+          ],
+          "parent_model": [
+            {
+              "label": "Quote",
+              "value": "quote"
+            },
+            {
+              "label": "Order",
+              "value": "order"
+            },
+            {
+              "label": "Invoice",
+              "value": "invoice"
+            },
+            {
+              "label": "Purchase",
+              "value": "purchase"
+            },
+            {
+              "label": "Work Order",
+              "value": "workorder"
+            },
+            {
+              "label": "Requisition",
+              "value": "requisition"
             }
           ],
           "shipping.status": [
@@ -37540,6 +38112,10 @@
             {
               "label": "Archived",
               "value": "archived"
+            },
+            {
+              "label": "pending",
+              "value": "pending"
             }
           ],
           "purpose": [
@@ -37564,6 +38140,34 @@
             {
               "label": "Discount",
               "value": "discount"
+            },
+            {
+              "label": "Commission",
+              "value": "commission"
+            },
+            {
+              "label": "Finance Charge",
+              "value": "finance_charge"
+            },
+            {
+              "label": "Count",
+              "value": "count"
+            },
+            {
+              "label": "Adjust",
+              "value": "adjust"
+            },
+            {
+              "label": "Build",
+              "value": "build"
+            },
+            {
+              "label": "Consume",
+              "value": "consume"
+            },
+            {
+              "label": "Scrap",
+              "value": "scrap"
             }
           ],
           "price_level": [
@@ -39101,13 +39705,17 @@
             {
               "label": "Tax",
               "value": "tax"
+            },
+            {
+              "label": "Physical",
+              "value": "physical"
+            },
+            {
+              "label": "Bundle",
+              "value": "bundle"
             }
           ],
           "status": [
-            {
-              "label": "—",
-              "value": ""
-            },
             {
               "label": "open",
               "value": "open"
@@ -40799,6 +41407,20 @@
           "number_precision": 2
         },
         "selectlists": {
+          "source": [
+            {
+              "label": "Manufacturer",
+              "value": "manufacturer"
+            },
+            {
+              "label": "Wholesaler",
+              "value": "wholesaler"
+            },
+            {
+              "label": "Other",
+              "value": "other"
+            }
+          ],
           "status": [
             {
               "label": "Active",
@@ -41753,12 +42375,34 @@
             {
               "label": "Archived",
               "value": "archived"
+            },
+            {
+              "label": "processing",
+              "value": "processing"
             }
           ],
           "purpose": [
             {
               "label": "User defined",
               "value": "user_defined"
+            }
+          ],
+          "batch_type": [
+            {
+              "label": "Full Batch",
+              "value": "full"
+            },
+            {
+              "label": "Invoices Only",
+              "value": "invoice"
+            },
+            {
+              "label": "Cash Only",
+              "value": "cash"
+            },
+            {
+              "label": "Purchases Only",
+              "value": "purchase"
             }
           ]
         },
@@ -42793,6 +43437,36 @@
           "number_precision": 2
         },
         "selectlists": {
+          "source": [
+            {
+              "label": "Invoice",
+              "value": "invoice"
+            },
+            {
+              "label": "Cash",
+              "value": "cash"
+            },
+            {
+              "label": "Journal Entry",
+              "value": "journal"
+            },
+            {
+              "label": "Adjustment",
+              "value": "adjustment"
+            },
+            {
+              "label": "Imported",
+              "value": "import"
+            },
+            {
+              "label": "Other",
+              "value": "other"
+            },
+            {
+              "label": "AR",
+              "value": "AR"
+            }
+          ],
           "status": [
             {
               "label": "Active",
@@ -42811,6 +43485,32 @@
             {
               "label": "User defined",
               "value": "user_defined"
+            }
+          ],
+          "model_name": [
+            {
+              "label": "Invoice",
+              "value": "invoice"
+            },
+            {
+              "label": "Credit Memo",
+              "value": "credit_memo"
+            },
+            {
+              "label": "Debit Memo",
+              "value": "debit_memo"
+            },
+            {
+              "label": "Purchase",
+              "value": "purchase"
+            },
+            {
+              "label": "Cash",
+              "value": "cash"
+            },
+            {
+              "label": "Other",
+              "value": "other"
             }
           ]
         },
@@ -44956,49 +45656,7 @@
           "number_precision": 2
         },
         "selectlists": {
-          "terms": [
-            {
-              "label": "Due on Receipt",
-              "value": "due_on_receipt"
-            },
-            {
-              "label": "Net 10",
-              "value": "net_10"
-            },
-            {
-              "label": "Net 15",
-              "value": "net_15"
-            },
-            {
-              "label": "Net 30",
-              "value": "net_30"
-            },
-            {
-              "label": "Net 45",
-              "value": "net_45"
-            },
-            {
-              "label": "Net 60",
-              "value": "net_60"
-            },
-            {
-              "label": "2/10 Net 30",
-              "value": "2_10_net_30"
-            },
-            {
-              "label": "Prepaid",
-              "value": "prepaid"
-            },
-            {
-              "label": "COD",
-              "value": "cod"
-            }
-          ],
           "status": [
-            {
-              "label": "—",
-              "value": ""
-            },
             {
               "label": "open",
               "value": "open"
@@ -45050,6 +45708,10 @@
             {
               "label": "Rep",
               "value": "rep"
+            },
+            {
+              "label": "Other",
+              "value": "other"
             }
           ],
           "price_level": [
@@ -47734,65 +48396,7 @@
           "number_precision": 2
         },
         "selectlists": {
-          "terms": [
-            {
-              "label": "Fake Term for DataBrowser testing",
-              "value": "Fake Term for DataBrowser testing"
-            },
-            {
-              "label": "Cash in Advance",
-              "value": "Cash in Advance"
-            },
-            {
-              "label": "Due on Receipt",
-              "value": "Due on Receipt"
-            },
-            {
-              "label": "50% Deposit, Balance on Receipt",
-              "value": "50% Deposit, Balance on Receipt"
-            },
-            {
-              "label": "Credit Card Cash",
-              "value": "Credit Card Cash"
-            },
-            {
-              "label": "Cash on Delivery",
-              "value": "Cash on Delivery"
-            },
-            {
-              "label": "Net 10 Days",
-              "value": "Net 10 Days"
-            },
-            {
-              "label": "Net 20 Days",
-              "value": "Net 20 Days"
-            },
-            {
-              "label": "2% 10, Net 30 Days",
-              "value": "2% 10, Net 30 Days"
-            },
-            {
-              "label": "Net 30 Days",
-              "value": "Net 30 Days"
-            },
-            {
-              "label": "Net 60 Days",
-              "value": "Net 60 Days"
-            },
-            {
-              "label": "Net 90 Days",
-              "value": "Net 90 Days"
-            },
-            {
-              "label": "3 Cash Every 30 Days",
-              "value": "3 Cash Every 30 Days"
-            }
-          ],
           "status": [
-            {
-              "label": "—",
-              "value": ""
-            },
             {
               "label": "draft",
               "value": "draft"
@@ -47820,6 +48424,26 @@
             {
               "label": "void",
               "value": "void"
+            },
+            {
+              "label": "active",
+              "value": "active"
+            },
+            {
+              "label": "canceled",
+              "value": "canceled"
+            },
+            {
+              "label": "confirmed",
+              "value": "confirmed"
+            },
+            {
+              "label": "converted",
+              "value": "converted"
+            },
+            {
+              "label": "planned",
+              "value": "planned"
             }
           ],
           "purpose": [
@@ -47852,6 +48476,10 @@
             {
               "label": "6 - Lowest",
               "value": 6
+            },
+            {
+              "label": "medium",
+              "value": "medium"
             }
           ],
           "price_level": [
@@ -47912,6 +48540,36 @@
             {
               "label": "Other",
               "value": "other"
+            },
+            {
+              "label": "web",
+              "value": "web"
+            }
+          ],
+          "parent_model": [
+            {
+              "label": "Quote",
+              "value": "quote"
+            },
+            {
+              "label": "Order",
+              "value": "order"
+            },
+            {
+              "label": "Invoice",
+              "value": "invoice"
+            },
+            {
+              "label": "Purchase",
+              "value": "purchase"
+            },
+            {
+              "label": "Work Order",
+              "value": "workorder"
+            },
+            {
+              "label": "Requisition",
+              "value": "requisition"
             }
           ],
           "shipping.status": [
@@ -49227,6 +49885,10 @@
             {
               "label": "Archived",
               "value": "archived"
+            },
+            {
+              "label": "pending",
+              "value": "pending"
             }
           ],
           "purpose": [
@@ -49251,6 +49913,34 @@
             {
               "label": "Discount",
               "value": "discount"
+            },
+            {
+              "label": "Commission",
+              "value": "commission"
+            },
+            {
+              "label": "Finance Charge",
+              "value": "finance_charge"
+            },
+            {
+              "label": "Count",
+              "value": "count"
+            },
+            {
+              "label": "Adjust",
+              "value": "adjust"
+            },
+            {
+              "label": "Build",
+              "value": "build"
+            },
+            {
+              "label": "Consume",
+              "value": "consume"
+            },
+            {
+              "label": "Scrap",
+              "value": "scrap"
             }
           ],
           "price_level": [
@@ -50446,44 +51136,6 @@
           "number_precision": 2
         },
         "selectlists": {
-          "terms": [
-            {
-              "label": "Due on Receipt",
-              "value": "due_on_receipt"
-            },
-            {
-              "label": "Net 10",
-              "value": "net_10"
-            },
-            {
-              "label": "Net 15",
-              "value": "net_15"
-            },
-            {
-              "label": "Net 30",
-              "value": "net_30"
-            },
-            {
-              "label": "Net 45",
-              "value": "net_45"
-            },
-            {
-              "label": "Net 60",
-              "value": "net_60"
-            },
-            {
-              "label": "2/10 Net 30",
-              "value": "2_10_net_30"
-            },
-            {
-              "label": "Prepaid",
-              "value": "prepaid"
-            },
-            {
-              "label": "COD",
-              "value": "cod"
-            }
-          ],
           "status": [
             {
               "label": "Active",
@@ -50524,6 +51176,10 @@
             {
               "label": "Rep",
               "value": "rep"
+            },
+            {
+              "label": "Other",
+              "value": "other"
             }
           ],
           "price_level": [
@@ -53381,10 +54037,6 @@
         "selectlists": {
           "status": [
             {
-              "label": "—",
-              "value": ""
-            },
-            {
               "label": "open",
               "value": "open"
             },
@@ -53407,6 +54059,30 @@
             {
               "label": "cancelled",
               "value": "cancelled"
+            },
+            {
+              "label": "blocked",
+              "value": "blocked"
+            },
+            {
+              "label": "canceled",
+              "value": "canceled"
+            },
+            {
+              "label": "complete",
+              "value": "complete"
+            },
+            {
+              "label": "done",
+              "value": "done"
+            },
+            {
+              "label": "draft",
+              "value": "draft"
+            },
+            {
+              "label": "onhold",
+              "value": "onhold"
             }
           ],
           "purpose": [
@@ -53435,6 +54111,78 @@
             {
               "label": "Internal",
               "value": "internal"
+            },
+            {
+              "label": "agent_ops",
+              "value": "agent_ops"
+            },
+            {
+              "label": "agent_sprint",
+              "value": "agent_sprint"
+            },
+            {
+              "label": "episode_outcomes",
+              "value": "episode_outcomes"
+            },
+            {
+              "label": "gen",
+              "value": "gen"
+            },
+            {
+              "label": "jpods",
+              "value": "jpods"
+            },
+            {
+              "label": "kanban_2025-12-24",
+              "value": "kanban_2025-12-24"
+            },
+            {
+              "label": "kanban_2025-12-31",
+              "value": "kanban_2025-12-31"
+            },
+            {
+              "label": "kanban_2026-01-07",
+              "value": "kanban_2026-01-07"
+            },
+            {
+              "label": "kanban_2026-01-14",
+              "value": "kanban_2026-01-14"
+            },
+            {
+              "label": "kanban_2026-01-21",
+              "value": "kanban_2026-01-21"
+            },
+            {
+              "label": "kanban_2026-01-28",
+              "value": "kanban_2026-01-28"
+            },
+            {
+              "label": "kanban_2026-02-04",
+              "value": "kanban_2026-02-04"
+            },
+            {
+              "label": "kanban_2026-02-11",
+              "value": "kanban_2026-02-11"
+            },
+            {
+              "label": "kanban_2026-02-18",
+              "value": "kanban_2026-02-18"
+            },
+            {
+              "label": "kanban_2026-02-25",
+              "value": "kanban_2026-02-25"
+            },
+            {
+              "label": "moa",
+              "value": "moa"
+            },
+            {
+              "label": "patents",
+              "value": "patents"
+            },
+            {
+              "label": "wc3",
+              "value": "wc3"
             }
           ],
           "priority": [
@@ -53461,6 +54209,24 @@
             {
               "label": "6 - Lowest",
               "value": 6
+            }
+          ],
+          "attention": [
+            {
+              "label": "Low",
+              "value": "low"
+            },
+            {
+              "label": "Normal",
+              "value": "normal"
+            },
+            {
+              "label": "High",
+              "value": "high"
+            },
+            {
+              "label": "Critical",
+              "value": "critical"
             }
           ]
         },
@@ -56124,65 +56890,7 @@
           "number_precision": 2
         },
         "selectlists": {
-          "terms": [
-            {
-              "label": "Fake Term for DataBrowser testing",
-              "value": "Fake Term for DataBrowser testing"
-            },
-            {
-              "label": "Cash in Advance",
-              "value": "Cash in Advance"
-            },
-            {
-              "label": "Due on Receipt",
-              "value": "Due on Receipt"
-            },
-            {
-              "label": "50% Deposit, Balance on Receipt",
-              "value": "50% Deposit, Balance on Receipt"
-            },
-            {
-              "label": "Credit Card Cash",
-              "value": "Credit Card Cash"
-            },
-            {
-              "label": "Cash on Delivery",
-              "value": "Cash on Delivery"
-            },
-            {
-              "label": "Net 10 Days",
-              "value": "Net 10 Days"
-            },
-            {
-              "label": "Net 20 Days",
-              "value": "Net 20 Days"
-            },
-            {
-              "label": "2% 10, Net 30 Days",
-              "value": "2% 10, Net 30 Days"
-            },
-            {
-              "label": "Net 30 Days",
-              "value": "Net 30 Days"
-            },
-            {
-              "label": "Net 60 Days",
-              "value": "Net 60 Days"
-            },
-            {
-              "label": "Net 90 Days",
-              "value": "Net 90 Days"
-            },
-            {
-              "label": "3 Cash Every 30 Days",
-              "value": "3 Cash Every 30 Days"
-            }
-          ],
           "status": [
-            {
-              "label": "—",
-              "value": ""
-            },
             {
               "label": "draft",
               "value": "draft"
@@ -56210,6 +56918,14 @@
             {
               "label": "void",
               "value": "void"
+            },
+            {
+              "label": "active",
+              "value": "active"
+            },
+            {
+              "label": "planned",
+              "value": "planned"
             }
           ],
           "purpose": [
@@ -56242,6 +56958,10 @@
             {
               "label": "6 - Lowest",
               "value": 6
+            },
+            {
+              "label": "medium",
+              "value": "medium"
             }
           ],
           "price_level": [
@@ -56302,6 +57022,36 @@
             {
               "label": "Other",
               "value": "other"
+            },
+            {
+              "label": "web",
+              "value": "web"
+            }
+          ],
+          "parent_model": [
+            {
+              "label": "Quote",
+              "value": "quote"
+            },
+            {
+              "label": "Order",
+              "value": "order"
+            },
+            {
+              "label": "Invoice",
+              "value": "invoice"
+            },
+            {
+              "label": "Purchase",
+              "value": "purchase"
+            },
+            {
+              "label": "Work Order",
+              "value": "workorder"
+            },
+            {
+              "label": "Requisition",
+              "value": "requisition"
             }
           ],
           "shipping.status": [
@@ -57618,6 +58368,10 @@
             {
               "label": "Archived",
               "value": "archived"
+            },
+            {
+              "label": "transferred",
+              "value": "transferred"
             }
           ],
           "purpose": [
@@ -57642,6 +58396,34 @@
             {
               "label": "Discount",
               "value": "discount"
+            },
+            {
+              "label": "Commission",
+              "value": "commission"
+            },
+            {
+              "label": "Finance Charge",
+              "value": "finance_charge"
+            },
+            {
+              "label": "Count",
+              "value": "count"
+            },
+            {
+              "label": "Adjust",
+              "value": "adjust"
+            },
+            {
+              "label": "Build",
+              "value": "build"
+            },
+            {
+              "label": "Consume",
+              "value": "consume"
+            },
+            {
+              "label": "Scrap",
+              "value": "scrap"
             }
           ],
           "price_level": [
@@ -59431,65 +60213,7 @@
           "number_precision": 2
         },
         "selectlists": {
-          "terms": [
-            {
-              "label": "Fake Term for DataBrowser testing",
-              "value": "Fake Term for DataBrowser testing"
-            },
-            {
-              "label": "Cash in Advance",
-              "value": "Cash in Advance"
-            },
-            {
-              "label": "Due on Receipt",
-              "value": "Due on Receipt"
-            },
-            {
-              "label": "50% Deposit, Balance on Receipt",
-              "value": "50% Deposit, Balance on Receipt"
-            },
-            {
-              "label": "Credit Card Cash",
-              "value": "Credit Card Cash"
-            },
-            {
-              "label": "Cash on Delivery",
-              "value": "Cash on Delivery"
-            },
-            {
-              "label": "Net 10 Days",
-              "value": "Net 10 Days"
-            },
-            {
-              "label": "Net 20 Days",
-              "value": "Net 20 Days"
-            },
-            {
-              "label": "2% 10, Net 30 Days",
-              "value": "2% 10, Net 30 Days"
-            },
-            {
-              "label": "Net 30 Days",
-              "value": "Net 30 Days"
-            },
-            {
-              "label": "Net 60 Days",
-              "value": "Net 60 Days"
-            },
-            {
-              "label": "Net 90 Days",
-              "value": "Net 90 Days"
-            },
-            {
-              "label": "3 Cash Every 30 Days",
-              "value": "3 Cash Every 30 Days"
-            }
-          ],
           "status": [
-            {
-              "label": "—",
-              "value": ""
-            },
             {
               "label": "draft",
               "value": "draft"
@@ -59517,6 +60241,14 @@
             {
               "label": "void",
               "value": "void"
+            },
+            {
+              "label": "active",
+              "value": "active"
+            },
+            {
+              "label": "planned",
+              "value": "planned"
             }
           ],
           "purpose": [
@@ -59549,6 +60281,10 @@
             {
               "label": "6 - Lowest",
               "value": 6
+            },
+            {
+              "label": "medium",
+              "value": "medium"
             }
           ],
           "price_level": [
@@ -59609,6 +60345,32 @@
             {
               "label": "Other",
               "value": "other"
+            }
+          ],
+          "parent_model": [
+            {
+              "label": "Quote",
+              "value": "quote"
+            },
+            {
+              "label": "Order",
+              "value": "order"
+            },
+            {
+              "label": "Invoice",
+              "value": "invoice"
+            },
+            {
+              "label": "Purchase",
+              "value": "purchase"
+            },
+            {
+              "label": "Work Order",
+              "value": "workorder"
+            },
+            {
+              "label": "Requisition",
+              "value": "requisition"
             }
           ],
           "shipping.status": [
@@ -60875,6 +61637,34 @@
             {
               "label": "Discount",
               "value": "discount"
+            },
+            {
+              "label": "Commission",
+              "value": "commission"
+            },
+            {
+              "label": "Finance Charge",
+              "value": "finance_charge"
+            },
+            {
+              "label": "Count",
+              "value": "count"
+            },
+            {
+              "label": "Adjust",
+              "value": "adjust"
+            },
+            {
+              "label": "Build",
+              "value": "build"
+            },
+            {
+              "label": "Consume",
+              "value": "consume"
+            },
+            {
+              "label": "Scrap",
+              "value": "scrap"
             }
           ],
           "price_level": [
@@ -61772,6 +62562,14 @@
             {
               "label": "Archived",
               "value": "archived"
+            },
+            {
+              "label": "completed",
+              "value": "completed"
+            },
+            {
+              "label": "open",
+              "value": "open"
             }
           ],
           "purpose": [
@@ -62975,10 +63773,6 @@
         "selectlists": {
           "status": [
             {
-              "label": "—",
-              "value": ""
-            },
-            {
               "label": "draft",
               "value": "draft"
             },
@@ -63005,12 +63799,56 @@
             {
               "label": "void",
               "value": "void"
+            },
+            {
+              "label": "planned",
+              "value": "planned"
             }
           ],
           "purpose": [
             {
               "label": "User defined",
               "value": "user_defined"
+            }
+          ],
+          "source_type": [
+            {
+              "label": "Purchase Receipt",
+              "value": "purchase_receipt"
+            },
+            {
+              "label": "Inventory Adjustment",
+              "value": "inventory_adjustment"
+            },
+            {
+              "label": "Small-Sting",
+              "value": "small_sting"
+            }
+          ],
+          "parent_model": [
+            {
+              "label": "Quote",
+              "value": "quote"
+            },
+            {
+              "label": "Order",
+              "value": "order"
+            },
+            {
+              "label": "Invoice",
+              "value": "invoice"
+            },
+            {
+              "label": "Purchase",
+              "value": "purchase"
+            },
+            {
+              "label": "Work Order",
+              "value": "workorder"
+            },
+            {
+              "label": "Requisition",
+              "value": "requisition"
             }
           ]
         },
@@ -64235,6 +65073,34 @@
             {
               "label": "Discount",
               "value": "discount"
+            },
+            {
+              "label": "Commission",
+              "value": "commission"
+            },
+            {
+              "label": "Finance Charge",
+              "value": "finance_charge"
+            },
+            {
+              "label": "Count",
+              "value": "count"
+            },
+            {
+              "label": "Adjust",
+              "value": "adjust"
+            },
+            {
+              "label": "Build",
+              "value": "build"
+            },
+            {
+              "label": "Consume",
+              "value": "consume"
+            },
+            {
+              "label": "Scrap",
+              "value": "scrap"
             }
           ],
           "price_level": [
@@ -65557,44 +66423,6 @@
           "number_precision": 2
         },
         "selectlists": {
-          "terms": [
-            {
-              "label": "Due on Receipt",
-              "value": "due_on_receipt"
-            },
-            {
-              "label": "Net 10",
-              "value": "net_10"
-            },
-            {
-              "label": "Net 15",
-              "value": "net_15"
-            },
-            {
-              "label": "Net 30",
-              "value": "net_30"
-            },
-            {
-              "label": "Net 45",
-              "value": "net_45"
-            },
-            {
-              "label": "Net 60",
-              "value": "net_60"
-            },
-            {
-              "label": "2/10 Net 30",
-              "value": "2_10_net_30"
-            },
-            {
-              "label": "Prepaid",
-              "value": "prepaid"
-            },
-            {
-              "label": "COD",
-              "value": "cod"
-            }
-          ],
           "status": [
             {
               "label": "Active",
@@ -65639,6 +66467,10 @@
             {
               "label": "Rep",
               "value": "rep"
+            },
+            {
+              "label": "Other",
+              "value": "other"
             }
           ],
           "price_level": [
@@ -66828,6 +67660,66 @@
             {
               "label": "Dashboard",
               "value": "dashboard"
+            },
+            {
+              "label": "Form",
+              "value": "form"
+            },
+            {
+              "label": "Report",
+              "value": "report"
+            },
+            {
+              "label": "Statement",
+              "value": "statement"
+            },
+            {
+              "label": "List",
+              "value": "list"
+            },
+            {
+              "label": "Summary",
+              "value": "summary"
+            },
+            {
+              "label": "Letter / Email",
+              "value": "letter"
+            },
+            {
+              "label": "Label",
+              "value": "label"
+            },
+            {
+              "label": "Export",
+              "value": "export"
+            },
+            {
+              "label": "Function",
+              "value": "function"
+            },
+            {
+              "label": "Utility",
+              "value": "utility"
+            },
+            {
+              "label": "customer_facing",
+              "value": "customer_facing"
+            },
+            {
+              "label": "operations",
+              "value": "operations"
+            },
+            {
+              "label": "search",
+              "value": "search"
+            },
+            {
+              "label": "touch_template",
+              "value": "touch_template"
+            },
+            {
+              "label": "vendor_facing",
+              "value": "vendor_facing"
             }
           ],
           "editor_type": [
@@ -66842,6 +67734,10 @@
             {
               "label": "HTML (rich text)",
               "value": "html"
+            },
+            {
+              "label": "svg",
+              "value": "svg"
             }
           ],
           "output_type": [
@@ -66868,6 +67764,18 @@
             {
               "label": "API POST",
               "value": "api"
+            },
+            {
+              "label": "Screen form",
+              "value": "screen"
+            },
+            {
+              "label": "Word / spreadsheet merge",
+              "value": "merge"
+            },
+            {
+              "label": "search",
+              "value": "search"
             }
           ]
         },
@@ -67869,6 +68777,10 @@
             {
               "label": "Canceled",
               "value": "canceled"
+            },
+            {
+              "label": "pending",
+              "value": "pending"
             }
           ],
           "purpose": [
@@ -69002,6 +69914,34 @@
             {
               "label": "Discount",
               "value": "discount"
+            },
+            {
+              "label": "Commission",
+              "value": "commission"
+            },
+            {
+              "label": "Finance Charge",
+              "value": "finance_charge"
+            },
+            {
+              "label": "Count",
+              "value": "count"
+            },
+            {
+              "label": "Adjust",
+              "value": "adjust"
+            },
+            {
+              "label": "Build",
+              "value": "build"
+            },
+            {
+              "label": "Consume",
+              "value": "consume"
+            },
+            {
+              "label": "Scrap",
+              "value": "scrap"
             }
           ],
           "price_level": [
@@ -70716,6 +71656,24 @@
           "number_precision": 2
         },
         "selectlists": {
+          "scope": [
+            {
+              "label": "System — all orgs, all users",
+              "value": "system"
+            },
+            {
+              "label": "Organization — one business",
+              "value": "org"
+            },
+            {
+              "label": "Role — one role within an org",
+              "value": "role"
+            },
+            {
+              "label": "User — one person",
+              "value": "user"
+            }
+          ],
           "status": [
             {
               "label": "Active",
@@ -71798,6 +72756,20 @@
           "number_precision": 2
         },
         "selectlists": {
+          "ledger": [
+            {
+              "label": "Post",
+              "value": "post"
+            },
+            {
+              "label": "Skip",
+              "value": "skip"
+            },
+            {
+              "label": "Review",
+              "value": "review"
+            }
+          ],
           "status": [
             {
               "label": "Active",
@@ -71816,6 +72788,20 @@
             {
               "label": "User defined",
               "value": "user_defined"
+            }
+          ],
+          "classification": [
+            {
+              "label": "Unknown",
+              "value": "unknown"
+            },
+            {
+              "label": "Business",
+              "value": "business"
+            },
+            {
+              "label": "Personal",
+              "value": "personal"
             }
           ]
         },
@@ -72782,10 +73768,42 @@
           "number_precision": 2
         },
         "selectlists": {
+          "alert": [
+            {
+              "label": "None",
+              "value": "none"
+            },
+            {
+              "label": "Info",
+              "value": "info"
+            },
+            {
+              "label": "Warning",
+              "value": "warning"
+            },
+            {
+              "label": "Critical",
+              "value": "critical"
+            }
+          ],
           "purpose": [
             {
               "label": "User defined",
               "value": "user_defined"
+            }
+          ],
+          "direction": [
+            {
+              "label": "Push",
+              "value": "push"
+            },
+            {
+              "label": "Pull",
+              "value": "pull"
+            },
+            {
+              "label": "Sync",
+              "value": "sync"
             }
           ]
         },
@@ -74469,6 +75487,24 @@
             {
               "label": "User defined",
               "value": "user_defined"
+            }
+          ],
+          "service_provider": [
+            {
+              "label": "Avalara",
+              "value": "avalara"
+            },
+            {
+              "label": "TaxJar",
+              "value": "taxjar"
+            },
+            {
+              "label": "Vertex",
+              "value": "vertex"
+            },
+            {
+              "label": "Custom",
+              "value": "custom"
             }
           ]
         },
@@ -76440,6 +77476,18 @@
             {
               "label": "Archived",
               "value": "archived"
+            },
+            {
+              "label": "complete",
+              "value": "complete"
+            },
+            {
+              "label": "completed",
+              "value": "completed"
+            },
+            {
+              "label": "received",
+              "value": "received"
             }
           ],
           "channel": [
@@ -76470,6 +77518,32 @@
             {
               "label": "Mail",
               "value": "mail"
+            },
+            {
+              "label": "agent",
+              "value": "agent"
+            }
+          ],
+          "outcome": [
+            {
+              "label": "Connected",
+              "value": "connected"
+            },
+            {
+              "label": "Voicemail",
+              "value": "voicemail"
+            },
+            {
+              "label": "No Answer",
+              "value": "no_answer"
+            },
+            {
+              "label": "Bounced",
+              "value": "bounced"
+            },
+            {
+              "label": "Rescheduled",
+              "value": "rescheduled"
             }
           ],
           "purpose": [
@@ -78642,49 +79716,7 @@
           "number_precision": 2
         },
         "selectlists": {
-          "terms": [
-            {
-              "label": "Due on Receipt",
-              "value": "due_on_receipt"
-            },
-            {
-              "label": "Net 10",
-              "value": "net_10"
-            },
-            {
-              "label": "Net 15",
-              "value": "net_15"
-            },
-            {
-              "label": "Net 30",
-              "value": "net_30"
-            },
-            {
-              "label": "Net 45",
-              "value": "net_45"
-            },
-            {
-              "label": "Net 60",
-              "value": "net_60"
-            },
-            {
-              "label": "2/10 Net 30",
-              "value": "2_10_net_30"
-            },
-            {
-              "label": "Prepaid",
-              "value": "prepaid"
-            },
-            {
-              "label": "COD",
-              "value": "cod"
-            }
-          ],
           "status": [
-            {
-              "label": "—",
-              "value": ""
-            },
             {
               "label": "open",
               "value": "open"
@@ -78736,6 +79768,10 @@
             {
               "label": "Rep",
               "value": "rep"
+            },
+            {
+              "label": "Other",
+              "value": "other"
             }
           ],
           "price_level": [
@@ -82088,65 +83124,17 @@
           "number_precision": 2
         },
         "selectlists": {
-          "terms": [
+          "kind": [
             {
-              "label": "Fake Term for DataBrowser testing",
-              "value": "Fake Term for DataBrowser testing"
+              "label": "Production",
+              "value": "production"
             },
             {
-              "label": "Cash in Advance",
-              "value": "Cash in Advance"
-            },
-            {
-              "label": "Due on Receipt",
-              "value": "Due on Receipt"
-            },
-            {
-              "label": "50% Deposit, Balance on Receipt",
-              "value": "50% Deposit, Balance on Receipt"
-            },
-            {
-              "label": "Credit Card Cash",
-              "value": "Credit Card Cash"
-            },
-            {
-              "label": "Cash on Delivery",
-              "value": "Cash on Delivery"
-            },
-            {
-              "label": "Net 10 Days",
-              "value": "Net 10 Days"
-            },
-            {
-              "label": "Net 20 Days",
-              "value": "Net 20 Days"
-            },
-            {
-              "label": "2% 10, Net 30 Days",
-              "value": "2% 10, Net 30 Days"
-            },
-            {
-              "label": "Net 30 Days",
-              "value": "Net 30 Days"
-            },
-            {
-              "label": "Net 60 Days",
-              "value": "Net 60 Days"
-            },
-            {
-              "label": "Net 90 Days",
-              "value": "Net 90 Days"
-            },
-            {
-              "label": "3 Cash Every 30 Days",
-              "value": "3 Cash Every 30 Days"
+              "label": "Count",
+              "value": "count"
             }
           ],
           "status": [
-            {
-              "label": "—",
-              "value": ""
-            },
             {
               "label": "open",
               "value": "open"
@@ -82170,6 +83158,10 @@
             {
               "label": "cancelled",
               "value": "cancelled"
+            },
+            {
+              "label": "complete",
+              "value": "complete"
             }
           ],
           "purpose": [
@@ -82262,6 +83254,32 @@
             {
               "label": "Other",
               "value": "other"
+            }
+          ],
+          "parent_model": [
+            {
+              "label": "Quote",
+              "value": "quote"
+            },
+            {
+              "label": "Order",
+              "value": "order"
+            },
+            {
+              "label": "Invoice",
+              "value": "invoice"
+            },
+            {
+              "label": "Purchase",
+              "value": "purchase"
+            },
+            {
+              "label": "Work Order",
+              "value": "workorder"
+            },
+            {
+              "label": "Requisition",
+              "value": "requisition"
             }
           ],
           "shipping.status": [
@@ -83508,6 +84526,34 @@
             {
               "label": "Discount",
               "value": "discount"
+            },
+            {
+              "label": "Commission",
+              "value": "commission"
+            },
+            {
+              "label": "Finance Charge",
+              "value": "finance_charge"
+            },
+            {
+              "label": "Count",
+              "value": "count"
+            },
+            {
+              "label": "Adjust",
+              "value": "adjust"
+            },
+            {
+              "label": "Build",
+              "value": "build"
+            },
+            {
+              "label": "Consume",
+              "value": "consume"
+            },
+            {
+              "label": "Scrap",
+              "value": "scrap"
             }
           ],
           "price_level": [

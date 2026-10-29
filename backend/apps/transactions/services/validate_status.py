@@ -20,6 +20,8 @@ from typing import Optional
 from django.apps import apps as dj_apps
 
 from apps.transactions.services.validate_transaction import ValidationResult
+from apps.core.services.door import Actor
+from apps.core.services.save import save_record
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -468,17 +470,17 @@ def create_signoff_action(instance, model_type: str, approval: dict) -> Optional
             entry['dt_response'] = ''
 
     # Create the Action
-    action = Action.objects.create(
+    action = save_record(Actor.system(source='signoff'), dict(
         action={'en': f'SignOff Request: {rule_name}'},
         description={'en': f'{model_type.title()} #{instance.ida} requires approval to transition '
                      f'from {blocked_transition.get("from", "?")} to {blocked_transition.get("to", "?")}. '
                      f'Rule: {rule_name}'},
         assigned_to=assigned_to,
-        kanban_column='Ready',
-        action_type='follow-up',
-        priority='2',
-        status='planned',
-    )
+        kanban_column='Backlog',
+        action_type='follow_up',
+        priority=2,
+        status='open',
+    ), model_key='action').obj
 
     # Write signoff state into transaction config
     config = getattr(instance, 'config', None) or {}

@@ -23,6 +23,8 @@ import time
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+from apps.core.services.door import Actor
+from apps.core.services.save import save_record
 
 User = get_user_model()
 
@@ -240,9 +242,9 @@ class Command(BaseCommand):
                 continue
             offset = ACTION_OFFSETS[i % len(ACTION_OFFSETS)]
             dt = now + timedelta(days=offset)
-            kanban = 'In Progress' if offset <= 0 else 'Backlog'
-            status = 'in_progress' if offset <= 0 else 'created'
-            Action.objects.create(
+            kanban = 'InProcess' if offset <= 0 else 'Backlog'
+            status = 'active' if offset <= 0 else 'open'
+            save_record(Actor.system(source='seed'), dict(
                 ida=ida,
                 action={'en': act['title']},
                 project_name=act['project'],
@@ -250,7 +252,7 @@ class Command(BaseCommand):
                 kanban_column=kanban,
                 status=status,
                 dt_deadline=_ms(dt),
-            )
+            ), model_key='action')
             created_act += 1
         self.stdout.write(f'  Actions: {created_act} created')
 

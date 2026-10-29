@@ -32,12 +32,12 @@ class TestLogWrite:
         assert entry.config == {'changes': {'status': {'old': 'a', 'new': 'b'}}}
         assert entry.ida == str(entry.pk) and entry.uuid and entry.dt_created > 0
 
-    def test_unknown_purpose_is_refused(self):
-        with pytest.raises(ValueError, match="'whatever' is not a log purpose"):
-            Log.write('whatever', 'x')
+    def test_a_new_purpose_from_code_joins_the_list(self):
+        from apps.core.services import select_lists
+        Log.write('whatever', 'x')
+        assert 'whatever' in select_lists.lists('log')['purpose']
 
     def test_a_foreign_purpose_needs_its_pointer(self):
-        _log_definition('foreign_test')           # an administrator lists it
         with pytest.raises(ValueError, match='refs.foreign'):
             Log.write('foreign_test', 'committed')
         entry = Log.write('foreign_test', 'committed', refs={'foreign': {
@@ -86,6 +86,32 @@ class TestAuditWritesTheLog:
 
 @pytest.mark.django_db
 class TestAliceNotes:
+    def test_a_note_goes_through_the_door_as_the_person_who_raised_it(self, settings, django_user_model):
+        """A to-do is saved as the person whose request raised it; a role that may not make
+        Actions does not lose it: it is Alice's, naming who raised it."""
+        from django.utils.crypto import get_random_string
+        from apps.ai_assistant.services.notes import create_note
+        from apps.core.services import access
+        from apps.core.services.door import Actor, acts
+        from tests.conftest import make_setting
+        Setting.objects.filter(purpose='wc:model', parent_model='action').delete()
+        make_setting(purpose='wc:model', parent_model='action', name='action',
+                     config={'access': access.default_access('action')})
+        access.clear_cache()
+        alice = django_user_model.objects.create_user(
+            email='alice@test.internal', password=get_random_string(20), role='agent')
+        settings.ALICE_WC_EMAIL = alice.email
+        asker = django_user_model.objects.create_user(
+            email='asker@example.com', password=get_random_string(20), role='user')
+
+        @acts
+        def ask(actor):
+            return create_note('pending', role='question', name='how do I return this?')
+        todo = ask(Actor(user=asker, kind='user', source='wcapi'))
+        # Saved under Alice's login (the asker's role makes no Actions); still the asker's.
+        assert todo.config['alice']['details']['raised_by'] == asker.pk
+        assert todo.created_by[0]['id'] == asker.pk
+
     def test_a_log_note_is_a_log_and_a_to_do_is_an_action(self):
         from apps.core.models import Action
         from apps.ai_assistant.services.notes import create_note, get_report, resolve_pending
@@ -188,10 +214,10 @@ class TestLogThroughWcapi:
         assert (entry.purpose, entry.action, entry.user_id) == ('alice', 'help_feedback', user.pk)
         assert entry.config == {'name': 'help_feedback:x', 'details': {'vote': 'up'}}
 
-    def test_an_unknown_purpose_is_refused_with_coaching(self):
+    def test_a_person_is_asked_before_a_new_purpose_joins(self):
         client, _ = _client()
         res = client.post('/wcapi/log/', {'purpose': 'nonsense'}, format='json')
-        assert res.status_code == 400 and 'is not a log purpose' in res.json()['message']
+        assert res.status_code == 400 and res.json()['error']['code'] == 'value_not_listed'
 
     def test_a_log_row_cannot_be_changed_through_the_channel(self):
         client, _ = _client()

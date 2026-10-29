@@ -15,6 +15,8 @@ from apps.core.models.setting import Setting
 from apps.docs.models.document import Document
 from apps.core.models.action import Action
 import time
+from apps.core.services.door import Actor
+from apps.core.services.save import save_record
 
 
 def _now_ms():
@@ -957,19 +959,17 @@ class Command(BaseCommand):
             if exists:
                 a_skipped += 1
                 continue
-            Action.objects.create(
+            save_record(Actor.system(source='seed'), dict(
                 action=act['action'],
                 description=act.get('description', {}),
                 sequence=act.get('sequence', 0),
                 priority=act.get('priority', 1),
-                kanban_column='todo',
+                kanban_column='Backlog',
                 status='open',
                 project_name='Alice Onboarding',
                 project_ida='alice-onboarding',
-                dt_created=now,
-                dt_modified=now,
                 metadata={'coaching': True},
-            )
+            ), model_key='action')
             a_created += 1
             self.stdout.write(f'  Action: {title}')
 

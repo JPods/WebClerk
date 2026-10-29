@@ -379,9 +379,10 @@ def flag_below_margin(item, result: PriceResolution, customer_id: Optional[int] 
         return
     item = _item(item)
     try:
-        from apps.core.models.action import Action
+        from apps.core.services.door import Actor
+        from apps.core.services.save import save_record
         source = f'Catalog: {result.catalog_name} (#{result.catalog_id}). ' if result.catalog_id else ''
-        Action.objects.create(
+        save_record(Actor.system(source='price'), dict(
             action={'en': f'Below-margin price: {item.ida or item.name}'},
             description={'en': (
                 f'{item.ida} priced at ${result.price} ({result.resolved_by}) against cost '
@@ -389,9 +390,10 @@ def flag_below_margin(item, result: PriceResolution, customer_id: Optional[int] 
                 f'below the {result.margin_floor}% floor. {source}'
                 f'Customer: #{customer_id}. Review in sales dashboard.'
             )},
-            status='Backlog',
+            status='open',
+            kanban_column='Backlog',
             priority=1,            # low
-        )
+        ), model_key='action')
     except Exception:
         # Never blocks the price; said out loud (Axiom 6).
         logger.error('below-margin alert Action not created', exc_info=True)

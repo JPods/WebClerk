@@ -19,6 +19,8 @@ from __future__ import annotations
 import json
 import time
 from django.apps import apps as dj_apps
+from apps.core.services.door import Actor
+from apps.core.services.save import save_record
 
 
 def _now_ms():
@@ -118,16 +120,22 @@ def request_field_change(
 
     # 2. Create Action record for admin review
     Action = dj_apps.get_model('core', 'Action')
-    action = Action.objects.create(
+    # The owner is the person asking, else whoever is acting; with no one it is refused,
+    # never given a made-up contact (core.models audit V-3, 2026-10-29).
+    from apps.core.models.log import Log
+    owner, _refs = Log.responsible(contact_id, None)
+    if not owner:
+        raise ValueError('A field change request needs the person asking (contact_id).')
+    action = save_record(Actor.system(source='field_change'), dict(
         ida=f'FCR-{model}-{field}'[:40],
         project_name='Field Change Requests',
         status='open',
-        kanban_column='backlog',
+        kanban_column='Backlog',
         priority=2,
         difficulty=1,
         action={'en': f'Field change: {model}.{field} → {change_type}'},
         description={'en': desc},
-        contact_id=contact_id or 69,  # default to claude
+        contact_id=owner,
         metadata={
             'field_change_request': request_detail,
             'observation_id': observation_id,
@@ -136,7 +144,7 @@ def request_field_change(
             'approved_by': None,
             'dt_approved': None,
         },
-    )
+    ), model_key='action').obj
 
     # 3. Send agent message to Alice
     try:
@@ -254,8 +262,8 @@ def approve_field_change(action_id: int, contact_id: int) -> dict:
     meta['approved_by'] = contact_id
     meta['dt_approved'] = _now_ms()
     action.metadata = meta
-    action.status = 'complete'
-    action.kanban_column = 'done'
+    action.status = 'completed'
+    action.kanban_column = 'Complete'
     action.percent_complete = 100
     action.save()
 

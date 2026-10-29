@@ -55,6 +55,8 @@ from pydantic import ValidationError as SchemaError
 
 from apps.core.models import Action, Contact, Report
 from apps.core.models.action_pydantic import InquiryForm
+from apps.core.services.door import Actor
+from apps.core.services.save import save_record
 from common.schemas.defaults import schema_classes
 
 logger = logging.getLogger(__name__)
@@ -344,7 +346,7 @@ class InquiryView(_Public):
                 if existing is not None:
                     return self._add_followup(request, existing, config['inquiry'], token, fields['message'])
             classes['config'].model_validate(config)
-            action = Action.objects.create(
+            action = save_record(Actor.system(source='inquiry'), dict(
                 status='open',
                 kanban_column='Backlog',
                 action_type='inquiry',
@@ -354,7 +356,7 @@ class InquiryView(_Public):
                 assigned_to=[dict(p) for p in form.get('assign', [])],
                 config=config,
                 metadata=metadata,
-            )
+            ), model_key='action').obj
         logger.info('[INQUIRY] action %s from %s (contact %s%s)', action.ida, payload['email'],
                     contact.pk, ', new' if created else '')
         if not (action.assigned_to and action.assigned_to[0].get('id')):

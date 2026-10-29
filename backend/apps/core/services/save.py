@@ -478,18 +478,27 @@ def _price_level_is_named(obj, snapshot: Dict[str, Any]) -> None:
 
 # ── what this save changed ────────────────────────────────────────────
 
-def _purpose_is_listed(obj, snapshot: Dict[str, Any], model_key: str) -> None:
-    """A purpose is one its model lists (Bill, 2026-10-28: the list is each model's, in its
-    definition). Checked when the value is set or changed, after the hooks, which may set it;
-    a value already stored is left alone until it is rewritten."""
-    if 'purpose' not in {f.name for f in obj._meta.concrete_fields}:
+def _values_are_listed(actor: Actor, obj, snapshot: Dict[str, Any], model_key: str) -> None:
+    """A field with a list in its model's definition holds a listed value (select_lists.py).
+    Checked when a value is set or changed, after the hooks, which may set it; a stored value is
+    left alone until it is rewritten. Support, not police (Bill, 2026-10-29): a person is asked
+    first (value_not_listed carries what to add and whether they may), code adds the value."""
+    from apps.core.services import select_lists
+    changed = {f.name: getattr(obj, f.attname, None) for f in obj._meta.concrete_fields
+               if getattr(obj, f.attname, None) != snapshot.get(f.name)}
+    off = select_lists.unlisted(model_key, changed)
+    if not off:
         return
-    if obj.purpose == snapshot.get('purpose'):
+    if actor.kind not in ('user', 'staff'):
+        for field, value in off.items():
+            select_lists.add_value(model_key, field, value)
         return
-    from apps.core.services.purposes import unlisted
-    reason = unlisted(model_key, obj.purpose)
-    if reason:
-        raise Refused(400, 'purpose_not_listed', reason, [f'purpose: {reason}'])
+    names = ', '.join(f"{field} '{value}'" for field, value in off.items())
+    may_add = {f: select_lists.may_edit_list(actor, model_key, f) for f in off}
+    ask = ('Add it to the list and save again?' if all(may_add.values())
+           else 'Choose a listed value, or ask a staff member to add it.')
+    raise Refused(400, 'value_not_listed', f"Not on the {model_key} list yet: {names}. {ask}",
+                  {'model_name': model_key, 'unlisted': off, 'may_add': may_add})
 
 
 def _snapshot(obj) -> Dict[str, Any]:
@@ -664,7 +673,7 @@ def _write(actor: Actor, obj, model_cls, model_key: str, norm_key: str, data: di
     verbs.before(ctx)
     # What the before hooks assigned is part of what this save changed.
     ctx.changed = _changed(obj, snapshot)
-    _purpose_is_listed(obj, snapshot, model_key)
+    _values_are_listed(actor, obj, snapshot, model_key)
 
     try:
         obj.save()

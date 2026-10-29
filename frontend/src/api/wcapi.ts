@@ -195,8 +195,13 @@ export type NewRecordResult = { id: number; record: Record<string, any> };
  */
 export async function newRecord(model_name: string, init: Record<string, any> = {}): Promise<NewRecordResult> {
   const resolved = resolveModelName(model_name);
-  const res = await apiClient.post<ApiEnvelope<NewRecordResult>>(recordPath(resolved), init);
-  return res.data.data;
+  const post = () => apiClient.post<ApiEnvelope<NewRecordResult>>(recordPath(resolved), init);
+  try {
+    return (await post()).data.data;
+  } catch (err: any) {
+    if (await addUnlistedIfAsked(err)) return (await post()).data.data;
+    throw err;
+  }
 }
 
 /** A record with values the caller already holds: `new` (with its `init`), then the values
@@ -488,15 +493,53 @@ export async function saveRecord(model_name: string, payload: any) {
   // ── Athena: sign validated payload ──
   const athenaToken = await computeAthenaToken(serialized);
 
+  const headers: Record<string, string> = {};
+  if (athenaToken) {
+    headers['X-Athena-Validated'] = athenaToken;
+  }
   try {
-    const headers: Record<string, string> = {};
-    if (athenaToken) {
-      headers['X-Athena-Validated'] = athenaToken;
-    }
     return await wcapiSave<any>(resolved, body, headers, id);
   } catch (err: any) {
+    // A value not on its list yet: ask, add it with one click, and save again (Bill,
+    // 2026-10-29: support, not police).
+    if (await addUnlistedIfAsked(err)) {
+      try {
+        return await wcapiSave<any>(resolved, body, headers, id);
+      } catch (again: any) {
+        throw new Error(getBackendErrorMessage(again, "Save failed"));
+      }
+    }
     throw new Error(getBackendErrorMessage(err, "Save failed"));
   }
+}
+
+/** One entry of a model field's list: a value (text or number) and what the dropdown shows. */
+export interface ListOption {
+  value: string | number;
+  label: string;
+}
+
+/** POST /wcapi/_selectlist/ — one value joins a model field's list, or the list is replaced
+ * ([{value, label}]: rename, remove, reorder). A login flagged is_staff changes lists. */
+export async function changeSelectList(model: string, field: string,
+                                       change: { add: unknown; label?: string } | { options: ListOption[] }) {
+  const res = await apiClient.post<ApiEnvelope<{ options: ListOption[] }>>(
+    '/wcapi/_selectlist/', { model, field, ...change });
+  return res.data.data.options;
+}
+
+/** A save refused value_not_listed: ask the person, add what they may add, and say whether
+ * the save should be tried again. */
+async function addUnlistedIfAsked(err: any): Promise<boolean> {
+  const error = err?.response?.data?.error;
+  if (error?.code !== 'value_not_listed') return false;
+  const { model_name: model, unlisted = {}, may_add = {} } = error.details || {};
+  const fields = Object.keys(unlisted);
+  if (!fields.length || !fields.every((f) => may_add[f])) return false;
+  const names = fields.map((f) => `${f} "${unlisted[f]}"`).join(', ');
+  if (!window.confirm(`Not on the ${model} list yet: ${names}.\n\nAdd it to the list and save?`)) return false;
+  for (const f of fields) await changeSelectList(model, f, { add: unlisted[f] });
+  return true;
 }
 
 export interface TotalsPreview {

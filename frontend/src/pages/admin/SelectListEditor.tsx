@@ -1,14 +1,14 @@
 /**
  * SelectListEditor — Edit select lists across models from one place.
  *
- * Not a source of truth — wc:model.config.selectlists IS the source (for purpose, the list the door enforces).
+ * Not a source of truth — wc:model.config.selectlists IS the source; the door checks it and asks before adding.
  * This is an authoring tool: edit a template, pick which models to push to.
  *
  * Reads all wc:model Settings, builds a matrix of shared select lists,
  * lets you edit and push changes to individual model records.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { getRecords, saveRecord } from '@/api/wcapi';
+import { changeSelectList, getRecords } from '@/api/wcapi';
 import { useAppSelector } from '@/store/hooks';
 import { useDispatch } from 'react-redux';
 import { showToast } from '@/store/slices/toastSlice';
@@ -177,10 +177,8 @@ export default function SelectListEditor() {
       const md = modelData.find(m => m.model === model);
       if (!md) continue;
       try {
-        await saveRecord('setting', {
-          id: md.settingId,
-          [`config.selectlists.${selectedField}`]: { mode: 'update', value: editOptions },
-        });
+        // A login flagged is_staff changes lists (Bill, 2026-10-29).
+        await changeSelectList(md.model, selectedField, { options: editOptions });
         ok++;
       } catch (e) {
         console.error(`[SelectListEditor] push to ${model} failed:`, e);

@@ -317,7 +317,7 @@ def _open_fault_action(ctx: HookContext, point: str, layer: str, message: str) -
     from apps.core.models import Action, Contact
     from apps.core.services.save import save_record
     key = f'{point}:{layer}'
-    if Action.objects.filter(refs__hook_fault__key=key).exclude(kanban_column='Done').exists():
+    if Action.objects.filter(refs__hook_fault__key=key).exclude(kanban_column='Complete').exists():
         return
     admins = [{'id': c.pk} for c in
               Contact.objects.filter(is_superuser=True, is_active=True).order_by('pk')[:5]]

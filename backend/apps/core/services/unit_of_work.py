@@ -87,8 +87,12 @@ def flush() -> None:
     The verb calls this between persisting and the after hooks, so an after hook reads a
     document's current totals and ledger, not the ones from before the edit (Fable review,
     2026-09-24). Work marked after this — by an after hook — is done when the unit closes.
+    Only the outermost edit flushes.
     """
-    if not active():
+    if _DEPTH.get() != 1:
+        # Not in a unit, or a save nested inside another edit (an alert Action made while an
+        # invoice's lines move stock): the outermost edit flushes once, for everything marked
+        # (core.models audit C-1 follow-up, 2026-10-29).
         return
     _drain()
 

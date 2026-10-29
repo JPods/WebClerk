@@ -11,6 +11,8 @@ from typing import List, Dict
 from django.db import transaction
 from apps.core.models.action import Action
 import time
+from apps.core.services.door import Actor
+from apps.core.services.save import save_record
 
 
 def _now_ms():
@@ -22,8 +24,8 @@ def create_backorder_entries(lines: List[Dict]) -> List[int]:
 
     lines: [{'order_id', 'order_line_id', 'item_fk_id', 'qty_backordered'}, ...]
 
-    Each backorder is an Action with kanban_column='backorder' and metadata
-    tracking the source order, line, item, and quantity.
+    Each backorder is an Action in the Backorders project (project_ida 'backorders') with
+    metadata tracking the source order, line, item, and quantity.
 
     Returns: list of Action IDs created.
     """
@@ -31,16 +33,15 @@ def create_backorder_entries(lines: List[Dict]) -> List[int]:
     action_ids = []
 
     for line in lines:
-        action = Action.objects.create(
+        # Through the door, as every Action (core.models audit C-1, 2026-10-29).
+        action = save_record(Actor.system(source='backorder'), dict(
             action={'en': f"Backorder: {line['qty_backordered']} units"},
             description={'en': f"Order #{line['order_id']} line #{line['order_line_id']}"},
             status='open',
-            kanban_column='backorder',
+            kanban_column='Backlog',
             priority=2,
             project_name='Backorders',
             project_ida='backorders',
-            dt_created=now,
-            dt_modified=now,
             metadata={
                 'health': 'backorder',
                 'order_id': line['order_id'],
@@ -49,7 +50,7 @@ def create_backorder_entries(lines: List[Dict]) -> List[int]:
                 'qty_backordered': line['qty_backordered'],
                 'qty_fulfilled': 0,
             },
-        )
+        ), model_key='action').obj
         action_ids.append(action.pk)
 
     return action_ids
@@ -61,7 +62,7 @@ def get_open_backorders(item_id: int = None) -> List[Dict]:
     Returns: list of {action_id, order_id, order_line_id, item_fk_id, qty_backordered, qty_fulfilled}
     """
     qs = Action.objects.filter(
-        kanban_column='backorder',
+        project_ida='backorders',
         status='open',
     )
     if item_id:
@@ -103,8 +104,8 @@ def fulfill_backorder(action_id: int, qty_fulfilled: int) -> Dict:
     action.dt_modified = _now_ms()
 
     if qty_remaining <= 0:
-        action.status = 'complete'
-        action.kanban_column = 'done'
+        action.status = 'completed'
+        action.kanban_column = 'Complete'
 
     action.save(update_fields=['metadata', 'status', 'kanban_column', 'dt_modified'])
 

@@ -652,25 +652,22 @@ class DedupService:
                 )
                 break
 
-        Action.objects.create(
-            ida=f'ALICE-DEDUP-{bundle.pk}',
-            action={'en': f'Dedup review: {group["model"]} — {group["match_key"]}'},
-            status='pending',
-            config={
-                'escalation': {
-                    'to': 'claude_code',
-                    'reason': '; '.join(reason_parts) or 'Complex dedup case',
-                    'user_request': 'Review duplicate group and recommend merge strategy',
-                    'context': {
-                        'bundle_id': bundle.pk,
-                        'model': group['model'],
-                        'strategy': group['strategy'],
-                        'match_key': group['match_key'],
-                        'retained_id': group['retained_id'],
-                        'duplicate_ids': group['duplicate_ids'],
-                        'confidence': group['confidence'],
-                    },
-                },
+        # An Alice to-do, as every one is (notes.create_note): config.escalation was no Action
+        # field, so the record could not be saved through the door (core.models audit C-1).
+        from apps.ai_assistant.services.notes import create_note
+        create_note(
+            'pending', role='data_quality', parent_model=group['model'],
+            name=f'Dedup review: {group["model"]} — {group["match_key"]}',
+            details={
+                'to': 'claude_code',
+                'reason': '; '.join(reason_parts) or 'Complex dedup case',
+                'user_request': 'Review duplicate group and recommend merge strategy',
+                'bundle_id': bundle.pk,
+                'strategy': group['strategy'],
+                'match_key': group['match_key'],
+                'retained_id': group['retained_id'],
+                'duplicate_ids': group['duplicate_ids'],
+                'confidence': group['confidence'],
             },
         )
         logger.info('Escalated dedup bundle %d to Claude Code', bundle.pk)

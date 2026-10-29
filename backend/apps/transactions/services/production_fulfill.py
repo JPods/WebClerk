@@ -19,9 +19,10 @@ from __future__ import annotations
 from typing import List, Dict, Optional
 from django.db import transaction
 from apps.transactions.models import Order, OrderLine, Invoice, InvoiceLine, WorkOrder, WorkOrderLine
-from apps.core.models.action import Action
 from apps.core.models import Pending
 import time
+from apps.core.services.door import Actor
+from apps.core.services.save import save_record
 
 
 def _now_ms():
@@ -92,20 +93,17 @@ def record_production_action(order_id: int, action_text: str, assigned_to: int =
     Returns: {action_id}
     """
     order = Order.objects.get(pk=order_id)
-    now = _now_ms()
 
-    action = Action.objects.create(
+    action = save_record(Actor.system(source='production'), dict(
         action={'en': action_text},
         status='open',
-        kanban_column='in_progress',
+        kanban_column='InProcess',
         priority=order.priority or 1,
         project_name=f'Order #{order.ida or order.pk}',
         project_ida=f'order-{order.pk}',
         contact_id=assigned_to,
-        dt_created=now,
-        dt_modified=now,
         metadata={'source': {'model': 'order', 'id': order.pk}},
-    )
+    ), model_key='action').obj
 
     return {'action_id': action.pk}
 

@@ -64,10 +64,8 @@ class Log(CoreModel, RefsMixin):
     @staticmethod
     def validate_entry(purpose: str, refs: dict | None) -> None:
         """What every Log row must be, however it is written (Log.write, or wcapi `new`)."""
-        from apps.core.services.purposes import unlisted
-        reason = unlisted('log', purpose) if purpose else 'A log entry needs a purpose.'
-        if reason:
-            raise ValueError(reason)
+        if not purpose:
+            raise ValueError('A log entry needs a purpose.')
         if purpose.startswith('foreign_') and not (refs or {}).get('foreign'):
             raise ValueError(f"A {purpose} log needs refs.foreign = {{database, model, uuid}}")
 
@@ -99,6 +97,10 @@ class Log(CoreModel, RefsMixin):
         aborted; the error is raised to the caller.
         """
         cls.validate_entry(purpose, refs)
+        # The code writes the purposes it needs: a new one joins the log's list (select_lists).
+        from apps.core.services import select_lists
+        if select_lists.unlisted('log', {'purpose': purpose}):
+            select_lists.add_value('log', 'purpose', purpose)
         user_id, refs = cls.responsible(user, refs)
         with transaction.atomic():
             return cls.objects.create(

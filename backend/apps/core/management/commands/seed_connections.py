@@ -31,27 +31,26 @@ CONNECTIONS = [
         'comment': (
             'Escalation channel. Alice creates Action records when a user '
             'request exceeds her model capability. Claude Code picks them '
-            'up at leftshoe (session start). No API call — Actions with '
-            'config.escalation.to=claude_code are the queue.'
+            'up at leftshoe (session start). No API call — Alice to-dos (purpose alice) '
+            'with config.alice.details.to=claude_code are the queue.'
         ),
         'config': {
             'channel': 'action_queue',
             'from_agent': 'alice',
             'to_agent': 'claude_code',
             'action_filter': {
-                'config__escalation__to': 'claude_code',
-                'status': 'pending',
+                'purpose': 'alice',
+                'config__alice__details__to': 'claude_code',
+                'status': 'open',
             },
             'escalation_protocol': {
-                'action_ida_prefix': 'ALICE-ESCALATE',
                 'required_fields': [
-                    'config.escalation.reason',
-                    'config.escalation.user_request',
-                    'config.escalation.context',
+                    'config.alice.details.reason',
+                    'config.alice.details.user_request',
                 ],
                 'priority_levels': ['normal', 'urgent'],
                 'pickup_trigger': 'leftshoe',
-                'resolution': 'Claude Code sets status=complete and writes result to config.escalation.resolution',
+                'resolution': 'Claude Code sets status=completed and writes the result to config.alice.details.resolution',
             },
             'alice_capabilities': {
                 'can_do': [
