@@ -13,7 +13,7 @@ first (Bill, 2026-09-21: "Layers must change with items").
 This used to sum every record's buckets and write the item in one .update().
 That was a second applier: it never recorded line events, it would have skipped
 the layer, and its own purpose list had drifted from Pending's, so an
-'allocation' or 'line_event' that met a lock was never retried.
+allocation that met a lock was never retried.
 
 Usage:
     from apps.transactions.services.inventory_pending_process import (

@@ -28,7 +28,7 @@ from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
-RECEIPT_CASH_PURPOSE = 'cash_application_receipt'
+from apps.core.models.pending import RECEIPT_CASH_PURPOSE
 
 
 def _d(value) -> Decimal:

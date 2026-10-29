@@ -28,7 +28,7 @@ def _stocked(method=None, layers=((5, '1.00'), (5, '2.00'), (5, '3.00'))):
         total += Decimal(qty)
     # The item's on_hand arrives the only way it moves: an applied Pending. The layers were
     # made above, so this increase names none (fixture state).
-    Pending.objects.create(model_name='item', record_id=str(item.pk), purpose='opening_balance',
+    Pending.objects.create(model_name='item', record_id=str(item.pk), purpose='inventory_opening',
                            changes={'on_hand': float(total)})
     item.refresh_from_db()
     return item, warehouse

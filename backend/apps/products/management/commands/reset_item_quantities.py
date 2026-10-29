@@ -46,6 +46,8 @@ from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 
+from apps.core.models.pending import ALLOCATION_PURPOSE, OPENING_PURPOSE
+
 BUCKETS = ('on_hand', 'on_so', 'on_po', 'on_wo', 'on_qt', 'on_in', 'on_rc', 'in_process', 'allocated',
            'available')
 
@@ -171,7 +173,7 @@ class Command(BaseCommand):
                 if p['opening']:
                     cost = item.cost if isinstance(item.cost, dict) else {}
                     Pending.objects.create(
-                        model_name='item', record_id=str(pk), purpose='opening_balance',
+                        model_name='item', record_id=str(pk), purpose=OPENING_PURPOSE,
                         name=f"opening balance: {item.ida or item.name}"[:120],
                         changes={
                             'type_id': 'OB', 'item_id': pk, 'on_hand': float(p['opening']),
@@ -186,7 +188,7 @@ class Command(BaseCommand):
                     )
                 if p['allocated']:
                     Pending.objects.create(
-                        model_name='item', record_id=str(pk), purpose='allocation',
+                        model_name='item', record_id=str(pk), purpose=ALLOCATION_PURPOSE,
                         name=f"reset replay: allocate {p['allocated']} of item {pk}",
                         changes={'allocated': float(p['allocated'])},
                         config={'item_id': pk, 'source_type': 'allocation', 'by': 'reset',

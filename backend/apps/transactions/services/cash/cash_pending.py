@@ -29,7 +29,7 @@ from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
-CASH_PURPOSE = 'cash_application'
+from apps.core.models.pending import CASH_PURPOSE
 
 # System item IDAs for cash adjustments
 SYS_DISCOUNT = 'SYS-DISCOUNT'

@@ -1,5 +1,5 @@
 """
-Bundle send handler — processes Pending records with purpose=sync.bundle_out.
+Bundle send handler — processes Pending records with purpose=sync_bundle_out.
 
 Called by the Celery pending processor. Sends the payload to the Connection's
 endpoint, stamps dt_processed on acknowledgment.

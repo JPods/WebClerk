@@ -311,13 +311,3 @@ def build_keywords_for_record(model_name, record_id):
         import logging
         logging.getLogger(__name__).warning(f"Failed to build keywords for {model_name}:{record_id} - {str(e)}")
         return []
-
-def create_pending_keyword_update(model_name, record_id, data):
-    # Create a Pending record for later processing (local import to avoid circular dependency)
-    from apps.core.models.pending import Pending
-    cache = Pending.objects.create(
-        ida=f"{model_name}:{record_id}",
-        model_name=model_name,
-        config=data
-    )
-    return cache

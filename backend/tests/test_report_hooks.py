@@ -299,7 +299,7 @@ def test_send_queues_a_bundle(db, registry):
 
     from apps.core.models.pending import Pending
     pending = Pending.objects.get(uuid=answer['pending_uuid'])
-    assert pending.purpose == 'sync.bundle_out'
+    assert pending.purpose == 'sync_bundle_out'
     assert pending.config['payload']['kind'] == hr.KIND_REQUEST
     assert 'athena' not in pending.config['payload']['hooks']
 

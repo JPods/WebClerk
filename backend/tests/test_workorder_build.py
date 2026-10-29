@@ -24,7 +24,7 @@ def _item(name, stock=None, cost='0', not_tracked=False):
         warehouse = Warehouse.objects.filter(is_active=True).order_by('id').first() \
             or Warehouse.objects.create(code='WH1', name='Main')
         create_layer(item.pk, warehouse.pk, Decimal(stock), Decimal(cost), reason='test stock')
-        Pending.objects.create(model_name='item', record_id=str(item.pk), purpose='opening_balance',
+        Pending.objects.create(model_name='item', record_id=str(item.pk), purpose='inventory_opening',
                                changes={'on_hand': float(stock)})
     item.refresh_from_db()
     return item

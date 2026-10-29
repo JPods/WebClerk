@@ -19,6 +19,8 @@ from typing import Any, Dict, Optional
 from django.apps import apps as dj_apps
 from django.core.exceptions import ValidationError
 
+from apps.core.models.pending import ALLOCATION_PURPOSE
+
 logger = logging.getLogger(__name__)
 
 
@@ -44,7 +46,7 @@ def _move(item_id: int, delta: Decimal, *, acted_by: str, reason: str,
     Pending.objects.create(
         model_name='item',
         record_id=str(item_id),
-        purpose='allocation',
+        purpose=ALLOCATION_PURPOSE,
         name=f"{verb} {abs(delta)} of item {item_id}",
         changes={'allocated': float(delta)},
         config={'item_id': item_id, 'source_type': 'allocation', 'source_id': order_id,
@@ -80,7 +82,7 @@ def release(item_id: int, qty, *, acted_by: str, reason: str = '',
 def allocation_history(item_id: int, limit: int = 50) -> list[dict]:
     """Who allocated what, and when — read from the pendings themselves."""
     Pending = dj_apps.get_model('core', 'Pending')
-    rows = (Pending.objects.filter(model_name='item', record_id=str(item_id), purpose='allocation')
+    rows = (Pending.objects.filter(model_name='item', record_id=str(item_id), purpose=ALLOCATION_PURPOSE)
             .order_by('-dt_created')[:limit])
     return [{'dt': r.dt_created, 'by': (r.config or {}).get('by'),
              'reason': (r.config or {}).get('reason'), 'verb': (r.config or {}).get('verb'),

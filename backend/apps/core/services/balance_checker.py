@@ -44,8 +44,9 @@ from decimal import Decimal
 from django.apps import apps as dj_apps
 from django.db.models import Q
 
+from apps.core.models.pending import CASH_PURPOSES
+
 BUCKETS = ('on_hand', 'allocated', 'on_so', 'on_po', 'on_wo', 'on_qt', 'on_in', 'on_rc', 'in_process')
-CASH_PURPOSES = ('cash_application', 'cash_application_receipt')
 TOLERANCE = Decimal('0.0001')
 STUCK_MINUTES = 10
 

@@ -49,7 +49,7 @@ from apps.core.models import Pending
 
 logger = logging.getLogger(__name__)
 
-PURPOSE_LEDGER_SYNC = 'ledger_sync'
+from apps.core.models.pending import LEDGER_SYNC_PURPOSE
 
 
 class SyncSummary(TypedDict, total=False):
@@ -86,7 +86,7 @@ def process_ledger_sync_pending(
     }
 
     qs = Pending.objects.filter(
-        purpose=PURPOSE_LEDGER_SYNC,
+        purpose=LEDGER_SYNC_PURPOSE,
         dt_processed=0,
     ).order_by('dt_created')
 

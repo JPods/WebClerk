@@ -46,6 +46,7 @@ from django.db import models, transaction
 from django.apps import apps as dj_apps
 
 from apps.accounts.services.gl_defaults import get_invoice_cash_staging_defaults
+from apps.core.models.pending import LEDGER_SYNC_PURPOSE
 
 if TYPE_CHECKING:
     from apps.orgs.models import OrgBase
@@ -537,8 +538,6 @@ def _stamp_ledger_metadata(invoice, ledger_records, dt_sync: int) -> None:
     invoice.save(update_fields=['metadata', 'dt_modified', 'version'])
 
 
-# ── Pending purpose constants ─────────────────────────────────────────
-PURPOSE_LEDGER_SYNC = 'ledger_sync'
 
 
 def _as_decimal_amount(value: object) -> Decimal:
@@ -750,7 +749,7 @@ def _create_ledger_sync_pending(invoice, ledger_records, reason: str = '') -> 'P
     pending = Pending.objects.create(
         model_name='invoice',
         record_id=str(inv_id),
-        purpose=PURPOSE_LEDGER_SYNC,
+        purpose=LEDGER_SYNC_PURPOSE,
         name=f'Ledger Sync: Invoice {inv_ida}',
         config=pending_data,
     )

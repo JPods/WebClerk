@@ -28,6 +28,8 @@ import logging
 import time
 from typing import Any, Dict, Optional
 
+from apps.core.models.pending import BUNDLE_OUT_PURPOSE
+
 logger = logging.getLogger(__name__)
 
 WCHQ_CONNECTION_IDA = 'wchq-conn-upstream'
@@ -175,7 +177,7 @@ def _queue_bundle(connection, report, payload) -> dict:
     """Queue through the standard outbound road: encrypted, ordered, retried."""
     from apps.core.models.pending import Pending
     pending = Pending.objects.create(
-        purpose='sync.bundle_out',
+        purpose=BUNDLE_OUT_PURPOSE,
         model_name='report',
         record_id=str(report.pk),
         name=f'hook review {report.ida}',

@@ -20,7 +20,7 @@ import time
 from django.core.management.base import BaseCommand
 
 from apps.sync.models.connection import Connection
-from apps.core.models.pending import Pending
+from apps.core.models.pending import BUNDLE_OUT_PURPOSE, Pending
 
 
 class Command(BaseCommand):
@@ -96,12 +96,12 @@ class Command(BaseCommand):
 
         # Auto-increment sequence for this connection
         last_seq = Pending.objects.filter(
-            purpose="sync.bundle_out",
+            purpose=BUNDLE_OUT_PURPOSE,
             config__connection_id=conn.id,
         ).order_by("-sequence").values_list("sequence", flat=True).first() or 0
 
         pending = Pending.objects.create(
-            purpose="sync.bundle_out",
+            purpose=BUNDLE_OUT_PURPOSE,
             name=f"Test handshake → {conn_name}",
             sequence=last_seq + 1,
             config={
@@ -116,7 +116,7 @@ class Command(BaseCommand):
             },
         )
 
-        self.stdout.write(f"Created test Pending (id={pending.id}, purpose=sync.bundle_out)")
+        self.stdout.write(f"Created test Pending (id={pending.id}, purpose={BUNDLE_OUT_PURPOSE})")
         self.stdout.write(f"  Connection: {conn.name} → {conn.config.get('endpoint', '?')}")
         self.stdout.write("")
         self.stdout.write("To send now:  python manage.py sync_setup process")

@@ -13,7 +13,7 @@ Handlers register themselves in HANDLERS dict.
 
 import logging
 
-from apps.core.models.pending import Pending
+from apps.core.models.pending import BUNDLE_OUT_PURPOSE, LOG_WRITE_PURPOSE, Pending
 
 logger = logging.getLogger("sync.pending")
 
@@ -33,8 +33,8 @@ def _handle_log_write(pending):
 
 
 HANDLERS = {
-    "sync.bundle_out": _handle_bundle_out,
-    "log_write": _handle_log_write,
+    BUNDLE_OUT_PURPOSE: _handle_bundle_out,
+    LOG_WRITE_PURPOSE: _handle_log_write,
     # "sync.bundle_in":        _handle_bundle_in,
     # "alice.pattern_review":  _handle_pattern_review,
     # "allie.nightly_reflect": _handle_nightly_reflect,

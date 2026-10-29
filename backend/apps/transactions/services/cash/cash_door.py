@@ -28,9 +28,7 @@ from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
-AR = 'cash_application'
-AP = 'cash_application_receipt'
-CASH_PURPOSES = (AR, AP)
+from apps.core.models.pending import CASH_PURPOSE as AR, CASH_PURPOSES, RECEIPT_CASH_PURPOSE as AP
 
 
 class CashDoorError(Exception):

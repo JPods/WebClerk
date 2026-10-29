@@ -7,27 +7,45 @@ from common.models import CoreModel
 
 logger = logging.getLogger(__name__)
 
-# ── Purpose registry ─────────────────────────────────────────────────
-# Each purpose that has immediate-apply logic registers here.
-# Purposes not listed fall through to celery (try_apply returns False).
-# Add new purposes as their apply logic is implemented.
+# ── Purposes — the one list (Bill, 2026-10-29) ───────────────────────
+# A Pending's purpose names the work it waits to do; model_name names what it is done to, and
+# whether it waited on a lock is dt_processed/attempts, never the purpose. The family leads the
+# name. Every module takes its purpose from here, and the pending definition's list
+# (config.selectlists.purpose) is written from PURPOSES (core 0041).
 
-INVENTORY_PURPOSES = (
-    'inventory_line_add',
-    'inventory_qty_change',
-    'inventory_line_delete',
-    'opening_balance',     # stock a rebalance puts on the shelf, in a new layer
-    'allocation',        # a salesperson setting goods aside, or giving them back
-    'line_event',          # a change to a line: moves the buckets and records itself
-)
-
-# A shortage recorded when an issue took on_hand below 0 (Bill, 2026-09-21). NOT an
-# inventory purpose: it stays open (dt_processed=0) as the note of the defect until
-# receipts fill it — partly, in metadata.incremental_apply — and never drains to celery.
+LINE_ADD = 'inventory_line_add'
+QTY_CHANGE = 'inventory_qty_change'
+LINE_DELETE = 'inventory_line_delete'
+OPENING_PURPOSE = 'inventory_opening'
+ALLOCATION_PURPOSE = 'inventory_allocation'
+# A shortage recorded when an issue took on_hand below 0 (Bill, 2026-09-21). NOT applied as
+# inventory: it stays open (dt_processed=0) as the note of the defect until receipts fill it —
+# partly, in metadata.incremental_apply — and never drains to celery.
 DEFICIT_PURPOSE = 'inventory_deficit'
-
+CASH_PURPOSE = 'cash_application'
+RECEIPT_CASH_PURPOSE = 'cash_application_receipt'
+LEDGER_SYNC_PURPOSE = 'ledger_sync'
+BUNDLE_OUT_PURPOSE = 'sync_bundle_out'
 # A Log entry whose write failed inside a business save (audit_signals): applied to the log later.
 LOG_WRITE_PURPOSE = 'log_write'
+
+PURPOSES = {
+    LINE_ADD: 'Inventory — a line added moves its item',
+    QTY_CHANGE: "Inventory — a line's quantity changed",
+    LINE_DELETE: 'Inventory — a line deleted gives its quantity back',
+    OPENING_PURPOSE: 'Inventory — stock a rebalance puts on the shelf, in a new layer',
+    ALLOCATION_PURPOSE: 'Inventory — goods set aside for an order, or given back',
+    DEFICIT_PURPOSE: 'Inventory — a shortage open until receipts fill it',
+    CASH_PURPOSE: 'Cash — applied to an invoice (AR)',
+    RECEIPT_CASH_PURPOSE: 'Cash — applied to a receipt (AP)',
+    LEDGER_SYNC_PURPOSE: 'Ledger — a document to post to an outside ledger',
+    BUNDLE_OUT_PURPOSE: 'Sync — a bundle to send over a connection',
+    LOG_WRITE_PURPOSE: 'Log — an entry whose first write failed',
+}
+
+# Applied to the item by _apply_inventory.
+INVENTORY_PURPOSES = (LINE_ADD, QTY_CHANGE, LINE_DELETE, OPENING_PURPOSE, ALLOCATION_PURPOSE)
+CASH_PURPOSES = (CASH_PURPOSE, RECEIPT_CASH_PURPOSE)
 
 
 from apps.core.services.door import Refused  # noqa: E402 — door imports models lazily
@@ -63,7 +81,7 @@ class Pending(CoreModel):
     unprocessed (dt_processed=0) for celery to pick up later.
 
     To add a new apply handler:
-    1. Add the purpose to the registry above
+    1. Add the purpose to PURPOSES above
     2. Add a dispatch branch in try_apply()
     3. Write the _apply_xxx() method
     """
@@ -128,14 +146,14 @@ class Pending(CoreModel):
             applied = self._apply_inventory()
 
         # ── Cash application (AR — Invoice) ───────────────────
-        elif self.purpose == 'cash_application':
+        elif self.purpose == CASH_PURPOSE:
             applied = self._apply_cash()
 
         # ── Cash application (AP — Receipt) ───────────────────
-        elif self.purpose == 'cash_application_receipt':
+        elif self.purpose == RECEIPT_CASH_PURPOSE:
             applied = self._apply_receipt_cash()
 
-        if applied is False and self.purpose in ('cash_application', 'cash_application_receipt'):
+        if applied is False and self.purpose in CASH_PURPOSES:
             # Queued, not applied: the Pending still says which cash and which document, so a
             # stuck one is readable (the applier writes the 'applied' line when it lands).
             from apps.transactions.services.cash.cash_pending import note_application
@@ -152,15 +170,7 @@ class Pending(CoreModel):
                 log_balance_event(self, applied)
             return applied
 
-        # ── Future handlers ──────────────────────────────────────
-        # if self.purpose == 'ledger_sync':
-        #     return self._apply_ledger_sync()
-        # if self.purpose == 'denorm_refs':
-        #     return self._apply_denorm()
-        # if self.purpose == 'sync.bundle_out':
-        #     return self._apply_sync_bundle()
-
-        # No handler yet — celery will process
+        # ledger_sync and sync_bundle_out are applied by their celery processors.
         return False
 
     def _apply_inventory(self):

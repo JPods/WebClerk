@@ -17,7 +17,6 @@ from .ledger_balance import (
     on_invoice_save,
     on_cash_save,
     rebuild_org_ledgers,
-    PURPOSE_LEDGER_SYNC,
 )
 
 from .ledger_sync_processor import (
@@ -42,7 +41,6 @@ __all__ = [
     'on_invoice_save',
     'on_cash_save',
     'rebuild_org_ledgers',
-    'PURPOSE_LEDGER_SYNC',
     # Ledger sync processor
     'process_ledger_sync_pending',
     'process_ledger_sync_for_invoice',

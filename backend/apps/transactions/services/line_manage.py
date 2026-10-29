@@ -133,12 +133,6 @@ PENDING_TYPE_MAP = {
     'workorder': 'WO',
 }
 
-# Purposes for pending records
-PURPOSE_LINE_ADD = 'inventory_line_add'
-PURPOSE_LINE_QTY_CHANGE = 'inventory_qty_change'
-PURPOSE_LINE_DELETE = 'inventory_line_delete'
-
-
 def _get_pending_type(transaction_type: str) -> str:
     """Get the pending type code for a transaction type."""
     key = transaction_type.lower().replace('-', '_')

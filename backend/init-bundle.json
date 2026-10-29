@@ -51970,28 +51970,48 @@
         "selectlists": {
           "purpose": [
             {
-              "label": "cash_application",
-              "value": "cash_application"
+              "value": "inventory_line_add",
+              "label": "Inventory — a line added moves its item"
             },
             {
-              "label": "inventory_line_add",
-              "value": "inventory_line_add"
+              "value": "inventory_qty_change",
+              "label": "Inventory — a line's quantity changed"
             },
             {
-              "label": "inventory_qty_change",
-              "value": "inventory_qty_change"
+              "value": "inventory_line_delete",
+              "label": "Inventory — a line deleted gives its quantity back"
             },
             {
-              "label": "ledger_sync",
-              "value": "ledger_sync"
+              "value": "inventory_opening",
+              "label": "Inventory — stock a rebalance puts on the shelf, in a new layer"
             },
             {
-              "label": "opening_balance",
-              "value": "opening_balance"
+              "value": "inventory_allocation",
+              "label": "Inventory — goods set aside for an order, or given back"
             },
             {
-              "label": "small_sting",
-              "value": "small_sting"
+              "value": "inventory_deficit",
+              "label": "Inventory — a shortage open until receipts fill it"
+            },
+            {
+              "value": "cash_application",
+              "label": "Cash — applied to an invoice (AR)"
+            },
+            {
+              "value": "cash_application_receipt",
+              "label": "Cash — applied to a receipt (AP)"
+            },
+            {
+              "value": "ledger_sync",
+              "label": "Ledger — a document to post to an outside ledger"
+            },
+            {
+              "value": "sync_bundle_out",
+              "label": "Sync — a bundle to send over a connection"
+            },
+            {
+              "value": "log_write",
+              "label": "Log — an entry whose first write failed"
             }
           ]
         }
