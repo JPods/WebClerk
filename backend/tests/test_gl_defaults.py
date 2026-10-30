@@ -22,16 +22,16 @@ from apps.products.models import Item
 pytestmark = pytest.mark.django_db
 
 
-def test_new_org_and_item_get_their_gl_defaults():
+def test_new_org_and_item_get_their_gl_defaults(chart_of_accounts):
     """The company role map reaches new records; an owner's value stands."""
     item = Item.objects.create(name="Seed Item", sku="SEED-GL-001", gls={})
     rep = OrgBase.objects.create(company="Seed Rep", org_type=OrgType.REP, gl_accounts={})
 
     kept_item = Item.objects.create(
-        name="Preserve Item", sku="SEED-GL-002", gls={"revenue": "CUSTOM-REV-001"})
+        name="Preserve Item", sku="SEED-GL-002", gls={"revenue": "4100-shipping_revenue"})
     kept_rep = OrgBase.objects.create(
         company="Preserve Rep", org_type=OrgType.REP,
-        gl_accounts={"commission": "CUSTOM-COMM-001"})
+        gl_accounts={"commission": "6950-general_admin"})
 
     call_command("seed_gl_defaults")
 
@@ -46,11 +46,11 @@ def test_new_org_and_item_get_their_gl_defaults():
     assert rep.gl_accounts.get("commission")
 
     # Never overwritten.
-    assert kept_item.gls.get("revenue") == "CUSTOM-REV-001"
-    assert kept_rep.gl_accounts.get("commission") == "CUSTOM-COMM-001"
+    assert kept_item.gls.get("revenue") == "4100-shipping_revenue"
+    assert kept_rep.gl_accounts.get("commission") == "6950-general_admin"
 
 
-def test_an_installation_with_no_role_map_asks_hq(monkeypatch):
+def test_an_installation_with_no_role_map_asks_hq(chart_of_accounts, monkeypatch):
     """An unmapped role sends for bundle_gls.json before it reports anything."""
     company = Setting.objects.filter(purpose="wc:company_profile", is_active=True).first()
     assert company is not None, "the company profile Setting is missing"

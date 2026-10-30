@@ -13,7 +13,9 @@ number for the accountant, the words for everyone learning.
 """
 from __future__ import annotations
 
+import json
 import re
+from pathlib import Path
 from typing import Iterable, Optional
 
 from django.apps import apps as dj_apps
@@ -176,59 +178,98 @@ def validate_gl_map(gl_map, *, owner: str) -> None:
     )
 
 
-# ── Moving an account's references ───────────────────────────────────
+# ── The standard chart ───────────────────────────────────────────────
+# One file per chart (Bill, 2026-10-30): apps/accounts/charts/<name>.json =
+# {name, description, numbering, accounts: [{ida, name, type, category, used_for, summary}],
+#  roles: {role: account code}}. It is loaded like any other bundle
+# (bundle_import.run(..., load='chart')) and only into a new database — one with no chart.
+# From then on the company changes its accounts in the chart and its roles in the company
+# profile (config.gl_defaults); the file never touches them again.
 
-# Where an account code is stored as a plain string field.
-_CODE_FIELDS = (
-    ('accounts', 'GlJournal', ('account',)),
-    ('accounts', 'GlAccount', ('account_debit', 'account_credit')),
-    ('accounts', 'Budget', ('account_debit', 'account_credit')),
-    ('accounts', 'TaxJurisdiction', ('gl_account_payable',)),
-)
-# Where it sits somewhere inside a JSON envelope: an item's gls, an org's gl_accounts,
-# the company's gl_defaults and commission accounts, cash methods. A document's tax
-# account is its jurisdiction's, read at posting — not stored on the document.
-_JSON_FIELDS = (
-    ('products', 'Item', 'gls'),
-    ('orgs', 'OrgBase', 'gl_accounts'),
-    ('core', 'Setting', 'config'),
-)
+CHARTS_DIR = Path(__file__).resolve().parents[1] / 'charts'
 
 
-def _swap(value, old: str, new: str):
-    if isinstance(value, dict):
-        return {k: _swap(v, old, new) for k, v in value.items()}
-    if isinstance(value, list):
-        return [_swap(v, old, new) for v in value]
-    return new if value == old else value
+def standard_chart(name: str = 'standard') -> dict:
+    """A shipped chart file, read."""
+    path = CHARTS_DIR / f'{name}.json'
+    if not path.exists():
+        known = ', '.join(sorted(p.stem for p in CHARTS_DIR.glob('*.json')))
+        raise ValueError(f'No chart "{name}" — the charts are: {known}.')
+    return json.loads(path.read_text())
 
 
-def move_account_references(old: str, new: str) -> dict:
-    """Point everything that names account ``old`` at ``new``. Returns {store: rows moved}.
+def chart_defects(chart: dict) -> list[str]:
+    """Everything wrong with a chart file, all at once; [] when it can be installed."""
+    if not isinstance(chart, dict):
+        return ['a chart is {name, accounts: [...], roles: {...}}']
+    accounts = chart.get('accounts') or []
+    roles = chart.get('roles') or {}
+    defects, codes = [], set()
+    for n, acct in enumerate(accounts):
+        code = acct.get('ida') if isinstance(acct, dict) else None
+        if not isinstance(code, str) or not ACCOUNT_CODE_PATTERN.match(code):
+            defects.append(f'account {n}: code {code!r} is not {{number}}-{{lowercase_words}}')
+            continue
+        if code in codes:
+            defects.append(f'{code}: listed twice')
+        codes.add(code)
+        if acct.get('type') not in NORMAL_BALANCE:
+            defects.append(f'{code}: type {acct.get("type")!r} is not one of {", ".join(NORMAL_BALANCE)}')
+        if acct.get('category') not in SECTIONS:
+            defects.append(f'{code}: category {acct.get("category")!r} is not one of {", ".join(SECTIONS)}')
+        if not acct.get('name'):
+            defects.append(f'{code}: no name')
+    if not accounts:
+        defects.append('the chart has no accounts')
+    for role in ROLES:
+        if role not in roles:
+            defects.append(f'role {role}: not mapped')
+        elif roles[role] not in codes:
+            defects.append(f'role {role}: {roles[role]!r} is not an account in this chart')
+    defects += [f'role {role}: not a posting role' for role in roles if role not in ROLES]
+    return defects
 
-    For renumbering or merging accounts. ``new`` must already be in the chart. The
-    rows are updated directly (queryset.update): this re-points a code, it does not
-    edit the record, so no save hook, version bump or recomputation should fire.
+
+def install(chart: dict) -> dict:
+    """Build the chart and the company's role map from a chart file — in a new database only.
+
+    Returns {gl_accounts: {created}, roles: {mapped}, errors: [...]}; on any error nothing is
+    written. The bundle loader for load='chart' (apps/core/services/bundle_import.py).
     """
     from django.db import transaction
-    require_account(new, used_by=f'replacement for {old}')
-    moved = {}
+    from apps.core.services.comment_stamp import append_comment
+    GlAccount = dj_apps.get_model('accounts', 'GlAccount')
+    Setting = dj_apps.get_model('core', 'Setting')
+
+    def refused(*errors):
+        return {'gl_accounts': {'created': 0}, 'roles': {'mapped': 0}, 'errors': list(errors)}
+
+    if GlAccount.objects.exists():
+        return refused('This database already has a chart of accounts. A chart file is loaded only '
+                       'into a new database; change accounts in the chart and posting roles in the '
+                       'company profile (config.gl_defaults).')
+    defects = chart_defects(chart)
+    if defects:
+        return refused(*defects)
+    company = Setting.objects.filter(purpose='wc:company_profile', is_active=True).first()
+    if company is None:
+        return refused('No company profile to hold the role map: load the settings bundle first.')
+
     with transaction.atomic():
-        for app, model, fields in _CODE_FIELDS:
-            Model = dj_apps.get_model(app, model)
-            for field in fields:
-                n = Model.objects.filter(**{field: old}).update(**{field: new})
-                if n:
-                    moved[f'{model}.{field}'] = n
-        for app, model, field in _JSON_FIELDS:
-            Model = dj_apps.get_model(app, model)
-            n = 0
-            for pk, value in Model.objects.exclude(**{f'{field}__isnull': True}).values_list('pk', field).iterator():
-                if old in str(value):
-                    swapped = _swap(value, old, new)
-                    if swapped != value:
-                        Model.objects.filter(pk=pk).update(**{field: swapped})
-                        n += 1
-            if n:
-                moved[f'{model}.{field}'] = n
-    return moved
+        for acct in chart['accounts']:
+            account = GlAccount(ida=acct['ida'], name=acct['name'], type=acct['type'],
+                                category=acct['category'], used_for=acct.get('used_for') or '',
+                                is_active=True)
+            if acct.get('summary'):
+                append_comment(account, 'process', acct['summary'], source=f'chart {chart.get("name")}',
+                               key='account_use')
+            account.save()
+        config = dict(company.config or {})
+        config['gl_defaults'] = {'note': (config.get('gl_defaults') or {}).get('note') or
+                                 'Which chart account each posting role uses. Every code must be '
+                                 'an active GlAccount (apps/accounts/services/chart.py).',
+                                 **chart['roles']}
+        company.config = config
+        company.save()
+    return {'gl_accounts': {'created': len(chart['accounts'])},
+            'roles': {'mapped': len(chart['roles'])}, 'errors': []}

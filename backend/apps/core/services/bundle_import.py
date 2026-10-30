@@ -31,10 +31,12 @@ SHOWN = 20                       # defects written into the Action; the Bundle r
 
 def _loaders() -> dict[str, Callable[..., dict]]:
     """recommended: a set authored at WC_HQ — settings, chart and reports (init, gls, reports,
-    settings). settings: a settings file someone supplies, merged or replaced."""
+    settings). settings: a settings file someone supplies, merged or replaced. chart: a chart
+    of accounts file (apps/accounts/charts/), into a new database only."""
+    from apps.accounts.services.chart import install
     from apps.core.services.installation_init import load_bundle
     from apps.core.services.setting_bootstrap import import_settings_bundle
-    return {'recommended': load_bundle, 'settings': import_settings_bundle}
+    return {'recommended': load_bundle, 'settings': import_settings_bundle, 'chart': install}
 
 
 def run(name: str, bundle: dict | list, *, source: str, load: str = 'recommended',

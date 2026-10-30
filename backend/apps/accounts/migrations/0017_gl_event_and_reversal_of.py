@@ -36,6 +36,8 @@ def link_reversals(apps, schema_editor):
 def add_roles(apps, schema_editor):
     GlAccount = apps.get_model('accounts', 'GlAccount')
     Setting = apps.get_model('core', 'Setting')
+    if not GlAccount.objects.exists():     # a new database gets its chart from a chart file
+        return
     for code, name, acct_type, category in ROLE_ACCOUNTS.values():
         if not GlAccount.objects.filter(ida=code).exists():
             GlAccount.objects.create(ida=code, name=name, type=acct_type, category=category,

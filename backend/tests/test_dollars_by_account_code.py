@@ -21,10 +21,12 @@ from decimal import Decimal
 
 import pytest
 
-from apps.accounts.management.commands.seed_gl_accounts import GL_DEFAULTS
+from apps.accounts.services.chart import standard_chart
 from apps.transactions.models import Invoice, InvoiceLine
 
 pytestmark = pytest.mark.django_db
+
+GL_DEFAULTS = standard_chart()['roles']
 
 
 def _d(val) -> Decimal:

@@ -2,12 +2,17 @@
 
 Bill, 2026-09-23: "a nice looking set of gl accounts that will please accountants and
 make teaching small business people accounting relatively easy."
+
+Bill, 2026-10-30: one standard chart file, loaded like any other bundle, and only into a new
+database; once operating, the company changes its own records.
 """
 import pytest
 
 from apps.accounts.choices import GL_ACCOUNT_CATEGORY_CHOICES, GL_ACCOUNT_TYPE_CHOICES
-from apps.accounts.management.commands.seed_gl_accounts import ACCOUNTS, GL_DEFAULTS, REPLACED
-from apps.accounts.services.chart import NORMAL_BALANCE, ROLES, SECTIONS
+from apps.accounts.services.chart import (NORMAL_BALANCE, SECTIONS, chart_defects, install,
+                                          standard_chart)
+
+STANDARD = standard_chart()
 
 # The thousands digit says what family an account belongs to.
 FAMILY = {'1': {'asset', 'contra_asset'}, '2': {'liability'}, '3': {'equity', 'contra_equity'},
@@ -15,11 +20,11 @@ FAMILY = {'1': {'asset', 'contra_asset'}, '2': {'liability'}, '3': {'equity', 'c
           '7': {'other_income', 'other_expense'}}
 
 
-@pytest.mark.parametrize('ida,name,typ,cat,used_for,summary', ACCOUNTS, ids=[a[0] for a in ACCOUNTS])
-def test_each_account_is_numbered_typed_placed_and_explained(ida, name, typ, cat, used_for, summary):
+@pytest.mark.parametrize('acct', STANDARD['accounts'], ids=[a['ida'] for a in STANDARD['accounts']])
+def test_each_account_is_numbered_typed_placed_and_explained(acct):
+    ida, typ = acct['ida'], acct['type']
     assert typ in FAMILY[ida[0]], f'{ida} is numbered as {ida[0]}xxx but typed {typ}'
-    assert typ in NORMAL_BALANCE and cat in SECTIONS
-    assert name and len(summary) > 40, 'every account says what belongs in it'
+    assert acct['name'] and len(acct.get('summary') or '') > 40, 'every account says what belongs in it'
 
 
 def test_every_type_and_section_in_the_model_is_accounted_for():
@@ -27,51 +32,44 @@ def test_every_type_and_section_in_the_model_is_accounted_for():
     assert {v for v, _ in GL_ACCOUNT_CATEGORY_CHOICES} == set(SECTIONS)
 
 
-def test_codes_are_unique_and_every_role_is_mapped_to_one():
-    codes = [a[0] for a in ACCOUNTS]
-    assert len(codes) == len(set(codes))
-    assert set(GL_DEFAULTS) == set(ROLES)
-    assert set(GL_DEFAULTS.values()) <= set(codes)
-
-
-def test_replaced_accounts_are_gone_and_their_successors_exist():
-    codes = {a[0] for a in ACCOUNTS}
-    assert not codes & set(REPLACED)
-    assert set(REPLACED.values()) <= codes
+def test_the_standard_chart_installs_whole():
+    """Unique codes, known types and sections, every posting role mapped into the chart."""
+    assert chart_defects(STANDARD) == []
 
 
 @pytest.mark.django_db
-def test_retiring_an_account_moves_every_reference_to_its_successor(chart_of_accounts):
-    from django.core.management import call_command
-    from apps.accounts.models import GlAccount, GlJournal
-    from apps.core.models import Setting
-    from tests.conftest import ItemFactory
-
-    GlAccount.objects.create(ida='6960-writeoff', name='Old write-off', type='expense',
-                             category='operating_expenses', is_active=True)
-    journal = GlJournal.objects.create(ida='zz-old', account='6960-writeoff', debit=5.0)
-    item = ItemFactory()
-    type(item).objects.filter(pk=item.pk).update(gls={'expense': '6960-writeoff'})
-    company = Setting.objects.get(purpose='wc:company_profile')
-    Setting.objects.filter(pk=company.pk).update(
-        config={**company.config, 'gl_defaults': {**company.config['gl_defaults'],
-                                                  'bad_debt_writeoff': '6960-writeoff'}})
-
-    call_command('retire_gl_accounts', '--apply', verbosity=0)
-
-    assert not GlAccount.objects.filter(ida='6960-writeoff').exists()
-    journal.refresh_from_db(), item.refresh_from_db()
-    assert journal.account == '6500-bad_debt'
-    assert item.gls['expense'] == '6500-bad_debt'
-    assert Setting.objects.get(pk=company.pk).config['gl_defaults']['bad_debt_writeoff'] == '6500-bad_debt'
-
-
-@pytest.mark.django_db
-def test_retire_without_apply_changes_nothing(chart_of_accounts):
-    from django.core.management import call_command
+def test_a_new_database_gets_the_chart_and_role_map_as_one_bundle(tmp_path, settings):
     from apps.accounts.models import GlAccount
+    from apps.core.models import Setting
+    from apps.core.services import bundle_import
+    from apps.sync.models.bundle import Bundle
+    settings.WORK_DIR = tmp_path
+    company = Setting.objects.filter(purpose='wc:company_profile', is_active=True).first()
+    if company is None:
+        company = Setting(ida='company-profile', name='Company Profile', purpose='wc:company_profile',
+                          scope='system', config={})
+        company._setting_create_authorized = True
+        company.save()
 
-    GlAccount.objects.create(ida='6960-writeoff', name='Old', type='expense',
-                             category='operating_expenses', is_active=True)
-    call_command('retire_gl_accounts', verbosity=0)
-    assert GlAccount.objects.filter(ida='6960-writeoff').exists()
+    result = bundle_import.run('chart_standard', STANDARD, source='test', load='chart')
+
+    assert result['errors'] == [] and Bundle.objects.get(pk=result['bundle_id']).status == 'completed'
+    assert GlAccount.objects.count() == len(STANDARD['accounts'])
+    company.refresh_from_db()
+    assert {k: v for k, v in company.config['gl_defaults'].items() if k != 'note'} == STANDARD['roles']
+
+    # Operating now: the file never touches the company's chart again.
+    again = bundle_import.run('chart_standard', STANDARD, source='test', load='chart')
+    assert 'already has a chart' in again['errors'][0]
+    assert Bundle.objects.get(pk=again['bundle_id']).status == 'defects'
+
+
+@pytest.mark.django_db
+def test_a_defective_chart_writes_nothing():
+    from apps.accounts.models import GlAccount
+    broken = {**STANDARD, 'roles': {**STANDARD['roles'], 'sales_revenue': '4999-nowhere'}}
+
+    result = install(broken)
+
+    assert result['errors'] == ["role sales_revenue: '4999-nowhere' is not an account in this chart"]
+    assert not GlAccount.objects.exists()

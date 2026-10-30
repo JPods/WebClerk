@@ -23,7 +23,7 @@ SEED_SEQUENCE = [
     ('seed_company_settings',   {}),
 
     # Data — GL and terms
-    ('seed_gl_accounts',        {}),
+    ('install_chart',           {}),
     ('seed_terms',              {}),
 
     # UI — reports, DataBrowser, search, layouts

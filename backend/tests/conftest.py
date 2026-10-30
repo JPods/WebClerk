@@ -141,18 +141,29 @@ class PurchaseFactory(DjangoModelFactory):
 @pytest.fixture
 def chart_of_accounts(db):
     """The standard chart (GlAccount rows) plus a company profile whose
-    config.gl_defaults maps every posting role to a chart account."""
-    from django.core.management import call_command
-    from apps.accounts.management.commands.seed_gl_accounts import GL_DEFAULTS
+    config.gl_defaults maps every posting role to a chart account — as a new database
+    gets them (apps/accounts/charts/standard.json). Returns the role map."""
+    from django.apps import apps
+    from apps.accounts.services import chart
     from apps.core.models import Setting
 
-    call_command('seed_gl_accounts', verbosity=0)
-    company = Setting.objects.filter(purpose='wc:company_profile').first() or Setting(
-        ida='company-profile', name='Company Profile', purpose='wc:company_profile', scope='system', config={})
-    company.config = {**(company.config or {}), 'gl_defaults': dict(GL_DEFAULTS)}
-    company._setting_create_authorized = True
-    company.save()
-    return GL_DEFAULTS
+    if not Setting.objects.filter(purpose='wc:company_profile').exists():
+        company = Setting(ida='company-profile', name='Company Profile', purpose='wc:company_profile',
+                          scope='system', config={})
+        company._setting_create_authorized = True
+        company.save()
+    standard = chart.standard_chart()
+    GlAccount = apps.get_model('accounts', 'GlAccount')
+    if not GlAccount.objects.exists():
+        result = chart.install(standard)
+        assert result['errors'] == [], result['errors']
+    else:                       # a class that keeps its data between tests installed it already
+        missing = {a['ida'] for a in standard['accounts']} - set(GlAccount.objects.values_list('ida', flat=True))
+        assert not missing, f'the chart in this test database lacks {sorted(missing)}'
+        company = Setting.objects.filter(purpose='wc:company_profile').first()
+        company.config = {**(company.config or {}), 'gl_defaults': dict(standard['roles'])}
+        company.save()
+    return standard['roles']
 
 
 @pytest.fixture
