@@ -1,7 +1,7 @@
 """A bundle import keeps one record of itself, and its defects go to the system administrator
-(Bill, 2026-10-29): company profile config.system_admin = {name, id}; a Bundle row whose status
-is the folder its file sits in; one Log row; defects unresolved after three days become one
-Action (Alice, escalate)."""
+(Bill, 2026-10-29): company profile config.system_admin = {name, id, action_delay}; a Bundle row
+whose status is the folder its file sits in; one Log row; defects unresolved after the company's
+action_delay days become one Action (Alice, escalate)."""
 import uuid
 
 import pytest
@@ -56,7 +56,8 @@ def test_an_admin_no_longer_active_is_replaced():
     profile.config['system_admin'] = {'name': '', 'id': bo.id}
     profile.save()
     profile.refresh_from_db()
-    assert profile.config['system_admin'] == {'name': 'Bo Admin', 'id': bo.id}   # name from the contact
+    assert profile.config['system_admin'] == {'name': 'Bo Admin', 'id': bo.id,   # name from the contact
+                                              'action_delay': system_admin.DEFAULT_DELAY}
 
     Contact.objects.filter(pk=bo.pk).update(is_active=False)
     assert system_admin.current()['id'] == system_admin.admins().first().id != bo.id
@@ -67,6 +68,9 @@ def test_the_company_cannot_name_someone_who_is_not_an_admin():
     profile = _profile()
     clerk = Contact.objects.create(email=f'{get_random_string(8)}@example.com', role='user')
     profile.config['system_admin'] = {'name': 'Clerk', 'id': clerk.id}
+    with pytest.raises(ValidationError):
+        profile.save()
+    profile.config['system_admin'] = {'id': _admin().id, 'action_delay': 'soon'}
     with pytest.raises(ValidationError):
         profile.save()
 
@@ -109,10 +113,13 @@ def test_defects_are_one_log_one_action_and_a_folder(tmp_path, settings):
     assert Log.objects.filter(action=bundle_import.PURPOSE, record_id=record.pk).count() == 1
     assert not Action.objects.filter(purpose=bundle_import.DEFECTS_PURPOSE).exists()   # the status flags it
 
-    # Alice: not yet three days — nothing; past three days — one Action, once.
+    # Alice: within the company's action_delay — nothing; past it — one Action, once.
+    profile = Setting.objects.get(purpose='wc:company_profile')
+    profile.config['system_admin'] = {**system_admin.current(), 'action_delay': 5}
+    profile.save()
     day = 86_400_000
-    assert bundle_import.escalate(now_ms=record.dt_processed + day) == []
-    later = record.dt_processed + (bundle_import.ESCALATE_DAYS + 1) * day
+    assert bundle_import.escalate(now_ms=record.dt_processed + 4 * day) == []
+    later = record.dt_processed + 5 * day
     assert bundle_import.escalate(now_ms=later) == [record.pk]
     assert bundle_import.escalate(now_ms=later) == []
     told = Action.objects.get(purpose=bundle_import.DEFECTS_PURPOSE)

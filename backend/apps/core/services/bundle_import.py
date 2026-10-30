@@ -11,8 +11,9 @@ shipped copy or a file someone uploads — becomes:
 
 The Bundle row's status is the flag: a record the import refused is not logged one by one, the
 defects list on the row is the detail. Once they are resolved, rerun(bundle_id) loads the same
-file again. Alice looks each day (escalate): defects still unresolved after ESCALATE_DAYS
-become one Action to the system administrator (company profile config.system_admin).
+file again. Alice looks each day (escalate): defects still unresolved after the company's
+action_delay days become one Action to the system administrator (company profile
+config.system_admin = {name, id, action_delay}).
 """
 from __future__ import annotations
 
@@ -26,7 +27,6 @@ logger = logging.getLogger(__name__)
 PURPOSE = 'bundle_import'
 DEFECTS_PURPOSE = 'bundle_defects'
 SHOWN = 20                       # defects written into the Action; the Bundle row has them all
-ESCALATE_DAYS = 3                # a bundle left in defects this long becomes an Action
 
 
 def _loaders() -> dict[str, Callable[..., dict]]:
@@ -104,21 +104,22 @@ def _close(record, config, result, started, name) -> None:
 
 
 def escalate(*, now_ms: int | None = None) -> list[int]:
-    """Alice, daily: each bundle still in defects ESCALATE_DAYS after it was loaded, and not yet
-    escalated, becomes one Action to the system administrator. Returns the bundle ids."""
+    """Alice, daily: each bundle still in defects action_delay days after it was loaded, and not
+    yet escalated, becomes one Action to the system administrator. Returns the bundle ids."""
     from apps.core.services import system_admin
     from apps.sync.models.bundle import Bundle
     now_ms = now_ms if now_ms is not None else int(time.time() * 1000)
-    stale = (Bundle.objects.filter(purpose=PURPOSE, status='defects',
-                                   dt_processed__lte=now_ms - ESCALATE_DAYS * 86_400_000)
-             .exclude(config__has_key='escalated_action').order_by('id'))
-    if not stale.exists():
+    unresolved = (Bundle.objects.filter(purpose=PURPOSE, status='defects')
+                  .exclude(config__has_key='escalated_action'))
+    if not unresolved.exists():
         return []
     admin = system_admin.current()
     if admin is None:
         logger.warning('bundle_import: %d bundle(s) unresolved and no system administrator',
-                       stale.count())
+                       unresolved.count())
         return []
+    stale = unresolved.filter(
+        dt_processed__lte=now_ms - admin['action_delay'] * 86_400_000).order_by('id')
     done = []
     for record in stale:
         action = _tell(record, admin)
@@ -142,7 +143,7 @@ def _tell(record, admin: dict):
         purpose=DEFECTS_PURPOSE,
         action={'en': f'Resolve {len(defects)} defect(s) in the {name} bundle import (#{record.pk})'},
         description={'en': (
-            f'Bundle #{record.pk} ({name}) loaded {ESCALATE_DAYS}+ days ago with {len(defects)} '
+            f'Bundle #{record.pk} ({name}) loaded {admin["action_delay"]}+ days ago with {len(defects)} '
             f'record(s) refused, still unresolved. The file '
             f'is in WORK_DIR/{path or "bundles"}; the full list is the bundle record\'s response.'
             f'\n\n{shown}{more}\n\nWhen they are resolved, load it again: '

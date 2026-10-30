@@ -1,6 +1,10 @@
 """The system administrator — who Alice sends the installation's problems to (Bill, 2026-10-29).
 
-    company profile Setting: config.system_admin = {"name": "...", "id": <contact id>}
+    company profile Setting: config.system_admin = {"name": "...", "id": <contact id>,
+                                                     "action_delay": <days, default 3>}
+
+action_delay is how long a problem may sit flagged on its own record (a Bundle in defects)
+before Alice makes it an Action for the system administrator; each company sets its own.
 
 The company names one. Until it does, Alice names the first admin login (lowest contact id) and
 asks every admin to confirm or change the choice — one Action each. A system_admin who is no
@@ -19,6 +23,7 @@ from django.db.models import Q
 logger = logging.getLogger(__name__)
 
 ACTION_PURPOSE = 'system_admin'
+DEFAULT_DELAY = 3                # days; config.system_admin.action_delay
 
 
 def admins():
@@ -28,24 +33,32 @@ def admins():
             .filter(Q(role='admin') | Q(is_superuser=True)).order_by('id'))
 
 
-def entry(contact) -> dict:
-    """{name, id} for a contact."""
+def entry(contact, action_delay: int = DEFAULT_DELAY) -> dict:
+    """{name, id, action_delay} for a contact."""
     name = ' '.join(x for x in (contact.name_first, contact.name_last) if x) or contact.email or ''
-    return {'name': name, 'id': contact.id}
+    return {'name': name, 'id': contact.id, 'action_delay': action_delay}
+
+
+def _delay(value) -> int:
+    delay = value.get('action_delay', DEFAULT_DELAY) if isinstance(value, dict) else DEFAULT_DELAY
+    if isinstance(delay, bool) or not isinstance(delay, int) or delay < 0:
+        raise ValueError(f'system_admin.action_delay is a whole number of days, not {delay!r}.')
+    return delay
 
 
 def checked(value) -> dict:
     """config.system_admin as the company wrote it, made whole — or ValueError saying why."""
     if not isinstance(value, dict) or not value.get('id'):
-        raise ValueError('system_admin is {"name": ..., "id": <contact id>}.')
+        raise ValueError('system_admin is {"name": ..., "id": <contact id>, "action_delay": <days>}.')
+    delay = _delay(value)
     contact = admins().filter(id=value['id']).first()
     if contact is None:
         raise ValueError(f'system_admin {value["id"]} is not an active admin login.')
-    return entry(contact)
+    return entry(contact, delay)
 
 
 def current() -> Optional[dict]:
-    """{name, id} of the system administrator; Alice names one when there is none to read.
+    """{name, id, action_delay} of the system administrator; Alice names one when there is none to read.
     None only when the installation has no active admin at all."""
     from apps.core.models import Setting
     profile = Setting.objects.filter(purpose='wc:company_profile').order_by('id').first()
@@ -54,7 +67,7 @@ def current() -> Optional[dict]:
         return None
     named = (profile.config or {}).get('system_admin')
     if isinstance(named, dict) and named.get('id') and admins().filter(id=named['id']).exists():
-        return named
+        return {**named, 'action_delay': _delay(named)}
     return _name_first_admin(profile.pk, named)
 
 
@@ -65,7 +78,11 @@ def _name_first_admin(profile_pk: int, before) -> Optional[dict]:
     if first is None:
         logger.warning('system_admin: no active admin login to name')
         return None
-    chosen = entry(first)
+    try:
+        delay = _delay(before)                             # the company's delay outlives its admin
+    except ValueError:
+        delay = DEFAULT_DELAY
+    chosen = entry(first, delay)
     with transaction.atomic():
         profile = Setting.objects.select_for_update().get(pk=profile_pk)
         config = dict(profile.config or {})

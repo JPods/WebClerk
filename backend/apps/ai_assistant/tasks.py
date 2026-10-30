@@ -622,7 +622,7 @@ def system_admin_task() -> dict | None:
 
 @shared_task
 def bundle_defects_task() -> list:
-    """Daily at 01:20: bundle imports still in defects after three days become one Action to the
-    system administrator (apps/core/services/bundle_import.py escalate)."""
+    """Daily at 01:20: bundle imports still in defects past the company's action_delay become one
+    Action to the system administrator (apps/core/services/bundle_import.py escalate)."""
     from apps.core.services import bundle_import
     return bundle_import.escalate()

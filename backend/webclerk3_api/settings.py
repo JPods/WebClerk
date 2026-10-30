@@ -825,7 +825,7 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'apps.ai_assistant.tasks.system_admin_task',
         'schedule': crontab(hour=1, minute=10),
     },
-    # Bundle imports left in defects three days become an Action to the system administrator.
+    # Bundle imports left in defects past config.system_admin.action_delay become an Action.
     'alice-bundle-defects-daily': {
         'task': 'apps.ai_assistant.tasks.bundle_defects_task',
         'schedule': crontab(hour=1, minute=20),
