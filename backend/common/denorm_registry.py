@@ -63,7 +63,6 @@ DENORM_REGISTRY: Dict[str, List[str]] = {
     # ── Workflow / Logistics ────────────────────────────────────────────
     "action":       ["ida", "action", "status"],
     "connection":   ["ida", "name", "type"],
-    "notification": ["ida", "name"],
     "setting":      ["ida", "name"],
     "tag":          ["ida", "name"],
     # ── Child / Detail records ──────────────────────────────────────────

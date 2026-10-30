@@ -22,8 +22,7 @@ from apps.transactions.models import Project
 from common.admin_schema_labels import SchemaLabelsAdminMixin
 from common.admin_mixins import ScalarFirstFieldsetMixin
 from .models import (
-    Contact, Action, Setting, Pending, Notification, Report,
-    RoleConfig, ModelRoleConfig, ModelLinkConfig, UserProfile,
+    Contact, Action, Setting, Pending, Report,
 )
 
 
@@ -338,16 +337,6 @@ class PendingAdmin(ScalarFirstFieldsetMixin, SchemaLabelsAdminMixin, admin.Model
         return self._data_field(obj, 'on_po')
 
 
-@admin.register(Notification)
-class NotificationAdmin(ScalarFirstFieldsetMixin, SchemaLabelsAdminMixin, admin.ModelAdmin):
-    """Admin interface for Notification model."""
-    # Scalar fields: dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, target_model, name, purpose, record_id, security_level, uuid, version
-    list_display = ("ida", "name", "health_rating", "target_model", "purpose", "is_active", "dt_created")
-    list_filter = ('purpose', 'target_model', 'is_active')
-    search_fields = ('name', 'purpose', 'target_model', 'record_id')
-    readonly_fields = ('uuid', 'dt_created', 'dt_modified')
-
-
 @admin.register(Report)
 class ReportAdmin(ScalarFirstFieldsetMixin, SchemaLabelsAdminMixin, admin.ModelAdmin):
     """Admin interface for Report model."""
@@ -356,77 +345,6 @@ class ReportAdmin(ScalarFirstFieldsetMixin, SchemaLabelsAdminMixin, admin.ModelA
     list_filter = ('purpose', 'target_model', 'is_active')
     search_fields = ('name', 'purpose', 'target_model', 'record_id')
     readonly_fields = ('uuid', 'dt_created', 'dt_modified')
-
-
-# =============================================================================
-# RBAC Admin
-# =============================================================================
-
-@admin.register(RoleConfig)
-class RoleConfigAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
-    """Admin interface for Role configurations."""
-    # Scalar fields: description, dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, is_portal, parent_role, role, security_level, uuid, version
-    list_display = ("ida", "description", "health_rating", "is_portal", "parent_role", "is_active", "dt_created")
-    list_filter = ('is_portal', 'is_active')
-    search_fields = ('role', 'description')
-    readonly_fields = ('uuid', 'dt_created', 'dt_modified')
-    fieldsets = (
-        (None, {'fields': ('role', 'description', 'is_portal', 'is_active', 'parent_role')}),
-        ('Permissions', {'fields': ('permissions',)}),
-        ('Metadata', {'fields': ('uuid', 'dt_created', 'dt_modified'), 'classes': ('collapse',)}),
-    )
-
-
-@admin.register(ModelRoleConfig)
-class ModelRoleConfigAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
-    """Admin interface for per-model role configurations."""
-    # Scalar fields: allow_create, allow_delete, dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, model_name, role, security_level, uuid, version
-    list_display = ("ida", "allow_create", "allow_delete", "health_rating", "model_name", "is_active", "dt_created")
-    list_filter = ('model_name', 'role', 'allow_create', 'allow_delete')
-    search_fields = ('model_name', 'role')
-    readonly_fields = ('uuid', 'dt_created', 'dt_modified')
-    fieldsets = (
-        (None, {'fields': ('model_name', 'role')}),
-        ('Query Filtering', {'fields': ('query_filters',)}),
-        ('Field Access', {'fields': ('view_fields', 'edit_fields')}),
-        ('Permissions', {'fields': ('allow_create', 'allow_delete')}),
-        ('Metadata', {'fields': ('uuid', 'dt_created', 'dt_modified'), 'classes': ('collapse',)}),
-    )
-
-
-@admin.register(ModelLinkConfig)
-class ModelLinkConfigAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
-    """Admin interface for model link/denormalization templates."""
-    # Scalar fields: dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, model_name, security_level, uuid, version
-    list_display = ("ida", "health_rating", "model_name", "security_level", "is_active", "dt_created")
-    search_fields = ('model_name',)
-    readonly_fields = ('uuid', 'dt_created', 'dt_modified')
-    fieldsets = (
-        (None, {'fields': ('model_name',)}),
-        ('Keywords', {'fields': ('keyword_fields',)}),
-        ('Link Template', {'fields': ('link_template',)}),
-        ('Metadata', {'fields': ('uuid', 'dt_created', 'dt_modified'), 'classes': ('collapse',)}),
-    )
-
-
-@admin.register(UserProfile)
-class UserProfileAdmin(SchemaLabelsAdminMixin, admin.ModelAdmin):
-    """Admin interface for User Profiles (user-contact-role linkage)."""
-    # Scalar fields: dt_created, dt_modified, health_rating, ida, is_active, is_archived, is_deleted, security_level, uuid, version
-    list_display = ("ida", "health_rating", "security_level", "is_active", "dt_created")
-    search_fields = ('user__username', 'user__email', 'contact__email', 'contact__company')
-    readonly_fields = ('uuid', 'dt_created', 'dt_modified', 'cached_roles')
-    raw_id_fields = ('user', 'contact')
-    fieldsets = (
-        (None, {'fields': ('user', 'contact')}),
-        ('Cached Data', {'fields': ('cached_roles',)}),
-        ('Metadata', {'fields': ('uuid', 'dt_created', 'dt_modified'), 'classes': ('collapse',)}),
-    )
-    
-    @admin.display(description='cached_roles')
-    def get_roles(self, obj):
-        roles = obj.get_roles()
-        return ', '.join(roles) if roles else '-'
 
 
 def _threepane_redirect(self, request, extra_context=None):

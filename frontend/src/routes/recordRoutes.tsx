@@ -26,7 +26,7 @@ export const TRANSACTION_MODELS = [
 export const DETAIL_MODELS = [
   'contact', 'item', 'customer', 'vendor', 'manufacturer', 'employee', 'rep', 'action', 'touch',
   'document', 'setting', 'report', 'serial', 'project', 'email', 'phone', 'address', 'domain',
-  'notification', 'warehouse', 'catalog', 'gl_account', 'ledger', 'audit',
+  'warehouse', 'catalog', 'gl_account', 'ledger', 'audit',
   'pending',
 ];
 

@@ -21,7 +21,6 @@ SEED_SEQUENCE = [
     # Foundation — model definitions first (replaces field_access + schema_map)
     ('seed_model_definitions',  {}),
     ('seed_company_settings',   {}),
-    ('seed_rbac_roles',         {}),
 
     # Data — GL and terms
     ('seed_gl_accounts',        {}),

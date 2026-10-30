@@ -90,7 +90,6 @@ const MODEL_NAME_MAP: Record<string, string> = {
   report: "report",
   action: "action",
   template: "template",
-  notification: "notification",
   apilog: "api_log",
 
   // Communications
@@ -177,7 +176,6 @@ const PATH_PATTERN_MAP: Record<string, string> = {
   "core/setting": "setting",
   "core/action": "action",
   "core/template": "template",
-  "core/notification": "notification",
   "core/report": "report",
   "core/api-log": "api_log",
 

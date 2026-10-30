@@ -20,7 +20,7 @@ Two rules:
    link template, which now reads the org's `company`.
 
 Contact keeps its own `display_name`: it is a read-only property over `get_full_name()`, a
-different thing that did not move. UserProfile likewise.
+different thing that did not move.
 
 Idempotent — a list already holding `company` is left alone.
 """

@@ -145,7 +145,6 @@ LIST_PRIORITIES = {
     'setting':  ['ida', 'name', 'purpose', 'parent_model', 'is_active'],
     'question_answer': ['ida', 'question', 'category', 'model_name', 'is_active'],
     'tag':      ['ida', 'name', 'type', 'target_model', 'is_active'],
-    'notification': ['ida', 'title', 'status', 'type', 'dt_created'],
     'audit':    ['ida', 'model_name', 'action', 'contact', 'dt_created'],
 
     # Sync / integration

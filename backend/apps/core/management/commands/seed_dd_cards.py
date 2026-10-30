@@ -265,13 +265,6 @@ DD_CARD_CONFIG = {
             "server_action": "get_pending_summary",
             "metrics": [],
         },
-        "notification": {
-            "label": "Notifications",
-            "link": "/notification",
-            "metrics": [
-                {"field": "id", "agg": "count", "label": "Count"},
-            ],
-        },
         "setting": {
             "label": "Settings",
             "link": "/setting",
@@ -361,9 +354,9 @@ DD_CARD_CONFIG = {
             "label": "Alice",
             "route": "/alice-dashboard",
             "rows": [
-                ["action", "notification", "setting"],
+                ["action", "setting"],
             ],
-            "default_model": "notification",
+            "default_model": "action",
         },
     },
 }

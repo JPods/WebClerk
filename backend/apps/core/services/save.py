@@ -57,8 +57,7 @@ logger = logging.getLogger(__name__)
 # Models that hold authority rather than business data: a Connection carries a bearer
 # token, a Setting defines layout and policy, a Report can dispatch a command — staff
 # only (reproduced 2026-09-15).
-STAFF_ONLY_MODELS = ('connection', 'bundle', 'setting', 'report', 'rolebase', 'roleconfig',
-                     'modelroleconfig', 'group', 'permission', 'session')
+STAFF_ONLY_MODELS = ('connection', 'bundle', 'setting', 'report', 'group', 'permission', 'session')
 # Header models whose lines carry the transaction endpoint's rights.
 TRANSACTION_LINE_MODELS = ('order', 'invoice', 'quote', 'purchase', 'requisition',
                            'workorder', 'receipt', 'delivery')

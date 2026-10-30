@@ -29,7 +29,6 @@ export const modelRegistry: ModelRegistration[] = [
   // core
   { app: "core", model: "action", label: kebabCaseToTitle("action") },
   { app: "core", model: "contact", label: kebabCaseToTitle("contact") },
-  { app: "core", model: "notification", label: kebabCaseToTitle("notification") },
   { app: "core", model: "pending", label: kebabCaseToTitle("pending") },
   { app: "core", model: "report", label: kebabCaseToTitle("report") },
   { app: "core", model: "setting", label: kebabCaseToTitle("setting") },

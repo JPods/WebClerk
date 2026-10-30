@@ -64,7 +64,6 @@ LAYOUTS = {
     'action':       {'list': ['id', 'ida', 'status', 'kanban_column', 'priority', 'percent_complete', 'project_name', 'dt_deadline'], 'detail': ['id', 'ida', 'action', 'description', 'status', 'kanban_column', 'priority', 'difficulty', 'percent_complete', 'project_name', 'project_ida', 'assigned_to', 'sequence', 'dt_start', 'dt_deadline', 'dt_expected', 'dt_completed', 'duration', 'dt_created', 'dt_modified']},
     'setting':      {'list': ['id', 'name', 'purpose', 'parent_model', 'role', 'is_active'], 'detail': ['id', 'name', 'purpose', 'parent_model', 'role', 'is_active', 'data', 'dt_created', 'dt_modified']},
     'report':       {'list': ['id', 'name', 'target_model', 'output_type', 'category', 'purpose'], 'detail': ['id', 'name', 'description', 'purpose', 'target_model', 'record_id', 'output_type', 'category', 'dt_created', 'dt_modified']},
-    'notification': {'list': ['id', 'name', 'purpose', 'target_model', 'record_id', 'dt_created'], 'detail': ['id', 'name', 'purpose', 'target_model', 'record_id', 'data', 'dt_created', 'dt_modified']},
 
     # --- Accounts ---
     'gl_account':       {'list': ['id', 'ida', 'name', 'type', 'category', 'division', 'used_for'], 'detail': ['id', 'ida', 'name', 'type', 'category', 'division', 'used_for', 'type_id', 'account_credit', 'account_debit', 'comment', 'is_active', 'dt_created', 'dt_modified']},

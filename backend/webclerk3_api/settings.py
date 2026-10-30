@@ -565,7 +565,6 @@ WCAPI_BLESSED_MODELS = {
     "action": "core.Action",
     "lesson": "core.Lesson",
     "log": "core.Log",
-    "notification": "core.Notification",
     "pending": "core.Pending",
     "report": "core.Report",
     "setting": "core.Setting",

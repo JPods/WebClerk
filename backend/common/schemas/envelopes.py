@@ -333,9 +333,7 @@ class MetadataBase(BaseModel):
 class SavedSearch(BaseModel):
     """A user's personal saved search definition.
 
-    Stored in prefs.search[] on UserProfile (personal) or in a Report
-    record (shared/delivered). Same shape in both places so promotion
-    from personal → shared is a copy, not a transform.
+    Stored in a Report record marked purpose='search_stored'.
     """
     name: str = ""
     model_name: str = ""

@@ -19,7 +19,7 @@ BY_NAME = {
     'ida': 100,
     'uuid': 220,
     'company': 200,
-    'display_name': 200,   # Contact and UserProfile still have one
+    'display_name': 200,   # Contact still has one
     'name': 180,
     'description': 250,
     'email': 180,

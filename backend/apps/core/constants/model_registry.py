@@ -74,7 +74,6 @@ MODEL_REGISTRY: Dict[str, ModelMeta] = {
     'action': ModelMeta('action', 'apps.core.models.action.Action', 'Action', 'Actions', 'actions', kind='support', aliases=['actions']),
     'contact': ModelMeta('contact', 'apps.core.models.contact.Contact', 'Contact', 'Contacts', 'contacts', kind='support', aliases=['contacts']),
     'document': ModelMeta('document', 'apps.docs.models.document.Document', 'Document', 'Documents', 'documents', kind='support', aliases=['documents', 'doc']),
-    'notification': ModelMeta('notification', 'apps.core.models.notification.Notification', 'Notification', 'Notifications', 'notifications', kind='support', aliases=['notifications']),
     'lesson': ModelMeta('lesson', 'apps.core.models.lesson.Lesson', 'Lesson', 'Lessons', 'lessons', kind='support', aliases=['lessons']),
     'log': ModelMeta('log', 'apps.core.models.log.Log', 'Log', 'Logs', 'logs', kind='support', aliases=['logs']),
     'pending': ModelMeta('pending', 'apps.core.models.pending.Pending', 'Pending', 'Pending', 'pending', kind='support', aliases=[]),
@@ -85,7 +84,6 @@ MODEL_REGISTRY: Dict[str, ModelMeta] = {
     'gantt': ModelMeta('gantt', 'apps.core.models.setting.Setting', 'Gantt', 'Gantt', 'gantt', kind='support', aliases=[]),
     'databrowser': ModelMeta('databrowser', 'apps.core.models.setting.Setting', 'DataBrowser', 'DataBrowser', 'databrowser', kind='support', aliases=['db']),
     # 'template': ModelMeta('template', 'apps.core.models.template.Template', 'Template', 'Templates', 'templates', kind='support', aliases=['templates']),  # model not yet created
-    'workspace': ModelMeta('workspace', 'apps.core.models.workspace.Workspace', 'Workspace', 'Workspaces', 'workspaces', kind='support', aliases=['workspaces']),
 
     # --- docs --- (A->Z by key)
     # 'doc' resolved via alias on 'document' entry above — no separate registry entry needed

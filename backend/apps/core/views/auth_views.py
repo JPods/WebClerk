@@ -215,13 +215,11 @@ class AuthMeView(APIView):
         if not request.user.is_authenticated:
             return api_response(data=None, message="unauthenticated", status_code=401)
         
-        # Get user data — look up Contact for prefs + config + roles
+        # Get user data — look up Contact for prefs + config
         user = request.user
         contact_prefs = {}
         contact_config = {}
         contact_id = user.pk
-        roles = []
-        is_portal = False
         try:
             from apps.core.models import Contact
             contact = Contact.objects.filter(email__iexact=getattr(user, "email", "")).first()
@@ -229,24 +227,17 @@ class AuthMeView(APIView):
                 contact_prefs = contact.prefs or {}
                 contact_config = contact.config or {}
                 contact_id = contact.pk
-                refs = contact.refs or {}
-                roles = refs.get("roles", [])
         except Exception:
             pass
 
+        # One role: the login's own (contact.role), as at login. access.py owns the vocabulary.
+        from apps.core.services.access import PORTAL_ROLES, own_role
+        role = own_role(user)
+        roles = [role] if role else []
+        is_portal = role in PORTAL_ROLES
+
         # Extract contact image (tn → display → hires fallback)
         image_url = None
-        if not roles:
-            try:
-                profile = user.profile
-                roles = profile.get_roles()
-            except Exception:
-                pass
-
-        is_portal = any(r in ("user_customer", "user_vendor",
-                              "user_manufacturer", "user_rep")
-                        for r in roles)
-
         try:
             from apps.core.models import Contact
             contact = Contact.objects.filter(pk=contact_id).first()
@@ -347,63 +338,10 @@ class AuthRegisterView(APIView):
                 error={"code": "create_failed", "details": str(e)},
             )
 
-        # Create Contact + UserProfile + org link for portal users
-        contact = None
+        # A sign-up is granted no role and no org: the login keeps role 'user' until an admin
+        # sets contact.role, the one role source. (portal_role is accepted and not acted on.)
         roles = []
         is_portal = False
-        if portal_role:
-            try:
-                from apps.core.models import Contact, Customer, Vendor
-                from apps.core.models.rbac import UserProfile
-
-                # Create or find Contact
-                contact = Contact.objects.filter(email__iexact=email).first()
-                if not contact:
-                    contact = Contact.objects.create(
-                        email=email,
-                        name_first=name_first or "User",
-                        name_last=name_last or "Account",
-                        company=company,
-                        title=title,
-                    )
-
-                # Set role in refs
-                rbac_role = f"user_{portal_role}"
-                refs = contact.refs or {}
-                existing_roles = refs.get("roles", [])
-                if rbac_role not in existing_roles:
-                    existing_roles.append(rbac_role)
-                refs["roles"] = existing_roles
-                contact.refs = refs
-                roles = existing_roles
-                is_portal = True
-
-                # Link to org if customer or vendor
-                if portal_role == "customer" and company and not contact.customer_id:
-                    cust, _ = Customer.objects.get_or_create(
-                        company=company,
-                        defaults={"email": email},
-                    )
-                    contact.customer_id = cust.pk
-                elif portal_role == "vendor" and company and not contact.vendor_id:
-                    vendor, _ = Vendor.objects.get_or_create(
-                        company=company,
-                        defaults={"email": email},
-                    )
-                    contact.vendor_id = vendor.pk
-
-                contact.save()
-
-                # Create UserProfile
-                UserProfile.objects.get_or_create(
-                    user=user,
-                    defaults={
-                        "contact": contact,
-                        "cached_roles": existing_roles,
-                    },
-                )
-            except Exception:
-                pass  # Portal setup is best-effort; user still created
 
         # Auto-login user and issue JWT tokens
         try:
@@ -418,7 +356,7 @@ class AuthRegisterView(APIView):
                 refresh["athena_key"] = athena_key
                 data = {
                     "user": {
-                        "id": contact.pk if contact else user.pk,
+                        "id": user.pk,
                         "email": getattr(user, "email", None),
                         "name_first": getattr(user, "name_first", None),
                         "name_last": getattr(user, "name_last", None),

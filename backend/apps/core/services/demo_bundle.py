@@ -20,7 +20,6 @@ from datetime import datetime, date
 # Dependency order: parents before children.
 DEMO_BUNDLE_MODELS = [
     "core.Contact",
-    "core.UserProfile",          # roles/org scope are read through the profile — portal logins need it
     "communications.Email",
     "communications.Phone",
     "communications.Address",
@@ -45,14 +44,12 @@ DEMO_BUNDLE_MODELS = [
     "accounts.GlJournal",
     "communications.Touch",
     "docs.Tag",
-    "core.RoleConfig",
-    "core.ModelRoleConfig",
     "core.Report",
     "sync.Connection",           # carrier connection templates only, never credentials
 ]
 
 # Loaded with the bundle but system infrastructure (like Settings): never tagged or removed as demo data.
-INFRASTRUCTURE_MODELS = {"core.RoleConfig", "core.ModelRoleConfig", "core.Report", "accounts.Currency", "accounts.Term", "accounts.GlAccount", "sync.Connection"}
+INFRASTRUCTURE_MODELS = {"core.Report", "accounts.Currency", "accounts.Term", "accounts.GlAccount", "sync.Connection"}
 
 
 def demo_tables_children_first() -> list[str]:
@@ -231,9 +228,9 @@ def export_rows(label: str, excluded_contacts: set) -> list[dict]:
                 continue
             rows.append(sanitize_contact(row))
             continue
-        # Contact detail rows and profiles belonging to excluded contacts are not exported.
-        if (label.startswith("communications.") and label != "communications.Touch") or label == "core.UserProfile":
-            if row.get("contact_id") in excluded_contacts or row.get("user_id") in excluded_contacts:
+        # Contact detail rows belonging to excluded contacts are not exported.
+        if label.startswith("communications.") and label != "communications.Touch":
+            if row.get("contact_id") in excluded_contacts:
                 continue
         for col in CONTACT_REF_COLUMNS & row.keys():
             if row[col] in excluded_contacts:
