@@ -610,3 +610,19 @@ def config_backup_task() -> dict:
     result = {kind: back_up(kind) for kind in KINDS}
     logger.info("Config backup complete: %s", {k: v['count'] for k, v in result.items()})
     return result
+
+
+@shared_task
+def system_admin_task() -> dict | None:
+    """Daily at 01:10: the installation has a system administrator — Alice names the first
+    admin login and asks every admin to confirm when there is none (apps/core/services/system_admin.py)."""
+    from apps.core.services import system_admin
+    return system_admin.current()
+
+
+@shared_task
+def bundle_defects_task() -> list:
+    """Daily at 01:20: bundle imports still in defects after three days become one Action to the
+    system administrator (apps/core/services/bundle_import.py escalate)."""
+    from apps.core.services import bundle_import
+    return bundle_import.escalate()

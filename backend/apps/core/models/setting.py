@@ -119,6 +119,12 @@ class Setting(BaseModel):
                 validate_sequences(self.config.get('sequences'))
             except ValueError as e:              # a format that cannot make unique idas
                 raise ValidationError(str(e))
+            if self.config.get('system_admin') is not None:   # an active admin; its name from the contact
+                from apps.core.services import system_admin
+                try:
+                    self.config['system_admin'] = system_admin.checked(self.config['system_admin'])
+                except ValueError as e:
+                    raise ValidationError(str(e))
 
         result = super().save(*args, **kwargs)
         self._setting_create_authorized = False

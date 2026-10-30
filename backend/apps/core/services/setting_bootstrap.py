@@ -7,14 +7,12 @@ Two sources:
 WC_HQ API requires an Athena token. The URL is always webclerk.com/... —
 webclerk.com IS the path, not a parameter. No token, no fetch.
 
-Usage:
-    from apps.core.services.setting_bootstrap import (
-        import_settings_bundle,
-        fetch_from_wchq,
-    )
+Usage (an import is recorded through apps/core/services/bundle_import.py):
+    from apps.core.services import bundle_import
+    from apps.core.services.setting_bootstrap import fetch_from_wchq
 
     # From a local file (git pull)
-    result = import_settings_bundle(bundle_data)
+    result = bundle_import.run('settings', bundle_data, source='file', load='settings')
 
     # From WC_HQ (requires Athena token)
     result = fetch_from_wchq(athena_token)
@@ -138,7 +136,8 @@ def fetch_from_wchq(athena_token: str) -> dict[str, Any]:
             }
 
         bundle_data = resp.json()
-        result = import_settings_bundle(bundle_data)
+        from apps.core.services import bundle_import
+        result = bundle_import.run('settings', bundle_data, source='wchq', load='settings')
         result['success'] = not result['errors']
         return result
 

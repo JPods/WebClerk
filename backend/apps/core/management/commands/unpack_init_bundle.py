@@ -53,7 +53,11 @@ class Command(BaseCommand):
             f"Source: {payload.get('source', bundle.get('source', '?'))} — "
             f"{payload.get('dt_exported', bundle.get('dt_exported', '?'))}")
 
-        result = load_bundle(bundle, dry_run=dry_run)
+        if dry_run:
+            result = load_bundle(bundle, dry_run=True)
+        else:
+            from apps.core.services import bundle_import
+            result = bundle_import.run('init', bundle, source=str(input_path))
 
         label = 'Dry run' if dry_run else 'Result'
         for key in ('settings', 'reports', 'gl_accounts'):
@@ -67,3 +71,5 @@ class Command(BaseCommand):
                 self.stdout.write(f'  {err}')
         else:
             self.stdout.write(self.style.SUCCESS('\nNo errors.'))
+        if result.get('bundle_id'):
+            self.stdout.write(f"Recorded as bundle #{result['bundle_id']}")

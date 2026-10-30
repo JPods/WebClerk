@@ -114,8 +114,9 @@ class Command(BaseCommand):
             if options['dry_run']:
                 self.stdout.write(f"\nSettings: {len(settings_records)} would be imported")
             else:
-                from apps.core.services.setting_bootstrap import import_settings_bundle
-                result = import_settings_bundle({'settings': settings_records})
+                from apps.core.services import bundle_import
+                result = bundle_import.run('settings', {'settings': settings_records},
+                                           source='demo bundle', load='settings')
                 self.stdout.write(
                     f"\nSettings: {result['created']} created, "
                     f"{result['updated']} updated"

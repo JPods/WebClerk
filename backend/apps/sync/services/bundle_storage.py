@@ -41,39 +41,40 @@ BUNDLE_MODELS = frozenset({
 })
 
 
+# Where a bundle file sits is its state (Bill, 2026-10-29): pending/ until it is handled, then
+# completed/, or defects/ while something in it still has to be resolved.
+STATUSES = ("pending", "defects", "completed")
+
+
 def _bundle_dir(model_name: str, direction: str, status: str = "pending") -> Path:
     """Return the directory for this model+direction+status, creating it if needed.
 
-    Structure: WORK_DIR/bundles/{model}/{direction}/{status}/
-    Status is 'pending', 'processed', or 'rejected'.
-    New bundles always land in pending/. Move to processed/ or rejected/ after handling.
+    Structure: WORK_DIR/bundles/{model}/{direction}/{status}/, status one of STATUSES.
     """
+    if status not in STATUSES:
+        raise ValueError(f"bundle status is one of {', '.join(STATUSES)}, not {status!r}")
     folder = model_name if model_name in BUNDLE_MODELS else "general"
     subdir = DIRECTION_MAP.get(direction, "incoming")
-    sub_status = status if status in ("pending", "processed", "rejected") else "pending"
-    return work_folder("bundles", folder, subdir, sub_status)
+    return work_folder("bundles", folder, subdir, status)
 
 
-def _move_bundle(bundle_id: int, model_name: str, direction: str, to_status: str) -> str | None:
-    """Move a bundle file from pending/ to another status folder. Returns new relative path."""
-    pending_dir = _bundle_dir(model_name, direction, "pending")
-    pending_file = pending_dir / f"{bundle_id}.json"
-    if not pending_file.exists():
+def _find(bundle_id: int, model_name: str, direction: str) -> Path | None:
+    for status in STATUSES:
+        filepath = _bundle_dir(model_name, direction, status) / f"{bundle_id}.json"
+        if filepath.exists():
+            return filepath
+    return None
+
+
+def move(bundle_id: int, model_name: str, direction: str, to_status: str) -> str | None:
+    """Move a bundle file to the to_status folder. Returns its new path relative to WORK_DIR."""
+    current = _find(bundle_id, model_name, direction)
+    if current is None:
         return None
-    dest_dir = _bundle_dir(model_name, direction, to_status)
-    dest_file = dest_dir / f"{bundle_id}.json"
-    pending_file.rename(dest_file)
+    dest_file = _bundle_dir(model_name, direction, to_status) / f"{bundle_id}.json"
+    if current != dest_file:
+        current.rename(dest_file)
     return str(dest_file.relative_to(work_root()))
-
-
-def mark_processed(bundle_id: int, model_name: str, direction: str) -> str | None:
-    """Move a bundle file from pending/ to processed/. Returns new relative path."""
-    return _move_bundle(bundle_id, model_name, direction, "processed")
-
-
-def mark_rejected(bundle_id: int, model_name: str, direction: str) -> str | None:
-    """Move a bundle file from pending/ to rejected/. Returns new relative path."""
-    return _move_bundle(bundle_id, model_name, direction, "rejected")
 
 
 def count_pending(model_name: str = "", direction: str = "") -> dict:
@@ -112,15 +113,9 @@ def save_payload(bundle_id: int, model_name: str, direction: str, payload) -> st
 
 
 def load_payload(bundle_id: int, model_name: str, direction: str) -> dict | list | None:
-    """Read payload from disk. Checks pending/, then processed/, then rejected/."""
-    for status in ("pending", "processed", "rejected"):
-        directory = _bundle_dir(model_name, direction, status)
-        filepath = directory / f"{bundle_id}.json"
-        if filepath.exists():
-            break
-    else:
-        return None
-    if not filepath.exists():
+    """Read payload from disk, whichever status folder holds it."""
+    filepath = _find(bundle_id, model_name, direction)
+    if filepath is None:
         return None
     try:
         return json.loads(filepath.read_text(encoding="utf-8"))
@@ -145,11 +140,9 @@ def load_payload_by_path(payload_path: str) -> dict | list | None:
 
 
 def delete_payload(bundle_id: int, model_name: str, direction: str) -> bool:
-    """Delete a payload file. Checks all status folders. Returns True if deleted."""
-    for status in ("pending", "processed", "rejected"):
-        directory = _bundle_dir(model_name, direction, status)
-        filepath = directory / f"{bundle_id}.json"
-        if filepath.exists():
-            filepath.unlink()
-            return True
-    return False
+    """Delete a payload file, whichever status folder holds it. Returns True if deleted."""
+    filepath = _find(bundle_id, model_name, direction)
+    if filepath is None:
+        return False
+    filepath.unlink()
+    return True

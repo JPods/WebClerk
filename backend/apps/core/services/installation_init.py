@@ -229,33 +229,13 @@ def ensure_defined(kind: str, *, force: bool = False) -> bool:
             'obtained: %s', kind, bundle_name, err)
         return False
 
-    result = load_bundle(bundle)
+    from apps.core.services import bundle_import
+    result = bundle_import.run(bundle_name, bundle, source=source)
     logger.info(
         '[INIT_BUNDLE] %s was not defined — loaded bundle "%s" from %s '
         '(settings +%s, gl_accounts +%s, reports +%s)',
         kind, bundle_name, source,
         result['settings']['created'], result['gl_accounts']['created'],
         result['reports']['created'])
-    _record_bundle(kind, bundle_name, source, result)
 
     return is_defined(kind)
-
-
-def _record_bundle(kind: str, bundle_name: str, source: str, result: dict) -> None:
-    """Leave an audit row for the pull. Never fails the load."""
-    try:
-        from apps.core.services.alice_connections import ensure_hq_connection
-        from apps.sync.models.bundle import Bundle
-
-        conn = ensure_hq_connection()
-        if conn is None:
-            return
-        Bundle.objects.create(
-            connection=conn,
-            direction='incoming',
-            model_name=f'bundle_{bundle_name}',
-            status='complete',
-            response={'requested_for': kind, 'source': source, **result},
-        )
-    except Exception as exc:
-        logger.debug('[INIT_BUNDLE] could not record the pull: %s', exc)

@@ -58,8 +58,8 @@ class SettingsBootstrapView(View):
                 status=400,
             )
 
-        from apps.core.services.setting_bootstrap import import_settings_bundle
-        result = import_settings_bundle(body)
+        from apps.core.services import bundle_import
+        result = bundle_import.run('settings', body, source='upload', load='settings')
         result['success'] = not result['errors']
 
         # Re-run health check after import

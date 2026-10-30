@@ -6,7 +6,7 @@
     "offsite": null
   },
   "folders": {
-    "bundles":        {"purpose": "bundle payloads in and out: <model>/<incoming|outgoing>/<pending|processed|rejected>, the GL journal and select-list files", "keep_days": 180, "backup": "local", "token": "import"},
+    "bundles":        {"purpose": "bundle payloads in and out: <model>/<incoming|outgoing>/<pending|defects|completed>, the GL journal and select-list files", "keep_days": 180, "backup": "local", "token": "import"},
     "imports/digest": {"purpose": "nightly record of each import: content hash, approvals, who imported", "keep_days": null, "backup": "offsite", "token": "none"},
     "outbox":         {"purpose": "files made to send or hand to someone", "keep_days": 90, "backup": "none", "token": "none"},
     "reports":        {"purpose": "generated reports", "keep_days": 90, "backup": "none", "token": "none"},

@@ -111,8 +111,9 @@ class Command(BaseCommand):
                     self.stdout.write('  Cancelled.')
                     return
 
-        from apps.core.services.setting_bootstrap import import_settings_bundle
-        result = import_settings_bundle(bundle, force_replace=options['replace'])
+        from apps.core.services import bundle_import
+        result = bundle_import.run('settings', bundle, source=str(input_path), load='settings',
+                                   force_replace=options['replace'])
 
         self.stdout.write(f"\nCreated: {result['created']}")
         self.stdout.write(f"Updated: {result['updated']}")

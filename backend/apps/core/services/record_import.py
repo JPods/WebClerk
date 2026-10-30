@@ -89,6 +89,19 @@ def _concrete_fields(Model) -> set[str]:
     return {f.name for f in Model._meta.concrete_fields}
 
 
+def _one_definition_per_model(rec: dict) -> dict | None:
+    """A wc:model definition is the one for its model (uniq_active_wc_model_parent_model),
+    whatever uuid the database that made it gave it."""
+    if rec.get('purpose') == 'wc:model' and rec.get('parent_model'):
+        return {'purpose': 'wc:model', 'parent_model': rec['parent_model'], 'is_active': True}
+    return None
+
+
+# Records a unique constraint identifies beyond the caller's match_on: matched on it too,
+# or importing them into a database that has its own copy refuses every one.
+CONSTRAINED = {'core.Setting': _one_definition_per_model}
+
+
 def _match_existing(Model, rec: dict, match_on: Sequence[str]):
     """The record this one is, or None. Refuses a record that cannot be matched."""
     lookup = {}
@@ -99,7 +112,11 @@ def _match_existing(Model, rec: dict, match_on: Sequence[str]):
                 f'record cannot be matched: "{field}" is empty '
                 f'(matching on {", ".join(match_on)})')
         lookup[field] = value
-    return Model.objects.filter(**lookup).first()
+    found = Model.objects.filter(**lookup).first()
+    constrained = CONSTRAINED.get(Model._meta.label)
+    if found is None and constrained and (identity := constrained(rec)):
+        found = Model.objects.filter(**identity).first()
+    return found
 
 
 def import_records(
@@ -188,8 +205,8 @@ def import_records(
                 local_map[str(rec_uuid)] = target.pk
 
         except Exception as exc:
-            errors.append(f'{label}: {exc}')
-            logger.exception('record_import: %s on %s', model_label, label)
+            errors.append(f'{label}: {exc}')     # the caller reports them, once (bundle_import)
+            logger.debug('record_import: %s on %s', model_label, label, exc_info=True)
 
     if local_map:
         uuid_pk_map.setdefault(model_label, {}).update(local_map)

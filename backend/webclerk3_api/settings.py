@@ -820,6 +820,16 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'apps.ai_assistant.tasks.config_backup_task',
         'schedule': crontab(hour=1, minute=0),
     },
+    # The installation has a system administrator (company profile config.system_admin).
+    'alice-system-admin-daily': {
+        'task': 'apps.ai_assistant.tasks.system_admin_task',
+        'schedule': crontab(hour=1, minute=10),
+    },
+    # Bundle imports left in defects three days become an Action to the system administrator.
+    'alice-bundle-defects-daily': {
+        'task': 'apps.ai_assistant.tasks.bundle_defects_task',
+        'schedule': crontab(hour=1, minute=20),
+    },
 
     # ── Data backup (daily 3 AM) ────────────────────────────────────
     'export-data-backup-daily': {
