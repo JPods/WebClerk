@@ -21,7 +21,6 @@ export const registerSchema = loginSchema.extend({
     email:  z.string().min(1, 'Email is required'),
     name_first: z.string().min(1, 'First name is required'),
     name_last: z.string().min(1, 'Last name is required'),
-    portal_role: z.enum(['', 'customer', 'vendor', 'rep']).optional(),
     confirmPassword: z.string().min(1, 'Please confirm your password'),
   })
   .refine(data => data.password === data.confirmPassword, {

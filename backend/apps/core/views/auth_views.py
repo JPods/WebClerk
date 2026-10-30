@@ -4,6 +4,7 @@ from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.contrib.auth.password_validation import validate_password
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -15,6 +16,7 @@ from drf_spectacular.utils import extend_schema, inline_serializer, OpenApiExamp
 
 from common.api_responses import api_response
 from apps.core.views.token_cookie import set_refresh_cookie, clear_refresh_cookie
+from apps.orgs.models import OrgBase, OrgType
 
 User = get_user_model()
 
@@ -59,11 +61,6 @@ RegisterRequestSerializer = inline_serializer(
         'name_last': serializers.CharField(help_text='Last name', required=False),
         'company': serializers.CharField(help_text='Company name', required=False),
         'title': serializers.CharField(help_text='Job title', required=False),
-        'portal_role': serializers.ChoiceField(
-            choices=['customer', 'vendor', 'rep'],
-            help_text='Portal role: customer, vendor, or rep',
-            required=False,
-        ),
     }
 )
 
@@ -294,19 +291,10 @@ class AuthRegisterView(APIView):
         name_last = (body.get("name_last") or "").strip()
         company = (body.get("company") or "").strip()
         title = (body.get("title") or "").strip()
-        portal_role = (body.get("portal_role") or "").strip()
 
         # Validate required fields
         if not email or not password:
             return api_response(data=None, message="email and password are required", status_code=400)
-
-        # Validate portal_role if provided
-        valid_portal_roles = {"customer", "vendor", "rep"}
-        if portal_role and portal_role not in valid_portal_roles:
-            return api_response(
-                data=None, message=f"portal_role must be one of: {', '.join(valid_portal_roles)}",
-                status_code=400,
-            )
 
         # Check if email already exists
         if User.objects.filter(email__iexact=email).exists():
@@ -321,27 +309,33 @@ class AuthRegisterView(APIView):
                 error={"code": "validation_error", "details": list(e.messages)},
             )
 
-        # Create user
+        # Anyone may sign up, as on any e-commerce site: a customer of their own, with a
+        # Customer org made for them — never one matched by name. Any more authority is an
+        # admin's to grant by changing contact.role (Bill, 2026-10-30).
         try:
-            user = User.objects.create_user(
-                email=email,
-                password=password,
-                name_first=name_first or "User",
-                name_last=name_last or "Account",
-                company=company,
-                title=title,
-                role='user'
-            )
+            with transaction.atomic():
+                user = User.objects.create_user(
+                    email=email,
+                    password=password,
+                    name_first=name_first or "User",
+                    name_last=name_last or "Account",
+                    company=company,
+                    title=title,
+                    role='customer',
+                )
+                org = OrgBase.objects.create(
+                    company=company or f"{user.name_first} {user.name_last}",
+                    org_type=OrgType.CUSTOMER, email=email)
+                user.customer_id = org.pk
+                user.save(update_fields=["customer_id"])
         except Exception as e:
             return api_response(
                 data=None, message="failed to create user", status_code=400,
                 error={"code": "create_failed", "details": str(e)},
             )
 
-        # A sign-up is granted no role and no org: the login keeps role 'user' until an admin
-        # sets contact.role, the one role source. (portal_role is accepted and not acted on.)
-        roles = []
-        is_portal = False
+        roles = ['customer']
+        is_portal = True
 
         # Auto-login user and issue JWT tokens
         try:
