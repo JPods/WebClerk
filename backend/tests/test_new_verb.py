@@ -198,3 +198,34 @@ def test_a_new_cash_filled_with_money_is_seeded_and_a_payservice_cash_is_not():
                                  'purpose': 'connection-payservice', 'method': 'card'})
     card.refresh_from_db()
     assert card.available == Decimal('0') and not card.holds_money
+
+
+# ── Born linked: + add on a panel (Bill, 2026-10-30) ─────────────────────────────────────
+
+def test_a_record_added_from_a_panel_is_born_linked_and_still_new():
+    from apps.communications.models import Phone
+    from apps.core.models import Contact
+    from apps.orgs.models import OrgBase, OrgType
+    org = OrgBase.objects.create(company='Panel Parent', org_type=OrgType.CUSTOMER)
+
+    contact = _new('contact', {'_parent': {'field': 'customer_id', 'id': org.pk}}).obj
+    assert contact.customer_id == org.pk
+    assert contact.config['is_new'] is True, 'linked at birth, still swept if abandoned'
+
+    phone = _new('phone', {'_parent': {'field': 'contact', 'id': contact.pk}}).obj
+    assert Phone.objects.get(pk=phone.pk).contact_id == contact.pk
+    assert Contact.objects.get(pk=contact.pk).config['is_new'] is True
+
+
+def test_a_parent_that_is_no_link_or_no_record_is_refused():
+    from apps.orgs.models import OrgBase, OrgType
+    org = OrgBase.objects.create(company='Panel Parent', org_type=OrgType.CUSTOMER)
+    with pytest.raises(Refused) as e:
+        _new('contact', {'_parent': {'field': 'company', 'id': org.pk}})
+    assert e.value.code == 'parent_field' and 'customer_id' in e.value.message
+    with pytest.raises(Refused) as e:
+        _new('contact', {'_parent': {'field': 'customer_id', 'id': 987654321}})
+    assert e.value.code == 'parent_not_found'
+    with pytest.raises(Refused) as e:
+        _new('contact', {'_parent': {'field': 'customer_id'}})
+    assert e.value.code == 'carrier_signal'

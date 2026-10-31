@@ -11,6 +11,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getRecords } from '@/api/wcapi';
+import { windowChannel } from '@/utils/windowChannel';
 import type { PanelStatus } from '@/apps/common/components/CollapsiblePanel';
 
 interface Options {
@@ -42,7 +43,7 @@ export function usePanelRecords<T = Record<string, any>>(
         setRecords((await read(p)) as T[]);
       } else {
         const res: any = await getRecords(model, p);
-        setRecords((res?.results || res?.records || []) as T[]);
+        setRecords((res?.results || []) as T[]);
       }
     } catch (e: any) {
       setError(e?.response?.data?.message || e?.message || `Could not read ${model}`);
@@ -53,6 +54,15 @@ export function usePanelRecords<T = Record<string, any>>(
   }, [model, paramKey, enabled]); // eslint-disable-line react-hooks/exhaustive-deps -- read is a module function
 
   useEffect(() => { refresh(); }, [refresh, reloadKey]);
+
+  // A record of this panel's model saved or deleted in any window: read again (Bill,
+  // 2026-10-30 — + add opens a card or form elsewhere; its save updates the panel).
+  useEffect(() => {
+    const again = ({ model: saved }: { model?: string }) => { if (saved === model) refresh(); };
+    const offSaved = windowChannel.on('record-saved', again);
+    const offDeleted = windowChannel.on('record-deleted', again);
+    return () => { offSaved(); offDeleted(); };
+  }, [model, refresh]);
 
   const status: PanelStatus = useMemo(() => ({
     // Only the first read blocks the body; a refresh keeps the rows on screen.

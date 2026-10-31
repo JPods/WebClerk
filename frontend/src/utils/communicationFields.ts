@@ -103,6 +103,3 @@ export function communicationValue(comm: CommunicationField, record: Record<stri
 export function showsCommunication(modelName: string, savedModel: string): boolean {
   return Object.values(COMMUNICATION_FIELDS[modelName] || {}).some(f => f.model === savedModel);
 }
-
-/** Fired after a record saves from a detail card: { model, id }. */
-export const RECORD_SAVED_EVENT = 'wc3-record-saved';

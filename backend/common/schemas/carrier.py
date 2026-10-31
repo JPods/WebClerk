@@ -24,6 +24,15 @@ from typing import Any, List, Optional
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 
+class ParentLink(BaseModel):
+    """The record a new one is born under: the field on the new record that points at it."""
+
+    model_config = ConfigDict(extra='forbid')
+
+    field: str = Field(description="The new record's field that links it (customer_id, contact_id).")
+    id: int = Field(description="The parent record's id.")
+
+
 class CarrierBase(BaseModel):
     """Signals a client may send with a record. One definition for every model."""
 
@@ -42,6 +51,10 @@ class CarrierBase(BaseModel):
                               description="Locked fields a superuser changes in this save: ida or a "
                                           "system dt_ (Bill, 2026-09-29). Only a superuser may send it, "
                                           "and only for fields that are locked.")
+    parent: Optional[ParentLink] = Field(None, alias='_parent',
+                                         description="`new` only: the panel the record is added from "
+                                                     "— the new record is saved already linked "
+                                                     "(Bill, 2026-10-30: + add on every panel list).")
 
 
 #: Every wire name this schema accepts — the registry the write policy checks against.

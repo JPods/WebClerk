@@ -5,6 +5,7 @@
  * Built on DbColumns (PanelTable) for consistent column config, hamburger,
  * section header, collapse, add/remove. Same pattern as every other panel.
  */
+import { windowChannel } from '@/utils/windowChannel';
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useWindowManager } from "@/context/WindowManagerContext";
 import {
@@ -322,21 +323,10 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
     return (a.purpose || "").localeCompare(b.purpose || "");
   });
 
-  // Auto-refresh on contact-saved event
-  const handleContactSaved = useCallback(
-    (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      if (detail && parent_model && parentId && detail.parentModel === parent_model && detail.parentId === parentId) {
-        onSaveSuccess?.();
-      }
-    },
-    [parent_model, parentId, onSaveSuccess],
-  );
-
-  useEffect(() => {
-    window.addEventListener("contact-saved", handleContactSaved);
-    return () => window.removeEventListener("contact-saved", handleContactSaved);
-  }, [handleContactSaved]);
+  // A contact saved anywhere may be one of these: the parent rereads its links.
+  useEffect(() => windowChannel.on('record-saved', ({ model }) => {
+    if (model === 'contact') onSaveSuccess?.();
+  }), [onSaveSuccess]);
 
   const handleOpen = (contact: RefContact) => {
     const path = getModelDetailPath("contact", contact.contact_id);

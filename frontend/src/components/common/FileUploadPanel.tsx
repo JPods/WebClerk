@@ -159,9 +159,6 @@ const FileUploadPanel: React.FC<Props> = ({
               id: Number(recordId),
               'refs.links.document': newLinks,
             });
-            window.dispatchEvent(new CustomEvent('refs-links-changed', {
-              detail: { model: modelName, id: Number(recordId) },
-            }));
           }
         } catch { /* refs.links update failed — document still exists */ }
 

@@ -1263,10 +1263,6 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
         loadedRecordRef.current = toRec(d?.record);
         setSelectedRecord(loadedRecordRef.current);
       }
-      // Notify other windows
-      import('@/utils/windowChannel').then(({ windowChannel }) => {
-        windowChannel.send({ type: 'record-saved', model: selectedModel, id: selectedId ?? undefined });
-      }).catch(() => {});
     } catch (e) {
       // Surface server-side validation errors
       const msg = errMsg(e, 'Save failed');

@@ -16,7 +16,11 @@ its id. The values come afterwards, as a save (``PUT /wcapi/<model>/<id>/``).
   hook and the user's ``<model>.save_pre`` Report case on ``if config.is_new``. The next
   save removes it; Alice sweeps records that keep it.
 - **No values.** A body carrying fields is refused with coaching; the underscore signals a
-  model's behaviour declares (``_parent``) pass, for its hook to read.
+  model's behaviour declares pass, for its hook to read.
+- **Born linked.** ``_parent: {field, id}`` — the record is added from a panel of its parent
+  (a customer's contacts, a contact's phones), so it is saved already pointing at it and
+  keeps its ``is_new`` mark until the user's first save (Bill, 2026-10-30). The field must be
+  the model's link to another record, and the role must be allowed to write it.
 
 Plan: Allie ``readmes/assessments/2026-09-26-new-verb.md``.
 """
@@ -63,7 +67,10 @@ def new_record(actor: Actor, model_key: str, payload: dict):
                       f'{"them" if len(missing) > 1 else "it"} to new.', missing)
 
     data = setting_defaults(model_key)
-    data.update({k: v for k, v in payload.items() if k.startswith('_') or k in accepts})
+    data.update({k: v for k, v in payload.items()
+                 if (k.startswith('_') and k != '_parent') or k in accepts})
+    if payload.get('_parent') is not None:
+        data.update(_born_under(_model_cls, model_key, payload['_parent']))
     data['model_name'] = model_key
     try:
         return save_record(actor, data, model_key=model_key, new=True)
@@ -75,6 +82,32 @@ def new_record(actor: Actor, model_key: str, payload: dict):
                       f'A {model_key} cannot be saved empty ({detail}). Its behaviour must '
                       f'declare NEW_REQUIRES or populate it when config.is_new.',
                       {'model_name': model_key, 'detail': detail})
+
+
+def _born_under(model_cls, model_key: str, link) -> Dict[str, Any]:
+    """``{<fk>_id: id}`` for a ``_parent`` signal; refused unless the field links to a record
+    that exists. Whether the role may write it is the save's field filter, as for any value."""
+    from common.schemas.carrier import CarrierError, read_carrier
+    try:
+        parent = read_carrier({'_parent': link}).parent
+    except CarrierError as e:
+        raise Refused(400, 'carrier_signal', str(e), {'_parent': link})
+    name = parent.field[:-3] if parent.field.endswith('_id') else parent.field
+    try:
+        field = model_cls._meta.get_field(name)
+    except Exception:
+        field = None
+    if field is None or not getattr(field, 'many_to_one', False):
+        links = sorted(f.attname for f in model_cls._meta.get_fields()
+                       if getattr(f, 'many_to_one', False) and getattr(f, 'concrete', False))
+        raise Refused(400, 'parent_field',
+                      f'{parent.field} is not a link on {model_key}; its links are '
+                      f'{", ".join(links) or "none"}.', {'field': parent.field})
+    if not field.related_model.objects.filter(pk=parent.id).exists():
+        raise Refused(404, 'parent_not_found',
+                      f'{field.related_model._meta.model_name} {parent.id} does not exist.',
+                      {'field': parent.field, 'id': parent.id})
+    return {field.attname: parent.id}
 
 
 def setting_defaults(model_key: str) -> Dict[str, Any]:

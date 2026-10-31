@@ -20231,6 +20231,27 @@
                   "label": "dt_modified"
                 }
               ]
+            },
+            "add": {
+              "title": "New contact",
+              "fields": [
+                {
+                  "field": "name_first",
+                  "label": "first name"
+                },
+                {
+                  "field": "name_last",
+                  "label": "last name"
+                },
+                {
+                  "field": "title",
+                  "label": "title"
+                },
+                {
+                  "field": "email",
+                  "label": "email"
+                }
+              ]
             }
           },
           "form": {

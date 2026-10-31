@@ -1,8 +1,9 @@
 /**
- * windowChannel — cross-window messaging for DataBrowser ecosystem.
+ * windowChannel — the one channel between WC3 windows (Bill, 2026-10-30).
  *
- * Uses BroadcastChannel API (built-in, no dependencies).
- * Any window on the same origin can send/receive messages.
+ * A message reaches every listener: this page's (its floating windows) at once, and every
+ * other WC3 tab or browser window through BroadcastChannel, which skips its own sender.
+ * The API layer announces every save and delete, so a panel hears a record saved anywhere.
  *
  * Usage:
  *   // DataBrowser sends when selection changes:
@@ -13,8 +14,8 @@
  *
  * Message types:
  *   record-selected  — user clicked a record in DataBrowser
- *   record-saved     — a record was saved (any window)
- *   record-deleted   — a record was deleted
+ *   record-saved     — a record was saved (any window; sent by wcapiSave)
+ *   record-deleted   — a record was deleted (sent by deleteRecord)
  *   model-changed    — DataBrowser switched models
  *   theme-changed    — theme toggled (sync across windows)
  */
@@ -37,28 +38,26 @@ let channel: BroadcastChannel | null = null;
 // Unique ID for this window — prevents self-echo
 const windowId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
+function deliver(msg: ChannelMessage): void {
+  handlers.get(msg.type)?.forEach((fn) => fn(msg));
+  handlers.get('*')?.forEach((fn) => fn(msg));
+}
+
 function getChannel(): BroadcastChannel {
   if (!channel) {
     channel = new BroadcastChannel(CHANNEL_NAME);
     channel.onmessage = (event: MessageEvent<ChannelMessage>) => {
-      const msg = event.data;
-      if (!msg?.type) return;
-      // Don't process messages from this same window
-      if (msg.source === windowId) return;
-      // Fire type-specific handlers
-      const typeHandlers = handlers.get(msg.type);
-      if (typeHandlers) typeHandlers.forEach((fn) => fn(msg));
-      // Fire wildcard handlers
-      const allHandlers = handlers.get('*');
-      if (allHandlers) allHandlers.forEach((fn) => fn(msg));
+      if (event.data?.type) deliver(event.data);
     };
   }
   return channel;
 }
 
-/** Send a message to all other windows */
+/** Send to this page's listeners and to every other WC3 window. */
 function send(msg: ChannelMessage): void {
-  getChannel().postMessage({ ...msg, source: windowId });
+  const out = { ...msg, source: windowId };
+  deliver(out);
+  getChannel().postMessage(out);
 }
 
 /** Listen for a specific message type (or '*' for all) */

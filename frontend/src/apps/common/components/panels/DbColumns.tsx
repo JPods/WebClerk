@@ -80,8 +80,9 @@ export interface DbColumnsProps<T = Record<string, unknown>> {
   sectionLabel?: string;
   /** Optional: section icon */
   sectionIcon?: string;
-  /** Optional: create new record — shows "+ add" in section header */
-  onAdd?: () => void;
+  /** "+ add" in the panel's header: the button is the anchor its card opens beside
+   *  (usePanelAdd — Bill, 2026-10-30). */
+  onAdd?: (anchor: HTMLElement) => void;
   /** Optional: assign existing record — shows "assign" in section header */
   onAssign?: () => void;
   /** Optional: remove panel — Option+Cmd/Ctrl+click on header */
@@ -118,6 +119,7 @@ export function DbColumns<T extends object>({
   onRowAction,
   sectionLabel,
   sectionIcon,
+  onAdd,
   onAssign,
   onRemove,
   collapsible = true,
@@ -258,9 +260,15 @@ export function DbColumns<T extends object>({
     </>
   );
 
-  const assign = React.useMemo(() => onAssign ? (
-    <button type="button" className="db-section-header__action" onClick={onAssign}>assign</button>
-  ) : undefined, [onAssign]);
+  const headerActions = React.useMemo(() => (onAdd || onAssign) ? (
+    <>
+      {onAdd && (
+        <button type="button" className="db-section-header__action" data-wc="panel-add"
+          onClick={(e) => { e.stopPropagation(); onAdd(e.currentTarget); }}>+ add</button>
+      )}
+      {onAssign && <button type="button" className="db-section-header__action" onClick={onAssign}>assign</button>}
+    </>
+  ) : undefined, [onAdd, onAssign]);
 
   if (!hasSectionHeader) return <div>{table}</div>;
 
@@ -276,7 +284,7 @@ export function DbColumns<T extends object>({
       keepMounted
       badge={data.length}
       onRemove={onRemove}
-      headerActions={assign}
+      headerActions={headerActions}
       status={{ loading: !!loading && data.length === 0, error: error ?? null, onRetry,
                 empty: !loading && !error && data.length === 0 && !hasChildren,
                 emptyText: emptyMessage ?? `No ${sectionLabel!.toLowerCase()}` }}

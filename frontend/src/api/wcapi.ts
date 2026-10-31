@@ -1,5 +1,6 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 import apiClient from "./axios";
+import { windowChannel } from '@/utils/windowChannel';
 import { resolveModelName } from "./modelNameResolver";
 import { validateEnvelope } from "../utils/validateEnvelope";
 import { checkJsonLimits, describeJsonLimitProblems, loadJsonLimits } from "../utils/jsonLimits";
@@ -182,6 +183,7 @@ export async function wcapiSave<T>(model: string, body: any, extraHeaders?: Reco
   if (!id) throw new Error(`Saving ${model} needs its id — make the record with newRecord or createRecord`);
   const config = extraHeaders ? { headers: extraHeaders } : undefined;
   const res = await apiClient.put<ApiEnvelope<T>>(recordPath(model, id), body, config);
+  windowChannel.send({ type: 'record-saved', model, id: Number(id) });
   return res.data.data;
 }
 
@@ -625,6 +627,7 @@ export async function saveTransactionWithLines(model_name: string, payload: any)
 export async function deleteRecord(model_name: string, id: number) {
   const resolved = resolveModelName(model_name);
   const res = await apiClient.delete<ApiEnvelope<any>>(recordPath(resolved, id));
+  windowChannel.send({ type: 'record-deleted', model: resolved, id });
   return res.data.data;
 }
 

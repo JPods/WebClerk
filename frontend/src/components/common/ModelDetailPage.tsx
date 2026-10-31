@@ -19,7 +19,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import type { RootState } from '@/store';
 import { showToast } from '@/store/slices/toastSlice';
 import { getRecord, newRecord, saveRecord } from '@/api/wcapi';
-import { COMMUNICATION_FIELDS, communicationField, communicationValue, showsCommunication, RECORD_SAVED_EVENT } from '@/utils/communicationFields';
+import { COMMUNICATION_FIELDS, communicationField, communicationValue, showsCommunication } from '@/utils/communicationFields';
+import { windowChannel } from '@/utils/windowChannel';
 import { useWindowManager } from '@/context/WindowManagerContext';
 import { useDetailLayout } from '@/hooks/useDetailLayout';
 import { selectCompanyInfo, selectLogos } from '@/store/slices/companySlice';
@@ -171,7 +172,6 @@ const ModelDetailPage: React.FC<ModelDetailPageProps> = ({
     setSaving(true);
     try {
       await saveRecord(modelName, changedFields(data, editData));
-      window.dispatchEvent(new CustomEvent(RECORD_SAVED_EVENT, { detail: { model: modelName, id: recordId } }));
       dispatch(showToast({ message: `${modelName} saved`, type: 'success' }));
       setIsEditing(false);
       fetchData();
@@ -204,7 +204,6 @@ const ModelDetailPage: React.FC<ModelDetailPageProps> = ({
     });
     setData(pick);
     setEditData(pick);
-    window.dispatchEvent(new CustomEvent(RECORD_SAVED_EVENT, { detail: { model: modelName, id: recordId } }));
   }, [modelName, recordId]);
 
   // Bill, 2026-10-16: a contact whose org search finds nothing makes the org. The backend
@@ -234,12 +233,9 @@ const ModelDetailPage: React.FC<ModelDetailPageProps> = ({
 
   // When that card saves, show the server's refreshed cache (unless mid-edit here).
   useEffect(() => {
-    const onSaved = (e: Event) => {
-      const saved = (e as CustomEvent).detail?.model;
-      if (saved && showsCommunication(modelName, saved) && !isEditing) fetchData();
-    };
-    window.addEventListener(RECORD_SAVED_EVENT, onSaved);
-    return () => window.removeEventListener(RECORD_SAVED_EVENT, onSaved);
+    return windowChannel.on('record-saved', ({ model }) => {
+      if (model && showsCommunication(modelName, model) && !isEditing) fetchData();
+    });
   }, [modelName, isEditing, fetchData]);
 
   const handleAddNew = async () => {

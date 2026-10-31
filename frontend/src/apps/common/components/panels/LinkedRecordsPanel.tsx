@@ -21,10 +21,12 @@
  *   6. Hamburger for column order/visibility
  *   7. Collapsed by default
  */
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import { windowChannel } from '@/utils/windowChannel';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { usePanelAdd } from "@/hooks/usePanelAdd";
 import { useWindowManager } from "@/context/WindowManagerContext";
 import { useDispatch } from "react-redux";
-import { getRecord, getRecords, saveRecord, createRecord, getModelDetail } from "@/api/wcapi";
+import { getRecord, getRecords, saveRecord, getModelDetail } from "@/api/wcapi";
 import { usePanelRecords } from "@/hooks/usePanelRecords";
 import { showToast } from "@/store/slices/toastSlice";
 import { DbColumns } from "./DbColumns";
@@ -250,15 +252,10 @@ export const LinkedRecordsPanel: React.FC<LinkedRecordsPanelProps> = ({
     { parentModel, parentId, linkedModel }, { read: readLinked });
   const initialLoadDone = status.empty || records.length > 0 || !!error;
 
-  // Reload when refs.links changes (e.g. touch added from ContactPanel)
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      if (detail?.model === parentModel && detail?.id === parentId) refresh();
-    };
-    window.addEventListener('refs-links-changed', handler);
-    return () => window.removeEventListener('refs-links-changed', handler);
-  }, [parentModel, parentId, refresh]);
+  // The parent's refs.links changed when the parent was saved, from any window.
+  useEffect(() => windowChannel.on('record-saved', ({ model, id }) => {
+    if (model === parentModel && id === parentId) refresh();
+  }), [parentModel, parentId, refresh]);
 
   // Save updated links to parent record, then read the server again. A refused save says so.
   const saveLinks = useCallback(async (newIds: number[]): Promise<boolean> => {
@@ -291,36 +288,32 @@ export const LinkedRecordsPanel: React.FC<LinkedRecordsPanelProps> = ({
   }, [linkedIds, saveLinks]);
 
   // Create a new record and link it — opens in floating window for editing
-  const handleAddNew = useCallback(async () => {
-    try {
-      // Read parent to pre-fill common fields
-      const parentRes = await getRecord(parentModel, parentId);
+  // + add (Bill, 2026-10-30): an org's contact is born with the org in its own field; any
+  // other linked record is listed in the parent's refs.links once made. The ids the parent
+  // holds that are fields of the new record are copied to it.
+  const [inherited, setInherited] = useState<Record<string, unknown>>({});
+  useEffect(() => {
+    if (!editable || !parentId) return;
+    let cancelled = false;
+    (async () => {
+      const [parentRes, detail] = await Promise.all([getRecord(parentModel, parentId), getModelDetail(linkedModel)]);
       const parent = parentRes?.record || parentRes;
-
-      // The parent ids the caller holds, for the ones that are fields of the linked model.
-      const inherited: Record<string, any> = {};
-      if (parentModel !== linkedModel) inherited[`${parentModel}_id`] = parentId;
-      for (const k of ['contact_id', 'customer_id', 'vendor_id', 'project_id']) {
-        if (parent?.[k]) inherited[k] = parent[k];
-      }
-      const detail = await getModelDetail(linkedModel);
       const fieldNames = new Set((detail?.model?.fields || []).map((f: any) => (typeof f === 'string' ? f : f?.name)));
-      const values = Object.fromEntries(Object.entries(inherited).filter(([k]) => fieldNames.has(k) || fieldNames.has(k.replace(/_id$/, ''))));  // an FK is listed by name
-
-      const res: any = await createRecord(linkedModel, values);
-      const created = res?.id ? { ...(res.record || {}), id: res.id } : null;
-      if (created?.id) {
-        await saveLinks([...linkedIds, created.id]);
-        // Open in floating window — uses App or Admin view per user preference
-        const path = getModelDetailPath(linkedModel, created.id);
-        const title = getModelWindowTitle(linkedModel, created.id, created.ida);
-        const options = getModelWindowPreset(linkedModel);
-        windowManager.ensureWindow(path, title, options);
-      }
-    } catch (err: any) {
-      dispatch(showToast({ message: `Could not make ${linkedModel}: ${err?.response?.data?.message || err?.message || err}`, type: 'error' }));
-    }
-  }, [linkedModel, parentModel, parentId, linkedIds, saveLinks, windowManager, dispatch]);
+      const has = (k: string) => fieldNames.has(k) || fieldNames.has(k.replace(/_id$/, ''));
+      const copied: Record<string, unknown> = {};
+      if (parentModel !== linkedModel && has(`${parentModel}_id`)) copied[`${parentModel}_id`] = parentId;
+      for (const k of ['contact_id', 'customer_id', 'vendor_id', 'project_id']) if (parent?.[k] && has(k)) copied[k] = parent[k];
+      if (!cancelled) setInherited(copied);
+    })().catch(() => {});
+    return () => { cancelled = true; };
+  }, [editable, parentModel, parentId, linkedModel]);
+  const orgContact = linkedModel === 'contact' && ORG_ROLES.includes(parentModel);
+  const addOptions = useMemo(() => !editable || !parentId ? null : orgContact
+    ? { parent: { field: `${parentModel}_id`, id: parentId } }
+    : { values: inherited,
+        afterMade: async (id: number) => { await saveLinks([...linkedIds, id]); } },
+  [editable, parentId, orgContact, parentModel, linkedModel, inherited, linkedIds, saveLinks]);
+  const { onAdd, addCard } = usePanelAdd(linkedModel, addOptions);
 
   // Remove a linked record
   const handleRemove = useCallback(async (recordId: number) => {
@@ -395,7 +388,7 @@ export const LinkedRecordsPanel: React.FC<LinkedRecordsPanelProps> = ({
       onSelectRow={handleOpen}
       sectionLabel={sectionLabel}
       sectionIcon={sectionIcon}
-      onAdd={editable ? handleAddNew : undefined}
+      onAdd={onAdd}
       onAssign={editable ? openAssign : undefined}
       onRemove={removable ? handleRemovePanel : undefined}
       defaultCollapsed={collapseWhenEmpty && initialLoadDone ? records.length === 0 : defaultCollapsed}
@@ -420,6 +413,7 @@ export const LinkedRecordsPanel: React.FC<LinkedRecordsPanelProps> = ({
           onClose={() => setAssigning(false)}
         />
       )}
+      {addCard}
     </DbColumns>
   );
 };
