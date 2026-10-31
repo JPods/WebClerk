@@ -46,4 +46,9 @@ describe('refusedFrom names the cause behind a label', () => {
       error: { code: 'unknown_field', details: ['bogus: not a field of cash'] } }));
     expect(r.message).toBe('Not fields of cash: bogus: not a field of cash');
   });
+  it('says a cause that holds the sentence once, with its field', () => {
+    const r = refusedFrom(refusal(400, { message: '"zz" is not a term.',
+      error: { code: 'invalid_terms', details: ['terms: "zz" is not a term.'] } }));
+    expect(r.message).toBe('terms: "zz" is not a term.');
+  });
 });

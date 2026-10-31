@@ -2,6 +2,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getUI, setUI } from '@/utils/contactUI';
 import { useAppSelector } from '../../store/hooks';
+import { useDispatch } from 'react-redux';
+import { showToast } from '../../store/slices/toastSlice';
 import { useDataBrowser, numId, toFieldNames, type FieldSpec } from '../../hooks/useDataBrowser';
 import { getDetailViewPref } from '../../layout/MacTopBar';
 import JsonEnvelopePanel from '../../components/common/JsonEnvelopePanel';
@@ -10,7 +12,7 @@ import RelatedDialog from '../../components/common/RelatedDialog';
 import ReportsDialog from '../../components/common/ReportsDialog';
 import MarkdownEditor, { type FieldPath } from '../../components/common/MarkdownEditor';
 import DataGrid from '../../components/common/DataGrid';
-import { getRecords } from '../../api/wcapi';
+import { getRecords, savesField } from '../../api/wcapi';
 import ToolbarIcon from '../../components/common/ToolbarIcon';
 import { WorkflowSelect } from '../../components/common/WorkflowSelect';
 import { convertedTarget, type ConvertedTarget } from '../../apps/transactions/utils/convertedTarget';
@@ -35,6 +37,9 @@ import './DataBrowser.css';
 // RelatedPanel, SpawnLinks, TouchBar, BOMPanel,
 // MatchCandidatesPanel, GroupedDetailFields, dbThemes
 // ---------------------------------------------------------------------------
+
+// Names copied from a contact: chosen by linking the contact, never typed in a list (Bill, 2026-10-31).
+const COPIED_NAMES = new Set(['attention', 'attention_rep']);
 
 // Btn helper — uses CSS classes from DataBrowser.css
 const Btn: React.FC<{
@@ -307,6 +312,12 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
 
   // ── Detail component state (reported via callbacks) ──
   const [detailIsEditing, setDetailIsEditing] = useState(true); // default true for app mode
+  // Edit-in-list (Bill, 2026-10-31): offered only when the company turns it on
+  // (company profile prefs.behavior.edit_in_list); off each time a model's list opens.
+  const editInListOffered = useAppSelector((s) => s.company.behavior?.edit_in_list === true);
+  const [editInList, setEditInList] = useState(false);
+  useEffect(() => { setEditInList(false); }, [db.selectedModel]);
+  const dispatch = useDispatch();
   // What a workflow convert made, shown in the detail pane with its review lines until another
   // record is picked. The toolbar's Workflow only refreshed the list: To Purchase left an empty
   // purchase and To Receipt opened nothing (Bill, 2026-10-25/26).
@@ -821,6 +832,13 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
             Reassign{db.selectedRowIds.size > 0 ? ` (${db.selectedRowIds.size})` : ''}
           </Btn>
           <ToolbarIcon action={TB.addRecord} title={`Add ${db.modelLabel || 'Record'} (⌘N)`} disabled={!db.selectedModel} onClick={() => addRecord()} />
+          {editInListOffered && (
+            <label data-wc="db-edit-in-list" className={`db-edit-in-list${editInList ? ' db-edit-in-list--on' : ''}`}
+              title="Double-click a cell to edit it; each change saves when you leave the cell. Enter: down, Tab: right, Esc: cancel.">
+              <input type="checkbox" checked={editInList} onChange={(e) => setEditInList(e.target.checked)} />
+              {editInList ? 'editing in list' : 'edit in list'}
+            </label>
+          )}
           <span className="db-spacer" />
           <span className="db-pagination-info">{db.totalRecords}</span>
           <Btn small variant="ghost" disabled={db.page === 0} onClick={() => db.setPage((p) => p - 1)}>←</Btn>
@@ -943,7 +961,14 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
                 // Both modes: select record — right panel renders db.detail (Admin) or ui.json (App)
                 db.setSelectedId(id); db.setIsDirty(false);
               }}
-              onSelectRows={db.setSelectedRowIds}
+              onSelectRows={(ids, moved) => {
+                db.setSelectedRowIds(ids);
+                // An open form follows a plain click or arrow key, dropping unsaved edits (Bill,
+                // 2026-10-31); a closed one stays closed — selecting never opens it.
+                if (moved != null && db.selectedId != null && moved !== db.selectedId) {
+                  db.setIsDirty(false); db.setSelectedId(moved);
+                }
+              }}
               onRowDoubleClicked={(row, e) => {
                 // Double-click opens the record in the frame (onSelectRecord); Option-double-click
                 // opens it in another browser window instead (Bill, 2026-10-31).
@@ -964,12 +989,23 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
               onColumnDrop={db.handleColumnDrop}
               onResizeStart={db.handleResizeStart}
               onWidthClick={db.handleWidthClick}
+              editInList={editInList}
+              fieldEditable={(f) => savesField(db.selectedModel, f) && !COPIED_NAMES.has(f)}
               onCellEdit={async (rid, field, value) => {
+                const { saveRecord } = await import('@/api/wcapi');
                 try {
-                  const { saveRecord } = await import('@/api/wcapi');
                   await saveRecord(db.selectedModel, { id: rid, [field]: value });
-                  db.fetchRecords();
-                } catch (e) { console.error('Inline edit failed:', e); }
+                } catch (e: any) {
+                  // The server's reason, said where the user is looking (coach, don't drop).
+                  const d = e?.response?.data;
+                  const why = d?.message || d?.error?.details || d?.detail || e?.message || String(e);
+                  const text = typeof why === 'string' ? why : Array.isArray(why) ? why.join('; ') : JSON.stringify(why);
+                  dispatch(showToast({ message: `Not saved — ${text}`, type: 'error' }));
+                  throw new Error(text);
+                }
+                db.fetchRecords();
+                // The same record open in the form shows the new value, unless it holds edits of its own.
+                if (rid === db.selectedId && !db.isDirty) db.setSelectedId(rid);
               }}
               numId={numId}
               theme={tList}

@@ -81,7 +81,8 @@ export function refusedFrom(err: any, fallback = 'Request failed'): Refusal {
   return {
     status: err?.response?.status ?? null,
     code: (error && typeof error === 'object' && error.code) || null,
-    message: cause && !message.includes(cause) ? `${message}: ${cause}` : message,
+    // A cause that already holds the sentence ("terms: <sentence>") is said alone, not twice.
+    message: !cause || message.includes(cause) ? message : cause.includes(message) ? cause : `${message}: ${cause}`,
     details,
   };
 }
@@ -451,17 +452,23 @@ export async function getRecord(model_name: string, id: number) {
   } as any);
 }
 
+// Computed property fields that don't exist as model columns — they cause envelope_invalid
+// errors when the backend tries to pack them into config. These are @property methods on
+// TransactionBaseModel, not real DB fields. An Email record's `email` is its own column, not the
+// computed property (Bill, 2026-10-16).
+const NOT_SAVED = ['email', 'phone', 'address_full', 'company_name'];
+
+/** Whether a save of this model carries this field (an edit-in-list cell is locked when not). */
+export function savesField(model_name: string, field: string): boolean {
+  return !NOT_SAVED.includes(field) || (field === 'email' && resolveModelName(model_name) === 'email');
+}
+
 export async function saveRecord(model_name: string, payload: any) {
   const resolved = resolveModelName(model_name);
   // id goes in the path; mode is not a REST concept (PUT and PATCH merge) — neither is sent.
   const { id, mode: _mode, ...record } = payload;
-  // Strip computed property fields that don't exist as model columns — they cause
-  // envelope_invalid errors when the backend tries to pack them into config.
-  // These are @property methods on TransactionBaseModel, not real DB fields.
-  // An Email record's `email` is its own column, not the computed property (Bill, 2026-10-16).
-  for (const k of ['email', 'phone', 'address_full', 'company_name']) {
-    if (k === 'email' && resolved === 'email') continue;
-    delete record[k];
+  for (const k of NOT_SAVED) {
+    if (!savesField(resolved, k)) delete record[k];
   }
 
   // ── Pre-flight: envelope validation ──

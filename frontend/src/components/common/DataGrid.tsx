@@ -98,15 +98,24 @@ export interface DataGridProps {
   onSelectRecord?: (id: number) => void;
   onToggleRow?: (id: number) => void;
   /** Given, a click only selects (the rows become this set) and a double-click opens the
-   *  record (onSelectRecord): selecting groups never opens the frame (Bill, 2026-10-31). */
-  onSelectRows?: (ids: Set<number>) => void;
+   *  record (onSelectRecord): selecting groups never opens the frame (Bill, 2026-10-31).
+   *  `moved` is the one row a plain click or arrow key went to — an open frame shows it;
+   *  Shift and Cmd change only the selection. */
+  onSelectRows?: (ids: Set<number>, moved?: number) => void;
   onSelectAll?: () => void;
   onClearSelection?: () => void;
   onSort?: (field: string, multiSort?: boolean) => void;
   onColumnDrop?: (dragField: string, targetField: string) => void;
   onResizeStart?: (field: string, e: React.MouseEvent) => void;
   onWidthClick?: (field: string, anchor: HTMLElement) => void;
-  onCellEdit?: (recordId: number, field: string, value: unknown) => void;
+  /** Save one cell. A promise lets the cell show the result: green when saved, red with the reason. */
+  onCellEdit?: (recordId: number, field: string, value: unknown) => void | Promise<void>;
+  /** Edit-in-list (Bill, 2026-10-31): double-click edits a cell instead of opening the record;
+   *  only plain values (text, numbers, choices) — not dates, links, or system-set fields. */
+  editInList?: boolean;
+  /** Edit-in-list: false for a field the list must not edit — one the save does not carry, or a
+   *  copy of another record (a customer's attention is its contact's name). */
+  fieldEditable?: (field: string) => boolean;
   onHeaderClick?: (field: string) => void;
   headerEditField?: string | null;
   headerEditValue?: string;
@@ -455,8 +464,13 @@ export default function DataGrid(props: DataGridProps) {
   }, [props.onFilterChange]);
 
   // --- Inline edit ---
-  const [editCell, setEditCell] = useState<{ rid: number; field: string } | null>(null);
+  const [editCell, setEditCell] = useState<{ rid: number; field: string; was: string } | null>(null);
+  const [cellResult, setCellResult] = useState<{ rid: number; field: string; error?: string } | null>(null);
   const lastClickedIdx = useRef<number | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  // The keyboard's place in the list: the row it is on, and where a Shift range starts.
+  const cursorRid = useRef<number | null>(null);
+  const anchorRid = useRef<number | null>(null);
   const [editValue, setEditValue] = useState('');
   const editRef = useRef<HTMLInputElement>(null);
 
@@ -553,14 +567,26 @@ export default function DataGrid(props: DataGridProps) {
   }, [filteredRecords, columns, fieldBehaviors]);
 
   // --- Inline edit handlers ---
+  // A cell the list can edit. Edit-in-list keeps to plain values: a date needs its date widget and
+  // a link its search, so those stay in the form.
+  const cellEditable = useCallback((field: string, value: unknown) => {
+    const b = fieldBehaviors[field];
+    if (b?.type === 'readonly' || b?.type === 'timestamp') return false;
+    if (!props.editInList) return true;
+    if (b?.calculated || field === 'id' || field.includes('.') || /^dt_|_id$/.test(field)) return false;
+    if (props.fieldEditable && !props.fieldEditable(field)) return false;
+    if (b?.type && !['text', 'string', 'number', 'currency', 'select', 'email', 'phone'].includes(b.type)) return false;
+    return value == null || typeof value !== 'object';
+  }, [fieldBehaviors, props.editInList, props.fieldEditable]);
+
   const startEdit = useCallback((rid: number, field: string, currentValue: unknown) => {
-    if (!onCellEdit) return;
-    const beh = fieldBehaviors[field];
-    if (beh?.type === 'readonly' || beh?.type === 'timestamp') return;
-    setEditCell({ rid, field });
-    setEditValue(typeof currentValue === 'object' ? JSON.stringify(currentValue) : String(currentValue ?? ''));
+    if (!onCellEdit || !cellEditable(field, currentValue)) return;
+    const was = typeof currentValue === 'object' && currentValue !== null ? JSON.stringify(currentValue) : String(currentValue ?? '');
+    setEditCell({ rid, field, was });
+    setCellResult(null);
+    setEditValue(was);
     setTimeout(() => editRef.current?.focus(), 50);
-  }, [onCellEdit, fieldBehaviors]);
+  }, [onCellEdit, cellEditable]);
 
   const commitEdit = useCallback((moveDirection?: 'right' | 'down') => {
     if (!editCell || !onCellEdit) return;
@@ -568,10 +594,21 @@ export default function DataGrid(props: DataGridProps) {
     const beh = fieldBehaviors[editCell.field];
     if (beh?.type === 'number' || beh?.type === 'currency') val = parseFloat(editValue) || 0;
     else if (beh?.type === 'boolean') val = editValue === 'true' || editValue === '1';
-    onCellEdit(editCell.rid, editCell.field, val);
+    // Saved the moment the cell is left — and only when it changed.
+    if (editValue !== editCell.was) {
+      const { rid, field } = editCell;
+      const saving = onCellEdit(rid, field, val);
+      if (saving) {
+        saving.then(() => {
+          setCellResult({ rid, field });
+          setTimeout(() => setCellResult((c) => (c && c.rid === rid && c.field === field && !c.error ? null : c)), 1200);
+        }, (err: any) => setCellResult({ rid, field, error: String(err?.message || err) }));
+      }
+    }
 
     if (moveDirection && filteredRecords.length > 0) {
       const editableColumns = columns.filter(f => {
+        if (props.editInList) return cellEditable(f, undefined);
         const b = fieldBehaviors[f];
         return b && b.type !== 'readonly' && b.type !== 'timestamp' && !b.calculated;
       });
@@ -607,7 +644,7 @@ export default function DataGrid(props: DataGridProps) {
       }
     }
     setEditCell(null);
-  }, [editCell, editValue, onCellEdit, fieldBehaviors, columns, filteredRecords, numId]);
+  }, [editCell, editValue, onCellEdit, fieldBehaviors, columns, filteredRecords, numId, cellEditable, props.editInList]);
 
   const cancelEdit = useCallback(() => setEditCell(null), []);
 
@@ -751,10 +788,14 @@ export default function DataGrid(props: DataGridProps) {
       handleToggleRow(rid);
     } else {
       // Plain click: select only this row (clears others). WC standard.
-      if (props.onSelectRows) props.onSelectRows(new Set([rid]));
+      if (props.onSelectRows) props.onSelectRows(new Set([rid]), rid);
       else handleSelectRecord(rid);
     }
+    if (!e.shiftKey) anchorRid.current = rid;
+    cursorRid.current = rid;
     lastClickedIdx.current = rowIdx;
+    // Clicking puts the keyboard in the list, so the arrows move from here.
+    if (props.onSelectRows) scrollRef.current?.focus({ preventScroll: true });
   }, [selectedRowIds, handleSelectRecord, handleToggleRow, numId, props.onToggleRow, props.onSelectRows]);
 
   // --- Auto-justify: FieldSpec > fieldBehaviors > name inference > data inference ---
@@ -822,7 +863,7 @@ export default function DataGrid(props: DataGridProps) {
           onClick={(e) => handleRowClick(e, rid, idx, rows)}
           // Shift-click and double-click are list gestures: they must not select the page's text.
           onMouseDown={props.onSelectRows ? (e) => { if (e.shiftKey || e.detail > 1) e.preventDefault(); } : undefined}
-          onDoubleClick={(e) => { if (rid !== null) { if (!e.altKey) handleSelectRecord(rid); if (props.onRowDoubleClicked) props.onRowDoubleClicked(rec, e); } }}
+          onDoubleClick={(e) => { if (rid !== null) { if (!e.altKey && !props.editInList) handleSelectRecord(rid); if (props.onRowDoubleClicked) props.onRowDoubleClicked(rec, e); } }}
         >
           <td className={`dg-td-indicator${pinnedColumn ? ' dg-td-indicator--pinned' : ''}`} role="gridcell">
             {isChecked && <div className="dg-check-bar" />}
@@ -834,22 +875,25 @@ export default function DataGrid(props: DataGridProps) {
             if (isPinned) tdClasses.push('dg-td--pinned');
             if (isActive && isPinned) tdClasses.push('dg-td--active');
             if (fieldBehaviors[f]?.calculated) tdClasses.push('dg-td--calculated');
-            const cellEditable = !!onCellEdit && fieldBehaviors[f]?.type !== 'readonly' && fieldBehaviors[f]?.type !== 'timestamp';
+            const canEdit = !!onCellEdit && cellEditable(f, rec[f]);
+            const result = cellResult && cellResult.rid === rid && cellResult.field === f ? cellResult : null;
+            if (result) tdClasses.push(result.error ? 'dg-td--failed' : 'dg-td--saved');
+            if (props.editInList && canEdit) tdClasses.push('dg-td--editable');
             return (
             <td key={f}
               role="gridcell"
-              aria-readonly={cellEditable ? false : undefined}
+              aria-readonly={canEdit ? false : undefined}
               className={tdClasses.join(' ')}
               style={{
                 textAlign: getAlign(f),
                 paddingLeft: isTreeCol ? `${8 + rowLevel * treeIndent}px` : undefined,
                 width: effectiveColWidths[f], minWidth: effectiveColWidths[f],
               }}
-              // A list whose double-click opens the record keeps that one meaning: no cell editor.
-              onDoubleClick={props.onSelectRows ? undefined : () => { if (rid !== null) startEdit(rid, f, rec[f]); }}
+              // A list whose double-click opens the record edits a cell only with edit-in-list on.
+              onDoubleClick={props.onSelectRows && !props.editInList ? undefined : (e) => { if (rid !== null && !e.altKey) startEdit(rid, f, rec[f]); }}
               // Cmd-click toggles the row; Cmd-Option-click is the cell's own (an ida's image, Bill 2026-10-31).
               onClick={props.onCellClick ? (e: React.MouseEvent) => { if ((e.metaKey || e.ctrlKey) && e.altKey && props.onCellClick) { e.stopPropagation(); props.onCellClick(e, f, rec); } } : undefined}
-              title={(/^dt_/.test(f) || fieldBehaviors[f]?.type === 'timestamp' || fieldBehaviors[f]?.type === 'datetime') && rec[f] ? formatDt(rec[f], 'datetime', f) : String(rec[f] ?? '')}
+              title={result?.error ? `Not saved: ${result.error}` : (/^dt_/.test(f) || fieldBehaviors[f]?.type === 'timestamp' || fieldBehaviors[f]?.type === 'datetime') && rec[f] ? formatDt(rec[f], 'datetime', f) : String(rec[f] ?? '')}
             >
               {isTreeCol ? (
                 <span className="dg-tree-cell">
@@ -894,7 +938,7 @@ export default function DataGrid(props: DataGridProps) {
   }, [filteredRecords, columns]);
 
   // --- Drag-to-scroll horizontal panning ---
-  const scrollRef = useRef<HTMLDivElement>(null);
+
   const dragScrollRef = useRef<{ startX: number; startScrollLeft: number } | null>(null);
 
   // Compute effective width per column — every column gets an explicit width
@@ -962,6 +1006,31 @@ export default function DataGrid(props: DataGridProps) {
     <div className="dg-root" role="grid" aria-label="Data grid" aria-rowcount={filteredRecords.length} aria-colcount={columns.length} style={{ '--dg-fs': props.fontSize ? `${fontSize}px` : 'var(--db-font-size, 13px)', '--dg-fs-sm': props.fontSize ? `${fontSize - 1}px` : 'calc(var(--db-font-size, 13px) - 1px)', '--dg-fs-xs': props.fontSize ? `${fontSize - 2}px` : 'calc(var(--db-font-size, 13px) - 2px)' } as React.CSSProperties}>
       {!props.hideToolbar && toolbar}
       <div ref={scrollRef} className="dg-scroll" style={{ cursor: tableWidth > (scrollRef.current?.clientWidth ?? Infinity) ? 'grab' : undefined }}
+        tabIndex={props.onSelectRows ? 0 : undefined}
+        onKeyDown={props.onSelectRows ? (e) => {
+          // Up/Down move the selection a row, Shift extends it, Enter opens the row (Bill, 2026-10-31).
+          if (editCell || !['ArrowUp', 'ArrowDown', 'Enter'].includes(e.key)) return;
+          const trs = Array.from(scrollRef.current?.querySelectorAll<HTMLTableRowElement>('tr.dg-row[data-rid]') ?? []);
+          const ids = trs.map((tr) => Number(tr.dataset.rid));
+          if (!ids.length) return;
+          e.preventDefault();
+          const at = cursorRid.current != null ? ids.indexOf(cursorRid.current) : -1;
+          if (e.key === 'Enter') {
+            if (at >= 0 && !props.editInList) handleSelectRecord(ids[at]);
+            return;
+          }
+          const to = at < 0 ? 0 : Math.max(0, Math.min(ids.length - 1, at + (e.key === 'ArrowDown' ? 1 : -1)));
+          const rid = ids[to];
+          if (e.shiftKey && anchorRid.current != null && ids.includes(anchorRid.current)) {
+            const from = ids.indexOf(anchorRid.current);
+            props.onSelectRows!(new Set(ids.slice(Math.min(from, to), Math.max(from, to) + 1)));
+          } else {
+            props.onSelectRows!(new Set([rid]), rid);
+            anchorRid.current = rid;
+          }
+          cursorRid.current = rid;
+          trs[to].scrollIntoView({ block: 'nearest' });
+        } : undefined}
         onMouseDown={(e) => {
           // Only drag-scroll on middle button or when table overflows
           if (!scrollRef.current || tableWidth <= scrollRef.current.clientWidth) return;

@@ -1888,3 +1888,20 @@
     max-height: 50vh;
   }
 }
+
+/* Edit-in-list switch; amber while on so nobody forgets the list is editable (Bill, 2026-10-31). */
+.db-edit-in-list {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--db-text-muted, #6c757d);
+}
+.db-edit-in-list--on {
+  background: var(--db-row-checked, #fff3cd);
+  color: var(--db-text, #212529);
+  font-weight: 600;
+}

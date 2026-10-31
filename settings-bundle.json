@@ -6185,7 +6185,8 @@
           "order_line_track": true,
           "lead_response_days": 20,
           "track_proposal_qty": true,
-          "manual_order_status": false
+          "manual_order_status": false,
+          "edit_in_list": true
         },
         "currency": {
           "code": "USD",
