@@ -102,14 +102,18 @@ export const WindowManagerProvider: React.FC<{ children: React.ReactNode }> = ({
     });
   }, []);
 
+  // Closing the window in front returns the address to the window now in front, so a reload
+  // or anything reading the address sees that window, not the closed one (Bill, 2026-10-31).
   const closeWindow = useCallback((path: string) => {
-    setWindows((prev) => {
-      const next = prev.filter((w) => w.path !== path);
-      const fallback = next.length ? next[next.length - 1].path : null;
-      setActivePath(fallback);
-      return next;
-    });
-  }, []);
+    const next = windows.filter((w) => w.path !== path);
+    const fallback = next.length ? next[next.length - 1].path : null;
+    setWindows(next);
+    setActivePath(fallback);
+    if (fallback && path === activePath && navigateRef.current) {
+      skipAutoCreateForPathRef.current = fallback.split('?')[0];
+      navigateRef.current(fallback);
+    }
+  }, [windows, activePath]);
 
   const minimizeWindow = useCallback(
     (path: string, minimized = true) => {
