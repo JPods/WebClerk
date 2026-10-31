@@ -99,7 +99,7 @@ export interface DataGridProps {
   onToggleRow?: (id: number) => void;
   /** Given, a click only selects (the rows become this set) and a double-click opens the
    *  record (onSelectRecord): selecting groups never opens the frame (Bill, 2026-10-31). */
-  onSelectRows?: (ids: Set<number>, how: 'only' | 'range') => void;
+  onSelectRows?: (ids: Set<number>) => void;
   onSelectAll?: () => void;
   onClearSelection?: () => void;
   onSort?: (field: string, multiSort?: boolean) => void;
@@ -739,7 +739,7 @@ export default function DataGrid(props: DataGridProps) {
         if (id !== null) rangeIds.add(id);
       }
       if (props.onSelectRows) {
-        props.onSelectRows(rangeIds, 'range');
+        props.onSelectRows(rangeIds);
       } else if (props.onToggleRow) {
         // External mode — set all at once via parent
         rangeIds.forEach((id) => { if (!selectedRowIds.has(id)) props.onToggleRow!(id); });
@@ -751,7 +751,7 @@ export default function DataGrid(props: DataGridProps) {
       handleToggleRow(rid);
     } else {
       // Plain click: select only this row (clears others). WC standard.
-      if (props.onSelectRows) props.onSelectRows(new Set([rid]), 'only');
+      if (props.onSelectRows) props.onSelectRows(new Set([rid]));
       else handleSelectRecord(rid);
     }
     lastClickedIdx.current = rowIdx;

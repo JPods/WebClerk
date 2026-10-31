@@ -307,9 +307,6 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
 
   // ── Detail component state (reported via callbacks) ──
   const [detailIsEditing, setDetailIsEditing] = useState(true); // default true for app mode
-  // Browse mode is the viewer's own habit: kept in this browser only.
-  const [browse, setBrowseState] = useState<boolean>(() => { try { return localStorage.getItem('db:browse') === '1'; } catch { return false; } });
-  const setBrowse = (on: boolean) => { setBrowseState(on); try { localStorage.setItem('db:browse', on ? '1' : '0'); } catch { /* storage blocked */ } };
   // What a workflow convert made, shown in the detail pane with its review lines until another
   // record is picked. The toolbar's Workflow only refreshed the list: To Purchase left an empty
   // purchase and To Receipt opened nothing (Bill, 2026-10-25/26).
@@ -824,10 +821,6 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
             Reassign{db.selectedRowIds.size > 0 ? ` (${db.selectedRowIds.size})` : ''}
           </Btn>
           <ToolbarIcon action={TB.addRecord} title={`Add ${db.modelLabel || 'Record'} (⌘N)`} disabled={!db.selectedModel} onClick={() => addRecord()} />
-          <label className="db-pagination-info" data-wc="db-browse" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}
-            title="Browse: with a record open, one click shows that row (unsaved changes are discarded)">
-            <input type="checkbox" checked={browse} onChange={(e) => setBrowse(e.target.checked)} />browse
-          </label>
           <span className="db-spacer" />
           <span className="db-pagination-info">{db.totalRecords}</span>
           <Btn small variant="ghost" disabled={db.page === 0} onClick={() => db.setPage((p) => p - 1)}>←</Btn>
@@ -950,15 +943,7 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
                 // Both modes: select record — right panel renders db.detail (Admin) or ui.json (App)
                 db.setSelectedId(id); db.setIsDirty(false);
               }}
-              onSelectRows={(ids, how) => {
-                db.setSelectedRowIds(ids);
-                // Browse: with the frame open, a plain click shows that row and drops unsaved edits;
-                // shift- and Cmd-clicks change only the selection (Bill, 2026-10-31).
-                const [id] = ids;
-                if (browse && how === 'only' && db.selectedId != null && id !== db.selectedId) {
-                  db.setIsDirty(false); db.setSelectedId(id);
-                }
-              }}
+              onSelectRows={db.setSelectedRowIds}
               onRowDoubleClicked={(row, e) => {
                 // Double-click opens the record in the frame (onSelectRecord); Option-double-click
                 // opens it in another browser window instead (Bill, 2026-10-31).
@@ -968,7 +953,8 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
                 const id = typeof row?.id === 'number' ? row.id : Number(row?.id);
                 if (!id) return;
                 const route = APP_DETAIL_ROUTES[db.selectedModel];
-                if (route) { window.open(`${route}/${id}`, '_blank'); }
+                // Its own browser window, not a tab; the same record again comes to the front.
+                if (route) { window.open(`${route}/${id}`, `${db.selectedModel}-${id}`, 'popup,width=1200,height=850'); }
               }}
               onToggleRow={db.toggleRow}
               onSelectAll={db.selectAllRows}
