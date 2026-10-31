@@ -39,11 +39,6 @@ import './DataBrowser.css';
 // MatchCandidatesPanel, GroupedDetailFields, dbThemes
 // ---------------------------------------------------------------------------
 
-// Shift+hover on the list: what its gestures do (the WC List Standard, Bill 2026-10-31).
-const LIST_HELP = 'Click selects; Shift-click or Shift+arrow extends; Cmd-click toggles; ↑↓ move. '
-  + 'Double-click or Enter opens the record; Option-double-click opens it in its own window. '
-  + 'With the record open, a click or arrow shows that row (unsaved changes can be undone).';
-
 // Names copied from a contact: chosen by linking the contact, never typed in a list (Bill, 2026-10-31).
 const COPIED_NAMES = new Set(['attention', 'attention_rep']);
 
@@ -956,8 +951,7 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
       <div className="db-main" ref={mainRef}>
 
         {/* List pane */}
-        <div data-wc="db-list-pane" className="db-list-pane" data-zone="db.list | .db-list-pane | DataBrowser.tsx" data-theme={listTheme}
-          data-help={LIST_HELP + (editInList ? ' Editing in list: double-click a cell to edit; it saves when you leave it (Enter down, Tab right, Esc cancels).' : '')}>
+        <div data-wc="db-list-pane" className="db-list-pane" data-zone="db.list | .db-list-pane | DataBrowser.tsx" data-theme={listTheme}>
           {db.recordsLoading && <div className="db-status-msg">Loading...</div>}
           {db.recordsError && <div className="db-status-msg db-status-msg--error">{db.recordsError}</div>}
           {!db.recordsLoading && (
@@ -1006,10 +1000,8 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
                   db.setIsDirty(false); db.setSelectedId(moved);
                 }
               }}
-              onRowDoubleClicked={(row, e) => {
-                // Double-click opens the record in the frame (onSelectRecord); Option-double-click
-                // opens it in another browser window instead (Bill, 2026-10-31).
-                if (!e.altKey) return;
+              onOpenWindow={(row) => {
+                // Option-double-click: the record in a browser window of its own (Bill, 2026-10-31).
                 // Statement lines have no detail view — users look at their statement
                 if (db.selectedModel === 'statement_line') return;
                 const id = typeof row?.id === 'number' ? row.id : Number(row?.id);

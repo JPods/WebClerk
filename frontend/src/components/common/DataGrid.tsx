@@ -15,6 +15,7 @@
  * Replaces the inline table in DataBrowser.
  * Reusable in any page that needs a data table.
  */
+import { EDIT_IN_LIST_HELP, LIST_HELP, useListGestures } from '@/hooks/useListGestures';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { parseFragments, matchesFragments } from '@/utils/searchFragments';
 import { formatPhone } from '@/utils/fieldFormatters';
@@ -152,7 +153,9 @@ export interface DataGridProps {
   /** Row click handler (receives full row object, not just id) */
   onRowClicked?: (row: any) => void;
   /** Row double-click handler */
-  onRowDoubleClicked?: (row: any, e: React.MouseEvent) => void;
+  onRowDoubleClicked?: (row: any) => void;
+  /** Option-double-click: the record in a browser window of its own (the WC List Standard). */
+  onOpenWindow?: (row: any) => void;
   /** Cell click handler — receives event, field name, and row record */
   onCellClick?: (e: React.MouseEvent, field: string, row: any) => void;
   /** Row activate handler */
@@ -468,9 +471,6 @@ export default function DataGrid(props: DataGridProps) {
   const [cellResult, setCellResult] = useState<{ rid: number; field: string; error?: string } | null>(null);
   const lastClickedIdx = useRef<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  // The keyboard's place in the list: the row it is on, and where a Shift range starts.
-  const cursorRid = useRef<number | null>(null);
-  const anchorRid = useRef<number | null>(null);
   const [editValue, setEditValue] = useState('');
   const editRef = useRef<HTMLInputElement>(null);
 
@@ -775,9 +775,7 @@ export default function DataGrid(props: DataGridProps) {
         const id = numId(rows[i]?.id);
         if (id !== null) rangeIds.add(id);
       }
-      if (props.onSelectRows) {
-        props.onSelectRows(rangeIds);
-      } else if (props.onToggleRow) {
+      if (props.onToggleRow) {
         // External mode — set all at once via parent
         rangeIds.forEach((id) => { if (!selectedRowIds.has(id)) props.onToggleRow!(id); });
       } else {
@@ -788,15 +786,25 @@ export default function DataGrid(props: DataGridProps) {
       handleToggleRow(rid);
     } else {
       // Plain click: select only this row (clears others). WC standard.
-      if (props.onSelectRows) props.onSelectRows(new Set([rid]), rid);
-      else handleSelectRecord(rid);
+      handleSelectRecord(rid);
     }
-    if (!e.shiftKey) anchorRid.current = rid;
-    cursorRid.current = rid;
     lastClickedIdx.current = rowIdx;
-    // Clicking puts the keyboard in the list, so the arrows move from here.
-    if (props.onSelectRows) scrollRef.current?.focus({ preventScroll: true });
-  }, [selectedRowIds, handleSelectRecord, handleToggleRow, numId, props.onToggleRow, props.onSelectRows]);
+  }, [selectedRowIds, handleSelectRecord, handleToggleRow, numId, props.onToggleRow]);
+
+  // A list whose double-click opens the record takes the WC List Standard's gestures, the
+  // same code as every panel list (useListGestures); other grids keep the handling above.
+  const gestures = useListGestures<number>({
+    enabled: !!props.onSelectRows,
+    listRef: scrollRef,
+    keys: () => Array.from(scrollRef.current?.querySelectorAll<HTMLElement>('tr.dg-row[data-row-key]') ?? [])
+      .map((tr) => Number(tr.dataset.rowKey)),
+    selected: selectedRowIds,
+    select: (next, moved) => props.onSelectRows?.(next, moved),
+    open: (rid) => { if (!props.editInList) handleSelectRecord(rid); },
+    openWindow: (rid) => { const row = recordMap.get(rid); if (row) props.onOpenWindow?.(row); },
+    busy: () => !!editCell,
+    help: props.editInList ? LIST_HELP + EDIT_IN_LIST_HELP : LIST_HELP,
+  });
 
   // --- Auto-justify: FieldSpec > fieldBehaviors > name inference > data inference ---
   const getAlign = useCallback((field: string): 'left' | 'right' | 'center' => {
@@ -860,10 +868,10 @@ export default function DataGrid(props: DataGridProps) {
           aria-current={isActive && opensApart ? true : undefined}
           className={rowClasses.join(' ')}
           style={ruleStyle.background ? { background: ruleStyle.background, color: ruleStyle.color, fontWeight: ruleStyle.fontWeight } : undefined}
-          onClick={(e) => handleRowClick(e, rid, idx, rows)}
-          // Shift-click and double-click are list gestures: they must not select the page's text.
-          onMouseDown={props.onSelectRows ? (e) => { if (e.shiftKey || e.detail > 1) e.preventDefault(); } : undefined}
-          onDoubleClick={(e) => { if (rid !== null) { if (!e.altKey && !props.editInList) handleSelectRecord(rid); if (props.onRowDoubleClicked) props.onRowDoubleClicked(rec, e); } }}
+          {...(opensApart && rid !== null ? gestures.rowProps(rid) : {
+            onClick: (e: React.MouseEvent) => handleRowClick(e, rid, idx, rows),
+            onDoubleClick: () => { if (rid !== null) { handleSelectRecord(rid); props.onRowDoubleClicked?.(rec); } },
+          })}
         >
           <td className={`dg-td-indicator${pinnedColumn ? ' dg-td-indicator--pinned' : ''}`} role="gridcell">
             {isChecked && <div className="dg-check-bar" />}
@@ -1005,32 +1013,8 @@ export default function DataGrid(props: DataGridProps) {
   return (
     <div className="dg-root" role="grid" aria-label="Data grid" aria-rowcount={filteredRecords.length} aria-colcount={columns.length} style={{ '--dg-fs': props.fontSize ? `${fontSize}px` : 'var(--db-font-size, 13px)', '--dg-fs-sm': props.fontSize ? `${fontSize - 1}px` : 'calc(var(--db-font-size, 13px) - 1px)', '--dg-fs-xs': props.fontSize ? `${fontSize - 2}px` : 'calc(var(--db-font-size, 13px) - 2px)' } as React.CSSProperties}>
       {!props.hideToolbar && toolbar}
-      <div ref={scrollRef} className="dg-scroll" style={{ cursor: tableWidth > (scrollRef.current?.clientWidth ?? Infinity) ? 'grab' : undefined }}
-        tabIndex={props.onSelectRows ? 0 : undefined}
-        onKeyDown={props.onSelectRows ? (e) => {
-          // Up/Down move the selection a row, Shift extends it, Enter opens the row (Bill, 2026-10-31).
-          if (editCell || !['ArrowUp', 'ArrowDown', 'Enter'].includes(e.key)) return;
-          const trs = Array.from(scrollRef.current?.querySelectorAll<HTMLTableRowElement>('tr.dg-row[data-rid]') ?? []);
-          const ids = trs.map((tr) => Number(tr.dataset.rid));
-          if (!ids.length) return;
-          e.preventDefault();
-          const at = cursorRid.current != null ? ids.indexOf(cursorRid.current) : -1;
-          if (e.key === 'Enter') {
-            if (at >= 0 && !props.editInList) handleSelectRecord(ids[at]);
-            return;
-          }
-          const to = at < 0 ? 0 : Math.max(0, Math.min(ids.length - 1, at + (e.key === 'ArrowDown' ? 1 : -1)));
-          const rid = ids[to];
-          if (e.shiftKey && anchorRid.current != null && ids.includes(anchorRid.current)) {
-            const from = ids.indexOf(anchorRid.current);
-            props.onSelectRows!(new Set(ids.slice(Math.min(from, to), Math.max(from, to) + 1)));
-          } else {
-            props.onSelectRows!(new Set([rid]), rid);
-            anchorRid.current = rid;
-          }
-          cursorRid.current = rid;
-          trs[to].scrollIntoView({ block: 'nearest' });
-        } : undefined}
+      <div className="dg-scroll" style={{ cursor: tableWidth > (scrollRef.current?.clientWidth ?? Infinity) ? 'grab' : undefined }}
+        {...gestures.listProps}
         onMouseDown={(e) => {
           // Only drag-scroll on middle button or when table overflows
           if (!scrollRef.current || tableWidth <= scrollRef.current.clientWidth) return;

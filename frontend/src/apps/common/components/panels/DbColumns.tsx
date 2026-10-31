@@ -43,6 +43,7 @@ import { PanelFrame } from "@/apps/common/components/CollapsiblePanel";
 import { FaSlidersH } from "react-icons/fa";
 import FieldOrderDialog from "@/components/common/FieldOrderDialog";
 import { useListFieldConfig } from "@/hooks/useListFieldConfig";
+import { useListGestures } from "@/hooks/useListGestures";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -173,57 +174,24 @@ export function DbColumns<T extends object>({
 
   const hasSectionHeader = !!sectionLabel;
 
-  // ── Selection (the WC List Standard) ──
+  // ── Selection: the WC List Standard, the same code as the record list (useListGestures) ──
   const standard = !!onOpenRow;
   const [picked, setPicked] = React.useState<Set<string | number>>(new Set());
-  const anchorKey = React.useRef<string | number | null>(null);
-  const cursorKey = React.useRef<string | number | null>(null);
-  const listRef = React.useRef<HTMLDivElement>(null);
-  const keys = data.map(rowKey);
-  const rowEl = (k: string | number) =>
-    listRef.current?.querySelector<HTMLElement>(`[data-row-key="${CSS.escape(String(k))}"]`) ?? null;
-  const go = (k: string | number, extend: boolean) => {
-    const to = keys.indexOf(k);
-    if (extend && anchorKey.current != null && keys.includes(anchorKey.current)) {
-      const from = keys.indexOf(anchorKey.current);
-      setPicked(new Set(keys.slice(Math.min(from, to), Math.max(from, to) + 1)));
-    } else {
-      setPicked(new Set([k]));
-      anchorKey.current = k;
-      const el = rowEl(k);
-      if (el) onMoveRow?.(data[to], el);
-    }
-    cursorKey.current = k;
-  };
-  const rowGestures = (record: T, k: string | number) => standard ? {
-    'data-row-key': String(k),
-    onMouseDown: (e: React.MouseEvent) => { if (e.shiftKey || e.detail > 1) e.preventDefault(); },
-    onClick: (e: React.MouseEvent) => {
-      if (e.metaKey || e.ctrlKey) {
-        setPicked((p) => { const n = new Set(p); if (n.has(k)) n.delete(k); else n.add(k); return n; });
-        anchorKey.current = k; cursorKey.current = k;
-      } else go(k, e.shiftKey);
-      listRef.current?.focus({ preventScroll: true });
+  const byKey = (k: string | number) => data.find((r) => rowKey(r) === k);
+  const gestures = useListGestures<string | number>({
+    enabled: standard,
+    keys: () => data.map(rowKey),
+    selected: picked,
+    select: (next, moved) => {
+      setPicked(next);
+      const record = moved != null ? byKey(moved) : undefined;
+      const el = moved != null ? gestures.rowEl(moved) : null;
+      if (record && el) onMoveRow?.(record, el);
     },
-    onDoubleClick: (e: React.MouseEvent) => {
-      if (e.altKey) onOpenWindow?.(record);
-      else onOpenRow!(record, e.currentTarget as HTMLElement);
-    },
-  } : {};
-  const onListKey = (e: React.KeyboardEvent) => {
-    if (!standard || !['ArrowUp', 'ArrowDown', 'Enter'].includes(e.key) || !keys.length) return;
-    if ((e.target as HTMLElement).closest('input, select, textarea')) return;
-    e.preventDefault();
-    const at = cursorKey.current != null ? keys.indexOf(cursorKey.current) : -1;
-    if (e.key === 'Enter') {
-      const el = at >= 0 ? rowEl(keys[at]) : null;
-      if (el) onOpenRow!(data[at], el);
-      return;
-    }
-    const to = at < 0 ? 0 : Math.max(0, Math.min(keys.length - 1, at + (e.key === 'ArrowDown' ? 1 : -1)));
-    go(keys[to], e.shiftKey);
-    rowEl(keys[to])?.scrollIntoView({ block: 'nearest' });
-  };
+    open: (k, el) => { const r = byKey(k); if (r) onOpenRow!(r, el); },
+    openWindow: (k) => { const r = byKey(k); if (r) onOpenWindow?.(r); },
+  });
+  const rowGestures = (_record: T, k: string | number) => gestures.rowProps(k);
   // Real extra content only: a caller's {cond && <X/>} hands over false, not nothing.
   const hasChildren = React.Children.toArray(children).length > 0;
 
@@ -339,8 +307,7 @@ export function DbColumns<T extends object>({
   ) : undefined, [onAdd, onAssign]);
 
   const list = standard
-    ? <div ref={listRef} tabIndex={0} onKeyDown={onListKey} style={{ outline: 'none' }}
-        data-help="Click selects; Shift-click or Shift+arrow extends; Cmd-click toggles; ↑↓ move. Double-click or Enter opens the record; Option-double-click opens it in its own window. With a card open, a click or arrow shows that row.">{table}</div>
+    ? <div {...gestures.listProps} style={{ outline: 'none' }}>{table}</div>
     : table;
 
   if (!hasSectionHeader) return <div>{list}</div>;
