@@ -5,6 +5,9 @@
  * Any element with data-zone will show a tooltip on Shift+hover.
  * Format: data-zone="zoneName | .cssClass | ComponentFile.tsx"
  *
+ * An element may also say what a user can do there: data-help="one or two sentences",
+ * shown first (the nearest one up the tree).
+ *
  * Click the tooltip to copy the zone path to clipboard — paste into Help
  * for support. Part of the Shift-for-Help standard.
  *
@@ -20,6 +23,7 @@ interface ZoneInfo {
   cssClass: string;
   file: string;
   fieldPath: string;  // JSON envelope path (e.g., addresses.bill_to.company)
+  help: string;       // what a user can do here (data-help)
   x: number;
   y: number;
 }
@@ -64,6 +68,7 @@ export default function ZoneTooltip() {
     if (!foundFieldPath && el) {
       foundFieldPath = el.getAttribute('data-source') || el.getAttribute('data-field-path');
     }
+    const help = el?.closest('[data-help]')?.getAttribute('data-help') || '';
     if (foundZone || foundFieldPath) {
       const parts = (foundZone || '').split('|').map(s => s.trim());
       const newName = parts[0] || '';
@@ -74,6 +79,7 @@ export default function ZoneTooltip() {
         cssClass: parts[1] || '',
         file: parts[2] || '',
         fieldPath: foundFieldPath || '',
+        help,
         x, y,
       });
       setCopied(false);
@@ -138,6 +144,9 @@ export default function ZoneTooltip() {
     >
       {zone.fieldPath && !copied && (
         <div style={{ color: '#dcdcaa', fontWeight: 700 }}>{zone.fieldPath}</div>
+      )}
+      {zone.help && !copied && (
+        <div style={{ color: '#e0e0e0', fontFamily: 'system-ui, sans-serif', maxWidth: 320, marginBottom: 4 }}>{zone.help}</div>
       )}
       <div style={{ color: copied ? '#4ade80' : '#9cdcfe', fontWeight: zone.fieldPath ? 400 : 700 }}>
         {copied ? 'Copied!' : zone.name}
