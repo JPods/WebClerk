@@ -2,7 +2,7 @@
 /* Routes for WindowManager — /:model catch-all renders databrowser */
 /* Record pages (/{model}/:id) come from recordRoutes.tsx — shared with Router.tsx */
 import React from "react";
-import { Navigate } from "react-router";
+import { Navigate, Route, Routes } from "react-router";
 import { PageRoutes } from "./Routes";
 import { recordRoutes } from "./recordRoutes";
 import {
@@ -206,5 +206,13 @@ export const resolveWindowElement = (path: string) => {
     const base = r.path.split(":")[0];
     return cleanPath.startsWith(base) && cleanPath.length > base.length;
   });
-  return paramMatch?.element ?? null;
+  if (!paramMatch?.path) return null;
+  // The window's own route: its useParams() reads its path, not the browser's. Without it a
+  // window behind a newly opened one read the new window's id (2026-10-30: a contact's panels
+  // asked for contact/<the phone's id> and showed 404).
+  return (
+    <Routes location={path}>
+      <Route path={paramMatch.path} element={paramMatch.element} />
+    </Routes>
+  );
 };
