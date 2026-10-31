@@ -97,6 +97,9 @@ export interface DataGridProps {
   groupByField?: string | null;
   onSelectRecord?: (id: number) => void;
   onToggleRow?: (id: number) => void;
+  /** Given, a click only selects (the rows become this set) and a double-click opens the
+   *  record (onSelectRecord): selecting groups never opens the frame (Bill, 2026-10-31). */
+  onSelectRows?: (ids: Set<number>, how: 'only' | 'range') => void;
   onSelectAll?: () => void;
   onClearSelection?: () => void;
   onSort?: (field: string, multiSort?: boolean) => void;
@@ -140,7 +143,7 @@ export interface DataGridProps {
   /** Row click handler (receives full row object, not just id) */
   onRowClicked?: (row: any) => void;
   /** Row double-click handler */
-  onRowDoubleClicked?: (row: any) => void;
+  onRowDoubleClicked?: (row: any, e: React.MouseEvent) => void;
   /** Cell click handler — receives event, field name, and row record */
   onCellClick?: (e: React.MouseEvent, field: string, row: any) => void;
   /** Row activate handler */
@@ -735,7 +738,9 @@ export default function DataGrid(props: DataGridProps) {
         const id = numId(rows[i]?.id);
         if (id !== null) rangeIds.add(id);
       }
-      if (props.onToggleRow) {
+      if (props.onSelectRows) {
+        props.onSelectRows(rangeIds, 'range');
+      } else if (props.onToggleRow) {
         // External mode — set all at once via parent
         rangeIds.forEach((id) => { if (!selectedRowIds.has(id)) props.onToggleRow!(id); });
       } else {
@@ -746,10 +751,11 @@ export default function DataGrid(props: DataGridProps) {
       handleToggleRow(rid);
     } else {
       // Plain click: select only this row (clears others). WC standard.
-      if (rid !== null) handleSelectRecord(rid);
+      if (props.onSelectRows) props.onSelectRows(new Set([rid]), 'only');
+      else handleSelectRecord(rid);
     }
     lastClickedIdx.current = rowIdx;
-  }, [selectedRowIds, handleSelectRecord, handleToggleRow, numId, props.onToggleRow]);
+  }, [selectedRowIds, handleSelectRecord, handleToggleRow, numId, props.onToggleRow, props.onSelectRows]);
 
   // --- Auto-justify: FieldSpec > fieldBehaviors > name inference > data inference ---
   const getAlign = useCallback((field: string): 'left' | 'right' | 'center' => {
@@ -798,19 +804,25 @@ export default function DataGrid(props: DataGridProps) {
       const originalIdx = treeOriginalIndices ? treeOriginalIndices[idx] : idx;
       const isCollapsed = collapsedNodes.has(originalIdx);
 
+      // A list that opens on double-click marks the open record apart from the selection.
+      const opensApart = !!props.onSelectRows;
       const rowClasses = ['dg-row'];
-      if (isActive || isChecked) rowClasses.push('dg-row--checked');
+      if (isChecked || (isActive && !opensApart)) rowClasses.push('dg-row--checked');
       else if (idx % 2 === 1) rowClasses.push('dg-row--striped');
       if (isDupe) rowClasses.push('dg-row--dupe');
+      if (isActive && opensApart) rowClasses.push('dg-row--open');
 
       return (
         <tr key={rid ?? `r-${idx}`} data-rid={rid}
           role="row"
-          aria-selected={isActive || isChecked}
+          aria-selected={isChecked || (isActive && !opensApart)}
+          aria-current={isActive && opensApart ? true : undefined}
           className={rowClasses.join(' ')}
           style={ruleStyle.background ? { background: ruleStyle.background, color: ruleStyle.color, fontWeight: ruleStyle.fontWeight } : undefined}
           onClick={(e) => handleRowClick(e, rid, idx, rows)}
-          onDoubleClick={() => { if (rid !== null) { handleSelectRecord(rid); if (props.onRowDoubleClicked) props.onRowDoubleClicked(rec); } }}
+          // Shift-click and double-click are list gestures: they must not select the page's text.
+          onMouseDown={props.onSelectRows ? (e) => { if (e.shiftKey || e.detail > 1) e.preventDefault(); } : undefined}
+          onDoubleClick={(e) => { if (rid !== null) { if (!e.altKey) handleSelectRecord(rid); if (props.onRowDoubleClicked) props.onRowDoubleClicked(rec, e); } }}
         >
           <td className={`dg-td-indicator${pinnedColumn ? ' dg-td-indicator--pinned' : ''}`} role="gridcell">
             {isChecked && <div className="dg-check-bar" />}
@@ -833,8 +845,10 @@ export default function DataGrid(props: DataGridProps) {
                 paddingLeft: isTreeCol ? `${8 + rowLevel * treeIndent}px` : undefined,
                 width: effectiveColWidths[f], minWidth: effectiveColWidths[f],
               }}
-              onDoubleClick={() => { if (rid !== null) startEdit(rid, f, rec[f]); }}
-              onClick={props.onCellClick ? (e: React.MouseEvent) => { if ((e.metaKey || e.ctrlKey) && props.onCellClick) { e.stopPropagation(); props.onCellClick(e, f, rec); } } : undefined}
+              // A list whose double-click opens the record keeps that one meaning: no cell editor.
+              onDoubleClick={props.onSelectRows ? undefined : () => { if (rid !== null) startEdit(rid, f, rec[f]); }}
+              // Cmd-click toggles the row; Cmd-Option-click is the cell's own (an ida's image, Bill 2026-10-31).
+              onClick={props.onCellClick ? (e: React.MouseEvent) => { if ((e.metaKey || e.ctrlKey) && e.altKey && props.onCellClick) { e.stopPropagation(); props.onCellClick(e, f, rec); } } : undefined}
               title={(/^dt_/.test(f) || fieldBehaviors[f]?.type === 'timestamp' || fieldBehaviors[f]?.type === 'datetime') && rec[f] ? formatDt(rec[f], 'datetime', f) : String(rec[f] ?? '')}
             >
               {isTreeCol ? (
