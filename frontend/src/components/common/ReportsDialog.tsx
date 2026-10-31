@@ -307,7 +307,7 @@ const ReportsDialog: React.FC<Props> = ({
     if (ot === 'print') {
       onClose();
       try {
-        const form = report.config?.form;
+        const form = report.config?.form as PrintLayout | undefined;
         const layout = form || await fetchPrintLayout(model);
         const hasDataTable = layout?.sections?.some((s: any) => s.type === 'data_table');
 

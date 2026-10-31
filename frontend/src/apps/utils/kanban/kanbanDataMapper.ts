@@ -164,11 +164,6 @@ const getColumnWeight = (column: KanbanColumnType): number => {
   return PREFERRED_COLUMN_GROUPS.length;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const PROGRESS_FIELD_CANDIDATES = [
-  "percent_complete",
-];
-
 const SEQUENCE_FIELD_CANDIDATES = [
   "sequence",
   "order",

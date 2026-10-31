@@ -7,7 +7,7 @@
  *
  * Superuser only.
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { getRecords } from '@/api/wcapi';
 import { useAppSelector } from '@/store/hooks';
 import './AdminTools.css';

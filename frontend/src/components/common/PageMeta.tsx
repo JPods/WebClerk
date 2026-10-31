@@ -6,11 +6,11 @@ const PageMeta = ({
   description,
 }: {
   title: string;
-  description: string;
+  description?: string;
 }) => (
   <Helmet>
     <title>{title}</title>
-    <meta name="description" content={description} />
+    {description && <meta name="description" content={description} />}
   </Helmet>
 );
 

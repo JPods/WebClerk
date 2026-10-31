@@ -409,6 +409,9 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
     return () => window.removeEventListener('panel-assign-opened', handler);
   }, [contactPanelKey]);
 
+  const [touchContact, setTouchContact] = useState<RefContact | null>(null);
+  const [touchChannel, setTouchChannel] = useState<string>('call');
+
   const handleAssign = () => {
     window.dispatchEvent(new CustomEvent('panel-assign-opened', { detail: { panelKey: contactPanelKey } }));
     setAdding(true);
@@ -432,15 +435,12 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
         // Open for editing
         const path = getModelDetailPath('contact', created.id);
         const title = getModelWindowTitle('contact', created.id, created.ida);
-        windowManager.ensureWindow(path, title, { w: 500, h: 500 });
+        windowManager.ensureWindow(path, title, { width: 500, height: 500 });
       }
     } catch (err) {
       console.error('Failed to create contact:', err);
     }
   }, [contacts, onChange, windowManager]);
-
-  const [touchContact, setTouchContact] = useState<RefContact | null>(null);
-  const [touchChannel, setTouchChannel] = useState<string>('call');
 
   const handleTouch = useCallback((contact: RefContact, channel: 'call' | 'email' | 'text') => {
     setTouchChannel(channel);
@@ -524,151 +524,6 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
         />
       )}
     </>
-  );
-};
-
-// ---------------------------------------------------------------------------
-// TouchInlineForm — quick touch entry from a contact row (currently unused)
-// ---------------------------------------------------------------------------
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const TouchInlineForm: React.FC<{
-  contact: RefContact;
-  parentModel?: string;
-  parentId?: number;
-  initialChannel?: string;
-  onClose: () => void;
-}> = ({ contact, parentModel, parentId, initialChannel = 'call', onClose }) => {
-  const [channel, setChannel] = useState<string>(initialChannel);
-  const [direction, setDirection] = useState<string>('out');
-  const [subject, setSubject] = useState('');
-  const [summary, setSummary] = useState('');
-  const [outcome, setOutcome] = useState('connected');
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-
-  const contactName = contact._resolved_name || contact.attention || `Contact #${contact.contact_id}`;
-  const email = contact._resolved_email || extractEmail(contact.email);
-  const phone = contact._resolved_phone || extractPhone(contact.phone);
-
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      const { saveRecord: sr, createRecord: cr, getRecord: gr } = await import('@/api/wcapi');
-      const touchRes: any = await cr('touch', {
-        contact_id: contact.contact_id,
-        channel,
-        direction,
-        subject: subject || `${channel} — ${contactName}`,
-        summary,
-        outcome,
-        ...(parentModel === 'action' && parentId ? { action_id: parentId } : {}),
-      });
-      // Add to parent's refs.links.touch so the TOUCHS panel count updates
-      if (parentModel && parentId) {
-        try {
-          const touchId = touchRes?.record?.id ?? touchRes?.id;
-          const parentRec = await gr(parentModel, parentId) as any;
-          const data = parentRec?.record ?? parentRec;
-          const existingTouches = Array.isArray(data?.refs?.links?.touch) ? data.refs.links.touch : [];
-          if (touchId && !existingTouches.some((t: any) => t.id === touchId)) {
-            await sr(parentModel, {
-              id: parentId,
-              'refs.links.touch': [...existingTouches, { id: touchId }],
-            });
-          }
-        } catch { /* refs.links update failed — touch still saved */ }
-      }
-      // Tell LinkedRecordsPanel (TOUCHS) to reload
-      window.dispatchEvent(new CustomEvent('refs-links-changed', { detail: { model: parentModel, id: parentId } }));
-      setSaved(true);
-      setTimeout(onClose, 800);
-    } catch (err) {
-      console.error('Failed to save touch:', err);
-      setSaving(false);
-    }
-  };
-
-  // Launch URI — anchor click pattern works on iOS (tel/sms/mailto)
-  const handleLaunch = () => {
-    const a = document.createElement('a');
-    if (channel === 'call' && phone) {
-      a.href = `tel:${phone}`;
-    } else if (channel === 'text' && phone) {
-      a.href = `sms:${phone}`;
-    } else if (channel === 'email' && email) {
-      const subj = encodeURIComponent(subject);
-      a.href = `mailto:${email}${subj ? `?subject=${subj}` : ''}`;
-    } else {
-      return;
-    }
-    a.click();
-  };
-
-  return (
-    <div style={{ padding: '8px 12px', borderTop: '1px solid var(--db-border)', background: 'var(--db-surface-alt)' }}>
-      <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 6, color: 'var(--db-text)' }}>
-        Touch — {contactName}
-      </div>
-      <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
-        <select value={channel} onChange={(e) => setChannel(e.target.value)}
-          className="db-input" style={{ fontSize: 11, padding: '3px 6px', width: 90 }}>
-          <option value="call">📞 Call</option>
-          <option value="email">✉ Email</option>
-          <option value="text">💬 Text</option>
-          <option value="visit">🏢 Visit</option>
-          <option value="meeting">🤝 Meeting</option>
-        </select>
-        <select value={direction} onChange={(e) => setDirection(e.target.value)}
-          className="db-input" style={{ fontSize: 11, padding: '3px 6px', width: 80 }}>
-          <option value="out">Outbound</option>
-          <option value="in">Inbound</option>
-        </select>
-        <select value={outcome} onChange={(e) => setOutcome(e.target.value)}
-          className="db-input" style={{ fontSize: 11, padding: '3px 6px', width: 100 }}>
-          <option value="connected">Connected</option>
-          <option value="voicemail">Voicemail</option>
-          <option value="no_answer">No Answer</option>
-          <option value="bounced">Bounced</option>
-          <option value="rescheduled">Rescheduled</option>
-        </select>
-        {((channel === 'call' || channel === 'text') && phone) || (channel === 'email' && email) ? (
-          <button onClick={handleLaunch} className="db-text-dim hover:text-blue-500" style={{ fontSize: 11 }} title="Launch">
-            ↗
-          </button>
-        ) : null}
-      </div>
-      <input
-        type="text"
-        value={subject}
-        onChange={(e) => setSubject(e.target.value)}
-        placeholder="subject"
-        className="db-input"
-        style={{ width: '100%', fontSize: 11, padding: '3px 8px', marginBottom: 4 }}
-      />
-      <textarea
-        value={summary}
-        onChange={(e) => setSummary(e.target.value)}
-        placeholder="summary / notes"
-        className="db-input"
-        style={{ width: '100%', fontSize: 11, padding: '3px 8px', minHeight: 40, resize: 'vertical' }}
-      />
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginTop: 6 }}>
-        <button onClick={onClose} className="db-text-dim" style={{ fontSize: 11 }}>Cancel</button>
-        <button
-          onClick={handleSave}
-          disabled={saving || saved}
-          className="rounded px-3 py-1 text-xs font-medium"
-          style={{
-            background: saved ? '#22c55e' : 'var(--db-accent, #3b82f6)',
-            color: '#fff',
-            cursor: saving ? 'default' : 'pointer',
-          }}
-        >
-          {saved ? '✓ Saved' : saving ? 'Saving...' : 'Save Touch'}
-        </button>
-      </div>
-    </div>
   );
 };
 

@@ -32,7 +32,6 @@ import type { DbColumnDef } from "./DbColumns";
 import { getModelDetailPath, getModelWindowTitle, getModelWindowPreset } from "./getModelDetailPath";
 import { buildColumnsFromSpecs } from "./panelColumnUtils";
 import { FaTimes, FaExternalLinkAlt } from "react-icons/fa";
-import { formatDt } from "@/utils/fieldFormatters";
 import { getUI } from '@/utils/contactUI';
 
 // ---------------------------------------------------------------------------
@@ -83,115 +82,6 @@ const MODEL_ICONS: Record<string, string> = {
   serial: "🔢", cash: "💳", warehouse: "🏪", campaign: "📣",
   setting: "⚙️", report: "📈",
 };
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function defaultColumns(
-  linkedModel: string,
-  editable: boolean,
-  onRemove: (id: number) => void,
-  onOpen: (record: Rec) => void,
-): DbColumnDef<Rec>[] {
-  const cols: DbColumnDef<Rec>[] = [
-    {
-      key: "ida",
-      label: "id",
-      width: "80px",
-      className: "font-mono",
-      render: (r) => <span>{r.ida || `#${r.id}`}</span>,
-    },
-    {
-      key: "name",
-      label: "name",
-      render: (r) => (
-        <span className="truncate">
-          {r.name || r.attention || r.display_name || r.subject || r.title || r.description || ""}
-        </span>
-      ),
-    },
-    {
-      key: "status",
-      label: "status",
-      width: "90px",
-      defaultVisible: true,
-      render: (r) => r.status ? (
-        <span className="px-1.5 py-0.5 rounded db-font-xs font-semibold" style={{
-          background: 'var(--db-surface-alt)',
-          color: 'var(--db-text)',
-        }}>
-          {r.status}
-        </span>
-      ) : null,
-    },
-    {
-      key: "dt_created",
-      label: "created",
-      width: "90px",
-      defaultVisible: false,
-      render: (r) => <span style={{ color: 'var(--db-text-muted)' }}>{r.dt_created ? formatDt(r.dt_created, 'date') : ""}</span>,
-    },
-    {
-      key: "channel",
-      label: "channel",
-      width: "80px",
-      defaultVisible: linkedModel === "touch",
-      render: (r) => <span>{r.channel || ""}</span>,
-    },
-    {
-      key: "direction",
-      label: "dir",
-      width: "40px",
-      defaultVisible: linkedModel === "touch",
-      render: (r) => <span>{r.direction === "in" ? "←" : r.direction === "out" ? "→" : ""}</span>,
-    },
-    {
-      key: "sku",
-      label: "sku",
-      width: "100px",
-      defaultVisible: linkedModel === "item",
-      render: (r) => <span className="font-mono">{r.sku || ""}</span>,
-    },
-    {
-      key: "totals_total",
-      label: "total",
-      width: "90px",
-      className: "text-right",
-      defaultVisible: ["order", "invoice", "quote", "purchase", "cash"].includes(linkedModel),
-      render: (r) => {
-        const total = r.totals?.total ?? r.total;
-        return total != null ? <span>${Number(total).toFixed(2)}</span> : null;
-      },
-    },
-    {
-      key: "_actions",
-      label: "",
-      width: "56px",
-      render: (r) => (
-        <span className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-          {editable && (
-            <button
-              type="button"
-              title="Unlink"
-              className="p-1 rounded transition-colors db-text-dim"
-              onClick={() => onRemove(r.id)}
-            >
-              <FaTimes size={10} />
-            </button>
-          )}
-          <button
-            type="button"
-            title="Open"
-            className="p-1 rounded transition-colors db-text-dim"
-            onClick={() => onOpen(r)}
-          >
-            <FaExternalLinkAlt size={10} />
-          </button>
-        </span>
-      ),
-    },
-  ];
-
-  return cols;
-}
 
 // ---------------------------------------------------------------------------
 // Inline search for adding linked records

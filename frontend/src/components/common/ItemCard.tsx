@@ -55,7 +55,7 @@ const ItemCard: React.FC<ItemCardProps> = ({ ida, anchorRect, onClose }) => {
 
   // Use fetched item's IDA for image (the passed ida might be a SKU)
   const imgIda = item?.ida || ida;
-  const imgUrl = `/wcapi/_image/Item/${encodeURIComponent(imgIda)}/md.jpg`;
+  const imgUrl = `/wcapi/_image/item/${encodeURIComponent(imgIda)}/md.jpg`;
 
   // ── Fetch item data ──
   useEffect(() => {

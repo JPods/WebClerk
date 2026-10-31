@@ -160,21 +160,20 @@ const TransactionsPanel: React.FC<TransactionsPanelProps> = ({
       {
         key: "ida",
         label: "ida",
-        cellClassName: "font-mono shrink-0 w-[70px]",
+        width: '70px', className: 'font-mono',
         cellStyle: { color: 'var(--db-text-muted)' },
         render: (r) => r.ida ?? `#${r.id}`,
       },
       {
         key: "name",
         label: "name",
-        cellClassName: "min-w-[120px] flex-1",
         cellStyle: { color: 'var(--db-text)' },
         render: (r) => r.name ?? "\u2014",
       },
       {
         key: "status",
         label: "status",
-        cellClassName: "w-[80px]",
+        width: '80px',
         render: (r) =>
           r.status ? (
             <span className="px-1.5 py-0.5 rounded" style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text)' }}>
@@ -187,14 +186,14 @@ const TransactionsPanel: React.FC<TransactionsPanelProps> = ({
       {
         key: "total",
         label: "total",
-        cellClassName: "w-[90px] text-right",
+        width: '90px', className: 'text-right',
         cellStyle: { color: 'var(--db-text)' },
         render: (r) => formatCurrency(recordTotal(r)),
       },
       {
         key: "dt_created",
         label: "dt_created",
-        cellClassName: "w-[80px]",
+        width: '80px',
         cellStyle: { color: 'var(--db-text-dim)' },
         render: (r) => formatDate(r.dt_created),
       },
@@ -202,7 +201,7 @@ const TransactionsPanel: React.FC<TransactionsPanelProps> = ({
         key: "dt_modified",
         label: "dt_modified",
         defaultVisible: false,
-        cellClassName: "w-[80px]",
+        width: '80px',
         cellStyle: { color: 'var(--db-text-dim)' },
         render: (r) => formatDate(r.dt_modified),
       },

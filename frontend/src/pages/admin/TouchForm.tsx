@@ -288,8 +288,6 @@ export const TouchForm: React.FC<TouchFormProps> = ({ mode, ctx, fontSize = 12, 
     ? channelTemplates.filter(t => t.topic === selectedTopic)
     : channelTemplates;
   const [saving, setSaving] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [createAction, setCreateAction] = useState(false);
   const [linkedContacts, setLinkedContacts] = useState<RefContact[]>([]);
 
   const [touchId, setTouchId] = useState<number | null>(null);

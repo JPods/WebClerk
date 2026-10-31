@@ -1,9 +1,8 @@
 /* LastChecked: 2026-08-14 | WhereUsed: DataBrowser route | WhoCreated: Bill+Claude */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { getUI, setUI } from '@/utils/contactUI';
 import { useAppSelector } from '../../store/hooks';
-import { useDataBrowser, numId, type FieldSpec } from '../../hooks/useDataBrowser';
+import { useDataBrowser, numId, toFieldNames, type FieldSpec } from '../../hooks/useDataBrowser';
 import { getDetailViewPref } from '../../layout/MacTopBar';
 import JsonEnvelopePanel from '../../components/common/JsonEnvelopePanel';
 import FieldOrderDialog from '../../components/common/FieldOrderDialog';
@@ -112,8 +111,6 @@ const LayoutParadePane: React.FC<{
 
 const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
   const { isAuthenticated, user } = useAppSelector((s) => s.auth);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const navigate = useNavigate();
 
   // ── Image popup (cmd-click on ida fields) ─────────────────────────────────
   const [imagePopup, showImagePopup] = useItemImagePopup();
@@ -299,12 +296,6 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
   const [showRelatedDialog, setShowRelatedDialog] = useState<'list' | 'detail' | null>(null);
   const [showReportsDialog, setShowReportsDialog] = useState<'list' | 'detail' | null>(null);
   const [showFilters, setShowFilters] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [showDupes, setShowDupes] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [dedupAllIds, setDedupAllIds] = useState<number[]>([]);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [dedupCurrentIds, setDedupCurrentIds] = useState<number[]>([]);
   const [showDedup, setShowDedup] = useState(false);
   const [showMarkdownTemplate, setShowMarkdownTemplate] = useState<'list' | 'detail' | null>(null);
   const [showSchemaTree, setShowSchemaTree] = useState(false);
@@ -353,8 +344,6 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
   }, [detailWidth]);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const prefsSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const navLogBuffer = useRef<{ model: string; dt: number }[]>([]);
   const navLogTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -414,14 +403,6 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
       } catch { /* silent */ }
     }, 30000);
   }, [db.selectedModel, user?.id]);
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const toggleTheme = () => {
-    const n = theme === 'dark' ? 'light' : 'dark';
-    setTheme(n); setListTheme(n); setDetailTheme(n);
-    setUI('theme.active', n);
-    window.dispatchEvent(new CustomEvent('wc3-theme-changed', { detail: { theme: n } }));
-  };
 
   // Listen for font size changes from TopBar
   useEffect(() => {
@@ -547,7 +528,7 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
           const ida = row.ida || row.ida_item || '';
           if (!ida) return null;
           return React.createElement('img', {
-            src: `/wcapi/_image/Item/${encodeURIComponent(ida)}/tn.jpg`,
+            src: `/wcapi/_image/item/${encodeURIComponent(ida)}/tn.jpg`,
             alt: '',
             style: { width: 28, height: 28, objectFit: 'cover', borderRadius: 3 },
             loading: 'lazy',
@@ -942,7 +923,7 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
               sort={db.sort}
               hideToolbar
               externalShowFilters={showFilters}
-              externalShowDupes={showDupes}
+              externalShowDupes={false}
               onFilterChange={async (filters) => {
                 // Server-side column filtering — re-fetch with filters as query params
                 if (Object.keys(filters).length === 0) {
@@ -1114,8 +1095,8 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
               {detailModel === 'item' && db.selectedRecord.ida && (
                 <div style={{ float: 'right', margin: '0 0 8px 12px' }}>
                   <img
-                    src={`/wcapi/_image/Item/${encodeURIComponent(db.selectedRecord.ida)}/md.jpg`}
-                    alt={db.selectedRecord.ida}
+                    src={`/wcapi/_image/item/${encodeURIComponent(String(db.selectedRecord.ida))}/md.jpg`}
+                    alt={String(db.selectedRecord.ida)}
                     style={{ maxWidth: 200, maxHeight: 200, objectFit: 'contain', borderRadius: 4, display: 'block' }}
                     onError={(e) => { const img = e.target as HTMLImageElement; img.onerror = null; img.src = '/images/no-image.svg'; }}
                   />
@@ -1153,7 +1134,6 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
                 recordId={db.selectedId ?? undefined}
                 jsonExpert={!!(user as any)?.prefs?.staff?.json_expert}
                 fontSize={baseFontSize}
-                theme={{ text: tDetail.text, textMuted: tDetail.textMuted, border: tDetail.border, surfaceAlt: tDetail.surfaceAlt, inputBg: tDetail.inputBg }}
               />
             )}
 
@@ -1294,11 +1274,7 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
                   : undefined}
                 listData={showMarkdownTemplate === 'list' ? db.records : undefined}
                 modelName={db.selectedModel}
-                fieldPaths={db.allFields.map((f: FieldSpec) => ({
-                  path: f.key,
-                  label: f.label || f.key,
-                  type: f.type,
-                } as FieldPath))}
+                fieldPaths={db.allFields.map((f): FieldPath => ({ path: f, label: f }))}
                 templateName={mdTemplateName}
                 height={500}
               />
@@ -1316,7 +1292,7 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
         fieldBehaviors={db.fieldBehaviors}
         rowSizes={db.detailRowSizes}
         colWidths={{ ...db.specWidths, ...db.colWidths }}
-        savedLayouts={db.savedViews}
+        savedLayouts={db.savedViews.map((v) => ({ ...v, list: toFieldNames(v.list), detail: toFieldNames(v.detail) }))}
         activeLayoutName={db.activeViewName}
         theme={theme}
         sampleRecord={db.records?.[0]}

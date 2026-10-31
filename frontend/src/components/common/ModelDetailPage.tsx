@@ -319,7 +319,7 @@ const ModelDetailPage: React.FC<ModelDetailPageProps> = ({
                 {col.type === 'item_image' && data?.ida ? (
                   <div className="flex justify-center items-center h-full">
                     <img
-                      src={`/wcapi/_image/Item/${encodeURIComponent(data.ida)}/md.jpg`}
+                      src={`/wcapi/_image/item/${encodeURIComponent(data.ida)}/md.jpg`}
                       alt={data.ida}
                       style={{ maxWidth: '100%', maxHeight: 240, objectFit: 'contain', borderRadius: 4 }}
                       onError={(e: any) => { e.target.onerror = null; e.target.src = '/images/no-image.svg'; }}

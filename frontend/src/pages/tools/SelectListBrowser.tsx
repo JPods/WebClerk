@@ -207,6 +207,8 @@ const SelectListBrowser: React.FC = () => {
   const [dirty, setDirty] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>('field');
   const [sortAsc, setSortAsc] = useState(true);
+  const [reloadKey, setReloadKey] = useState(0);
+  const fetchData = () => setReloadKey((k) => k + 1);
 
   useEffect(() => {
     let cancelled = false;
@@ -230,7 +232,7 @@ const SelectListBrowser: React.FC = () => {
     // Wait for auth bootstrap to complete
     const timer = setTimeout(doFetch, 1000);
     return () => { cancelled = true; clearTimeout(timer); };
-  }, []);
+  }, [reloadKey]);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) setSortAsc(!sortAsc);

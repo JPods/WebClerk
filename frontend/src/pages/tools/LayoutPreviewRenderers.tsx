@@ -223,7 +223,7 @@ export function CardPreview({ item, records }: { item: LayoutItem; records: any[
 }
 
 /** Render a single DynamicDetail-style section (header, panel, etc.) */
-function FormSection({ sec, index, record }: { sec: any; index: number; record: any }) {
+function FormSection({ sec, record }: { sec: any; record: any }) {
   const sectionType = sec.type || "unknown";
   const sectionTitle = sec.title || sec.content || sectionType;
   const cols = sec.columns || [];
@@ -301,7 +301,7 @@ export function FormPreview({ item, records }: { item: LayoutItem; records: any[
           </div>
         )}
         {spec.sections.map((sec: any, i: number) => (
-          <FormSection key={i} sec={sec} index={i} record={record} />
+          <FormSection key={i} sec={sec} record={record} />
         ))}
         {spec.edit_rules && (
           <div className="sp-section">
@@ -376,7 +376,7 @@ export function FormPreview({ item, records }: { item: LayoutItem; records: any[
 }
 
 /** Build the Setting path for this layout item */
-export function settingPath(model: string, item: LayoutItem): string {
+export function settingPath(item: LayoutItem): string {
   const kind = item.kind;
   const name = item.name;
   if (kind === "panel") return `setting.config.layout.panel`;

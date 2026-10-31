@@ -6,7 +6,7 @@
  *
  * Route: /test-dashboard
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { getRecords, getRecord, manageAction } from '@/api/wcapi';
 import { formatDt } from '@/utils/fieldFormatters';
 import RecordLink from '@/components/common/RecordLink';
@@ -170,11 +170,6 @@ export default function TestDashboard() {
   // Snapshot the start time so it doesn't recalculate on every render
   const [periodHours, setPeriodHours] = useState(24);
   const [periodStart, setPeriodStart] = useState(() => Date.now() - (24 * 60 * 60 * 1000));
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const updatePeriod = useCallback(() => {
-    setPeriodStart(Date.now() - (periodHours * 60 * 60 * 1000));
-  }, [periodHours]);
 
   const loadData = useCallback(async () => {
     setLoading(true);

@@ -85,12 +85,10 @@ export function useDetailLayout(modelName: string) {
   useEffect(() => {
     if (layoutCache.has(modelName)) {
       const cached = layoutCache.get(modelName)!;
-      console.log('[useDetailLayout] CACHE HIT for', modelName, 'sections:', cached.sections?.length, 'first:', cached.sections?.[0]?.type, cached.sections?.[0]?.layout);
       setLayout(cached);
       setLoading(false);
       return;
     }
-    console.log('%c[useDetailLayout] CACHE MISS for ' + modelName + ' — fetching from API', 'color: yellow; font-weight: bold; font-size: 14px');
 
     let cancelled = false;
     setLoading(true);
@@ -103,26 +101,11 @@ export function useDetailLayout(modelName: string) {
           purpose: 'wc:model',
           limit: 1,
         });
-        const setting = res?.results?.[0] ?? res?.records?.[0];
+        const setting = res?.results?.[0];
         if (cancelled) return;
 
         // Form layout lives at config.layout.form.default
         const formLayout = setting?.config?.layout?.form?.default;
-        const debugInfo = {
-          model: modelName,
-          hasSetting: !!setting,
-          settingId: setting?.id,
-          settingIda: setting?.ida,
-          configKeys: setting?.config ? Object.keys(setting.config) : 'NO CONFIG',
-          layoutKeys: setting?.config?.layout ? Object.keys(setting.config.layout) : 'NO LAYOUT',
-          formKeys: setting?.config?.layout?.form ? Object.keys(setting.config.layout.form) : 'NO FORM',
-          sectionCount: formLayout?.sections?.length ?? 0,
-          firstSectionType: formLayout?.sections?.[0]?.type,
-          firstSectionLayout: formLayout?.sections?.[0]?.layout,
-          resultCount: res?.results?.length ?? res?.records?.length ?? 0,
-        };
-        console.log('%c[useDetailLayout] FETCH RESULT', 'color: lime; font-size: 16px; font-weight: bold', debugInfo);
-        (window as any).__layoutDebug = { res, setting, formLayout, debugInfo };
         if (formLayout && typeof formLayout === 'object' && formLayout.sections) {
           const parsed = formLayout as DetailLayout;
           // Attach behaviors from Setting — drives label styles and select options
@@ -130,7 +113,7 @@ export function useDetailLayout(modelName: string) {
           layoutCache.set(modelName, parsed);
           setLayout(parsed);
         } else {
-          console.warn('[useDetailLayout] no form for', modelName, debugInfo);
+          console.warn('[useDetailLayout] no form for', modelName, setting?.id ?? 'no wc:model setting');
           setError(`${modelName} has no form in its definition. A staff member can run seed_layouts or reset the form.`);
         }
       } catch (err) {

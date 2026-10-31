@@ -26,8 +26,7 @@ interface LinkedRecord {
   ida?: string;
   company?: string;
   name?: string;
-  total?: number;
-  balance?: number;
+  totals?: { total?: number; balance?: number };
   amount?: number;
   status?: string;
   model: string;

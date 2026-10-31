@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import { useCallback } from 'react';
 import type { FieldWidgetProps } from './types';
 import BaseField from './BaseField';
 import { normalizeEmail } from '@/utils/fieldFormatters';

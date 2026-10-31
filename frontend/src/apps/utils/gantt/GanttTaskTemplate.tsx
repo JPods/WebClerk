@@ -130,8 +130,6 @@ export const GanttTaskTemplate: FC<GanttTaskTemplateProps> = ({ data }) => {
   const firstAssigned = task.assignedTo?.[0];
   const badgePrefsContext = useStaffBadgePrefsOptional();
   const [emphasized, setEmphasized] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [showTooltip, setShowTooltip] = useState(false);
 
   const priorityColor = priorityStripeColors[priority] || priorityStripeColors.medium;
   const statusColor = statusStripeColors[status] || statusStripeColors.open;

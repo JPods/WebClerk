@@ -55,7 +55,7 @@ export const OrgLookup: React.FC<OrgLookupProps> = ({
       setSearching(true);
       try {
         const res = await getRecords(searchModel, { keyword: q, limit: 10 });
-        setResults(res?.results || res?.records || []);
+        setResults(res?.results || []);
       } catch { setResults([]); }
       setSearching(false);
     }, 300);

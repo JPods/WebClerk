@@ -2,7 +2,7 @@
 /**
  * ItemImagePopup — Cmd-click image preview for item codes.
  *
- * Shows the md-size image from /wcapi/_image/Item/{ida}/md.jpg
+ * Shows the md-size image from /wcapi/_image/item/{ida}/md.jpg
  * in a floating popup. Dismisses on click-outside, Escape, or scroll.
  */
 import React, { useEffect, useRef, useState, useCallback } from 'react';
@@ -16,7 +16,7 @@ interface ItemImagePopupProps {
 
 const ItemImagePopup: React.FC<ItemImagePopupProps> = ({ ida, anchorRect, onClose }) => {
   const ref = useRef<HTMLDivElement>(null);
-  const imgUrl = `/wcapi/_image/Item/${encodeURIComponent(ida)}/md.jpg`;
+  const imgUrl = `/wcapi/_image/item/${encodeURIComponent(ida)}/md.jpg`;
 
   // Position: below-right of anchor, clamped to viewport
   const style: React.CSSProperties = {

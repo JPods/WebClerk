@@ -111,7 +111,7 @@ export const TimeClockBadge: React.FC<TimeClockBadgeProps> = ({ times: rawTimes,
       } else {
         // Clock in
         const newEntry: TimeEntry = {
-          id: uuid4(),
+          id: crypto.randomUUID(),
           dt_in: now,
           dt_out: null,
           elapsed_ms: null,

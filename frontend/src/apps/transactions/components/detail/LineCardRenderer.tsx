@@ -388,7 +388,7 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
       )}
       {lc.showCommission && isSellSide && (
         <div className="border-t border-purple-200 max-h-[300px] overflow-y-auto" style={{ background: 'var(--db-surface, #fff)' }}>
-          <CommissionPanel lines={lines} selectedIds={lc.selectedLineIds} headerCommission={data?.commission} />
+          <CommissionPanel lines={lines} selectedIds={lc.selectedLineIds} />
         </div>
       )}
       {lc.activePanel !== 'none' && lc.activePanel !== 'margin' && (

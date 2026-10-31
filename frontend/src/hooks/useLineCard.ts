@@ -101,7 +101,7 @@ const linesTheme = {
 function flattenLine(line: any, idx: number, isSellSide: boolean): any {
   const lineRecord = line as unknown as Record<string, unknown>;
   const itemCode = String(lineRecord.ida_item ?? line.item?.ida_item ?? "--");
-  const tnUrl = itemCode && itemCode !== '--' ? `/wcapi/_image/Item/${encodeURIComponent(itemCode)}/tn.jpg` : '';
+  const tnUrl = itemCode && itemCode !== '--' ? `/wcapi/_image/item/${encodeURIComponent(itemCode)}/tn.jpg` : '';
   const description = String(lineRecord.description ?? line.item?.description ?? "--");
   const qty = Number(lineRecord.qty ?? line.quantity?.active ?? 0);
   const remaining = Number(line.quantity?.remaining ?? 0);

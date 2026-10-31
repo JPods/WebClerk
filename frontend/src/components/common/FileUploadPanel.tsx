@@ -27,19 +27,13 @@ interface Props {
   className?: string;
 }
 
+/** A Document row — its own fields, as the model has them. */
 interface Attachment {
   id: number;
   name: string;
-  config?: {
-    role?: string;
-    path?: string;
-    library_url?: string;
-    archive_url?: string;
-    mime_type?: string;
-    size_bytes?: number;
-    uploaded_dt?: string;
-    inline_content_b64?: string;
-  };
+  purpose?: string;
+  mime_type?: string;
+  size_bytes?: number;
 }
 
 const PURPOSE_OPTIONS = [

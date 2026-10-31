@@ -36,8 +36,6 @@ const buildLinkPath = (
     }
     // Target is left of or close to source — route around
     const detour = Math.max(sx + stubLen, tx + stubLen + 20);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const verticalOffset = ty > sy ? stubLen : -stubLen;
     return `M ${sx},${sy} H ${detour} V ${ty} H ${tx}`;
   }
 

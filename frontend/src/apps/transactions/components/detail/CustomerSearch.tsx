@@ -56,7 +56,7 @@ export function useCustomerSearch(
       setSearching(true);
       try {
         const res = await getRecords(party, { keyword: q, limit: 10 });
-        const records = res?.results || res?.records || [];
+        const records = res?.results || [];
         setResults(records);
       } catch { setResults([]); }
       setSearching(false);

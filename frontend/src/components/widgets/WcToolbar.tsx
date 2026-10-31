@@ -32,8 +32,7 @@ export interface WcToolbarProps {
   record?: {
     ida?: string;
     status?: string;
-    total?: number;
-    balance?: number;
+    totals?: { total?: number; balance?: number };
   };
   className?: string;
 }

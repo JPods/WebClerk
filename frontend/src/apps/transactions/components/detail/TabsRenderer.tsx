@@ -1,6 +1,5 @@
 /* LastChecked: 2026-08-02 | WhereUsed: UiDetail | WhoCreated: Claude */
 import React from 'react';
-import { useAppSelector } from '@/store/hooks';
 import { getRecords, saveRecord, getModelNames } from '@/api/wcapi';
 import { formatDt } from '@/utils/fieldFormatters';
 import CommentsPanel from '@/apps/common/components/panels/CommentsPanel';
@@ -41,8 +40,6 @@ export interface TabsRendererProps {
 
 /** Render tabbed sections */
 const TabsRenderer: React.FC<TabsRendererProps> = ({ section, data, isEditing, modelName, activeTab, onTabChange, onChange, onRefresh, loggedInUserName }) => {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const authUser = useAppSelector((s) => s.auth.user);
   // Dynamic tabs added via + link — only from user action, no auto-discovery
   const [extraTabs, setExtraTabs] = React.useState<string[]>([]);
 
@@ -143,11 +140,7 @@ export const TabContent: React.FC<{
     case 'financials':
     case 'margins':
       return (
-        <FinancialsPanel
-          transactionId={data?.id}
-          modelName={modelName}
-          isEditing={false}
-        />
+        <FinancialsPanel totals={data?.totals} currency={data?.currency} />
       );
 
     case 'contacts':
@@ -171,6 +164,8 @@ export const TabContent: React.FC<{
     case 'comments':
       return (
         <CommentsPanel
+          entityType={modelName}
+          entityId={data?.id}
           comments={data?.comments}
           isEditing={isEditing}
           onChange={(comments: any) => onChange('comments', comments)}
@@ -239,15 +234,9 @@ export const SummaryTabContent: React.FC<{ data: any; modelName: string }> = ({ 
   // totals column, not for a line list. A line marked deleted contributes
   // nothing to totals, so it must not be counted here either.
   const lines = getActiveLines(data?.lines || []);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const isSellSide = ['order', 'invoice', 'quote'].includes(modelName);
   const totals = data?.totals || {};
 
   // All values from json.path.value — never compute independently
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const totalExtended = Number(totals.total ?? 0);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const totalCost = Number(totals.cost ?? 0);
   const margin = Number(totals.margin ?? 0);
   const marginPct = Number(totals.margin_pc ?? 0);
 
@@ -272,7 +261,7 @@ export const SummaryTabContent: React.FC<{ data: any; modelName: string }> = ({ 
           getRecords('invoice', { parent_id: data.id, parent_model: modelName, limit: 20 }).catch(() => null),
         ]);
         // Filter out demo/test records (ida starting with qq or zz)
-        const filterReal = (recs: any[]) => (recs || []).filter((r: any) => {
+        const filterReal = (recs: any[] | undefined) => (recs || []).filter((r: any) => {
           const ida = String(r.ida || '').toLowerCase();
           return !ida.startsWith('qq') && !ida.startsWith('zz') && !ida.startsWith('dev-');
         });
@@ -281,10 +270,6 @@ export const SummaryTabContent: React.FC<{ data: any; modelName: string }> = ({ 
       } catch { /* nothing yet */ }
     })();
   }, [data?.id]);
-
-  // Aggregate of server-provided envelope values — no server-side cross-record aggregate available
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const totalCashEntries = cashEntries.reduce((s: number, d: any) => s + Number(d.totals?.total ?? 0), 0);
   const totalInvoiced = invoices.reduce((s: number, d: any) => s + Number(d.totals?.total ?? 0), 0);
   const totalUnapplied = invoices.reduce((s: number, d: any) => s + Number(d.totals?.balance ?? 0), 0);
 

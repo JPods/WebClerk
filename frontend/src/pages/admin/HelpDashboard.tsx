@@ -8,7 +8,7 @@
  * Opens in its own window from the Help button.
  * Route: /help?context=invoice&model=invoice&field=total
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { getRecords, createRecord, newRecord } from '@/api/wcapi';
 import { createAliceNote } from '@/apps/support/services/aiApi';

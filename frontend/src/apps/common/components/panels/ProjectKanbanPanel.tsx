@@ -83,7 +83,7 @@ function ProjectCard({ project }: { project: Project; onStatusChange: (id: numbe
 
   return (
     <div
-      ref={drag}
+      ref={(el) => { drag(el); }}
       style={{
         padding: '8px 10px', marginBottom: 6, borderRadius: 6,
         background: 'var(--db-surface)', border: '1px solid var(--db-border)',
@@ -137,7 +137,7 @@ function KanbanCol({ colKey, label, color, projects, onDrop }: {
 
   return (
     <div
-      ref={drop}
+      ref={(el) => { drop(el); }}
       style={{
         flex: 1, minWidth: 140,
         background: isOver ? 'rgba(37,99,235,0.08)' : 'transparent',

@@ -41,7 +41,7 @@ import { renderPanel, type PanelContext } from './panelRegistry';
 // ── Field type registry ─────────────────────────────────────────────
 
 interface FieldConfig {
-  type: "text" | "select" | "date" | "number" | "readonly" | "json-text" | "currency" | "checkbox" | "textarea";
+  type: "text" | "select" | "date" | "number" | "readonly" | "json-text" | "currency" | "checkbox" | "textarea" | "contact-select";
   label?: string;
   options?: { value: string | number; label: string }[];
   min?: number;
@@ -182,6 +182,9 @@ export interface DynamicDetailActions {
   editing: boolean;
   saving: boolean;
   ida: string;
+  /** The record as read, and with the edits not yet saved. */
+  data: Record<string, any> | null;
+  currentData: Record<string, any> | null;
 }
 
 interface DynamicDetailProps {
@@ -626,10 +629,12 @@ function DynamicDetail({
       editing,
       saving,
       ida: data?.ida || `${modelName}:${recordId}`,
+      data,
+      currentData: data ? { ...data, ...values } : null,
     };
     onActionsReady?.();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [actionsRef, handleSave, editing, saving, data, modelName, recordId, fontSize]);
+  }, [actionsRef, handleSave, editing, saving, data, values, modelName, recordId, fontSize]);
 
   // Arrange mode handlers
   const handleDragStart = (idx: number) => setDragRow(idx);
@@ -783,7 +788,8 @@ function DynamicDetail({
           }`}>
             {row.fields.map((fieldName: string) => {
               const cfg = fieldRegistry[fieldName];
-              const isSelect = cfg?.type === 'select' && cfg?.options?.length;
+              const selectOptions = cfg?.type === 'select' ? cfg.options ?? [] : [];
+              const isSelect = selectOptions.length > 0;
               const isContactSelect = cfg?.type === 'contact-select';
               const label = (cfg?.label || fieldName).replace(/\[\d+\]$/, '');
 
@@ -794,7 +800,7 @@ function DynamicDetail({
 
               // Select fields: colored label left, select control right
               if (isSelect) {
-                const currentOpt = cfg.options.find((o: any) => String(o.value) === String(values[fieldName]));
+                const currentOpt = selectOptions.find((o: any) => String(o.value) === String(values[fieldName]));
                 const displayText = currentOpt?.label || values[fieldName] || '—';
                 return (
                   <div key={fieldName}>
@@ -807,7 +813,7 @@ function DynamicDetail({
                         style={{ fontSize: 'inherit' }}
                       >
                         <option value="">—</option>
-                        {cfg.options.map((o: any) => (
+                        {selectOptions.map((o: any) => (
                           <option key={o.value} value={o.value}>{o.label}</option>
                         ))}
                       </select>
@@ -1069,8 +1075,10 @@ function DynamicDetail({
       {showTouchForm && data && (() => {
         const contactId = data.contact_id || 0;
         const contactName = linkedContacts[0]?.attention || data.attention || data.contact_name || '';
-        const contactPhone = linkedContacts[0]?.phone || '';
-        const contactEmail = linkedContacts[0]?.email || '';
+        const firstPhone = linkedContacts[0]?.phone;
+        const firstEmail = linkedContacts[0]?.email;
+        const contactPhone = typeof firstPhone === 'string' ? firstPhone : String(firstPhone?.[0]?.value ?? '');
+        const contactEmail = typeof firstEmail === 'string' ? firstEmail : String(firstEmail?.[0]?.value ?? '');
         const orgId = data.customer_id || data.vendor_id || data.manufacturer_id || 0;
         const orgModel = data.customer_id ? 'customer' : data.vendor_id ? 'vendor' : data.manufacturer_id ? 'manufacturer' : '';
         const defaultSubject = typeof data.action === 'object' ? (data.action?.en || '') : String(data.action || data.subject || '');
@@ -1101,4 +1109,4 @@ function DynamicDetail({
 
 export default withDevIdentifier(DynamicDetail, 'DynamicDetail', 'indigo', 'components/common/DynamicDetail.tsx');
 export { DynamicDetail, DEFAULT_ACTION_LAYOUT, FIELD_REGISTRIES, DEFAULT_LAYOUTS };
-export type { FieldConfig, DynamicDetailActions };
+export type { FieldConfig };

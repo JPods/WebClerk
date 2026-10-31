@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect, useRef } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import type { FieldWidgetProps } from './types';
 import BaseField from './BaseField';
 import { JsonTree } from '@/components/widgets/JsonTreeWidget';

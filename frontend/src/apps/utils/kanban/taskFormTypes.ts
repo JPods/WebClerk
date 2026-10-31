@@ -44,7 +44,7 @@ export type ActionModelFields = {
 
 export type TaskAssignee = { id: string; name: string };
 
-export type TaskFormFieldValue = string | TaskAttachment[] | TaskAssignee[];
+export type TaskFormFieldValue = string | boolean | TaskAttachment[] | TaskAssignee[];
 
 export type TaskFormState = BaseModelFields &
   ActionModelFields & {

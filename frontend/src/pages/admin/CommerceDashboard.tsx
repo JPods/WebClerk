@@ -13,7 +13,7 @@
  *   POST /wcapi/_manage/ { action: "get_velocity_report", params: {...} }
  *   POST /wcapi/_manage/ { action: "get_accounting_dashboard", params: {...} }
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { getUI, setUI } from '@/utils/contactUI';
 import apiClient from '../../api/axios';
 import { getRecords } from '../../api/wcapi';
@@ -364,7 +364,7 @@ function MetricList({ modelName, filters, period_days, themeKey }: {
   );
 }
 
-function SalesTab({ data, filters }: { data: any; filters: Filters; themeKey: string }) {
+function SalesTab({ data, filters, themeKey }: { data: any; filters: Filters; themeKey: string }) {
   const tx = data?.transactions || {};
   const margin = data?.margin || {};
   const [selected, setSelected] = useState<string | null>(null);
@@ -393,13 +393,13 @@ function SalesTab({ data, filters }: { data: any; filters: Filters; themeKey: st
         <MarginDistribution distribution={margin.distribution} />
       )}
       {selected && (
-        <MetricList modelName={selected} filters={listFilters} period_days={filters.period_days} />
+        <MetricList modelName={selected} filters={listFilters} period_days={filters.period_days} themeKey={themeKey} />
       )}
     </div>
   );
 }
 
-function PurchasingTab({ data, filters }: { data: any; filters: Filters; themeKey?: string }) {
+function PurchasingTab({ data, filters, themeKey }: { data: any; filters: Filters; themeKey: string }) {
   const po = data?.purchase_orders || {};
   const wo = data?.workorders || {};
   const receipts = data?.receipts || {};
@@ -437,7 +437,7 @@ function PurchasingTab({ data, filters }: { data: any; filters: Filters; themeKe
         <MetricCard label="Unreconciled" value={layers.unreconciled ?? 0} sub="Layers >30 days" />
       </div>
       {selected && (
-        <MetricList modelName={selected.model} filters={listFilters} period_days={filters.period_days} />
+        <MetricList modelName={selected.model} filters={listFilters} period_days={filters.period_days} themeKey={themeKey} />
       )}
       {(data?.stale_pos || []).length > 0 && (
         <div className="cd-section">
@@ -456,7 +456,7 @@ function PurchasingTab({ data, filters }: { data: any; filters: Filters; themeKe
   );
 }
 
-function InventoryTab({ data, filters }: { data: any; filters: Filters }) {
+function InventoryTab({ data, filters, themeKey }: { data: any; filters: Filters; themeKey: string }) {
   const [selected, setSelected] = useState<string | null>(null);
   const toggle = (model: string) => setSelected(prev => prev === model ? null : model);
 
@@ -473,7 +473,7 @@ function InventoryTab({ data, filters }: { data: any; filters: Filters }) {
         <MetricCard label="Avg Turns" value={(data?.avg_turns || 0).toFixed(1)} />
       </div>
       {selected && (
-        <MetricList modelName={selected} filters={{}} period_days={filters.period_days} />
+        <MetricList modelName={selected} filters={{}} period_days={filters.period_days} themeKey={themeKey} />
       )}
     </div>
   );

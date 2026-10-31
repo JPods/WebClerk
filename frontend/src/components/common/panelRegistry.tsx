@@ -7,6 +7,7 @@
  * Add new panels here — no switch statements in detail pages.
  */
 import type { ReactElement } from 'react';
+import type { ChannelDef } from '@/apps/common/components/panels/CommentsPanel';
 
 // ── Standard context passed to every panel ──
 export interface PanelContext {
@@ -18,7 +19,7 @@ export interface PanelContext {
   onRefresh: () => void;
   ensureWindow: (path: string, title: string) => void;
   /** Section config from the layout Setting JSON */
-  sectionConfig?: Record<string, unknown>;
+  sectionConfig?: { channels?: ChannelDef[]; [key: string]: unknown };
 }
 
 type PanelRenderer = (ctx: PanelContext) => ReactElement;
@@ -47,10 +48,6 @@ const XRefCard = lazy(() => import('@/apps/products/components/XRefCard'));
 const SpecCard = lazy(() => import('@/apps/products/components/SpecCard'));
 const DataGrid = lazy(() => import('@/components/common/DataGrid'));
 const PanelTable = lazy(() => import('@/apps/common/components/panels/PanelTable').then(m => ({ default: m.PanelTable })));
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const PanelSectionRenderer = lazy(() => import('@/apps/transactions/components/detail/PanelSectionRenderer'));
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const JsonSectionRenderer = lazy(() => import('@/apps/transactions/components/detail/JsonSectionRenderer'));
 const LazyTimeClockWidget = lazy(() => import('@/components/widgets/TimeClockWidget').then(m => ({ default: m.TimeClockWidget })));
 const LazyBillableWidget = lazy(() => import('@/components/widgets/BillableWidget').then(m => ({ default: m.BillableWidget })));
 const LazyFileUploadPanel = lazy(() => import('@/components/common/FileUploadPanel'));
@@ -157,9 +154,9 @@ const registry: Record<string, PanelRenderer> = {
     return wrap(createElement(PanelTable, {
       storageKey: `panel:${ctx.modelName}:organizations`,
       columns: [
-        { key: 'type', label: 'type', cellClassName: 'w-[80px] font-semibold text-slate-600 dark:text-slate-300', render: (r: any) => String(r.type ?? '—') },
-        { key: 'company', label: 'company', cellClassName: 'min-w-[120px] flex-1 text-slate-800 dark:text-slate-200', render: (r: any) => String(r.company ?? r.name ?? '—') },
-        { key: 'ida', label: 'ida', cellClassName: 'w-[70px] font-mono text-slate-500 dark:text-slate-400', render: (r: any) => String(r.ida ?? '—') },
+        { key: 'type', label: 'type', width: '80px', className: 'font-semibold text-slate-600 dark:text-slate-300', render: (r: any) => String(r.type ?? '—') },
+        { key: 'company', label: 'company', className: 'text-slate-800 dark:text-slate-200', render: (r: any) => String(r.company ?? r.name ?? '—') },
+        { key: 'ida', label: 'ida', width: '70px', className: 'font-mono text-slate-500 dark:text-slate-400', render: (r: any) => String(r.ida ?? '—') },
       ],
       data: orgData,
       rowKey: (r: any) => `${r.type}-${r.id ?? r.ida}`,

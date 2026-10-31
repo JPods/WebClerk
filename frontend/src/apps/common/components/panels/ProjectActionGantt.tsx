@@ -58,15 +58,6 @@ const PRIORITY_COLORS: Record<number, string> = {
   4: '#6b7280',  // low — gray
 };
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const KANBAN_COLORS: Record<string, string> = {
-  Backlog: '#6b7280',
-  Planning: '#3b82f6',
-  InProcess: '#10b981',
-  Review: '#f59e0b',
-  Complete: '#22c55e',
-};
-
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -548,8 +539,6 @@ export default function ProjectActionGantt({ projectId }: ProjectActionGanttProp
                   const toY = to.midY;
 
                   // Simple path: horizontal from end, then vertical, then horizontal to start
-                  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                  const midXPct = (from.rightPct + to.leftPct) / 2;
 
                   return (
                     <g key={`${depId}-${a.id}`}>

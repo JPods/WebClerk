@@ -14,15 +14,15 @@ const toastColors = {
 };
 
 const Toster = () => {
-  const { message, type, open } = useSelector((state: RootState) => state.toast);
+  const { message, type, open, duration } = useSelector((state: RootState) => state.toast);
   const dispatch = useDispatch();
   
   useEffect(() => {
     if (open) {
-      const timer = setTimeout(() => dispatch(hideToast()), 3000);
+      const timer = setTimeout(() => dispatch(hideToast()), duration);
       return () => clearTimeout(timer);
     }
-  }, [open, dispatch]);
+  }, [open, duration, dispatch]);
 
   if (!open) return null;
  

@@ -1,5 +1,4 @@
 /* LastChecked: 2026-08-14 | WhereUsed: DataBrowser detail pane (admin mode) | WhoCreated: Bill+Claude */
-import React from 'react';
 import BehaviorField from '../../components/common/BehaviorField';
 import FieldGroupSection from '../../components/common/FieldGroupSection';
 import type { FieldSpec } from '../../hooks/useDataBrowser';

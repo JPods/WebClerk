@@ -554,8 +554,6 @@ const ActionsTable: React.FC<ActionsTableProps> = ({
   visibleColumns,
   onEdit,
   onDelete,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  onComplete,
 }) => {
   if (actions.length === 0) {
     return (

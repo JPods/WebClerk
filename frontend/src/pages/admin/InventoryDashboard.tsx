@@ -1140,22 +1140,9 @@ function WarehouseTab() {
 // ---------------------------------------------------------------------------
 
 function ReconcileTab() {
-  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [rows, setRows] = useState<ReconcileRow[]>([]);
   const [countNotes, setCountNotes] = useState("");
-  const [warehouseCode, setWarehouseCode] = useState("");
-  useEffect(() => {
-    (async () => {
-      try {
-        const whData = await getRecords("warehouse", { limit: 100 });
-        const first = (whData.results || [])[0];
-        if (first?.code) setWarehouseCode((current) => current || first.code);
-      } catch {
-        /* the service falls back to the item's own warehouse */
-      }
-    })();
-  }, []);
   const [loading, setLoading] = useState(false);
   const [applying, setApplying] = useState(false);
   const [result, setResult] = useState<string | null>(null);

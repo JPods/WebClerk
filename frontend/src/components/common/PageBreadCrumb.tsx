@@ -7,16 +7,6 @@ import React, {
   useCallback,
 } from "react";
 import { Link } from "react-router-dom";
-/** Column shape compatible with legacy TableColumn (no react-data-table-component dep) */
-type TableColumn<T = any> = {
-  id?: string | number;
-  name?: string | React.ReactNode;
-  selector?: ((row: T, index?: number) => any) | string;
-  cell?: (row: T, index: number, column: any, id: any) => React.ReactNode;
-  sortable?: boolean;
-  width?: string;
-  [key: string]: any;
-};
 import { useDrag, useDrop, DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import {
@@ -36,6 +26,16 @@ import {
   FaEye,
   FaEyeSlash,
 } from "react-icons/fa";
+/** Column shape compatible with legacy TableColumn (no react-data-table-component dep) */
+type TableColumn<T = any> = {
+  id?: string | number;
+  name?: string | React.ReactNode;
+  selector?: ((row: T, index?: number) => any) | string;
+  cell?: (row: T, index: number, column: any, id: any) => React.ReactNode;
+  sortable?: boolean;
+  width?: string;
+  [key: string]: any;
+};
 
 export interface ColumnFilter {
   key: string;
@@ -49,10 +49,10 @@ interface DraggableColumnItemProps {
   column: string;
   index: number;
   visible: boolean;
-  isSelected: boolean;
+  isSelected?: boolean;
   moveColumn: (dragIndex: number, hoverIndex: number) => void;
   toggleVisibility: (index: number) => void;
-  onSelect: (index: number) => void;
+  onSelect?: (index: number) => void;
 }
 
 const COLUMN_DRAG_TYPE = "COLUMN_ITEM";
@@ -105,7 +105,7 @@ const DraggableColumnItem: React.FC<DraggableColumnItemProps> = ({
   return (
     <div
       ref={ref}
-      onClick={() => onSelect(index)}
+      onClick={() => onSelect?.(index)}
       className={`flex items-center justify-between p-2 rounded cursor-move ${
         isDragging ? "opacity-50" : ""
       } ${
@@ -246,13 +246,6 @@ const PageBreadcrumb = <T extends Record<string, any> = any>({
     top: number;
     left: number;
   } | null>(null);
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [selectedColIndex, setSelectedColIndex] = useState<number | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [editJson, setEditJson] = useState<string>("");
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [jsonError, setJsonError] = useState<string>("");
 
   // Internal column visibility state (used when not controlled externally)
   const [internalColumnVisibility, setInternalColumnVisibility] = useState<

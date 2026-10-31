@@ -29,7 +29,7 @@ const CONTACT_FIELDS: Array<[string, string]> = [
 
 const money = (n?: number | string) => formatCurrency(n ?? 0) || '$0.00';
 const when = (r: Rec) => formatDate(typeof r.dt_created === 'number' ? r.dt_created : Date.parse(r.dt_created));
-const imageUrl = (ida: string, size: 'tn' | 'md') => `/wcapi/_image/Item/${encodeURIComponent(ida)}/${size}.jpg`;
+const imageUrl = (ida: string, size: 'tn' | 'md') => `/wcapi/_image/item/${encodeURIComponent(ida)}/${size}.jpg`;
 /** The one price a customer is shown: their level's (the server sends only that one). */
 const unitPrice = (item: Rec): number | undefined => {
   const price = item.price || {};

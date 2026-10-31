@@ -1,4 +1,3 @@
-import React from 'react';
 import type { FieldWidgetProps } from './types';
 
 export default function BooleanField(props: FieldWidgetProps) {

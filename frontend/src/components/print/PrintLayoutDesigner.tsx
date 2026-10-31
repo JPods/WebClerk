@@ -84,12 +84,12 @@ function guessFormat(field: string): PrintField['format'] {
   return 'text';
 }
 
-function guessAlign(format: string): 'left' | 'right' | 'center' {
+function guessAlign(format?: string): 'left' | 'right' | 'center' {
   if (format === 'currency' || format === 'number' || format === 'percent') return 'right';
   return 'left';
 }
 
-function guessWidth(field: string, format: string): string | undefined {
+function guessWidth(field: string, format?: string): string | undefined {
   if (format === 'currency') return '12%';
   if (format === 'date') return '10%';
   if (format === 'number' || format === 'percent') return '8%';
@@ -482,7 +482,7 @@ const PrintLayoutDesigner: React.FC<PrintLayoutDesignerProps> = ({
               className="pld-toolbar-input" />
           </label>
           <select value={paper}
-            onChange={(e) => { setPaper(e.target.value); setDirty(true); }}
+            onChange={(e) => { setPaper(e.target.value as 'letter' | 'legal' | 'a4'); setDirty(true); }}
             className="pld-toolbar-select"
           >
             <option value="letter">US Letter</option>

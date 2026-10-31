@@ -108,7 +108,7 @@ function renderAddressBlocks(section: AddressBlocksSection, x: number, y: number
   const lines: string[] = [];
   let maxH = 0;
 
-  cols.forEach((col) => {
+  cols.forEach((col, ci) => {
     const cx = x + ci * (colW + 8);
     const cardId = `addr_${ci}`;
     // Card border

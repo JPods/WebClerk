@@ -20,6 +20,7 @@ export interface AssignedUser {
   id: string | number;
   name?: string;
   is_staff?: boolean;
+  config?: { ui?: { badge?: BadgePrefs } };
   prefs?: {
     badge?: BadgePrefs;
   };
@@ -345,8 +346,8 @@ export const mapApiActionToGanttTask = (
     // Store refs.parents for link manipulation
     refParents: extractRefParents(action),
     // Original planned dates for baseline comparison
-    dtStartOriginal: parseDateValue(actionRecord.dt_start_original as number | undefined),
-    dtEndOriginal: parseDateValue(actionRecord.dt_end_original as number | undefined),
+    dtStartOriginal: parseDateValue(actionRecord.dt_start_original as number | undefined) ?? undefined,
+    dtEndOriginal: parseDateValue(actionRecord.dt_end_original as number | undefined) ?? undefined,
   };
   
   // Add color if provided
@@ -579,16 +580,6 @@ const markCriticalPath = (tasks: GanttMappedTask[]): void => {
       taskChildren.get(parentId)!.push(taskId);
     }
   }
-  
-  // Get task end time in ms 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const getTaskEnd = (task: GanttMappedTask): number => {
-    if (task.end instanceof Date) return task.end.getTime();
-    if (task.start instanceof Date && task.duration) {
-      return task.start.getTime() + task.duration * DAY_IN_MS;
-    }
-    return task.start instanceof Date ? task.start.getTime() : 0;
-  };
   
   // Get task duration in ms
   const getTaskDuration = (task: GanttMappedTask): number => {

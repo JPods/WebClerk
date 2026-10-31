@@ -20,8 +20,6 @@ import { formatCurrency, formatPercent } from '@/utils/stringUtils';
 interface FinancialsPanelProps {
   totals?: TransactionTotals | null;
   currency?: string;
-  /** Back-compat with old FinancialsCard usage (not used currently) */
-  isEditing?: boolean;
 }
 
 

@@ -884,7 +884,7 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
       if (isView) {
         const row = records.find((r: any) => numId(r.id) === selectedId);
         if (row?.source_model && row?.source_id) {
-          fetchModel = row.source_model;
+          fetchModel = String(row.source_model);
           fetchId = Number(row.source_id);
         }
       }
@@ -1043,8 +1043,9 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
   const toggleField = useCallback(async (kind: 'list' | 'detail', field: string) => {
     if (!selectedModel) return;
     const cur = workbenchSetting ?? { list: [], detail: [] };
-    const base = cur[kind]?.length ? cur[kind] : (kind === 'list' ? visibleListFields : allFields);
-    const updated = base.includes(field) ? base.filter((f: string) => f !== field) : [...base, field];
+    const base: (string | FieldSpec)[] = cur[kind]?.length ? cur[kind] : (kind === 'list' ? visibleListFields : allFields);
+    const nameOf = (f: string | FieldSpec) => (typeof f === 'string' ? f : f.field);
+    const updated = base.some((f) => nameOf(f) === field) ? base.filter((f) => nameOf(f) !== field) : [...base, field];
     const next: WorkbenchFieldsSetting = { ...cur, [kind]: updated };
     setWorkbenchSetting(next);
     setWorkbenchSettingsMap((p) => ({ ...p, [selectedModel]: next }));

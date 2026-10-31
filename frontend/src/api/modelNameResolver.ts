@@ -32,7 +32,6 @@ const MODEL_NAME_MAP: Record<string, string> = {
   purchase: 'purchase',
   po: 'purchase',
   quote: 'quote',
-  quote: 'quote',
   workorder: 'workorder',  // Django model_name is 'workorder' (no underscore)
   work: 'workorder',
   wo: 'workorder',
@@ -47,7 +46,6 @@ const MODEL_NAME_MAP: Record<string, string> = {
   invoiceline: 'invoice_line',
   purchaseline: 'purchase_line',
   poline: 'purchase_line',
-  quoteline: 'quote_line',
   quoteline: 'quote_line',
   workorderline: 'workorderline',  // Django model_name is 'workorderline' (no underscore)
   woline: 'workorderline',
@@ -135,7 +133,6 @@ const PATH_PATTERN_MAP: Record<string, string> = {
   'transactions/invoice': 'invoice',
   'transactions/purchase-order': 'purchase',
   'transactions/purchase': 'purchase',
-  'transactions/quote': 'quote',
   'transactions/quote': 'quote',
   'transactions/work-order': 'workorder',
   'transactions/workorder': 'workorder',

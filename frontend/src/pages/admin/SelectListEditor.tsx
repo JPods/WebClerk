@@ -77,11 +77,6 @@ export default function SelectListEditor() {
     })();
   }, []);
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const allModels = useMemo(() => {
-    return [...new Set(modelData.map(md => md.model))].sort();
-  }, [modelData]);
-
   // Build field groups — which fields exist, with how many models and variants
   const fieldGroups = useMemo<FieldGroup[]>(() => {
     const fieldMap: Record<string, { optionSets: Map<string, SelectOption[]>; models: string[] }> = {};

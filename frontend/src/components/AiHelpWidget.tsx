@@ -29,6 +29,8 @@ import {
 import { askAi, debugError, submitFeedback } from "../apps/support/services/aiApi";
 import type { AiSource, AiMode } from "../apps/support/services/aiApi";
 import { useConsoleCapture } from "../hooks/useConsoleCapture";
+import type { CapturedError } from "../hooks/useConsoleCapture";
+import { formatDt } from "../utils/fieldFormatters";
 
 // ── Types ───────────────────────────────────────────────────────
 

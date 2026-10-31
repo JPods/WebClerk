@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 
 const data: Record<string, any[]> = {};
-const getRecords = vi.fn((model: string) => Promise.resolve({ results: data[model] || [] }));
+const getRecords = vi.fn((model: string, ..._rest: any[]) => Promise.resolve({ results: data[model] || [] }));
 const newRecord = vi.fn();
 const saveRecord = vi.fn();
 vi.mock('../../../api/wcapi', () => ({

@@ -1,6 +1,6 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 import DataGrid from "@/components/common/DataGrid";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { FaPlus, FaEdit, FaEye, FaTrash, FaSyncAlt, FaSave } from "react-icons/fa";
 import ComponentCard from "../../../components/common/ComponentCard";
 import PageBreadcrumb from "../../../components/common/PageBreadCrumb";
@@ -259,7 +259,8 @@ function ModelScaffold({
   );
 
   const columns = useMemo<any[]>(() => {
-    const base = visibleListFields.map((field) => ({
+    const base: { name: string; selector?: (row: RecordLike) => unknown; sortable?: boolean;
+                  cell: (row: RecordLike) => ReactNode }[] = visibleListFields.map((field) => ({
       name: kebabCaseToTitle(field),
       selector: (row: RecordLike) => row?.[field],
       sortable: true,
@@ -285,9 +286,6 @@ function ModelScaffold({
           </button>
         </div>
       ),
-      ignoreRowClick: true,
-      allowOverflow: true,
-      button: true,
     });
 
     return base;

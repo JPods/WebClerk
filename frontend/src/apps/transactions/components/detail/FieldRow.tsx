@@ -1,6 +1,6 @@
 /* LastChecked: 2026-09-09 | WhereUsed: UiDetail | WhoCreated: Claude */
 import React, { useState, useRef } from 'react';
-import { formatDt, formatField } from '@/utils/fieldFormatters';
+import { formatDt, formatField, type FieldType } from '@/utils/fieldFormatters';
 import { WIDGETS } from '@/components/widgets';
 import { getRecords } from '@/api/wcapi';
 
@@ -103,7 +103,7 @@ function toISODate(val: unknown): string {
 const PHONE_FIELDS = new Set(['phone', 'phone_cell', 'fax', 'number']);
 
 /** Detect format type from field name */
-function detectFormatType(field: string, label: string): string | null {
+function detectFormatType(field: string, label: string): FieldType | null {
   const fl = field.toLowerCase();
   const ll = label.toLowerCase();
   if (PHONE_FIELDS.has(fl) || fl.includes('phone') || fl.includes('fax') || ll === 'phone' || ll === 'fax') return 'phone';
@@ -364,7 +364,7 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
             setOrgSearching(true);
             try {
               const res = await getRecords(leafName, { keyword: q, limit: 10 });
-              setOrgResults(res?.results || res?.records || []);
+              setOrgResults(res?.results || []);
             } catch (err: any) {
               // A failed search is not "no results" — say so, or the user makes a duplicate.
               setOrgResults([]);

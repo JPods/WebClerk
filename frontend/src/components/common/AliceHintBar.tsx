@@ -7,7 +7,6 @@
  * Shows hints relevant to the current model. Dismissible.
  * Sources: Alice (local), WCHQ (synced), Power users (shared).
  */
-import React from 'react';
 import { useAlice } from '@/context/AliceContext';
 
 interface AliceHintBarProps {

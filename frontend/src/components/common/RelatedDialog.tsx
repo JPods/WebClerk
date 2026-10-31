@@ -68,7 +68,7 @@ const RelatedDialog: React.FC<Props> = ({ open, model, selectedRecord, selectedR
       purpose: 'wc:model_related',
       parent_model: model,
     }).then((rec) => {
-      setEntries(rec?.data?.related || []);
+      setEntries(rec?.config?.related || []);
       setLoaded(model);
     }).catch(() => {
       setEntries([]);

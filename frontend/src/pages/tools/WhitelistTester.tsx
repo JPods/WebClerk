@@ -13,7 +13,7 @@
 import React, { useMemo, useState } from 'react';
 import apiClient, { authClient } from '../../api/axios';
 
-type HttpMethod = 'GET' | 'POST';
+type HttpMethod = 'GET' | 'POST' | 'PUT';
 
 type Preset = {
   label: string;
@@ -227,9 +227,8 @@ const WhitelistTester: React.FC = () => {
   const config = { headers: parsedHeaders || undefined } as any;
   const isAuthPath = url.startsWith('/auth/') || url.startsWith('/api/auth/') || url.startsWith('/api/token');
   const client = isAuthPath ? authClient : apiClient;
-      const res = method === 'GET'
-        ? await client.get(url, config)
-        : await client.post(url, parsedBody ?? {}, config);
+      const res = await client.request({ ...config, method, url,
+                                         data: method === 'GET' ? undefined : parsedBody ?? {} });
       setResponse(res.data);
     } catch (e: any) {
       setError(e?.message || 'Request failed');
@@ -260,6 +259,7 @@ const WhitelistTester: React.FC = () => {
             <select className="border rounded px-2 py-1 text-sm" value={method} onChange={(e) => setMethod(e.target.value as HttpMethod)}>
               <option>GET</option>
               <option>POST</option>
+              <option>PUT</option>
             </select>
             <input className="flex-1 border rounded px-2 py-1 text-sm" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="/wcapi/..." />
             <button className="px-3 py-1 text-sm rounded border hover:bg-gray-100" onClick={send} disabled={loading}>

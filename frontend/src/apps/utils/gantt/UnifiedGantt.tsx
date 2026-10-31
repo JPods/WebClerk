@@ -12,37 +12,29 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getUI } from "@/utils/contactUI";
-import { useNavigate } from "react-router-dom";
-import { useSelector } from "react-redux";
-import type { RootState } from "@/store";
 import { format as dateFnsFormat } from "date-fns";
-import type { GanttColumn } from "./gantt.types";
 import { GanttTimeline } from "./GanttTimeline";
 import { GanttLinks } from "./GanttLinks";
 import DataGrid from "../../../components/common/DataGrid";
 import KanbanTaskModal from "../kanban/KanbanTaskModal";
-import type { TaskFormEditableField, TaskFormState } from "../kanban/taskFormTypes";
+import type { TaskFormEditableField, TaskFormFieldValue, TaskFormState } from "../kanban/taskFormTypes";
+import type { GanttScaleConfig } from "./gantt.types";
 import { saveRecord, getRecord } from "@/api/wcapi";
 import { createEmptyBoardData } from "../kanban/kanbanDataMapper";
-import type { BoardData, KanbanTask, TaskPriority } from "../kanban/type/kanban";
+import type { BoardData, KanbanTask } from "../kanban/type/kanban";
 import { ProjectContactManager } from "../kanban/ProjectContactManager";
 import type { ProjectContact } from "../kanban/ProjectContactManager";
 import {
   DEFAULT_LANGUAGE_ORDER,
-  DEFAULT_DIFFICULTY,
-  DEFAULT_PROGRESS,
   DIFFICULTY_OPTIONS,
   FALLBACK_COLUMN_ID,
   PRIORITY_TO_VALUE,
   PROGRESS_OPTIONS,
   createInitialTaskFormState,
   createTranslationEntry,
-  createTranslationEntriesFromTask,
   extendNumericOptionStrings,
   getLanguageLabel,
-  normalizeIncomingDateValue,
   normalizeLanguageCode,
-  normalizeNumericSelectValue,
   priorityOptions,
   toTimestampMilliseconds,
   updateTaskFormState,
@@ -72,17 +64,11 @@ export interface UnifiedGanttProps {
   /** Show the project selector sidebar (default: true, false if projectId provided) */
   showSelector?: boolean;
   
-  /** Compact mode with reduced padding */
-  compact?: boolean;
-  
   /** Additional CSS classes */
   className?: string;
   
   /** Enable auto-refresh (default: true) */
   autoRefresh?: boolean;
-
-  /** Callback when a task is clicked */
-  onTaskClick?: (task: GanttMappedTask) => void;
 
   /** External zoom scale for chart+list area (toolbar excluded). Default 1. */
   chartZoom?: number;
@@ -91,13 +77,6 @@ export interface UnifiedGanttProps {
 // =============================================================================
 // Constants
 // =============================================================================
-
-const ganttDateFormatter = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-});
-
-const formatDate = (value?: Date) => (value ? ganttDateFormatter.format(value) : "-");
 
 // Column template signature: (value: unknown, task: GanttMappedTask, column: GanttColumn)
 
@@ -183,117 +162,8 @@ async function saveProjectGanttSettings(
   }
 }
 
-// Reorder column for manual task ordering (shown when auto-sort is disabled)
-const createReorderColumn = (): GanttColumn => ({
-  id: "reorder",
-  header: "#",
-  width: 55,
-  align: "center",
-});
-
-// Factory function to create columns (taskLookup no longer needed since task is in arg[1])
-const createGanttColumns = (_taskLookup: Map<string, GanttMappedTask>, includeReorder: boolean = false): GanttColumn[] => {
-  const columns: GanttColumn[] = [];
-  
-  // Add reorder column first if enabled
-  if (includeReorder) {
-    columns.push(createReorderColumn());
-  }
-  
-  columns.push(
-  {
-    id: "taskIda",
-    header: "ida",
-    width: 60,
-    align: "center",
-    template: (_value: unknown, task: GanttMappedTask) => task?.taskIda || "-",
-  },
-  {
-    id: "projectIda",
-    header: "project_ida",
-    width: 75,
-    align: "center",
-    template: (_value: unknown, task: GanttMappedTask) => task?.projectIda || "-",
-  },
-  {
-    id: "start",
-    header: "dt_start",
-    width: 85,
-    align: "center",
-    template: (_value: unknown, task: GanttMappedTask) => {
-      const startDate = task?.start;
-      if (startDate instanceof Date) {
-        return formatDate(startDate);
-      }
-      if (typeof startDate === "string") {
-        return formatDate(new Date(startDate));
-      }
-      return "-";
-    },
-  },
-  {
-    id: "duration",
-    header: "duration",
-    width: 50,
-    align: "center",
-    template: (_value: unknown, task: GanttMappedTask) => {
-      const d = task?.duration;
-      if (typeof d === "number" && d > 0) {
-        return `${d}d`;
-      }
-      return "-";
-    },
-  },
-  {
-    id: "progress",
-    header: "percent_complete",
-    width: 95,
-    align: "center",
-    template: (_value: unknown, task: GanttMappedTask) => {
-      const pct = task?.percentComplete ?? task?.progress ?? 0;
-      return `${pct}%`;
-    },
-  },
-  {
-    id: "slack",
-    header: "slack",
-    width: 55,
-    align: "center",
-    template: (_value: unknown, task: GanttMappedTask) => {
-      const slack = task?.slack;
-      if (typeof slack !== "number") return "-";
-      if (slack === 0) return <span className="text-red-600 font-semibold">0d</span>;
-      return `${slack}d`;
-    },
-  },
-  {
-    id: "baseline",
-    header: "dt_start_original",
-    width: 100,
-    align: "center",
-    template: (_value: unknown, task: GanttMappedTask) => {
-      // Show variance from original (positive = delayed, negative = ahead)
-      if (!task?.dtStartOriginal || !task?.start) return "-";
-      const originalMs = task.dtStartOriginal instanceof Date ? task.dtStartOriginal.getTime() : 0;
-      const actualMs = task.start instanceof Date ? task.start.getTime() : 0;
-      if (!originalMs || !actualMs) return "-";
-      const varianceDays = Math.round((actualMs - originalMs) / (1000 * 60 * 60 * 24));
-      if (varianceDays === 0) return <span className="text-emerald-600">±0</span>;
-      if (varianceDays > 0) return <span className="text-red-600 font-semibold">+{varianceDays}d</span>;
-      return <span className="text-emerald-600">{varianceDays}d</span>;
-    },
-  });
-  
-  return columns;
-};
-
-// Factory for single-project mode (hides project column)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const createGanttColumnsSingleProject = (taskLookup: Map<string, GanttMappedTask>, includeReorder: boolean = false): GanttColumn[] =>
-  createGanttColumns(taskLookup, includeReorder).filter((col) => col.id !== "projectIda");
-
 type ScalePresetKey = "day" | "week" | "month" | "quarter";
-type ScaleConfig = { unit: string; step: number; format: (date: Date) => string };
+type ScaleConfig = GanttScaleConfig;
 
 const scalePresets: Record<ScalePresetKey, ScaleConfig[]> = {
   day: [
@@ -320,9 +190,6 @@ const scaleButtons: Array<{ id: ScalePresetKey; label: string }> = [
   { id: "month", label: "Month" },
   { id: "quarter", label: "Quarter" },
 ];
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const GANTT_COLOR_EVENT_TAG = "gantt-project-colors";
 
 // =============================================================================
 // Utilities
@@ -355,23 +222,6 @@ const pickReadableTextColor = (background: string): string => {
 const combineClassNames = (...classes: Array<string | false | null | undefined>) =>
   classes.filter(Boolean).join(" ");
 
-const toProgressPercentage = (value?: number | null): number => {
-  if (typeof value !== "number" || Number.isNaN(value)) return 0;
-  if (value >= 0 && value <= 1) return Math.round(value * 100);
-  return Math.round(Math.max(0, Math.min(100, value)));
-};
-
-const padTwoDigits = (value: number) => value.toString().padStart(2, "0");
-
-const formatDateTimeLocal = (date: Date): string => {
-  const year = date.getFullYear();
-  const month = padTwoDigits(date.getMonth() + 1);
-  const day = padTwoDigits(date.getDate());
-  const hours = padTwoDigits(date.getHours());
-  const minutes = padTwoDigits(date.getMinutes());
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
-};
-
 const formatLastRefresh = (date: Date | null): string => {
   if (!date) return "Never";
   const now = new Date();
@@ -399,15 +249,10 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
   projectId,
   initialProjectIds = [],
   showSelector: showSelectorProp,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  compact = false,
   className,
   autoRefresh = true,
-  onTaskClick,
   chartZoom = 1,
 }) => {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const navigate = useNavigate();
 
   // Determine if we should show selector
   const isSingleProjectMode = Boolean(projectId);
@@ -422,8 +267,8 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
   useEffect(() => {
     if (!projectId) return;
     projectSettingsApplied.current = false;
-    getRecord("project", projectId).then((resp: any) => {
-      const rec = resp?.data || resp || null;
+    getRecord("project", Number(projectId)).then((resp) => {
+      const rec = resp?.record ?? null;
       const meta = rec?.metadata || null;
       setProjectMetadata(meta);
       setProjectRecord(rec);
@@ -456,18 +301,6 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
   const [customTaskOrder, setCustomTaskOrder] = useState<string[]>([]);
   
   // Auth user — for gantt prefs
-  const authUser = useSelector((s: RootState) => s.auth?.user);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const ganttPrefs = (authUser as any)?.prefs?.gantt || {};
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleSaveGanttPrefs = useCallback(async (prefs: any) => {
-    const userId = (authUser as any)?.id;
-    if (!userId) return;
-    try {
-      const currentPrefs = (authUser as any)?.prefs || {};
-      await saveRecord('contact', { id: userId, prefs: { ...currentPrefs, gantt: prefs } });
-    } catch (err) { console.error('Failed to save gantt prefs:', err); }
-  }, [authUser]);
 
   // Project selection state
   const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>(() => {
@@ -484,12 +317,11 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
   
   // Refs for task order saving (placed before useGanttData since they don't depend on it)
   const saveOrderTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const isSavingOrderRef = useRef(false);
   const hasLoadedOrderRef = useRef<string | null>(null); // Track which project's order we've loaded
   
   // Modal state (placed here to be available for useGanttData)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editAssigneeUIMode, setEditAssigneeUIMode] = useState<'dropdown' | 'chips'>('dropdown');
+
   
   // Data fetching
   const {
@@ -504,8 +336,6 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
     refetchActions,
     refetchAll,
     updateTaskLocally,
-    reorderTaskLocally,
-    getTaskOrder,
   } = useGanttData({
     selectedProjectIds,
     enabled: true,
@@ -575,55 +405,6 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
   }, [selectedProjectIds, getDescendantIds]);
 
   const onSelectionChange = setSelectedProjectIds;
-
-  // Save task order to project.refs.links.actions
-  // Uses debouncing to avoid excessive API calls during rapid reordering
-  const saveTaskOrderToProject = useCallback(async (tasks: GanttMappedTask[]) => {
-    // Only save in single-project mode
-    if (!projectId || selectedProjectIds.length !== 1) {
-      console.log('[UnifiedGantt] Skipping save: not in single-project mode');
-      return;
-    }
-    
-    // Build the action order array in the required format
-    const actionOrder = tasks.map((task) => ({
-      id: Number(task.id),
-      "action.en": task.text || task.title || "",
-    }));
-    
-    try {
-      isSavingOrderRef.current = true;
-      const payload = {
-        id: Number(projectId),
-        refs: {
-          links: {
-            actions: actionOrder,
-          },
-        },
-      };
-      
-      console.log('[UnifiedGantt] Saving task order to project:', payload);
-      await saveRecord("project", payload);
-      console.log('[UnifiedGantt] Task order saved successfully');
-    } catch (error) {
-      console.error('[UnifiedGantt] Failed to save task order:', error);
-    } finally {
-      isSavingOrderRef.current = false;
-    }
-  }, [projectId, selectedProjectIds]);
-  
-  // Debounced save function
-  const debouncedSaveOrder = useCallback((tasks: GanttMappedTask[]) => {
-    // Clear any pending save
-    if (saveOrderTimeoutRef.current) {
-      clearTimeout(saveOrderTimeoutRef.current);
-    }
-    
-    // Schedule new save after 500ms delay
-    saveOrderTimeoutRef.current = setTimeout(() => {
-      saveTaskOrderToProject(tasks);
-    }, 500);
-  }, [saveTaskOrderToProject]);
   
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -633,27 +414,6 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
       }
     };
   }, []);
-  
-  // Task reorder handler — called directly by GanttGrid React buttons
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleMoveTask = useCallback((taskId: string, direction: 'up' | 'down') => {
-    const currentTasks = ganttData.tasks;
-    const taskIndex = currentTasks.findIndex((t) => String(t.id) === taskId);
-    if (taskIndex === -1) return;
-
-    const newIndex = direction === 'up'
-      ? Math.max(0, taskIndex - 1)
-      : Math.min(currentTasks.length - 1, taskIndex + 1);
-
-    if (newIndex !== taskIndex) {
-      reorderTaskLocally(taskIndex, newIndex);
-      setCustomTaskOrder(getTaskOrder());
-      const newTasks = [...currentTasks];
-      const [movedTask] = newTasks.splice(taskIndex, 1);
-      newTasks.splice(newIndex, 0, movedTask);
-      debouncedSaveOrder(newTasks);
-    }
-  }, [ganttData.tasks, reorderTaskLocally, getTaskOrder, debouncedSaveOrder]);
   
   // Load saved task order from project.refs.links.actions on mount / project change
   useEffect(() => {
@@ -670,7 +430,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
     const loadSavedTaskOrder = async () => {
       try {
         console.log('[UnifiedGantt] Loading saved task order for project:', projectId);
-        const project = await getRecord("project", Number(projectId));
+        const project = (await getRecord("project", Number(projectId)))?.record;
         
         if (!project) {
           console.log('[UnifiedGantt] Project not found');
@@ -824,14 +584,6 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
   const [editCustomLanguage, setEditCustomLanguage] = useState("");
   const [editLanguagePickerError, setEditLanguagePickerError] = useState<string | null>(null);
 
-  // Link context menu state
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [linkContextMenu, setLinkContextMenu] = useState<{
-    x: number;
-    y: number;
-    linkId: string;
-  } | null>(null);
-
   // Undo/Redo history stacks
   type HistoryEntry = { taskId: string; field: string; oldValue: unknown; newValue: unknown };
   const [undoStack, setUndoStack] = useState<HistoryEntry[]>([]);
@@ -862,8 +614,8 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
     [editTaskState.difficulty]
   );
   const editProgressOptions = useMemo(
-    () => extendNumericOptionStrings(PROGRESS_OPTIONS, editTaskState.progress),
-    [editTaskState.progress]
+    () => extendNumericOptionStrings(PROGRESS_OPTIONS, editTaskState.percent_complete),
+    [editTaskState.percent_complete]
   );
 
   // Language options
@@ -943,76 +695,6 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
     return map;
   }, [ganttData.tasks, selectedProjectIds, projects, colorMode]);
 
-  // Derive form state from a task
-  const deriveFormStateFromTask = useCallback(
-    (task: KanbanTask): TaskFormState => {
-      const taskColumn = Object.values(board.columns).find((column) => column?.task_ids?.includes(task.id));
-      const normalizedStart = normalizeIncomingDateValue((task as any).dt_start);
-      const normalizedDue = normalizeIncomingDateValue((task as any).dt_deadline);
-      const shouldFallbackStart = !normalizedStart && !normalizedDue;
-      const resolvedStartDate = shouldFallbackStart ? formatDateTimeLocal(new Date()) : normalizedStart;
-      const resolvedDueDate = normalizedDue || "";
-      const normalizedDifficulty = normalizeNumericSelectValue(
-        task.difficulty ?? PRIORITY_TO_VALUE[task.priority],
-        DEFAULT_DIFFICULTY
-      );
-      const normalizedProgressValue = toProgressPercentage(task.progress);
-      const normalizedProgress = normalizeNumericSelectValue(normalizedProgressValue, DEFAULT_PROGRESS);
-
-      return {
-        translations: createTranslationEntriesFromTask(task),
-        columnId: taskColumn?.id ?? task.status ?? FALLBACK_COLUMN_ID,
-        priority: task.priority,
-        dt_deadline: resolvedDueDate,
-        dt_start: resolvedStartDate,
-        dt_completed: "",
-        dt_expected: resolvedDueDate,
-        assignee: task.assignee || task.assigned_to?.[0]?.name || "",
-        difficulty: String(normalizedDifficulty),
-        progress: String(normalizedProgress),
-        percent_complete: String(normalizedProgress),
-      };
-    },
-    [board.columns]
-  );
-
-  // Task editing handlers
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleShowEditor = useCallback(
-    ({ id }: { id: string | number }) => {
-      const ganttTask = ganttData.tasks.find((t) => String(t.id) === String(id));
-      if (!ganttTask) return;
-
-      // Optional callback
-      if (onTaskClick) {
-        onTaskClick(ganttTask);
-      }
-
-      // Create a KanbanTask-like object
-      const kanbanTask: KanbanTask = {
-        id: String(ganttTask.id),
-        title: ganttTask.text || "",
-        description: ganttTask.details || "",
-        priority: (ganttTask.priority as TaskPriority) || "medium",
-        status: ganttTask.columnTitle || "Uncategorized",
-        dt_deadline: ganttTask.end instanceof Date ? ganttTask.end.toISOString() : undefined,
-        dt_start: ganttTask.start instanceof Date ? ganttTask.start.toISOString() : undefined,
-        progress: toProgressPercentage(ganttTask.progress),
-        assignee: ganttTask.assignee,
-        tags: [],
-        title_translations: { en: ganttTask.text || "" },
-        description_translations: { en: ganttTask.details || "" },
-        language_codes: ["en"],
-      };
-
-      setEditingTask(kanbanTask);
-      setEditTaskState(deriveFormStateFromTask(kanbanTask));
-      setEditModalError(null);
-      setIsEditModalOpen(true);
-    },
-    [ganttData.tasks, deriveFormStateFromTask, onTaskClick]
-  );
-
   // Double-click on grid row → open in side panel
   const handleOpenDetailPanel = useCallback(
     ({ id }: { id: string | number }) => {
@@ -1029,7 +711,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
   }, []);
 
   const handleEditTaskChange = useCallback(
-    (field: TaskFormEditableField, value: string) => {
+    (field: TaskFormEditableField, value: TaskFormFieldValue) => {
       setEditTaskState((prev) => updateTaskFormState(prev, field, value));
     },
     []
@@ -1149,13 +831,13 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
       };
 
       const column = board.columns[state.columnId] ?? board.columns[FALLBACK_COLUMN_ID];
-      const assignedTo = state.assignee
-        ? [{ name: state.assignee }]
+      const assignedTo = state.assigned_to?.length
+        ? state.assigned_to.map((a) => ({ id: a.id, name: a.name }))
         : baseTask.assigned_to?.map((assignment: any) => ({ name: assignment.name })) ?? [];
 
       const dueTimestamp = toTimestampMilliseconds(state.dt_deadline);
       const startTimestamp = toTimestampMilliseconds(state.dt_start);
-      const resolvedProgress = Number(state.progress) || 0;
+      const resolvedProgress = Number(state.percent_complete) || 0;
 
       const payloadItem: Record<string, unknown> = {
         model_name: "action",
@@ -1195,7 +877,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
         id: baseTask.id,
       };
 
-      if (!state.assignee && assignedTo.length === 0) {
+      if (assignedTo.length === 0) {
         delete payloadItem.assigned_to;
       }
 
@@ -1237,7 +919,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
   );
 
   const handleUpdateTaskDrag = useCallback(
-    async (id: string | number, updates: { start?: Date; end?: Date }) => {
+    async (id: string | number, updates: { start?: Date; end?: Date; progress?: number }) => {
       const task = updates;
       console.log("[Gantt] handleSvarUpdateTask called (before checks)", { id, task });
       if (!id) return false;
@@ -1332,127 +1014,6 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
     [ganttData.tasks, pushToUndoStack, updateTaskLocally, projects]
   );
 
-
-  /**
-   * Check if adding a link from source → target would create a circular dependency.
-   * A cycle exists if target is already an ancestor of source.
-   */
-  const wouldCreateCircularDependency = useCallback(
-    (sourceId: string, targetId: string): { wouldCreateCycle: boolean; cyclePath: string[] } => {
-      // Self-reference check
-      if (sourceId === targetId) {
-        return { wouldCreateCycle: true, cyclePath: [sourceId] };
-      }
-
-      // Build a quick lookup of task parents
-      const taskParentsMap = new Map<string, string[]>();
-      for (const task of ganttData.tasks) {
-        const parents = (task as any).refParents || [];
-        taskParentsMap.set(String(task.id), parents.map(String));
-      }
-
-      // Check if targetId is an ancestor of sourceId by traversing up from source
-      const visited = new Set<string>();
-      const path: string[] = [sourceId];
-
-      const hasAncestor = (currentId: string, lookingFor: string): boolean => {
-        if (visited.has(currentId)) return false;
-        visited.add(currentId);
-
-        const parents = taskParentsMap.get(currentId) || [];
-        for (const parentId of parents) {
-          if (parentId === lookingFor) {
-            path.push(parentId);
-            return true;
-          }
-          path.push(parentId);
-          if (hasAncestor(parentId, lookingFor)) {
-            return true;
-          }
-          path.pop();
-        }
-        return false;
-      };
-
-      if (hasAncestor(sourceId, targetId)) {
-        return { wouldCreateCycle: true, cyclePath: path };
-      }
-
-      return { wouldCreateCycle: false, cyclePath: [] };
-    },
-    [ganttData.tasks]
-  );
-
-  /**
-   * Handle adding a new dependency link between tasks
-   * Links are stored in refs.parents[] on the target action
-   * 
-   * SVAR link types:
-   * - e2s: End-to-Start (finish-to-start) - most common
-   * - s2s: Start-to-Start
-   * - e2e: End-to-End
-   * - s2e: Start-to-End
-   */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleAddLink = useCallback(
-    async ({ link }: { id?: string | number; link: { source: string | number; target: string | number; type: string } }) => {
-      const sourceId = String(link.source);
-      const targetId = String(link.target);
-      const linkType = link.type || "e2s";
-      
-      console.log(`[Gantt] Adding link: ${sourceId} → ${targetId} (${linkType})`);
-      
-      // Check for circular dependency BEFORE creating the link
-      const circularCheck = wouldCreateCircularDependency(sourceId, targetId);
-      if (circularCheck.wouldCreateCycle) {
-        console.warn(
-          `[Gantt] Cannot add link: would create circular dependency. Path: ${circularCheck.cyclePath.join(' → ')}`
-        );
-        // You could show a toast/alert here
-        alert(`Cannot create this dependency: it would create a circular reference.\n\nCycle: ${circularCheck.cyclePath.join(' → ')}`);
-        return false;
-      }
-      
-      // Find the target task to get its current refs.parents
-      const targetTask = ganttData.tasks.find((t) => String(t.id) === targetId);
-      if (!targetTask) {
-        console.warn(`[Gantt] Cannot add link: target task ${targetId} not found`);
-        return false;
-      }
-      
-      try {
-        // Get existing parents from the target task's original action data
-        // The parents array should already include existing dependencies
-        const existingParents: string[] = (targetTask as any).refParents || [];
-        
-        // Add the new parent if not already present
-        if (!existingParents.includes(sourceId)) {
-          const updatedParents = [...existingParents, sourceId];
-          
-          await saveRecord("action", {
-            id: targetId,
-            "refs.parents": { mode: "update", value: updatedParents },
-          });
-          console.log(`[Gantt] Link added successfully: ${sourceId} → ${targetId}`);
-          
-          // Refresh to show the new link and auto-scheduled dates
-          await refetchActions();
-          
-          // Force Gantt re-render to reflect backend auto-scheduling changes
-          setGanttKey((k) => k + 1);
-        } else {
-          console.log(`[Gantt] Link already exists: ${sourceId} → ${targetId}`);
-        }
-        
-        return true;
-      } catch (error) {
-        console.error("[Gantt] Failed to add link:", error);
-        return false;
-      }
-    },
-    [ganttData.tasks, refetchActions, setGanttKey, wouldCreateCircularDependency]
-  );
-
   /**
    * Handle deleting a dependency link between tasks
    */
@@ -1501,21 +1062,6 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
       }
     },
     [ganttData.tasks, refetchActions, setGanttKey]
-  );
-
-  /**
-   * Handle updating an existing link (e.g., changing link type)
-   * Note: Our backend currently only stores parent references, not link types
-   */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleUpdateLink = useCallback(
-    async ({ id, link }: { id: string | number; link: { type?: string } }) => {
-      console.log(`[Gantt] Update link requested: ${id}`, link);
-      // For now, we don't persist link types - just log the change
-      // Link types would require extending the backend model
-      return true;
-    },
-    []
   );
 
   // Force re-render when selection changes
@@ -1672,7 +1218,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
       const endDate = task.end instanceof Date ? formatDateShort(task.end) : '—';
       const progress = typeof task.progress === 'number' ? Math.round(task.progress * 100) : 0;
       const slack = typeof mapped.slack === 'number' ? `${mapped.slack}d` : '—';
-      const critical = mapped.critical ? '●' : '';
+      const critical = mapped.isCritical ? '●' : '';
       
       // Calculate bar position and width for timeline visualization
       let barLeft = 0;
@@ -1691,7 +1237,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
         <td style="text-align:center">${endDate}</td>
         <td style="text-align:center">${progress}%</td>
         <td style="text-align:center">${slack}</td>
-        <td style="text-align:center;color:${mapped.critical ? '#dc2626' : '#9ca3af'}">${critical}</td>
+        <td style="text-align:center;color:${mapped.isCritical ? '#dc2626' : '#9ca3af'}">${critical}</td>
         <td style="padding:2px 4px;min-width:300px;-webkit-print-color-adjust:exact;print-color-adjust:exact;color-adjust:exact;">
           <div style="position:relative;height:22px;background:#e5e7eb;border-radius:2px;-webkit-print-color-adjust:exact;print-color-adjust:exact;color-adjust:exact;">
             ${todayLineHtml}
@@ -2470,40 +2016,10 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
   const isLoading = isLoadingProjects || isLoadingActions;
   const error = projectsError || actionsError;
   
-  // Create task lookup map for column templates (SVAR strips custom properties)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const taskLookup = useMemo(() => {
-    const lookup = new Map<string, GanttMappedTask>();
-    for (const task of ganttData.tasks) {
-      lookup.set(String(task.id), task as GanttMappedTask);
-    }
-    return lookup;
-  }, [ganttData.tasks]);
-  
-  // Minimal column configuration when task list is collapsed
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const collapsedColumns: GanttColumn[] = useMemo(() => [
-    {
-      id: "taskIda",
-      header: "#",
-      width: 50,
-      align: "center",
-      template: (_value: unknown, task: GanttMappedTask) => task?.taskIda || "-",
-    },
-  ], []);
-  
   // Bottom list columns — use the action model's standard fields
   const actionListColumns = useMemo(() => {
     return ['ida', 'action_en', 'status', 'kanban_column', 'priority', 'percent_complete', 'dt_start', 'dt_deadline', 'assigned_to_name', 'project_name'];
   }, []);
-
-  // Get the project name for single-project mode header
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const singleProjectName = useMemo(() => {
-    if (!isSingleProjectMode) return null;
-    const project = projects.find((p) => p.id === projectId);
-    return project?.name || project?.slug || `Project ${projectId}`;
-  }, [isSingleProjectMode, projects, projectId]);
   
   return (
     <>
@@ -3181,8 +2697,6 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
         onLanguagePickerSubmit={handleEditLanguagePickerSubmit}
         onLanguagePickerCancel={handleEditLanguagePickerCancel}
         currentTask={editingTask}
-        assigneeUIMode={editAssigneeUIMode}
-        onAssigneeUIModeChange={setEditAssigneeUIMode}
       />
       
       {/* Link context menu is now handled by GanttLinks component */}

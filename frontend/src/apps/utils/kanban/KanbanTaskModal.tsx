@@ -976,16 +976,16 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
           <div className="mr-auto flex items-center gap-3 rounded-xl px-3 py-2 db-font-sm" style={{ border: '1px solid var(--db-border)' }}>
             <label className="inline-flex items-center gap-2 db-font-xs font-semibold" style={{ color: 'var(--db-text-muted)' }}>
               <span>
-                {formState.is_active === "false" ? "Inactive" : "Active"}
+                {formState.is_active === false ? "Inactive" : "Active"}
               </span>
               <input
                 type="checkbox"
                 className="h-4 w-8 cursor-pointer accent-indigo-600"
-                checked={formState.is_active !== "false"}
+                checked={formState.is_active !== false}
                 onChange={(event) =>
                   onFieldChange(
                     "is_active",
-                    event.target.checked ? "true" : "false",
+                    event.target.checked,
                   )
                 }
                 disabled={isSaving}

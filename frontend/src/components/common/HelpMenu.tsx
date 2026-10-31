@@ -4,7 +4,7 @@
  * Matches TopBar aesthetic — compact select, same styling as Font/View/Theme.
  * Options: Help (opens help window), Paste (opens GetHelp dialog), Alice hints badge.
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import GetHelpDialog from './GetHelpDialog';
 import { useAlice } from '@/context/AliceContext';

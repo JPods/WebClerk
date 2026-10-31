@@ -62,25 +62,6 @@ const unwrapUserPayload = (value: any): any => {
   return current;
 };
 
-// Preserve role data as string or array while stripping obvious noise
-const normalizeRole = (rawRole: unknown): string | string[] => {
-  if (Array.isArray(rawRole)) {
-    return rawRole
-      .map((value) => (typeof value === "string" ? value : String(value)))
-      .filter((value) => value.trim() !== "");
-  }
-
-  if (typeof rawRole === "string") {
-    return rawRole;
-  }
-
-  if (rawRole == null) {
-    return "";
-  }
-
-  return String(rawRole);
-};
-
 const hasUserIdentity = (user: User | null): boolean => {
   if (!user) return false;
   return Boolean(user.id || user.email);
@@ -116,7 +97,7 @@ export const mapApiProfileToUser = (input: any): User => {
     id: raw.id ?? raw.pk ?? "",
     uuid: raw.uuid ?? "",
     email: raw.email ?? "",
-    role: normalizeRole(raw.role ?? raw.roles),
+    role: raw.role ?? "",
     name_first: raw.name_first ?? raw.first_name ?? "",
     name_middle: raw.name_middle ?? raw.middle_name ?? null,
     name_last: raw.name_last ?? raw.last_name ?? "",

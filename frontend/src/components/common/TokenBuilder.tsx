@@ -214,7 +214,7 @@ const TokenBuilder: React.FC<TokenBuilderProps> = ({ model: initialModel, onClos
         )}
         {onClose && (
           <button onClick={onClose}
-            className="db-text-muted" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, marginLeft: onClose && !copied ? 'auto' : 0 }}>
+            className="db-text-muted" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, marginLeft: !copied ? 'auto' : 0 }}>
             ×
           </button>
         )}

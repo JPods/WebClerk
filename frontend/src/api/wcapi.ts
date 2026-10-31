@@ -616,7 +616,7 @@ export async function saveTransactionWithLines(model_name: string, payload: any)
   const body = docFields;                                   // flat: model and id are the path
 
   try {
-    return await wcapiSave<any>(resolved, body, undefined, docId);
+    return await wcapiSave<any>(resolved, body, undefined, docId as string | number | undefined);
   } catch (err: any) {
     throw new Error(getBackendErrorMessage(err, "Failed to save transaction"));
   }

@@ -78,10 +78,10 @@ function guessFormat(field: string): FieldType | undefined {
 }
 
 // Width hints by field name
-const WIDTH_BY_NAME: Record<string, string> = {
-  id: 'w-[50px]', ida: 'w-[70px]', status: 'w-[80px]',
-  total: 'w-[90px]', price: 'w-[90px]', cost: 'w-[90px]', amount: 'w-[90px]',
-  phone: 'w-[110px]', email: 'w-[150px]',
+const WIDTH_BY_NAME: Record<string, number> = {
+  id: 50, ida: 70, status: 80,
+  total: 90, price: 90, cost: 90, amount: 90,
+  phone: 110, email: 150,
 };
 
 // Fields to skip in auto-detection
@@ -99,8 +99,7 @@ export function buildColumnsFromSpecs(specs: DbFieldSpec[]): PanelColumnDef<Reco
     .map((s) => {
       const fmt = s.format as FieldType | undefined ?? guessFormat(s.field);
       const align = s.align === 'right' ? 'text-right' : s.align === 'center' ? 'text-center' : '';
-      const width = s.width ? `w-[${s.width}px]` : (WIDTH_BY_NAME[s.field] ?? '');
-      const flex = width ? '' : 'min-w-[60px] flex-1';
+      const px = s.width ?? WIDTH_BY_NAME[s.field];
 
       // Label: use leaf segment for dot-paths (e.g. "comments.process" → "process")
       const label = String(s.format) === 'image' ? '' : s.field.includes('.')
@@ -110,7 +109,8 @@ export function buildColumnsFromSpecs(specs: DbFieldSpec[]): PanelColumnDef<Reco
       return {
         key: s.field,
         label,
-        cellClassName: `truncate ${width} ${flex} ${align} `.trim(),
+        width: px ? `${px}px` : undefined,
+        className: align || undefined,
         render: (r: Record<string, unknown>) => {
           const val = resolveDotPath(r, s.field);
           // an image column stays blank rather than showing an em dash — a
@@ -136,14 +136,14 @@ export function buildColumnsFromRecord(record: Record<string, unknown>, maxCols 
 
   return keys.map((field) => {
     const fmt = guessFormat(field);
-    const width = WIDTH_BY_NAME[field] ?? '';
-    const flex = width ? '' : 'min-w-[60px] flex-1';
+    const px = WIDTH_BY_NAME[field];
     const align = fmt === 'currency' || fmt === 'number' || fmt === 'percent' ? 'text-right' : '';
 
     return {
       key: field,
       label: field.replace(/_/g, ' '),
-      cellClassName: `truncate ${width} ${flex} ${align} `.trim(),
+      width: px ? `${px}px` : undefined,
+      className: align || undefined,
       render: (r: Record<string, unknown>) => {
         const val = r[field];
         if (val == null || val === '') return '—';

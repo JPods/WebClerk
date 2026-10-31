@@ -48,8 +48,4 @@ export const APP_DETAIL_COMPONENTS: Record<string, React.LazyExoticComponent<Rea
   receipt: React.lazy(() => import('@/apps/transactions/components/TransactionDetail')),
   requisition: React.lazy(() => import('@/apps/transactions/components/TransactionDetail')),
   cash: React.lazy(() => import('@/apps/transactions/components/TransactionDetail')),
-  // Communications — Display pages not yet built; fall through to Admin mode
-  // Docs
-  document: React.lazy(() => import('@/apps/docs/models/document/pages/DocumentDisplay')),
-  question_answer: React.lazy(() => import('@/apps/docs/models/question_answer/pages/QuestionAnswerDisplay')),
 };

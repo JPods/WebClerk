@@ -9,6 +9,7 @@ import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { showToast } from '@/store/slices/toastSlice';
 import { openUniversalPrint } from '@/components/print/UniversalPrint';
+import type { PrintLayout } from '@/components/print/printLayoutTypes';
 import { openPrintWindow } from '@/apps/transactions/components/detail/TransactionPrint';
 import PrintReportDropdown from './PrintReportDropdown';
 import type { ReportRecord } from './PrintReportDropdown';
@@ -130,7 +131,7 @@ const DetailToolbar: React.FC<DetailToolbarProps> = ({
     const printForm = config.form;
     if (printForm) {
       // Report has a form.json — use UniversalPrint
-      openUniversalPrint(rec, companyInfo, printForm);
+      openUniversalPrint(rec, companyInfo, printForm as PrintLayout);
     } else if (layout) {
       // Fallback to detail-layout-based HTML print
       openPrintWindow(rec, companyInfo, logos, documentText, modelName, layout);

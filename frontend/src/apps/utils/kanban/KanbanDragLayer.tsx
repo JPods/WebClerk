@@ -2,7 +2,7 @@
 import type { CSSProperties } from "react";
 import { useDragLayer } from "react-dnd";
 import clsx from "clsx";
-import type { KanbanTask } from "../../type/kanban";
+import type { KanbanTask } from "./type/kanban";
 import { DRAG_TYPE_TASK, type DragItem } from "./dndTypes";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
 

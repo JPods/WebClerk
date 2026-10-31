@@ -3,8 +3,8 @@
  * Based on WC2 diaInvAdjust pattern: search items, see on-hand, type adjustment + reason, Apply.
  * Every adjustment flows through PendingInventoryAdjustment — one path, one audit trail.
  */
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { buildItem, saveCorrection } from "@/api/workorderApi";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { saveCorrection } from "@/api/workorderApi";
 import { getRecords, searchItems } from "@/api/wcapi";
 import "@/pages/admin/DataBrowser.css";
 
@@ -45,8 +45,6 @@ export default function InventoryAdjust() {
   const [loading, setLoading] = useState(false);
   const [applying, setApplying] = useState(false);
   const [message, setMessage] = useState("");
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [bomMode, setBomMode] = useState<"off" | "single" | "multi">("off");
   const searchRef = useRef<HTMLInputElement>(null);
 
   // Load warehouses on mount
@@ -66,8 +64,7 @@ export default function InventoryAdjust() {
     setLoading(true);
     try {
       const resp = await searchItems(searchQuery, { limit: 50 });
-      const items = resp?.data || resp?.results || resp || [];
-      setSearchResults(Array.isArray(items) ? items : []);
+      setSearchResults(resp?.results || []);
     } catch {
       setSearchResults([]);
     }
@@ -170,25 +167,7 @@ export default function InventoryAdjust() {
     setApplying(false);
   }, [lines, warehouseId]);
 
-  // BOM adjust
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const applyBOM = useCallback(
-    async (itemId: number, qty: number) => {
-
-      // A build is a production workorder: build line → expand one BOM level → complete.
-      try {
-        const done: any = await buildItem(itemId, qty, 1);
-        setMessage(`Built ${qty} on workorder ${done.workorder_id}.`);
-      } catch (err: any) {
-        setMessage(`BOM Error: ${err?.response?.data?.message || err.message}`);
-      }
-    },
-    []
-  );
-
   const hasChanges = lines.some((l) => l.adjust !== 0);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const selectedWarehouse = warehouses.find((w) => w.id === warehouseId);
 
   return (
     <div

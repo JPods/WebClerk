@@ -233,7 +233,6 @@ export class LineItemService {
         ...updatedLine.price,
         discount_percent: discountPct,
         discount_amount: round(discountAmount),
-        extended: round(gross - discountAmount),
       };
     }
 

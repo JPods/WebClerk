@@ -53,11 +53,7 @@ interface ProjectContactManagerProps {
 // Roles that can modify project contacts
 const EDITABLE_ROLES = ["admin", "manager", "owner", "Admin", "Manager", "Owner"];
 
-const hasEditPermission = (role: string | string[] | undefined): boolean => {
-  if (!role) return false;
-  const roles = Array.isArray(role) ? role : [role];
-  return roles.some((r) => EDITABLE_ROLES.includes(r));
-};
+const hasEditPermission = (role: string | undefined): boolean => !!role && EDITABLE_ROLES.includes(role);
 
 export const ProjectContactManager: React.FC<ProjectContactManagerProps> = ({
   isOpen,

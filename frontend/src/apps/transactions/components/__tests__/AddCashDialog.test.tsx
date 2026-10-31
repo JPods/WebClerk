@@ -10,7 +10,7 @@ vi.mock('../../models/cash/services/cashApi', () => ({
 vi.mock('@/api/wcapi', () => ({ getRecords: vi.fn().mockResolvedValue({ results: [] }) }));
 vi.mock('react-redux', () => ({ useDispatch: () => vi.fn() }));
 vi.mock('@/store/slices/toastSlice', () => ({ showToast: (x: any) => x }));
-let role: string | string[] = 'admin';
+let role: string = 'admin';
 vi.mock('@/store/hooks', () => ({ useAppSelector: (f: any) => f({ auth: { user: { role } } }) }));
 vi.mock('../SpreedlyCardForm', () => ({
   default: (p: any) => <div>card form for invoice {p.invoiceId}: {p.amount}</div>,
@@ -92,7 +92,7 @@ describe('Charge a card', () => {
   });
 
   it('is not offered to a rep (Bill: reps do not take card payments)', () => {
-    role = ['rep'];
+    role = 'rep';
     render(<AddCashDialog isOpen onClose={() => {}} model="invoice" id={7} balance={40} />);
     expect(screen.queryByText('Charge a card')).toBeNull();
   });

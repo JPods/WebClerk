@@ -12,8 +12,7 @@ interface CommissionPanelProps {
 }
 
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const CommissionPanel: React.FC<CommissionPanelProps> = ({ lines, selectedIds, headerCommission }) => {
+const CommissionPanel: React.FC<CommissionPanelProps> = ({ lines, selectedIds }) => {
   // Build rows from lines — one row per line, showing primary rep info
   const rows = React.useMemo(() => {
     return lines.map((line, idx) => {

@@ -5,7 +5,6 @@
  * Shows every model's envelope structure in a print-friendly layout.
  * Users can print this page or Cmd+P from the browser.
  */
-import React from 'react';
 import { JsonSchemaTree, ENVELOPE_SCHEMAS } from '@/components/widgets/JsonSchemaTree';
 
 const MODEL_GROUPS: { title: string; models: string[] }[] = [

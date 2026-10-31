@@ -112,15 +112,13 @@ export default function FieldOrderDialog({
   const [visible, setVisible] = useState<Set<string>>(new Set());
   const [sizes, setSizes] = useState<Record<string, number>>({});
   const [widths, setWidths] = useState<Record<string, number>>({});
-  const [recWidths, setRecWidths] = useState<{ by_name: Record<string, number>; by_type: Record<string, number>; default: number } | null>(null);
+  const [recWidths, setRecWidths] = useState<{ by_name: Record<string, number>; by_type: Record<string, number>; by_pattern?: Record<string, number>; default: number } | null>(null);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [selectedLayout, setSelectedLayout] = useState<string>('__current__');
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [saveName, setSaveName] = useState('');
   const [, setHasChanges] = useState(false);
   const [expandedJsonFields, setExpandedJsonFields] = useState<Set<string>>(new Set());
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const dragOverIdx = useRef<number | null>(null);
   const initialOrderRef = useRef<string>('');
 
   const PROTECTED_LAYOUTS = ['alpha', 'best_guess', 'alice_guess', 'alphabetical', 'flat'];
@@ -232,19 +230,6 @@ export default function FieldOrderDialog({
     setHasChanges(true);
   }, []);
 
-  // Arrow reorder
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const moveField = useCallback((idx: number, direction: 'up' | 'down') => {
-    setOrder((prev) => {
-      const next = [...prev];
-      const target = direction === 'up' ? idx - 1 : idx + 1;
-      if (target < 0 || target >= next.length) return prev;
-      [next[idx], next[target]] = [next[target], next[idx]];
-      return next;
-    });
-    setHasChanges(true);
-  }, []);
-
   // Pointer-based drag (works in modals — HTML5 drag does not)
   const handlePointerDown = useCallback((idx: number, e: React.PointerEvent) => {
     e.preventDefault();
@@ -276,19 +261,6 @@ export default function FieldOrderDialog({
     return () => window.removeEventListener('pointerup', handleUp);
   }, [dragIdx]);
 
-  // Legacy drop handler (kept for compatibility)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleDrop = useCallback((dropIdx: number) => {
-    if (dragIdx === null || dragIdx === dropIdx) { setDragIdx(null); return; }
-    setOrder((prev) => {
-      const next = [...prev];
-      const [moved] = next.splice(dragIdx, 1);
-      next.splice(dropIdx, 0, moved);
-      return next;
-    });
-    setDragIdx(null);
-  }, [dragIdx]);
-
   // Row size
   const setRowSize = useCallback((field: string, size: number) => {
     setSizes((prev) => ({ ...prev, [field]: Math.max(1, Math.min(12, size)) }));
@@ -300,14 +272,6 @@ export default function FieldOrderDialog({
     onApply(fields, sizes, widths);
     onClose();
   }, [order, visible, sizes, widths, onApply, onClose]);
-
-  // Select all / min
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleSelectAll = useCallback(() => setVisible(new Set(allFields)), [allFields]);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleSelectNone = useCallback(() => {
-    setVisible(new Set(order.slice(0, 1)));
-  }, [order]);
 
   const visibleCount = useMemo(() => order.filter((f) => visible.has(f)).length, [order, visible]);
 

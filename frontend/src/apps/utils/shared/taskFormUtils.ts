@@ -1,6 +1,6 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 import type { TaskPriority } from "../kanban/type/kanban";
-import type { TranslationFormEntry, TaskFormState } from "../kanban/taskFormTypes";
+import type { TranslationFormEntry, TaskFormEditableField, TaskFormFieldValue, TaskFormState } from "../kanban/taskFormTypes";
 
 export const DEFAULT_LANGUAGE_ORDER = ["en", "ar", "bn", "es"] as const;
 export const DIFFICULTY_OPTIONS = [1, 2, 3, 5, 8, 13, 21, 34, 55, 101] as const;
@@ -146,30 +146,30 @@ export const normalizeIncomingDateValue = (value: unknown): string => {
 
 export const updateTaskFormState = (
   prev: TaskFormState,
-  field: any,
-  value: string,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  options?: { columns?: Array<{ id: string; title: string }>; fallbackColumnId?: string }
+  field: TaskFormEditableField,
+  value: TaskFormFieldValue,
 ): TaskFormState => {
+  // The date fields hold text; a non-text value for one of them reads as blank.
+  const text = typeof value === "string" ? value : "";
   if (field === "dt_start") {
-    const next: TaskFormState = { ...prev, dt_start: value };
-    if (value && prev.dt_deadline) {
-      const start = new Date(value);
+    const next: TaskFormState = { ...prev, dt_start: text };
+    if (text && prev.dt_deadline) {
+      const start = new Date(text);
       const due = new Date(prev.dt_deadline);
       if (!isNaN(start.getTime()) && !isNaN(due.getTime()) && due.getTime() < start.getTime()) {
-        next.dt_deadline = value;
+        next.dt_deadline = text;
       }
     }
     return next;
   }
 
   if (field === "dt_completed") {
-    const next: TaskFormState = { ...prev, dt_completed: value };
-    if (value) {
-      if (!prev.dt_start) next.dt_start = value;
-      if (!prev.dt_deadline) next.dt_deadline = value;
+    const next: TaskFormState = { ...prev, dt_completed: text };
+    if (text) {
+      if (!prev.dt_start) next.dt_start = text;
+      if (!prev.dt_deadline) next.dt_deadline = text;
       const startDate = new Date(next.dt_start);
-      const compDate = new Date(value);
+      const compDate = new Date(text);
       if (!isNaN(startDate.getTime()) && !isNaN(compDate.getTime()) && compDate.getTime() < startDate.getTime()) {
         next.dt_completed = startDate.toISOString().slice(0, 16);
       }
@@ -178,7 +178,7 @@ export const updateTaskFormState = (
   }
 
   if (field === "dt_deadline") {
-    if (!value) {
+    if (!text) {
       if (prev.dt_completed) return { ...prev, dt_deadline: prev.dt_completed };
       if (prev.dt_start) {
         const d = new Date(prev.dt_start);
@@ -190,7 +190,7 @@ export const updateTaskFormState = (
       return { ...prev, dt_deadline: "" };
     }
 
-    const parsedDue = new Date(value);
+    const parsedDue = new Date(text);
     if (isNaN(parsedDue.getTime())) return prev;
 
     const endDate = new Date(prev.dt_completed);
@@ -207,7 +207,7 @@ export const updateTaskFormState = (
   }
 
   if (field === "dt_expected") {
-    const parsed = new Date(value);
+    const parsed = new Date(text);
     if (isNaN(parsed.getTime())) return { ...prev, dt_expected: "" };
     return { ...prev, dt_expected: parsed.toISOString().slice(0, 16) };
   }

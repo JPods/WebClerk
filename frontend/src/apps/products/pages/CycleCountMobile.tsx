@@ -3,7 +3,7 @@
  * Barcode/QR scanning, location display, expected vs actual count.
  * Standalone page at /cycle-count — no login sidebar, no desktop chrome.
  */
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import apiClient from "@/api/axios";
 import "@/pages/admin/DataBrowser.css";
 import { saveCorrection } from "@/api/workorderApi";

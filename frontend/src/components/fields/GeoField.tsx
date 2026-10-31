@@ -1,4 +1,3 @@
-import React from 'react';
 import type { GeoFieldProps } from './types';
 import BaseField from './BaseField';
 
@@ -10,7 +9,7 @@ export default function GeoField(props: GeoFieldProps) {
   return (
     <BaseField props={props} labelColor="actionable" labelHref={mapUrl}>
       <input className="db-input db-input--mono" type="number" step="any"
-        value={value != null ? value : ''} onChange={(e) => onChange(parseFloat(e.target.value) || 0)} disabled={disabled} />
+        value={value != null ? String(value) : ''} onChange={(e) => onChange(parseFloat(e.target.value) || 0)} disabled={disabled} />
     </BaseField>
   );
 }

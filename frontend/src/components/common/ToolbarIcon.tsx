@@ -163,7 +163,7 @@ export default function ToolbarIcon({
   }
 
   // Lucide icon
-  if (style === 'phosphor' || style === 'lucide') {
+  if (style === 'lucide') {
     return <LucideRenderer icon={action.icon} title={title} onClick={onClick} disabled={disabled} active={active} danger={danger} />;
   }
 

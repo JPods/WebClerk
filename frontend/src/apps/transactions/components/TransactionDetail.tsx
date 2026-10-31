@@ -13,11 +13,10 @@ import { showToast } from '@/store/slices/toastSlice';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState } from '@/store';
 import { useWindowManager } from '@/context/WindowManagerContext';
-import { useDetailLayout } from '@/hooks/useDetailLayout';
+import { useDetailLayout, type DetailLayout } from '@/hooks/useDetailLayout';
 import { applyCustomerDefaults, DISPLAY_ONLY_KEYS } from '@/apps/transactions/utils/applyCustomerDefaults';
 import { changedFields } from '@/utils/changedFields';
 import { convertedTarget, type ConvertedTarget } from '../utils/convertedTarget';
-import { getNextLineNumber } from '../utils/lineHelpers';
 import { getActiveLines, getRemovedLines, isPersistedLine } from '../services/lineItemService';
 import type { TransactionLine } from '../types/transactionTypes';
 import { selectCompanyInfo, selectLogos } from '@/store/slices/companySlice';
@@ -35,7 +34,6 @@ import TransactionFlowIndicator from './detail/TransactionFlowIndicator';
 import RelatedTransactionsPanel from './detail/RelatedTransactionsPanel';
 import DesignMode from './detail/DesignMode';
 import AddCashDialog from './AddCashDialog';
-import { useNavigate } from 'react-router-dom';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -94,7 +92,7 @@ const UiDetailView: React.FC<UiDetailProps> = ({
   const companyInfo = useSelector(selectCompanyInfo);
   const logos = useSelector(selectLogos);
   const documentText = useSelector((s: RootState) => (s as any).company?.document_text) || {};
-  const loggedInUserName = authUser?.name || authUser?.email || 'User';
+  const loggedInUserName = [authUser?.name_first, authUser?.name_last].filter(Boolean).join(' ') || authUser?.email || 'User';
 
   // ── Layout ───────────────────────────────────────────────────────
   const { layout, loading: layoutLoading, error: layoutError } = useDetailLayout(modelName);
@@ -107,10 +105,8 @@ const UiDetailView: React.FC<UiDetailProps> = ({
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('summary');
   const [designMode] = useState(false);
-  const [designLayout, setDesignLayout] = useState<any>(null);
+  const [designLayout, setDesignLayout] = useState<DetailLayout | null>(null);
   const [showAddCash, setShowAddCash] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const navigate = useNavigate();
 
   // Active layout — design mode uses local copy, normal mode uses cached
   const activeLayout = designMode && designLayout ? designLayout : layout;
@@ -185,12 +181,7 @@ const UiDetailView: React.FC<UiDetailProps> = ({
       setEditData({ ...data });
       setIsEditing(true);
     }
-  }, [autoEdit, canEdit, data]);  // eslint-disable-line react-hooks/exhaustive-deps
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleEdit = () => {
-    if (canEdit) { setEditData({ ...data }); setIsEditing(true); }
-  };
+  }, [autoEdit, canEdit, data]);
 
   const handleAddNew = async () => {
     try {
@@ -248,16 +239,6 @@ const UiDetailView: React.FC<UiDetailProps> = ({
       return { ...prev, lines: [...lines, ...stillRemoved] };
     });
   }, []);
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleAddLine = () => {
-    const lines = getActiveLines((isEditing ? editData : data)?.lines || []);
-    const newLine: TransactionLine = {
-      line_number: getNextLineNumber(lines),
-      item_code: '', description: '', qty: 1, remain: 1, unit_price: 0, amount: 0,
-    } as any;
-    handleLinesChange([...lines, newLine]);
-  };
 
   const handleSave = async () => {
     if (!editData) return;
@@ -465,7 +446,7 @@ const UiDetailView: React.FC<UiDetailProps> = ({
 
       {/* Content — scrollable */}
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
-        {activeLayout.sections.map((section, idx) => {
+        {activeLayout && activeLayout.sections.map((section, idx) => {
           switch (section.type) {
             case 'header':
               return (

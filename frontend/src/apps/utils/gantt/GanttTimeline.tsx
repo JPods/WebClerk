@@ -56,11 +56,6 @@ export interface GanttTimelineProps {
   colorMap?: Map<string | number, { bg: string; border: string; text: string }>;
 }
 
-// ── Helpers ──
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const MS_PER_DAY = 86_400_000;
-
 /** Advance a date by one scale unit × step */
 const advanceDate = (date: Date, unit: string, step: number): Date => {
   switch (unit) {
@@ -141,8 +136,6 @@ export const GanttTimeline: FC<GanttTimelineProps> = ({
   const totalDays = Math.max(1, differenceInCalendarDays(end, start));
   const pxPerDay = cellWidth;
   const chartWidth = totalDays * pxPerDay;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const scaleHeaderHeight = scales.length * 28;
   const chartContentHeight = tasks.length * cellHeight;
 
   // Compute task pixel positions

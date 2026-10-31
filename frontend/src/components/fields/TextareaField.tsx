@@ -1,4 +1,3 @@
-import React from 'react';
 import type { FieldWidgetProps } from './types';
 import BaseField from './BaseField';
 

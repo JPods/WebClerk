@@ -238,8 +238,7 @@ export const DetailTabs: React.FC<DetailTabsProps> = ({
 }) => {
   // Get current user role for admin tab visibility
   const user = useAppSelector((state) => state.auth.user);
-  // Normalize role to string for comparison (handle both string and string[])
-  const userRole = Array.isArray(user?.role) ? user?.role[0] : user?.role;
+  const userRole = user?.role;
   const isAdmin =
     userRole &&
     ["admin", "superadmin", "super_admin", "administrator"].includes(userRole);
@@ -402,8 +401,8 @@ export const DetailTabs: React.FC<DetailTabsProps> = ({
           {activeTab === "financials" &&
             standardTabs.includes("financials") && (
               <FinancialsPanel
-                totals={recordData?.financial?.totals}
-                currency={recordData?.financial?.currency}
+                totals={recordData?.totals}
+                currency={recordData?.currency}
               />
             )}
 

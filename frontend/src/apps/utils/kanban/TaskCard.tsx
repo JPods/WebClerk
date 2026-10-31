@@ -29,26 +29,18 @@ const priorityLabel: Record<TaskPriority, string> = {
   critical: "Critical",
 };
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const getInitials = (value?: string) => {
-  if (!value) return "?";
-  const [first = "", second = ""] = value.split(" ");
-  return `${first.charAt(0)}${second.charAt(0)}`.toUpperCase();
-};
-
 interface TaskCardProps {
   task: KanbanTask;
   columnId: string;
   index: number;
   onDragEnd: (item: DragItem, dropResult: DropResult | null) => void;
   onTaskClick?: (task: KanbanTask) => void;
-  isSubtask?: boolean;
   moveToOptions?: MoveToProjectOption[];
   onMoveToProject?: (taskId: string | number, projectId: string, projectName: string) => void;
   onTimeClock?: (taskId: string | number, updatedTimes: any) => void;
 }
 
-const TaskCardComponent: React.FC<TaskCardProps> = ({ task, columnId, index, onDragEnd, onTaskClick, isSubtask = false, moveToOptions, onMoveToProject, onTimeClock }) => {
+const TaskCardComponent: React.FC<TaskCardProps> = ({ task, columnId, index, onDragEnd, onTaskClick, moveToOptions, onMoveToProject, onTimeClock }) => {
   const ref = useRef<HTMLDivElement | null>(null);
   const [moveOpen, setMoveOpen] = useState(false);
   const moveRef = useRef<HTMLDivElement>(null);
@@ -104,7 +96,7 @@ const TaskCardComponent: React.FC<TaskCardProps> = ({ task, columnId, index, onD
 
   drag(drop(ref));
 
-  const wc3PriorityRaw = task.priority_value;
+  const wc3PriorityRaw = task.priority_value ?? 0;
   const wc3Priority: TaskPriority = wc3PriorityRaw >= 4 ? "critical" : wc3PriorityRaw >= 3 ? "high" : wc3PriorityRaw >= 2 ? "medium" : "low";
   const priorityClass = priorityStyles[wc3Priority];
   const priorityText = priorityLabel[wc3Priority];
@@ -126,35 +118,15 @@ const TaskCardComponent: React.FC<TaskCardProps> = ({ task, columnId, index, onD
           // Hide the original card while dragging so only the drag preview shows
           "opacity-0": isDragging,
           "ring-2 ring-indigo-400": isOver && canDrop,
-          // Subtask styling
-          "bg-indigo-50/80 border-indigo-100": isSubtask,
-          // Regular task styling — uses theme surface
         }
       )}
-      style={{ background: isSubtask ? undefined : 'var(--db-surface-alt)' }}
+      style={{ background: 'var(--db-surface-alt)' }}
     >
         <div className="flex items-start justify-between gap-4">
           {task.ida && (
             <span className="db-font-xs" style={{ color: 'var(--db-text-dim)' }}>{task.ida}</span>
           )}
         <div className="flex items-start gap-2">
-          {isSubtask && (
-            <div className="mt-1 flex-shrink-0">
-              <svg
-                className="h-3 w-3 text-indigo-400"
-                viewBox="0 0 12 12" 
-                fill="none" 
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path 
-                  d="M3 6h6M6 3v6" 
-                  stroke="currentColor" 
-                  strokeWidth={1.5} 
-                  strokeLinecap="round" 
-                />
-              </svg>
-            </div>
-          )}
           <div>
             <div className="mb-2 flex items-center gap-2">
               <span className="rounded-md px-2 py-0.5 db-font-xs font-mono font-semibold" style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' }}>

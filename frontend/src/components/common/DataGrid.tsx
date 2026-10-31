@@ -299,7 +299,7 @@ export default function DataGrid(props: DataGridProps) {
 
   const mappedColumns = useMemo(() => {
     if (!effectiveLegacyCols) return null;
-    const fieldNames = effectiveLegacyCols.map((c: any, i: number) => _getFieldName(c, i));
+    const fieldNames: string[] = effectiveLegacyCols.map((c: any, i: number) => _getFieldName(c, i));
     const rich: RichColumn[] = effectiveLegacyCols.map((col: any, idx: number) => {
       const field = fieldNames[idx];
       const rc: RichColumn = {
@@ -329,7 +329,7 @@ export default function DataGrid(props: DataGridProps) {
     return { columns: fieldNames, richColumns: rich, colWidths: widths };
   }, [effectiveLegacyCols]);
 
-  const columns = mappedColumns?.columns ?? (isLegacyColumnArray ? [] : (props.columns as string[]) ?? []);
+  const columns: string[] = mappedColumns?.columns ?? (isLegacyColumnArray ? [] : (props.columns as string[]) ?? []);
   const richColumns = props.richColumns ?? mappedColumns?.richColumns;
   const colWidths = props.colWidths ?? mappedColumns?.colWidths ?? {};
   const fieldBehaviors = props.fieldBehaviors ?? {};
@@ -359,10 +359,7 @@ export default function DataGrid(props: DataGridProps) {
   const searchedRecords = useMemo(() => {
     if (!effectiveSearchTerm.trim()) return inputData;
     const fragments = parseFragments(effectiveSearchTerm);
-    return inputData.filter((row: any) => {
-      const text = Object.values(row).filter((v: any) => v != null).map(String).join(' ');
-      return matchesFragments(text, fragments);
-    });
+    return inputData.filter((row: any) => matchesFragments(row, fragments));
   }, [inputData, effectiveSearchTerm]);
 
   const records = isConvenience ? searchedRecords : inputData;
@@ -414,26 +411,6 @@ export default function DataGrid(props: DataGridProps) {
       });
     }
   }, [props.onToggleRow]);
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleSelectAll = useCallback(() => {
-    if (props.onSelectAll) {
-      props.onSelectAll();
-    } else {
-      const all = new Set<number>();
-      records.forEach((r: any) => { const id = numId(r.id); if (id !== null) all.add(id); });
-      setSelfSelectedRowIds(all);
-    }
-  }, [props.onSelectAll, records, numId]);
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleClearSelection = useCallback(() => {
-    if (props.onClearSelection) {
-      props.onClearSelection();
-    } else {
-      setSelfSelectedRowIds(new Set());
-    }
-  }, [props.onClearSelection]);
 
   const onColumnDrop = props.onColumnDrop ?? (() => {});
   const onResizeStart = props.onResizeStart ?? (() => {});
@@ -679,7 +656,7 @@ export default function DataGrid(props: DataGridProps) {
       if (beh?.type === 'select' && beh.options) {
         return (
           <select value={editValue} onChange={(e) => setEditValue(e.target.value)}
-            onBlur={commitEdit} onKeyDown={(e) => { if (e.key === 'Escape') cancelEdit(); if (e.key === 'Enter') commitEdit(); }}
+            onBlur={() => commitEdit()} onKeyDown={(e) => { if (e.key === 'Escape') cancelEdit(); if (e.key === 'Enter') commitEdit(); }}
             ref={editRef as any} autoFocus className="dg-cell-edit"
             >
             <option value="">--</option>
@@ -690,7 +667,7 @@ export default function DataGrid(props: DataGridProps) {
       return (
         <input ref={editRef} value={editValue}
           onChange={(e) => setEditValue(e.target.value)}
-          onBlur={commitEdit}
+          onBlur={() => commitEdit()}
           onKeyDown={(e) => {
             if (e.key === 'Enter') { e.preventDefault(); commitEdit('down'); }
             if (e.key === 'Escape') cancelEdit();
@@ -729,7 +706,7 @@ export default function DataGrid(props: DataGridProps) {
     if (spec?.format === 'date' && v) {
       return formatDt(v, 'date', field);
     }
-    if (beh?.type === 'timestamp' || beh?.type === 'datetime' || spec?.format === 'datetime') {
+    if (beh?.type === 'timestamp' || beh?.type === 'datetime') {
       return formatDt(v, 'date', field);
     }
     if (typeof v === 'number' && /^dt_/.test(field) && v > 1e12) {

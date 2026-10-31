@@ -299,7 +299,7 @@ const CommentsPanel: React.FC<CommentsPanelProps> = ({
   ) : null, [isAdmin, isSaving]);
   const displayName = currentUser
     || [authUser?.name_first, authUser?.name_last].filter(Boolean).join(' ')
-    || authUser?.username
+    || authUser?.email
     || 'Unknown';
 
   // Channels from Setting JSON, or default

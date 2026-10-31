@@ -25,8 +25,7 @@ export interface BomCardProps {
 }
 
 const BomCard: React.FC<BomCardProps> = ({
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  data, parentItemId, isEditing: propEditing = false, selected = false, onSave, onDelete, onSelect, onOpen,
+  data, isEditing: propEditing = false, selected = false, onSave, onDelete, onSelect, onOpen,
 }) => {
   const dispatch = useDispatch();
   const [editing, setEditing] = useState(propEditing);

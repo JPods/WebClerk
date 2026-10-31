@@ -78,8 +78,6 @@ export default function DedupPanel({ model, matchFields, onMergeComplete, onClos
   const [matchConfig, setMatchConfig] = useState<string[]>(
     matchFields || DEFAULT_MATCH_FIELDS[model] || ['ida']
   );
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [customField, setCustomField] = useState('');
 
   const fetchDupes = useCallback(async () => {
     setLoading(true);
@@ -364,7 +362,6 @@ export default function DedupPanel({ model, matchFields, onMergeComplete, onClos
                         });
                         comments.process = process;
                         await saveRecord(model, { id: otherId, comments });
-                        if (typeof App !== 'undefined' && (App as any).flash) (App as any).flash('Noted on #' + otherId, 2000);
                       } catch (err) { alert('Save failed: ' + (err as Error).message); }
                     }}
                     className="dp-btn dp-btn--note"

@@ -13,7 +13,6 @@ import PageMeta from "@/components/common/PageMeta";
 import apiClient from "../../api/axios";
 import {
   LayoutItem,
-  ModelGroup,
   ParadeData,
   LayoutPreview,
   itemSummary,
@@ -253,7 +252,7 @@ export default function ComponentParade() {
                     {/* Path + spec toggle */}
                     <details className="sp-raw-spec">
                       <summary className="sp-raw-spec-summary">
-                        {settingPath(selected.model, selected.item)}
+                        {settingPath(selected.item)}
                       </summary>
                       <pre className="sp-raw-spec-content">
                         {JSON.stringify(selected.item.spec, null, 2)}

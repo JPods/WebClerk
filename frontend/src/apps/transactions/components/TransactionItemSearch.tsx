@@ -328,7 +328,7 @@ export function TransactionItemSearch({
                     <td className="px-3 py-2">
                       {resolveItemCode(item) ? (
                         <img
-                          src={`/wcapi/_image/Item/${encodeURIComponent(resolveItemCode(item))}/tn.jpg`}
+                          src={`/wcapi/_image/item/${encodeURIComponent(resolveItemCode(item))}/tn.jpg`}
                           alt=""
                           className="w-8 h-8 rounded object-cover bg-gray-100"
                           loading="lazy"

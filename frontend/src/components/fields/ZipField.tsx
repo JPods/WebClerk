@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import type { FieldWidgetProps } from './types';
 import BaseField from './BaseField';
 import { normalizeZip, formatZip } from '@/utils/fieldFormatters';

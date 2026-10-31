@@ -108,7 +108,7 @@ export interface DbColumnsProps<T = Record<string, unknown>> {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function DbColumns<T extends Record<string, unknown>>({
+export function DbColumns<T extends object>({
   storageKey,
   columns,
   data,
@@ -118,8 +118,6 @@ export function DbColumns<T extends Record<string, unknown>>({
   onRowAction,
   sectionLabel,
   sectionIcon,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  onAdd,
   onAssign,
   onRemove,
   collapsible = true,

@@ -5,7 +5,6 @@
  * Used in Gantt and Kanban to view/edit actions without covering the workspace.
  */
 import { useState, useRef, useCallback } from "react";
-import { useDispatch } from "react-redux";
 import { DynamicDetail } from "../../../../../components/common/DynamicDetail";
 import type { DynamicDetailActions } from "../../../../../components/common/DynamicDetail";
 import { DetailToolbar } from "../../../../../components/common/DetailToolbar";
@@ -27,8 +26,6 @@ export const ActionFloatingWindow: React.FC<Props> = ({ actionId, onClose, onSav
   const resizeRef = useRef<{ startX: number; startY: number; origW: number; origH: number } | null>(null);
   const windowRef = useRef<HTMLDivElement>(null);
   const actionsRef = useRef<DynamicDetailActions | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const dispatch = useDispatch();
 
   const handleDelete = useCallback(async () => {
     if (!confirmDelete) {

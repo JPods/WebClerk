@@ -8,7 +8,6 @@
  *   <LoadingSpinner size="sm" />          // inline, next to text
  *   <LoadingSpinner size="lg" label="Loading records..." />  // full section
  */
-import React from 'react';
 
 interface LoadingSpinnerProps {
   size?: 'xs' | 'sm' | 'md' | 'lg';

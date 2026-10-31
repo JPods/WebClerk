@@ -10,7 +10,7 @@
  *
  * Admin-only. Non-admin users never see this dialog.
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { getRecord, getRecords, saveRecord } from '@/api/wcapi';
 
 const WIDGET_TYPES = [

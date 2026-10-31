@@ -40,56 +40,8 @@ export const ALL_ROLES: UserRole[] = [...USER_ROLES, "viewer", "guest"];
 // Entity Types
 // ---------------------------------------------------------------------------
 
-/** Entity types that support panels */
-export type EntityType =
-  // Core
-  | "contact"
-  | "setting"
-  | "action"
-  // Orgs
-  | "customer"
-  | "vendor"
-  | "manufacturer"
-  | "employee"
-  | "rep"
-  | "other"
-  // Transactions
-  | "order"
-  | "invoice"
-  | "purchase"
-  | "quote"
-  | "workorder"
-  | "workorder"
-  // Products
-  | "item"
-  | "category"
-  | "warehouse"
-  | "catalog"
-  | "serial"
-  | "variant"
-  | "bill_of_material"
-  | "flow"
-  | "item_xref"
-  | "matrics"
-  | "specification"
-  | "usage"
-  | "service"
-  // Communications
-  | "email"
-  | "phone"
-  | "address"
-  | "domain"
-  // Docs
-  | "document"
-  | "linkage_entry"
-  | "tag"
-  | "question_answer"
-  // Support
-  | "campaign"
-  | "project"
-  // Sync
-  | "bundle"
-  | "connection";
+/** The model a panel belongs to — any model can have panels. */
+export type EntityType = string;
 
 // ---------------------------------------------------------------------------
 // Permission Types

@@ -50,13 +50,12 @@ const AddCashDialog: React.FC<AddCashDialogProps> = ({
 }) => {
   const dispatch = useDispatch();
   const [available, setAvailable] = useState<any[]>([]);
-  const applies = model !== 'order';
   // A write-off settles a receivable (AR); the AP side has no write-off yet (Fable: a receipt's
   // would post a disbursement that never happened).
   const canWriteOff = model === 'invoice';
   // Reps do not take card payments at this time (Bill, 2026-09-26).
   const role = useAppSelector((state) => state.auth.user?.role);
-  const isRep = Array.isArray(role) ? role.includes('rep') : role === 'rep';
+  const isRep = role === 'rep';
   const canCharge = model === 'invoice' && !isRep && balance > 0;
   const [charging, setCharging] = useState(false);
   const [chargeAmount, setChargeAmount] = useState('');
