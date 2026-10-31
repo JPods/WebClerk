@@ -31,6 +31,7 @@ import CollapsiblePanel from '@/apps/common/components/CollapsiblePanel';
 import FieldRow from '@/apps/transactions/components/detail/FieldRow';
 import DetailToolbar from '@/components/common/DetailToolbar';
 import CommunicationCard from '@/components/common/CommunicationCard';
+import PrimaryContactCard from '@/components/common/PrimaryContactCard';
 import { useFormDraft, type DraftGetter } from '@/hooks/useFormDraft';
 
 const PanelSectionRenderer = lazy(() => import('@/apps/transactions/components/detail/PanelSectionRenderer'));
@@ -39,6 +40,10 @@ const JsonSectionRenderer = lazy(() => import('@/apps/transactions/components/de
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
+
+/** Orgs whose contacts are linked to them, and what they show of their primary contact. */
+const ORGS_WITH_CONTACTS = ['customer', 'vendor', 'manufacturer', 'rep'];
+const FROM_CONTACT = ['attention', 'email', 'phone', 'address_full', 'domain'];
 
 interface ModelDetailPageProps {
   modelName?: string;
@@ -198,6 +203,20 @@ const ModelDetailPage: React.FC<ModelDetailPageProps> = ({
     if (communicationField(modelName, field)) setCommCard({ field, anchor: el.getBoundingClientRect() });
   };
 
+  // An org's name, email, phone and address are its primary contact's (Bill, 2026-10-31: a
+  // de-normalized value is edited on the record it comes from). Attention chooses the contact;
+  // the others open that contact's own card.
+  const copiesContact = (field: string) => ORGS_WITH_CONTACTS.includes(modelName) && FROM_CONTACT.includes(field);
+  const [primaryCard, setPrimaryCard] = useState<DOMRect | null>(null);
+  const [contactComm, setContactComm] = useState<{ field: string; owner: Record<string, any>; anchor: DOMRect } | null>(null);
+  const openFromContact = async (field: string, el: HTMLElement) => {
+    const anchor = el.getBoundingClientRect();
+    if (field === 'attention' || !data?.contact_id) { setPrimaryCard(anchor); return; }
+    const response = await getRecord('contact', data.contact_id);
+    setContactComm({ field, owner: (response as any)?.record || response, anchor });
+  };
+  const openContact = (id: number) => windowManager.ensureWindow(`/contact/${id}`, `contact #${id}`);
+
   // A card save saves this record on the server too (Bill, 2026-10-16). Take what that
   // save changed — cache, pointers, login email, version — and keep unsaved edits here.
   const refreshCommunications = useCallback(async () => {
@@ -339,7 +358,8 @@ const ModelDetailPage: React.FC<ModelDetailPageProps> = ({
                     fieldType={f.type}
                     help={f.help}
                     onChange={handleFieldChange}
-                    onOpen={communicationField(modelName, f.field) ? (el: HTMLElement) => openCommunication(f.field, el) : undefined}
+                    onOpen={copiesContact(f.field) ? (el: HTMLElement) => openFromContact(f.field, el)
+                      : communicationField(modelName, f.field) ? (el: HTMLElement) => openCommunication(f.field, el) : undefined}
                     onCreateOrg={modelName === 'contact' ? createOrg : undefined}
                   />
                 ))}
@@ -461,6 +481,14 @@ const ModelDetailPage: React.FC<ModelDetailPageProps> = ({
       {commCard && commSpec && (
         <CommunicationCard comm={commSpec} owner={data} anchor={commCard.anchor}
           onChanged={refreshCommunications} onClose={() => setCommCard(null)} />
+      )}
+      {primaryCard && data && (
+        <PrimaryContactCard model={modelName} org={data} anchor={primaryCard} onOpenContact={openContact}
+          onChanged={fetchData} onClose={() => setPrimaryCard(null)} />
+      )}
+      {contactComm && COMMUNICATION_FIELDS.contact[contactComm.field] && (
+        <CommunicationCard comm={COMMUNICATION_FIELDS.contact[contactComm.field]} owner={contactComm.owner}
+          anchor={contactComm.anchor} onChanged={fetchData} onClose={() => setContactComm(null)} />
       )}
     </div>
   );

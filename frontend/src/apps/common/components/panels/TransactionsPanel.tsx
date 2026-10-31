@@ -345,6 +345,8 @@ const TransactionsPanel: React.FC<TransactionsPanelProps> = ({
                         data={records}
                         rowKey={(r) => r.id}
                         onRowAction={(r) => handleRowClick(t.model, r)}
+                        onOpenRow={(r) => handleRowClick(t.model, r)}
+                        onOpenWindow={(r) => window.open(getModelDetailPath(t.model, r.id), `${t.model}-${r.id}`, 'popup,width=1200,height=850')}
                         compact={compact}
                       />
                     </div>

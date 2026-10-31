@@ -76,6 +76,15 @@ export interface DbColumnsProps<T = Record<string, unknown>> {
   onSelectRow?: (record: T) => void;
   /** Optional: row action button (e.g. open in new window) */
   onRowAction?: (record: T) => void;
+  /** The WC List Standard (Bill, 2026-10-31): given, a click selects (Shift range, Cmd toggle,
+   *  ↑↓ move), double-click or Enter opens the row — its card beside the row, or its window —
+   *  and Option-double-click opens it in a browser window of its own. */
+  onOpenRow?: (record: T, anchor: HTMLElement) => void;
+  onOpenWindow?: (record: T) => void;
+  /** A plain click or arrow went to this row: an open card follows it. */
+  onMoveRow?: (record: T, anchor: HTMLElement) => void;
+  /** The row whose card is open: outlined apart from the selection. */
+  openKey?: string | number | null;
   /** Optional: section header label (e.g. "Email") */
   sectionLabel?: string;
   /** Optional: section icon */
@@ -117,6 +126,10 @@ export function DbColumns<T extends object>({
   selectedKey = null,
   onSelectRow,
   onRowAction,
+  onOpenRow,
+  onOpenWindow,
+  onMoveRow,
+  openKey = null,
   sectionLabel,
   sectionIcon,
   onAdd,
@@ -159,6 +172,58 @@ export function DbColumns<T extends object>({
   }, [fc.effectiveKeys, columns, storageKey]);
 
   const hasSectionHeader = !!sectionLabel;
+
+  // ── Selection (the WC List Standard) ──
+  const standard = !!onOpenRow;
+  const [picked, setPicked] = React.useState<Set<string | number>>(new Set());
+  const anchorKey = React.useRef<string | number | null>(null);
+  const cursorKey = React.useRef<string | number | null>(null);
+  const listRef = React.useRef<HTMLDivElement>(null);
+  const keys = data.map(rowKey);
+  const rowEl = (k: string | number) =>
+    listRef.current?.querySelector<HTMLElement>(`[data-row-key="${CSS.escape(String(k))}"]`) ?? null;
+  const go = (k: string | number, extend: boolean) => {
+    const to = keys.indexOf(k);
+    if (extend && anchorKey.current != null && keys.includes(anchorKey.current)) {
+      const from = keys.indexOf(anchorKey.current);
+      setPicked(new Set(keys.slice(Math.min(from, to), Math.max(from, to) + 1)));
+    } else {
+      setPicked(new Set([k]));
+      anchorKey.current = k;
+      const el = rowEl(k);
+      if (el) onMoveRow?.(data[to], el);
+    }
+    cursorKey.current = k;
+  };
+  const rowGestures = (record: T, k: string | number) => standard ? {
+    'data-row-key': String(k),
+    onMouseDown: (e: React.MouseEvent) => { if (e.shiftKey || e.detail > 1) e.preventDefault(); },
+    onClick: (e: React.MouseEvent) => {
+      if (e.metaKey || e.ctrlKey) {
+        setPicked((p) => { const n = new Set(p); if (n.has(k)) n.delete(k); else n.add(k); return n; });
+        anchorKey.current = k; cursorKey.current = k;
+      } else go(k, e.shiftKey);
+      listRef.current?.focus({ preventScroll: true });
+    },
+    onDoubleClick: (e: React.MouseEvent) => {
+      if (e.altKey) onOpenWindow?.(record);
+      else onOpenRow!(record, e.currentTarget as HTMLElement);
+    },
+  } : {};
+  const onListKey = (e: React.KeyboardEvent) => {
+    if (!standard || !['ArrowUp', 'ArrowDown', 'Enter'].includes(e.key) || !keys.length) return;
+    if ((e.target as HTMLElement).closest('input, select, textarea')) return;
+    e.preventDefault();
+    const at = cursorKey.current != null ? keys.indexOf(cursorKey.current) : -1;
+    if (e.key === 'Enter') {
+      const el = at >= 0 ? rowEl(keys[at]) : null;
+      if (el) onOpenRow!(data[at], el);
+      return;
+    }
+    const to = at < 0 ? 0 : Math.max(0, Math.min(keys.length - 1, at + (e.key === 'ArrowDown' ? 1 : -1)));
+    go(keys[to], e.shiftKey);
+    rowEl(keys[to])?.scrollIntoView({ block: 'nearest' });
+  };
   // Real extra content only: a caller's {cond && <X/>} hands over false, not nothing.
   const hasChildren = React.Children.toArray(children).length > 0;
 
@@ -195,12 +260,14 @@ export function DbColumns<T extends object>({
       {/* ── Data rows ─────────────────────────────────────────── */}
       {data.map((record) => {
         const rk = rowKey(record);
-        const isSelected = selectedKey != null && rk === selectedKey;
+        const isSelected = standard ? picked.has(rk) : selectedKey != null && rk === selectedKey;
+        const isOpen = standard && openKey != null && rk === openKey;
+        const openStyle = isOpen ? { outline: '2px solid var(--db-accent, #0d6efd)', outlineOffset: -2 } : undefined;
 
         // Custom row renderer
         if (renderRow) {
           return (
-            <div key={rk} className={isSelected ? 'db-list-row--checked' : ''}>
+            <div key={rk} className={isSelected ? 'db-list-row--checked' : ''} style={openStyle} {...rowGestures(record, rk)}>
               {renderRow(record, visibleColumns)}
             </div>
           );
@@ -211,8 +278,9 @@ export function DbColumns<T extends object>({
           <div
             key={rk}
             className={`db-list-row ${isSelected ? 'db-list-row--checked' : ''}`}
-            style={{ padding: compact ? '3px 12px' : '6px 12px' }}
-            onClick={() => onSelectRow?.(record)}
+            style={{ padding: compact ? '3px 12px' : '6px 12px', ...openStyle }}
+            onClick={standard ? undefined : () => onSelectRow?.(record)}
+            {...rowGestures(record, rk)}
           >
             <div className="db-list-row__indicator" />
             {visibleColumns.map((col) => (
@@ -270,7 +338,12 @@ export function DbColumns<T extends object>({
     </>
   ) : undefined, [onAdd, onAssign]);
 
-  if (!hasSectionHeader) return <div>{table}</div>;
+  const list = standard
+    ? <div ref={listRef} tabIndex={0} onKeyDown={onListKey} style={{ outline: 'none' }}
+        data-help="Click selects; Shift-click or Shift+arrow extends; Cmd-click toggles; ↑↓ move. Double-click or Enter opens the record; Option-double-click opens it in its own window. With a card open, a click or arrow shows that row.">{table}</div>
+    : table;
+
+  if (!hasSectionHeader) return <div>{list}</div>;
 
   // A labelled table is a panel: the one frame draws its header, count, collapse and status —
   // its own frame standing alone, the frame around it when it sits in one (a record's tab).
@@ -289,7 +362,7 @@ export function DbColumns<T extends object>({
                 empty: !loading && !error && data.length === 0 && !hasChildren,
                 emptyText: emptyMessage ?? `No ${sectionLabel!.toLowerCase()}` }}
     >
-      {table}
+      {list}
     </PanelFrame>
   );
 }

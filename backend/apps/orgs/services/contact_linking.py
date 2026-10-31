@@ -32,3 +32,28 @@ def served_contact_links(org) -> List[dict]:
     primary = getattr(org, 'contact_id', None)
     links.sort(key=lambda link: link['id'] != primary)
     return links
+
+
+#: What an org copies from its primary contact (Bill, 2026-10-31: a de-normalized value is
+#: never edited where it is copied, only on the record it comes from). The name and email are
+#: stored on the org; the pointers lead to the contact's own email/phone/address/domain.
+FOLLOWED = ('attention', 'email', 'email_id', 'phone_id', 'address_id', 'domain_id')
+
+
+def contact_values(contact_id) -> dict:
+    """The values an org takes from this contact, as stored now."""
+    row = Contact.objects.filter(pk=contact_id).values(*FOLLOWED).first() or {}
+    return {k: row.get(k) for k in FOLLOWED}
+
+
+def follow_contact(contact_id) -> int:
+    """The orgs whose primary contact this is take its values again. Returns how many changed."""
+    from django.db.models import Q
+    from apps.orgs.models import OrgBase
+    values = contact_values(contact_id)
+    if not values:
+        return 0
+    stale = Q()
+    for k, v in values.items():
+        stale |= ~Q(**{k: v}) if v is not None else Q(**{f'{k}__isnull': False})
+    return OrgBase.objects.filter(contact_id=contact_id).filter(stale).update(**values)

@@ -273,6 +273,9 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
         from apps.communications.signals import contact_saving
         with contact_saving(self.pk):
             self._sync_primary_communication_links()
+        # The orgs it is primary contact of show its name and email: they follow it.
+        from apps.orgs.services.contact_linking import follow_contact
+        follow_contact(self.pk)
 
     @staticmethod
     def _norm_comm_value(value):

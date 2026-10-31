@@ -23,7 +23,7 @@
  */
 import { windowChannel } from '@/utils/windowChannel';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { usePanelAdd } from "@/hooks/usePanelAdd";
+import { usePanelAdd, usePanelOpen } from "@/hooks/usePanelAdd";
 import { useWindowManager } from "@/context/WindowManagerContext";
 import { useDispatch } from "react-redux";
 import { getRecord, getRecords, saveRecord, getModelDetail } from "@/api/wcapi";
@@ -314,6 +314,8 @@ export const LinkedRecordsPanel: React.FC<LinkedRecordsPanelProps> = ({
         afterMade: async (id: number) => { await saveLinks([...linkedIds, id]); } },
   [editable, parentId, orgContact, parentModel, linkedModel, inherited, linkedIds, saveLinks]);
   const { onAdd, addCard } = usePanelAdd(linkedModel, addOptions);
+  const opener = usePanelOpen(linkedModel);
+  const labelOf = (r: Rec) => String(r.name || r.attention || r.subject || r.ida || `#${r.id}`);
 
   // Remove a linked record
   const handleRemove = useCallback(async (recordId: number) => {
@@ -385,7 +387,10 @@ export const LinkedRecordsPanel: React.FC<LinkedRecordsPanelProps> = ({
       columns={columns}
       data={records}
       rowKey={(r) => r.id}
-      onSelectRow={handleOpen}
+      onOpenRow={(r, el) => { if (!(linkedModel === parentModel && r.id === parentId)) opener.open(r.id, labelOf(r), el); }}
+      onOpenWindow={(r) => opener.openWindow(r.id)}
+      onMoveRow={(r, el) => opener.move(r.id, labelOf(r), el)}
+      openKey={opener.openId}
       sectionLabel={sectionLabel}
       sectionIcon={sectionIcon}
       onAdd={onAdd}
@@ -414,6 +419,7 @@ export const LinkedRecordsPanel: React.FC<LinkedRecordsPanelProps> = ({
         />
       )}
       {addCard}
+      {opener.recordCard}
     </DbColumns>
   );
 };

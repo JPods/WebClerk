@@ -1,6 +1,6 @@
 """The orgs' code hooks (core/services/behaviours.py): one branch for every org model."""
 from apps.core.services.behaviours import HookContext, ModelBehaviour, register
-from apps.orgs.services.contact_linking import CONTACT_ROLES
+from apps.orgs.services.contact_linking import CONTACT_ROLES, contact_values, contacts_of
 
 ORG_MODELS = ('customer', 'vendor', 'employee', 'manufacturer', 'rep', 'other_org')
 
@@ -13,10 +13,13 @@ class OrgBehaviour(ModelBehaviour):
     SIGNALS = {'_from_contact': int, '_company': str}
 
     def before_save(self, ctx: HookContext) -> None:
+        source = None
         if (ctx.obj.config or {}).get('is_new'):
             source = _source_contact(ctx)
             if source is not None:
                 _populate_from_contact(ctx.obj, source, ctx.data.get('_company'))
+        if source is None:
+            _follow_primary_contact(ctx)
         # A new org is saved before anyone names it, and an org must have a company
         # (org_company_not_empty): the naked record carries a name to be replaced.
         if (ctx.obj.config or {}).get('is_new') and not (ctx.obj.company or '').strip():
@@ -36,6 +39,28 @@ class OrgBehaviour(ModelBehaviour):
             type(ctx.obj).objects.filter(pk=ctx.obj.pk).update(config=config)
             ctx.obj.config = config
         ctx.messages.append(f'{ctx.model_key} made from contact #{source.pk}')
+
+
+def _follow_primary_contact(ctx: HookContext) -> None:
+    """An org shows its primary contact's name and email (Bill, 2026-10-31): a de-normalized
+    value is changed on the record it comes from, never typed here. Choosing another primary
+    contact — one of this org's own — takes that contact's values."""
+    from apps.core.services.door import Refused
+    org = ctx.obj
+    if 'contact_id' in ctx.changed and org.contact_id:
+        if not contacts_of(org).filter(pk=org.contact_id).exists():
+            raise Refused(400, 'not_this_orgs_contact',
+                          f'Contact #{org.contact_id} is not one of this {ctx.model_key}\'s contacts: '
+                          f'add it in the Contacts panel first.', {'contact_id': org.contact_id})
+        for k, v in contact_values(org.contact_id).items():
+            setattr(org, k, v)
+        return
+    typed = sorted(k for k in ('attention', 'email') if k in ctx.changed)
+    if typed and org.contact_id:
+        raise Refused(400, 'copied_value',
+                      f'{", ".join(typed)} {"is" if len(typed) == 1 else "are"} copied from contact '
+                      f'#{org.contact_id}: change {"it" if len(typed) == 1 else "them"} on the contact, '
+                      f'or choose another primary contact.', {'fields': typed, 'contact_id': org.contact_id})
 
 
 def _source_contact(ctx: HookContext):

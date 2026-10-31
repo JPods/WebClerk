@@ -6,6 +6,7 @@
  * section header, collapse, add/remove. Same pattern as every other panel.
  */
 import { windowChannel } from '@/utils/windowChannel';
+import { usePanelOpen } from "@/hooks/usePanelAdd";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useWindowManager } from "@/context/WindowManagerContext";
 import {
@@ -437,6 +438,7 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
     setTouchContact(contact);
   }, []);
 
+  const opener = usePanelOpen('contact');
   const columns = buildColumns(isEditing, primaryContactId, onSetPrimary, handleRemove, handleOpen, handleTouch);
 
   return (
@@ -446,7 +448,11 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
         columns={columns}
         data={sorted}
         rowKey={(c) => `${c.contact_id}-${c.purpose}`}
-        onSelectRow={handleOpen}
+        onOpenRow={(c, el) => opener.open(c.contact_id, c.attention || `#${c.contact_id}`, el)}
+        onOpenWindow={(c) => opener.openWindow(c.contact_id)}
+        onMoveRow={(c, el) => opener.move(c.contact_id, c.attention || `#${c.contact_id}`, el)}
+        openKey={opener.openId == null ? null : sorted.find((c) => c.contact_id === opener.openId)
+          ? `${opener.openId}-${sorted.find((c) => c.contact_id === opener.openId)!.purpose}` : null}
         sectionLabel={title}
         sectionIcon="👤"
         onAdd={isEditing ? handleAddNew : undefined}
@@ -455,6 +461,7 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
         compact
         emptyMessage="No contacts linked"
       />
+      {opener.recordCard}
       {adding && (
         <div style={{ padding: '6px 12px', borderTop: '1px solid var(--db-border)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
