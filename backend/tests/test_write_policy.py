@@ -64,6 +64,20 @@ def test_only_enumerated_fields_are_kept():
     assert sorted(denied) == ['name_last', 'title']
 
 
+def test_a_link_under_an_allowed_open_map_is_kept():
+    # Bill, 2026-10-31: refs.links is an open map — its kinds are no listed leaves — so a
+    # role allowed refs.links writes refs.links.action; one not allowed it still cannot.
+    from apps.orgs.models import OrgBase
+    _grant('customer', 'employee', {'view': ['@all'], 'edit': ['refs.links'], 'scope': {}, 'create': False})
+    org = OrgBase.objects.create(org_type='customer', company='zz Links Co')
+    actor = Actor(user=Contact.objects.create(email='links@example.com', role='employee'))
+    kept, denied = _enumerated_edit(actor, org, 'customer', {'refs.links.action': [{'id': 1}]})
+    assert kept == {'refs.links.action': [{'id': 1}]} and denied == []
+    _grant('customer', 'employee', {'view': ['@all'], 'edit': ['company'], 'scope': {}, 'create': False})
+    kept, denied = _enumerated_edit(actor, org, 'customer', {'refs.links.action': [{'id': 1}]})
+    assert kept == {} and denied == ['refs.links.action']
+
+
 def test_system_fields_are_written_only_by_an_admin():
     _grant('contact', 'employee', {**EMPLOYEE_CONTACT, 'edit': ['@all']})
     employee = Actor(user=Contact.objects.create(email='e3@example.com', role='employee'))

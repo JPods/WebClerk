@@ -150,6 +150,31 @@ def _coerce_number_field(value, model_cls, field):
         raise ValueError(f'{value!r} is not a number') from e
 
 
+def _holds_epoch(model_cls, field: str) -> bool:
+    """An integer dt_ column (epoch ms). A DateTimeField (cash.dt_cash) parses its own text."""
+    try:
+        return isinstance(model_cls._meta.get_field(field), INT_FIELD_TYPES)
+    except Exception:  # noqa: BLE001 - not a column
+        return False
+
+
+def _epoch_ms(text: str):
+    """A dt_ value sent as text: digits are epoch ms; a timestamp naming its zone
+    ('2026-09-24T12:00:00Z') is converted; a bare date or a time without a zone is refused —
+    only the browser knows the local day (a date typed in a form is sent as 23:59 local)."""
+    if text.lstrip('-').isdigit():
+        return int(text)
+    from datetime import datetime
+    try:
+        moment = datetime.fromisoformat(text.replace('Z', '+00:00'))
+    except ValueError:
+        moment = None
+    if moment is None or moment.tzinfo is None:
+        raise ValueError(f'{text!r} is not a time. A dt_ field holds UTC epoch milliseconds (or a '
+                         f'timestamp with its zone); a date typed in a form is sent as 23:59 local.')
+    return int(moment.timestamp() * 1000)
+
+
 def _coerce_int_field(value, model_field):
     """Coerce string values to int for integer model fields."""
     if not isinstance(model_field, INT_FIELD_TYPES):
@@ -329,6 +354,11 @@ def assign_fields(
                         )
                         continue
                     else:
+                        # A dt_ field holds UTC epoch ms. A string was coerced to its first
+                        # digits: '2026-12-06' stored 2026 — January 1970 — with a 200.
+                        if (field.startswith('dt_') and isinstance(value, str) and value.strip()
+                                and _holds_epoch(model_cls, field)):
+                            value = _epoch_ms(value.strip())
                         # FK and int coercion
                         try:
                             model_field = model_cls._meta.get_field(field)

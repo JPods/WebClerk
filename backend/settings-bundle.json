@@ -7633,10 +7633,6 @@
               "refs.contact_links",
               "refs.demo_source",
               "refs.keywords",
-              "refs.links.children.id",
-              "refs.links.children.sequence",
-              "refs.links.parents.id",
-              "refs.links.parents.sequence",
               "refs.source.id",
               "refs.source.order_line_id",
               "refs.source.purchase_line_id",
@@ -7662,7 +7658,8 @@
               "updated_by.email",
               "updated_by.id",
               "uuid",
-              "version"
+              "version",
+              "refs.links"
             ],
             "rep_view": [
               "action.en",
@@ -7888,10 +7885,6 @@
               "purpose",
               "refs.demo_source",
               "refs.keywords",
-              "refs.links.children.id",
-              "refs.links.children.sequence",
-              "refs.links.parents.id",
-              "refs.links.parents.sequence",
               "refs.source.id",
               "refs.source.type",
               "refs.tags",
@@ -8333,6 +8326,36 @@
                   "label": "dt_updated"
                 }
               ]
+            },
+            "add": {
+              "title": "Action",
+              "fields": [
+                {
+                  "field": "action",
+                  "label": "action"
+                },
+                {
+                  "field": "status",
+                  "label": "status",
+                  "type": "select",
+                  "options": [
+                    "open",
+                    "active",
+                    "on_hold",
+                    "review",
+                    "completed",
+                    "cancelled"
+                  ]
+                },
+                {
+                  "field": "dt_deadline",
+                  "label": "due"
+                },
+                {
+                  "field": "assigned_to",
+                  "label": "assigned to"
+                }
+              ]
             }
           },
           "form": {
@@ -8609,29 +8632,29 @@
           "panel": [
             {
               "field": "ida",
-              "width": 80
-            },
-            {
-              "field": "purpose",
-              "width": 80
-            },
-            {
-              "field": "status",
               "width": 70
             },
             {
-              "field": "action_type",
-              "width": 80
+              "field": "action",
+              "width": 240
             },
             {
-              "align": "right",
-              "field": "priority",
-              "width": 60
+              "field": "status",
+              "width": 80
             },
             {
               "field": "dt_deadline",
               "width": 90,
               "format": "date"
+            },
+            {
+              "field": "assigned_to",
+              "width": 130
+            },
+            {
+              "align": "right",
+              "field": "priority",
+              "width": 60
             }
           ],
           "active": {

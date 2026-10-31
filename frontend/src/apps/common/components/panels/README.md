@@ -186,9 +186,11 @@ Any new panel component must use `DbColumns` as its base. No custom table render
 
 ### Entity panels (specialized behavior beyond LinkedRecordsPanel)
 
+Actions are a LinkedRecordsPanel (refs.links.action, two-sided; Bill 2026-10-31): every list
+inherits one code, and a specialty belongs in the record's .form. These remain to be converted.
+
 | File | Why it's separate from LinkedRecordsPanel |
 |------|------------------------------------------|
-| `ActionsPanel.tsx` | Kanban columns, inline status updates, embedded task creation |
 | `CommentsPanel.tsx` | Four-tab comment editor (Public/Process/Partner/Notes) |
 | `DocumentsPanel.tsx` | File upload, preview, download, virus scan |
 | `FinancialsPanel.tsx` | Margin calculation, aging summary, credit display |
@@ -247,7 +249,6 @@ import type { DbColumnDef } from '@/apps/common/components/panels/DbColumns';
 import { LinkedRecordsPanel } from '@/apps/common/components/panels/LinkedRecordsPanel';
 import ContactPanel from '@/apps/common/components/panels/ContactPanel';
 import type { RefContact } from '@/apps/common/components/panels/ContactPanel';
-import ActionsPanel from '@/apps/common/components/panels/ActionsPanel';
 import CommentsPanel from '@/apps/common/components/panels/CommentsPanel';
 import DocumentsPanel from '@/apps/common/components/panels/DocumentsPanel';
 
@@ -275,5 +276,5 @@ claude@jpods.com, and paces itself under the backend's limits (sign-in 10/min, r
 Results: `frontend/e2e/results/panel-reads.json`. Run it before pushing panel or read changes.
 
 The hooks it uses: `data-wc-panel`, `data-wc-panel-toggle`, `data-wc-collapsed`,
-`data-wc-panel-error` (CollapsiblePanel), `data-wc-tab` (DetailTabs, TabsRenderer),
+`data-wc-panel-error` (CollapsiblePanel), `data-wc-tab` (TabsRenderer),
 `data-wc="line-cards"`, `data-wc-subpanel` (LineCardRenderer). Keep them when changing those.

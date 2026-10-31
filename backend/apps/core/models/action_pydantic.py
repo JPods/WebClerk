@@ -284,27 +284,8 @@ class ActionPrefs(RecordPrefsBase):
 
 # -- .refs (inherits RefsBase) ----------------------------------------------
 
-class GanttDependency(BaseModel):
-    """One Gantt dependency link (parent or child)."""
-    id: int                                   # action_id of the dependency
-    sequence: int = 0                         # ordering within the group
-
-    class Config:
-        extra = 'forbid'
-
-
-class ActionRefsLinks(BaseModel):
-    """Gantt dependency structure in refs.links."""
-    children: list[GanttDependency] = Field(default_factory=list)
-    parents: list[GanttDependency] = Field(default_factory=list)
-
-    class Config:
-        extra = 'allow'                       # other link types may exist
-
-
 class ActionRefs(RefsBase):
     tags: list[str] = Field(default_factory=list)
     keywords: list[str] = Field(default_factory=list)
     source: Optional[SourceRef] = None
-    links: ActionRefsLinks = Field(default_factory=ActionRefsLinks)  # type: ignore[assignment]
     contact_links: list[dict] = Field(default_factory=list)

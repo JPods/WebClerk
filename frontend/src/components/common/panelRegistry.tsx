@@ -28,7 +28,6 @@ type PanelRenderer = (ctx: PanelContext) => ReactElement;
 import { lazy, Suspense, createElement } from 'react';
 
 const CommPanel = lazy(() => import('@/apps/communications/components/CommPanel'));
-const ActionsPanel = lazy(() => import('@/apps/common/components/panels/ActionsPanel'));
 const DocumentsPanel = lazy(() => import('@/apps/common/components/panels/DocumentsPanel'));
 const LinkedRecordsPanel = lazy(() => import('@/apps/common/components/panels/LinkedRecordsPanel').then(m => ({ default: m.LinkedRecordsPanel })));
 const CommentsPanel = lazy(() => import('@/apps/common/components/panels/CommentsPanel'));
@@ -60,11 +59,10 @@ const placeholder = (label: string) => createElement('div', { className: 'p-4 te
 
 const registry: Record<string, PanelRenderer> = {
   // === Common panels (all models) ===
-  actions: (ctx) => wrap(createElement(ActionsPanel, {
-    entityType: ctx.modelName,
-    entityId: ctx.data.id,
-    data: ctx.data.actions?.items || [],
-    isEditing: ctx.isEditing,
+  // A record's actions are those it lists in refs.links.action; each lists the record back
+  // (two-sided links, Bill 2026-10-31). One panel code for every list.
+  actions: (ctx) => wrap(createElement(LinkedRecordsPanel, {
+    linkedModel: 'action', parentModel: ctx.modelName, parentId: ctx.data?.id, defaultCollapsed: false,
   })),
 
   documents: (ctx) => wrap(createElement(DocumentsPanel, {

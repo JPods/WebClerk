@@ -91,6 +91,25 @@ const SKIP_FIELDS = new Set([
   'metadata', 'prefs', 'refs', 'config',
 ]);
 
+/** A JSON value people read as text: a language map ({en: '…'}) is the viewer's language, else
+ *  its first entry (an action's action); a list of named records is their names (assigned_to). */
+export function readable(val: unknown): string | null {
+  if (Array.isArray(val)) {
+    if (!val.length) return '';
+    return val.every((v) => v && typeof v === 'object' && 'name' in (v as object))
+      ? val.map((v) => String((v as { name: unknown }).name ?? '')).filter(Boolean).join(', ')
+      : null;
+  }
+  if (val && typeof val === 'object') {
+    const entries = Object.entries(val as Record<string, unknown>);
+    if (!entries.length || !entries.every(([k, v]) => /^[a-z]{2}$/.test(k) && typeof v === 'string')) return null;
+    const lang = (navigator.language || 'en').slice(0, 2);
+    const map = val as Record<string, string>;
+    return map[lang] ?? map.en ?? String(entries[0][1]);
+  }
+  return null;
+}
+
 // ── Build from DbFieldSpec (db.panel Setting) ────────────────────────────
 
 export function buildColumnsFromSpecs(specs: DbFieldSpec[]): PanelColumnDef<Record<string, unknown>>[] {
@@ -120,6 +139,8 @@ export function buildColumnsFromSpecs(specs: DbFieldSpec[]): PanelColumnDef<Reco
           }
           if (val == null || val === '') return '—';
           if (fmt) return formatField(val, fmt, s.field);
+          const said = readable(val);
+          if (said != null) return said || '—';
           if (typeof val === 'object') return JSON.stringify(val).slice(0, 80);
           return String(val);
         },

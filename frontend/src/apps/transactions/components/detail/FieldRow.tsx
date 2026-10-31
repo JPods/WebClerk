@@ -96,7 +96,16 @@ function toISODate(val: unknown): string {
     return '';
   }
   if (isNaN(d.getTime())) return '';
-  return d.toISOString().slice(0, 10);
+  // The local date (Bill: dt_ fields show the local date) — toISOString gave the UTC one.
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+/** A date typed in a form is 23:59 local that day, saved UTC (Bill: date-only entry = 23:59
+ *  local, save UTC). Sent as a UTC timestamp: an epoch-ms column converts it, a date-time column
+ *  reads it; the server refuses a bare date, which only the browser could place in a day. */
+function fromISODate(typed: string): string | null {
+  return typed ? new Date(`${typed}T23:59:59.999`).toISOString() : null;
 }
 
 /** Fields that should be formatted as phone numbers */
@@ -499,7 +508,7 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
         <input
           type={isDate ? 'date' : 'text'}
           value={isDate ? toISODate(val) : (displayVal === '—' ? '' : displayVal)}
-          onChange={(e) => onChange(field, e.target.value)}
+          onChange={(e) => onChange(field, isDate && field.startsWith('dt_') ? fromISODate(e.target.value) : e.target.value)}
           className="flex-1 db-font-sm px-2 py-0.5 rounded min-w-0"
           style={{ border: '1px solid var(--db-border, #cbd5e1)', background: 'var(--db-surface-alt, #fff)', color: 'var(--db-text, #1e293b)', maxWidth: 240 }}
           title={pathDisplay}

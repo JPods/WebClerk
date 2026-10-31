@@ -18,6 +18,7 @@ import { showToast } from '@/store/slices/toastSlice';
 import { getRecord, saveRecord } from '@/api/wcapi';
 import CardRenderer from '@/components/cards/CardRenderer';
 import type { CardSpec } from '@/components/cards/cardRegistry';
+import { readable } from '@/apps/common/components/panels/panelColumnUtils';
 
 export interface ParentLink {
   /** The new record's field that links it to the parent (customer_id, contact_id). */
@@ -60,13 +61,15 @@ const RecordCard: React.FC<Props> = ({ model, spec, anchor, make, recordId, rest
   const [pos, setPos] = useState({ top: anchor.bottom + 4, left: anchor.left });
   const isNew = recordId == null;
 
-  // On screen: below the anchor, or above it when there is no room.
+  // On screen: below the anchor, or above it when there is no room — measured again once the
+  // record's fields have loaded, or a card at the foot of the page hangs off it.
   useLayoutEffect(() => {
     const h = cardRef.current?.offsetHeight || 0;
     const left = Math.max(8, Math.min(anchor.left, window.innerWidth - WIDTH - 8));
     const below = anchor.bottom + 4;
-    setPos({ top: below + h > window.innerHeight - 8 ? Math.max(8, anchor.top - h - 4) : below, left });
-  }, [anchor]);
+    const top = below + h > window.innerHeight - 8 ? anchor.top - h - 4 : below;
+    setPos({ top: Math.max(8, Math.min(top, window.innerHeight - h - 8)), left });
+  }, [anchor, loaded]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -81,7 +84,8 @@ const RecordCard: React.FC<Props> = ({ model, spec, anchor, make, recordId, rest
     getRecord(model, recordId!).then((r: any) => {
       if (!live) return;
       const rec = r?.record || r || {};
-      const shown = Object.fromEntries(spec.fields.map((f) => [f.field, rec[f.field] ?? '']));
+      // A language map shows as its text; saved, a bare string is the writer's language.
+      const shown = Object.fromEntries(spec.fields.map((f) => [f.field, readable(rec[f.field]) ?? rec[f.field] ?? '']));
       setLoaded(shown);
       setValues(restore ? { ...shown, ...restore } : shown);
     });

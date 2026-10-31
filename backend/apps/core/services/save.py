@@ -303,6 +303,11 @@ def _enumerated_edit(actor: Actor, obj, model_key: str, data: dict):
     # coaching — dropped here, a `data` wrapper hid its fields and the save failed as a 500.
     field_names = {n for f in obj._meta.get_fields()
                    for n in (f.name, getattr(f, 'attname', None)) if n}
+    from apps.core.services.field_leaves import model_leaves
+    # Paths with no listed leaves beneath: open maps and opaque JSON (refs.links).
+    leaves_of = model_leaves(access.model_key(model_key) or model_key)
+    unlisted = set(leaves_of.get('open_maps') or ()) | set(leaves_of.get('opaque') or ())
+    open_allowed = {p for p in allowed if p in unlisted or ('.' not in p and p in field_names)}
     kept: dict = {}
     denied: list = []
     for key, value in (data or {}).items():
@@ -349,6 +354,11 @@ def _enumerated_edit(actor: Actor, obj, model_key: str, data: dict):
             if rows != value:
                 denied.append(key)
         elif key in allowed or f'{key}_id' in allowed:
+            kept[key] = value
+        elif '.' in key and any(key.startswith(f'{p}.') for p in open_allowed):
+            # Under an allowed open map or opaque leaf (refs.links → refs.links.action), or a
+            # whole field a superuser may change: no leaves are listed beneath any of them. Ignoring these dropped
+            # every panel's link write with a 200 (Bill, 2026-10-31).
             kept[key] = value
         else:
             denied.append(key)
@@ -695,6 +705,9 @@ def _write(actor: Actor, obj, model_cls, model_key: str, norm_key: str, data: di
     # keyword save below, must start from what it wrote — not overwrite it.
     obj.refresh_from_db()
     verbs.after(ctx)
+    # Two-sided links: the records this one's action/document links changed list it back.
+    from apps.core.services import reciprocal_links
+    reciprocal_links.keep(model_key, snapshot.get('refs'), obj)
 
     # Keywords are updated synchronously so the response carries the current ones — but
     # written only if they changed. WC2's tail was `If (Modified record) SAVE RECORD`,

@@ -75,6 +75,7 @@ def delete_record(actor: Actor, model_key: str, record_id, *,
                       data={'id': record_id}, is_update=True)
     verbs.before(ctx)
     pk = obj.pk
+    refs_before = getattr(obj, 'refs', None)
     try:
         obj.delete()
     except Refused:
@@ -89,6 +90,10 @@ def delete_record(actor: Actor, model_key: str, record_id, *,
                       {'model_name': model_key, 'id': record_id}) from e
 
     obj.pk = pk     # Django clears it; the after hooks name the record that was removed
+    # Two-sided links: the records it was linked with no longer list it.
+    from apps.core.services import reciprocal_links
+    obj.refs = refs_before
+    reciprocal_links.forget(model_key, obj)
     verbs.after(ctx)
     console_logger.info("[DELETE] %s #%s deleted by %s", model_key, record_id, actor.describe())
     return DeleteResult(deleted=True, obj_id=record_id, model_key=model_key,
