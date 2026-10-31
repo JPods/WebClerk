@@ -34,6 +34,7 @@ import TransactionFlowIndicator from './detail/TransactionFlowIndicator';
 import RelatedTransactionsPanel from './detail/RelatedTransactionsPanel';
 import DesignMode from './detail/DesignMode';
 import AddCashDialog from './AddCashDialog';
+import { useFormDraft, type DraftGetter } from '@/hooks/useFormDraft';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -45,6 +46,9 @@ interface UiDetailProps {
   onClose?: () => void;
   /** When true, rendered inside DataBrowser — hide toolbar (DB has its own) */
   inline?: boolean;
+  /** In a list: hand over unsaved edits before the list moves on; take them back on Undo. */
+  onRegisterDraft?: (get: DraftGetter) => void;
+  draft?: Record<string, any> | null;
   [key: string]: unknown;  // accept extra props from DataBrowser
 }
 
@@ -80,6 +84,8 @@ const UiDetailView: React.FC<UiDetailProps> = ({
   onAfterSave,
   onWorkflowComplete,
   initialLines,
+  onRegisterDraft,
+  draft,
   ...rest
 }) => {
   const params = useParams<{ model?: string; id?: string }>();
@@ -107,6 +113,7 @@ const UiDetailView: React.FC<UiDetailProps> = ({
   const [designMode] = useState(false);
   const [designLayout, setDesignLayout] = useState<DetailLayout | null>(null);
   const [showAddCash, setShowAddCash] = useState(false);
+  useFormDraft({ recordId, data, editData, setEditData, setIsEditing, draft, onRegisterDraft });
 
   // Active layout — design mode uses local copy, normal mode uses cached
   const activeLayout = designMode && designLayout ? designLayout : layout;

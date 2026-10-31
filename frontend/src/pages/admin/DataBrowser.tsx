@@ -2,6 +2,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getUI, setUI } from '@/utils/contactUI';
 import { useAppSelector } from '../../store/hooks';
+import type { DraftGetter } from '../../hooks/useFormDraft';
 import { useDispatch } from 'react-redux';
 import { showToast } from '../../store/slices/toastSlice';
 import { useDataBrowser, numId, toFieldNames, type FieldSpec } from '../../hooks/useDataBrowser';
@@ -318,6 +319,22 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
   const [editInList, setEditInList] = useState(false);
   useEffect(() => { setEditInList(false); }, [db.selectedModel]);
   const dispatch = useDispatch();
+  // Edits dropped when the open form moves to another row, kept for Undo (Bill, 2026-10-31):
+  // no prompt in the way, nothing lost by accident.
+  const detailDraftRef = useRef<DraftGetter | null>(null);
+  const registerDraft = useCallback((get: DraftGetter) => { detailDraftRef.current = get; }, []);
+  const [dropped, setDropped] = useState<{ id: number; draft: Record<string, any>; admin: boolean } | null>(null);
+  const [restoring, setRestoring] = useState<{ id: number; draft: Record<string, any>; admin: boolean } | null>(null);
+  useEffect(() => {
+    if (!dropped) return;
+    const t = setTimeout(() => setDropped(null), 12000);
+    return () => clearTimeout(t);
+  }, [dropped]);
+  // The admin grid holds its edits in the list's record: put them back once that record loads.
+  useEffect(() => {
+    if (!restoring?.admin || numId(db.selectedRecord?.id) !== restoring.id) return;
+    db.setSelectedRecord(restoring.draft as any); db.setIsDirty(true); setRestoring(null);
+  }, [restoring, db.selectedRecord]);
   // What a workflow convert made, shown in the detail pane with its review lines until another
   // record is picked. The toolbar's Workflow only refreshed the list: To Purchase left an empty
   // purchase and To Receipt opened nothing (Bill, 2026-10-25/26).
@@ -839,6 +856,15 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
               {editInList ? 'editing in list' : 'edit in list'}
             </label>
           )}
+          {dropped && (
+            <span className="db-dropped" role="status" data-wc="db-dropped">
+              Changes to #{dropped.id} discarded
+              <button type="button" onClick={() => {
+                setRestoring(dropped); setDropped(null);
+                db.setSelectedRowIds(new Set([dropped.id])); db.setSelectedId(dropped.id);
+              }}>Undo</button>
+            </span>
+          )}
           <span className="db-spacer" />
           <span className="db-pagination-info">{db.totalRecords}</span>
           <Btn small variant="ghost" disabled={db.page === 0} onClick={() => db.setPage((p) => p - 1)}>←</Btn>
@@ -966,6 +992,11 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
                 // An open form follows a plain click or arrow key, dropping unsaved edits (Bill,
                 // 2026-10-31); a closed one stays closed — selecting never opens it.
                 if (moved != null && db.selectedId != null && moved !== db.selectedId) {
+                  const admin = viewPref !== 'app' || !APP_DETAIL_COMPONENTS[db.selectedModel];
+                  const draft = admin ? (db.isDirty && db.selectedRecord ? structuredClone(db.selectedRecord) : null)
+                    : detailDraftRef.current?.() ?? null;
+                  setDropped(draft ? { id: db.selectedId, draft, admin } : null);
+                  setRestoring(null);
                   db.setIsDirty(false); db.setSelectedId(moved);
                 }
               }}
@@ -1120,6 +1151,8 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
                   hideBreadcrumb
                   inline
                   onSaved={() => db.fetchRecords()}
+                  onRegisterDraft={registerDraft}
+                  draft={restoring && !restoring.admin && restoring.id === detailId ? restoring.draft : null}
                   onCancelInline={() => { db.setSelectedId(null); }}
                   onRegisterActions={(actions: { save?: () => void; cancel?: () => void; addNew?: () => void; delete?: () => void }) => {
                     detailSaveRef.current = actions.save || null;

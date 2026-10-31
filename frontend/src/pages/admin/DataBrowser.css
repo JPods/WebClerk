@@ -1905,3 +1905,20 @@
   color: var(--db-text, #212529);
   font-weight: 600;
 }
+
+/* Edits dropped by moving the form to another row, with Undo (Bill, 2026-10-31). */
+.db-dropped {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  background: var(--db-row-checked, #fff3cd);
+  color: var(--db-text, #212529);
+}
+.db-dropped button {
+  font-weight: 600;
+  color: var(--db-accent, #0d6efd);
+  text-decoration: underline;
+}

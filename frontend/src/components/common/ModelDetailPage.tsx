@@ -31,6 +31,7 @@ import CollapsiblePanel from '@/apps/common/components/CollapsiblePanel';
 import FieldRow from '@/apps/transactions/components/detail/FieldRow';
 import DetailToolbar from '@/components/common/DetailToolbar';
 import CommunicationCard from '@/components/common/CommunicationCard';
+import { useFormDraft, type DraftGetter } from '@/hooks/useFormDraft';
 
 const PanelSectionRenderer = lazy(() => import('@/apps/transactions/components/detail/PanelSectionRenderer'));
 const JsonSectionRenderer = lazy(() => import('@/apps/transactions/components/detail/JsonSectionRenderer'));
@@ -44,6 +45,9 @@ interface ModelDetailPageProps {
   recordId?: number;
   inline?: boolean;
   onRegisterActions?: (actions: { save?: () => void; cancel?: () => void; addNew?: () => void; delete?: () => void }) => void;
+  /** In a list: hand over unsaved edits before the list moves on; take them back on Undo. */
+  onRegisterDraft?: (get: DraftGetter) => void;
+  draft?: Record<string, any> | null;
   onEditStateChange?: (editing: boolean) => void;
   onSaved?: () => void;
   onCancelInline?: () => void;
@@ -77,6 +81,8 @@ const ModelDetailPage: React.FC<ModelDetailPageProps> = ({
   recordId: propId,
   inline,
   onRegisterActions,
+  onRegisterDraft,
+  draft,
   onEditStateChange,
   onSaved: onSavedProp,
   onCancelInline,
@@ -157,6 +163,7 @@ const ModelDetailPage: React.FC<ModelDetailPageProps> = ({
   // ── Edit handlers ──
   const handleEdit = () => { setEditData({ ...data }); setIsEditing(true); };
   const handleCancel = () => { setEditData(data); setIsEditing(false); };
+  useFormDraft({ recordId, data, editData, setEditData, setIsEditing, draft, onRegisterDraft });
   const handleClose = () => {
     if (inline && onCancelInline) { onCancelInline(); return; }
     const path = `/${modelName}/${recordId || ''}`;
