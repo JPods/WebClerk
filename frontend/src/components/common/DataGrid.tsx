@@ -19,7 +19,7 @@ import { EDIT_IN_LIST_HELP, LIST_HELP, useListGestures } from '@/hooks/useListGe
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { parseFragments, matchesFragments } from '@/utils/searchFragments';
 import { DbColumnsTable, type DbColumnDef } from '@/apps/common/components/panels/DbColumns';
-import { cellAlign, cellTitle, fieldLabel, formatCell, headerStyle, valueAt } from '@/apps/common/components/panels/cellFormat';
+import { cellAlign, cellTitle, fieldLabel, footerKind, formatCell, headerStyle, valueAt, type FooterKind } from '@/apps/common/components/panels/cellFormat';
 
 // ---------------------------------------------------------------------------
 // Universal dt formatter — stored GMT epoch ms, displayed local
@@ -473,20 +473,19 @@ export default function DataGrid(props: DataGridProps) {
     );
   }, [records, filters]);
 
-  // --- Footer totals ---
+  // --- Footer: Σ of the rows on screen, per column as cellFormat.footerKind says ---
   const totals = useMemo(() => {
-    const result: Record<string, { sum: number; count: number }> = {};
+    const result: Record<string, { kind: FooterKind; value: number }> = {};
     columns.forEach((f) => {
-      const beh = fieldBehaviors[f];
-      if (beh?.type === 'currency' || beh?.type === 'number') {
-        let sum = 0;
-        let count = 0;
-        filteredRecords.forEach((rec) => {
-          const v = Number(rec[f]);
-          if (!isNaN(v)) { sum += v; count++; }
-        });
-        result[f] = { sum, count };
-      }
+      const kind = footerKind(f, fieldBehaviors[f]);
+      if (!kind) return;
+      let sum = 0;
+      let count = 0;
+      filteredRecords.forEach((rec) => {
+        const v = Number(valueAt(rec, f));
+        if (valueAt(rec, f) != null && valueAt(rec, f) !== '' && !isNaN(v)) { sum += v; count++; }
+      });
+      result[f] = { kind, value: kind === 'count' ? count : kind === 'average' ? (count ? sum / count : 0) : sum };
     });
     return result;
   }, [filteredRecords, columns, fieldBehaviors]);
@@ -963,8 +962,12 @@ export default function DataGrid(props: DataGridProps) {
                 {columns.map((f) => {
                   const t_data = totals[f];
                   if (!t_data) return <td key={f} className="dg-tfoot-empty" />;
-                  return <td key={f} className="dg-tfoot-cell" style={{ textAlign: 'right' }}>
-                    {formatCell(t_data.sum, f, { ...cellType(f), type: fieldBehaviors[f]?.type === 'currency' ? 'currency' : 'number' })}</td>;
+                  const shown = t_data.kind === 'count' ? String(t_data.value)
+                    : formatCell(t_data.value, f, { ...cellType(f), type: fieldBehaviors[f]?.type === 'currency' ? 'currency' : 'number',
+                                                     precision: t_data.kind === 'average' ? 2 : cellType(f).precision });
+                  return <td key={f} className="dg-tfoot-cell" style={{ textAlign: 'right' }}
+                    title={t_data.kind === 'sum' ? 'Sum of the rows shown' : t_data.kind === 'average' ? 'Average of the rows shown' : 'Count of the rows shown'}>
+                    {t_data.kind === 'sum' ? shown : `${t_data.kind === 'average' ? 'avg' : 'n'} ${shown}`}</td>;
                 })}
               </tr>
             ) : undefined}

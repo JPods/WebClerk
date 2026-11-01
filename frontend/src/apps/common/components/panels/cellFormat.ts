@@ -155,3 +155,22 @@ export function fieldLabel(field: string): string {
   const leaf = field.includes('.') ? field.split('.').slice(-2).join('.') : field;
   return leaf.replace(/\[\d+\]$/, '');
 }
+
+export type FooterKind = 'sum' | 'average' | 'count';
+
+// A price, a rate or a per-unit cost summed over rows means nothing; an amount, a quantity or a
+// balance summed does. Names are the field's last part.
+const NO_TOTAL = /^(id|ida|sequence|line_number|version|priority|difficulty|security_level|health_rating)$|_id$|(^|_)(price|rate|pct|percent|percentage)($|_)|^(unit|cost|cost_avg|cost_last|cost_unit|cost_standard|cost_snapshot|cost_rollup|unit_cost|unit_price|disc_price|margin_pct|tax_pct|discount_pct|scrap_factor|yield_pct)$/;
+
+/** What a list's Σ row shows under a column — of the rows on screen (Bill, 2026-11-01: users
+ *  show and omit records, the sums follow). A behavior's own `footer` decides ('sum', 'average',
+ *  'count', 'none'); otherwise numbers and amounts sum, except prices, rates and per-unit costs. */
+export function footerKind(field: string, behavior?: { type?: string; footer?: string } | null): FooterKind | null {
+  const own = behavior?.footer;
+  if (own === 'sum' || own === 'average' || own === 'count') return own;
+  if (own === 'none') return null;
+  const type = behavior?.type;
+  if (type !== 'currency' && type !== 'number') return null;
+  const leaf = (field.split('.').pop() || field).toLowerCase();
+  return NO_TOTAL.test(leaf) ? null : 'sum';
+}

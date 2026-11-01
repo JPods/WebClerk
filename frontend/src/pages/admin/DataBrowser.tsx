@@ -25,7 +25,6 @@ import { fetchPrintLayout } from '../../hooks/usePrintLayout';
 import QueryBuilderPanel from '../../components/common/QueryBuilderPanel';
 import { useItemImagePopup } from '@/components/common/ItemImagePopup';
 import { TouchBar, TOUCH_MODELS } from './TouchBar';
-import { BOMPanel } from './BOMPanel';
 import { MatchCandidatesPanel } from './MatchCandidatesPanel';
 import { GroupedDetailFields } from './GroupedDetailFields';
 import { JsonSchemaTree } from '../../components/widgets/JsonSchemaTree';
@@ -35,7 +34,7 @@ import './DataBrowser.css';
 
 // ---------------------------------------------------------------------------
 // Extracted components — each in its own file in this directory:
-// RelatedPanel, SpawnLinks, TouchBar, BOMPanel,
+// RelatedPanel, SpawnLinks, TouchBar,
 // MatchCandidatesPanel, GroupedDetailFields, dbThemes
 // ---------------------------------------------------------------------------
 
@@ -1209,11 +1208,6 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
               />
             )}
 
-
-            {/* BOM panel — show when viewing an Item (Admin mode only) */}
-            {viewPref !== 'app' && db.selectedRecord && db.selectedModel === 'item' && db.selectedId && (
-              <BOMPanel itemId={db.selectedId} />
-            )}
 
             {/* Match candidates panel — full detail cards for each candidate */}
             <MatchCandidatesPanel

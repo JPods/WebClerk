@@ -63,7 +63,7 @@ def recalc_parent_cost(parent_id: int) -> None:
 
 
 # ---------------------------------------------------------------------------
-# 1. Multi-level tree expansion (BFS)
+# 1. Multi-level tree expansion (depth-first) with the cost rollup
 # ---------------------------------------------------------------------------
 
 @dataclass
@@ -77,9 +77,12 @@ class BOMTreeRow:
     qty_actual: Decimal      # total qty needed for the full build
     cost_avg: Decimal = Decimal("0")
     cost_last: Decimal = Decimal("0")
-    cost_extended: Decimal = Decimal("0")
+    cost_unit: Decimal = Decimal("0")      # the item's own cost at the chosen basis
+    cost_rollup: Decimal = Decimal("0")    # one unit's cost: a sub-assembly's from its components
+    cost_extended: Decimal = Decimal("0")  # qty_plan × cost_rollup — per ONE parent unit
     scrap_factor: Decimal = Decimal("0")
     is_subassembly: bool = False
+    bom_id: int | None = None              # the BOM line this row is
 
 
 def expand_tree(
@@ -90,12 +93,21 @@ def expand_tree(
     revision: str | None = None,
     max_depth: int = 20,
     cost_basis: str = 'avg',
+    what_if: dict | None = None,
 ) -> list[BOMTreeRow]:
     """Depth-first expansion of a BOM into a flat list with level tracking: each sub-assembly's
     components follow it, so the list reads as the tree (TreeList shows it so).
 
     Each row carries: item info, level depth, qty_plan (per parent unit),
     qty_actual (total needed for the build), and cost fields.
+
+    A sub-assembly's cost_rollup is the sum of its components' (each times its quantity per
+    unit), down to the parts, which keep their own cost (Bill, 2026-11-01: "sum.cost by
+    sub.components"). Calculated here, so every screen shows the server's numbers.
+
+    what_if: unsaved changes to calculate with, nothing saved — the screen sends them as the user
+    types (Bill, 2026-11-01): {"cost": {item_id: unit cost}, "quantity": {bom_id: qty},
+    "scrap_factor": {bom_id: factor}}.
 
     cost_basis: which cost to use for extended calculation:
       'avg'  — weighted average (accounting, default)
@@ -104,13 +116,19 @@ def expand_tree(
       'landed' — landed cost including freight/duty
     """
     rows: list[BOMTreeRow] = []
+    what_if = what_if or {}
+    cost_if = {int(k): Decimal(str(v)) for k, v in (what_if.get('cost') or {}).items()}
+    qty_if = {int(k): Decimal(str(v)) for k, v in (what_if.get('quantity') or {}).items()}
+    scrap_if = {int(k): Decimal(str(v)) for k, v in (what_if.get('scrap_factor') or {}).items()}
 
     def walk(current_parent: int, level: int, parent_cum_qty: Decimal) -> None:
         if level >= max_depth:
             return
         lines = list_bom_lines(current_parent, as_of=as_of, revision=revision)
         for line in lines:
-            qty_plan = line.quantity * (Decimal("1") + line.scrap_factor)
+            quantity = qty_if.get(line.pk, line.quantity)
+            scrap = scrap_if.get(line.pk, line.scrap_factor)
+            qty_plan = quantity * (Decimal("1") + scrap)
             qty_actual = qty_plan * parent_cum_qty
 
             # Check if this child is itself an assembly
@@ -128,6 +146,7 @@ def expand_tree(
                                resolve_cost(line.child_item, basis='last').unit)
             else:
                 use_cost = resolve_cost(line.child_item, basis=cost_basis).unit
+            use_cost = cost_if.get(line.child_item_id, use_cost)
 
             row = BOMTreeRow(
                 item_id=line.child_item_id,
@@ -138,9 +157,10 @@ def expand_tree(
                 qty_actual=qty_actual,
                 cost_avg=cost_avg,
                 cost_last=cost_last,
-                cost_extended=qty_plan * use_cost,
-                scrap_factor=line.scrap_factor,
+                cost_unit=use_cost,
+                scrap_factor=scrap,
                 is_subassembly=has_children,
+                bom_id=line.pk,
             )
             rows.append(row)
 
@@ -149,7 +169,19 @@ def expand_tree(
                 walk(line.child_item_id, level + 1, qty_actual)
 
     walk(parent_id, 0, qty)
+
+    from apps.core.services.tree_calc import roll_up
+    rolled = roll_up(rows, level=lambda r: r.level, own=lambda r: r.cost_unit, weight=lambda r: r.qty_plan)
+    for r, unit in zip(rows, rolled):
+        r.cost_rollup = unit
+        r.cost_extended = r.qty_plan * unit
     return rows
+
+
+def build_cost(rows: list[BOMTreeRow]) -> Decimal:
+    """What the whole build costs: its top rows' quantities times their rolled unit costs. A
+    component is counted once, inside its parent's rollup."""
+    return sum((r.qty_actual * r.cost_rollup for r in rows if r.level == 1), Decimal("0"))
 
 
 # ---------------------------------------------------------------------------
@@ -261,6 +293,6 @@ def _get_on_hand(item_id: int) -> Decimal:
 
 __all__ = [
     'list_bom_lines', 'create_bom_line', 'update_bom_line', 'delete_bom_line',
-    'recalc_parent_cost', 'expand_tree', 'propagate_cost_up',
+    'recalc_parent_cost', 'expand_tree', 'build_cost', 'propagate_cost_up',
     'find_top_level_assemblies', 'calc_net_build_qty', 'BOMTreeRow',
 ]

@@ -172,6 +172,12 @@ part of DbColumn".
   cell), `headerRows` (a filter row), `footer` (Σ), `rowProps` / `cellProps` (classes, handlers),
   `renderCell` (an editor while editing), `cellPrefix` (a tree's chevron), `groupBy` /
   `groupLabel` / `groupSummary`.
+- **Business numbers are the server's; summaries of the rows shown are the browser's** (Bill,
+  2026-11-01). A BOM rollup, a line amount, tax, a balance: the server (`tree_calc.roll_up`,
+  `bom_ops.expand_tree`, what-if by POST with unsaved values). The Σ row: the rows on screen —
+  users show and omit records and the sums follow. Which columns total is `cellFormat.footerKind`:
+  a behavior's `footer` (sum / average / count / none, set in the behavior dialog), else amounts
+  and quantities sum and prices, rates and per-unit costs do not.
 - **A tree's rows come depth-first from the server** (`bom_ops.expand_tree`): each parent
   followed by its children, with their level.
 

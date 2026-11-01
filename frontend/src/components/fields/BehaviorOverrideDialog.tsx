@@ -37,6 +37,8 @@ interface BehaviorSpec {
   label?: string;
   pair?: string;
   source?: string;
+  /** A list's Σ under this column: sum, average, count or none (cellFormat.footerKind) */
+  footer?: string;
   [key: string]: unknown;
 }
 
@@ -51,6 +53,7 @@ export default function BehaviorOverrideDialog({ open, onClose, onReload, model,
   const [editLabel, setEditLabel] = useState('');
   const [editOptions, setEditOptions] = useState('');
   const [editLookupModel, setEditLookupModel] = useState('');
+  const [editFooter, setEditFooter] = useState('');
   const [message, setMessage] = useState('');
 
   // Load computed + stored behaviors
@@ -79,6 +82,7 @@ export default function BehaviorOverrideDialog({ open, onClose, onReload, model,
         setEditAction(fieldBehavior.action || '');
         setEditLabel(fieldBehavior.label || '');
         setEditLookupModel(fieldBehavior.model || '');
+        setEditFooter(fieldBehavior.footer || '');
         if (fieldBehavior.options && Array.isArray(fieldBehavior.options)) {
           setEditOptions(fieldBehavior.options.map((o: any) => `${o.value}:${o.label}`).join('\n'));
         } else {
@@ -107,6 +111,7 @@ export default function BehaviorOverrideDialog({ open, onClose, onReload, model,
       const newBehavior: BehaviorSpec = { type: editType };
       if (editAction) newBehavior.action = editAction;
       if (editLabel) newBehavior.label = editLabel;
+      if (editFooter) newBehavior.footer = editFooter;
       if (editLookupModel && editType === 'lookup') newBehavior.model = editLookupModel;
       if (editType === 'select' && editOptions.trim()) {
         newBehavior.options = editOptions.trim().split('\n').map(line => {
@@ -218,6 +223,17 @@ export default function BehaviorOverrideDialog({ open, onClose, onReload, model,
                 <label className="bov-field-label">Label</label>
                 <input className="bov-input" value={editLabel} onChange={e => setEditLabel(e.target.value)}
                   placeholder="auto from field name" />
+              </div>
+
+              <div className="bov-row" title="What a list's Σ row shows under this column, of the rows on screen">
+                <label className="bov-field-label">List total</label>
+                <select className="bov-select" value={editFooter} onChange={e => setEditFooter(e.target.value)}>
+                  <option value="">— auto —</option>
+                  <option value="sum">sum</option>
+                  <option value="average">average</option>
+                  <option value="count">count</option>
+                  <option value="none">none</option>
+                </select>
               </div>
 
               {editType === 'lookup' && (

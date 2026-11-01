@@ -121,12 +121,30 @@ class BOMExpandTreeView(APIView):
         ],
     )
     def get(self, request, parent_id: int):
-        from decimal import Decimal
+        return self._expand(request, parent_id, request.query_params, None)
+
+    @extend_schema(operation_id="products_bom_expand_tree_what_if")
+    def post(self, request, parent_id: int):
+        """The same tree calculated with unsaved changes — nothing is saved. Body: the query's
+        params plus what_if {"cost": {item_id: unit}, "quantity": {bom_id: qty},
+        "scrap_factor": {bom_id: factor}} (Bill, 2026-11-01: the screen sends what the user
+        changes and shows the server's numbers)."""
+        body = request.data if isinstance(request.data, dict) else {}
+        what_if = body.get('what_if')
+        if what_if is not None and not isinstance(what_if, dict):
+            return api_response(success=False, status_code=400, message='what_if is an object')
+        return self._expand(request, parent_id, body, what_if)
+
+    def _expand(self, request, parent_id: int, params, what_if):
+        from decimal import Decimal, InvalidOperation
         get_object_or_404(Item, pk=parent_id)
-        qty = Decimal(str(request.query_params.get('qty', '1')))
-        as_of_str = request.query_params.get('as_of')
-        revision = request.query_params.get('revision')
-        cost_basis = request.query_params.get('cost_basis', 'avg')
+        try:
+            qty = Decimal(str(params.get('qty', '1')))
+        except InvalidOperation:
+            return api_response(success=False, status_code=400, message='qty is a number')
+        as_of_str = params.get('as_of')
+        revision = params.get('revision')
+        cost_basis = params.get('cost_basis', 'avg')
         if cost_basis not in ('avg', 'last', 'min', 'landed'):
             cost_basis = 'avg'
         as_of_date = None
@@ -136,8 +154,13 @@ class BOMExpandTreeView(APIView):
             except ValueError:
                 return api_response(success=False, status_code=400, message='Invalid as_of format')
 
-        rows = bom_services.expand_tree(parent_id, qty, as_of=as_of_date, revision=revision, cost_basis=cost_basis)
+        try:
+            rows = bom_services.expand_tree(parent_id, qty, as_of=as_of_date, revision=revision,
+                                            cost_basis=cost_basis, what_if=what_if)
+        except (InvalidOperation, ValueError, TypeError) as e:
+            return api_response(success=False, status_code=400, message=f'what_if: {e}')
         data = [{
+            'bom_id': r.bom_id,
             'item_id': r.item_id,
             'item_ida': r.item_ida,
             'description': r.description,
@@ -146,12 +169,14 @@ class BOMExpandTreeView(APIView):
             'qty_actual': float(r.qty_actual),
             'cost_avg': float(r.cost_avg),
             'cost_last': float(r.cost_last),
+            'cost_unit': float(r.cost_unit),
+            'cost_rollup': float(r.cost_rollup),
             'cost_extended': float(r.cost_extended),
             'scrap_factor': float(r.scrap_factor),
             'is_subassembly': r.is_subassembly,
         } for r in rows]
-        total_cost = sum(r.cost_extended for r in rows)
-        return api_response(data={'rows': data, 'total_cost': float(total_cost), 'total_rows': len(data)})
+        return api_response(data={'rows': data, 'total_cost': float(bom_services.build_cost(rows)),
+                                  'total_rows': len(data), 'what_if': bool(what_if)})
 
 
 class BOMWhereUsedView(APIView):
