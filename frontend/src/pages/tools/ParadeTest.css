@@ -1,5 +1,5 @@
-/* TestParade — test review parade
-   Same layout pattern as SettingParade.
+/* ParadeTest — test review parade
+   Same layout pattern as ParadeSetting.
    Uses tp- prefix. All sizing from --tp-fs variable. */
 
 .tp-container {

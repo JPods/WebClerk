@@ -1,19 +1,19 @@
 /**
- * SettingParade — reference tool for browsing Setting records.
+ * ParadeSetting — reference tool for browsing Setting records.
  *
  * Research tool, not operational. Users come here to understand what
  * Settings exist, what they control, and whether they understand them.
- * Same parade pattern as FormParade: left list grouped by purpose,
+ * Same parade pattern as ParadePrint: left list grouped by purpose,
  * right panel shows what each Setting controls.
  *
- * LastChecked: 2026-08-25 | WhereUsed: /setting-parade | WhoCreated: Bill+Claude
+ * LastChecked: 2026-08-25 | WhereUsed: /parade-setting | WhoCreated: Bill+Claude
  */
 import { useEffect, useState } from "react";
 import PageMeta from "@/components/common/PageMeta";
 import apiClient from "../../api/axios";
 import { getPjpvFieldsCatalog, type PjpvFieldMeta } from "@/api/wcapi";
 import { getUI } from "@/utils/contactUI";
-import "./SettingParade.css";
+import "./ParadeSetting.css";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -384,7 +384,7 @@ const PjpvEnvelopesSection: React.FC<{ catalog: Record<string, Record<string, Pj
 /*  Main Component                                                     */
 /* ------------------------------------------------------------------ */
 
-const SettingParade: React.FC = () => {
+const ParadeSetting: React.FC = () => {
   const active = getUI<string>('theme.active', 'dark');
   const baseFontSize = getUI<number>(`theme.${active}.font.size`, 13);
   const [manifest, setManifest] = useState<ParadeManifest | null>(null);
@@ -494,7 +494,7 @@ const SettingParade: React.FC = () => {
 
   return (
     <>
-      <PageMeta title="Setting Parade" description="PJPV configuration reference" />
+      <PageMeta title="Parade: Setting" description="PJPV configuration reference" />
 
       <div className="sp-container" style={{ '--sp-fs': `${baseFontSize}px` } as React.CSSProperties}>
         {/* Header */}
@@ -670,4 +670,4 @@ const SettingParade: React.FC = () => {
   );
 };
 
-export default SettingParade;
+export default ParadeSetting;

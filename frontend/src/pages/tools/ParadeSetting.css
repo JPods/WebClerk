@@ -1,4 +1,4 @@
-/* SettingParade — PJPV configuration review
+/* ParadeSetting — PJPV configuration review
    All styling via CSS variables from theme.css for light/dark support.
    No inline styles.
    --sp-fs is set from JS (user font size preference). All sizes derive from it. */

@@ -44,11 +44,11 @@
   static readonly flightSimInventory: string = "/flight-sim/inventory";
   static readonly modelWorkbench: string = "/model-workbench";
   static readonly whitelist: string = "/whitelist";
-  static readonly formParade: string = "/form-parade";
-  static readonly settingParade: string = "/setting-parade";
-  static readonly layoutParade: string = "/layout-parade";
-  static readonly testParade: string = "/test-parade";
-  static readonly componentParade: string = "/component-parade";
+  static readonly paradePrint: string = "/parade-print";
+  static readonly paradeSetting: string = "/parade-setting";
+  static readonly paradeLayout: string = "/parade-layout";
+  static readonly paradeTest: string = "/parade-test";
+  static readonly paradeComponent: string = "/parade-component";
   static readonly layoutWorkbench: string = "/layout-workbench";
   static readonly selectLists: string = "/selectlists";
   static readonly agenda: string = "/agenda";

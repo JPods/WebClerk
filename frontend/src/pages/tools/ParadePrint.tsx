@@ -1,11 +1,13 @@
 /**
- * FormParade -- Form Review Parade page.
+ * ParadePrint -- parade-print: every printed document with sample data. The parades are named
+ * parade-<what they walk> (Bill, 2026-11-01): parade-print, parade-form, parade-list — and
+ * "form" means db.form only.
  *
  * Left-right split: grouped report list on the left, iframe preview on the right,
  * feedback bar at the bottom. Lets users review all 14 print forms with sample data
  * and record Keep / Modify / Don't Need feedback.
  *
- * LastChecked: 2026-08-16 | WhereUsed: /form-parade | WhoCreated: Bill+Claude
+ * LastChecked: 2026-08-16 | WhereUsed: /parade-print | WhoCreated: Bill+Claude
  */
 import { useEffect, useState } from "react";
 import PageMeta from "@/components/common/PageMeta";
@@ -49,7 +51,7 @@ interface ParadeManifest {
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
 
-const FormParade: React.FC = () => {
+const ParadePrint: React.FC = () => {
   const [manifest, setManifest] = useState<ParadeManifest | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -198,12 +200,12 @@ const FormParade: React.FC = () => {
 
   return (
     <>
-      <PageMeta title="Form Review" description="Review print forms with sample data" />
+      <PageMeta title="Parade: Print" description="Every printed document with sample data" />
 
       <div className="flex flex-col h-screen">
         {/* Header */}
         <div className="bg-gray-800 text-white px-6 py-3 flex items-center justify-between shrink-0">
-          <h1 className="text-lg font-semibold">Form Review</h1>
+          <h1 className="text-lg font-semibold">Parade: Print</h1>
           {manifest && (
             <span className="text-gray-300 text-sm">
               {manifest.total_reports} reports
@@ -446,4 +448,4 @@ const FormParade: React.FC = () => {
   );
 };
 
-export default FormParade;
+export default ParadePrint;

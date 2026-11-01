@@ -19,7 +19,7 @@ import {
   itemSummary,
   settingPath,
 } from "./LayoutPreviewRenderers";
-import "./SettingParade.css";
+import "./ParadeSetting.css";
 
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */

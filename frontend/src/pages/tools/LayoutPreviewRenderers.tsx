@@ -1,9 +1,9 @@
 /**
  * LayoutPreviewRenderers — shared preview components for layout parade tools.
  *
- * Extracted from ComponentParade.tsx for reuse in LayoutWorkbench.
+ * Extracted from ParadeComponent.tsx for reuse in LayoutWorkbench.
  *
- * LastChecked: 2026-09-14 | WhereUsed: ComponentParade, LayoutWorkbench | WhoCreated: Bill+Claude
+ * LastChecked: 2026-09-14 | WhereUsed: ParadeComponent, LayoutWorkbench | WhoCreated: Bill+Claude
  */
 
 export interface LayoutItem {

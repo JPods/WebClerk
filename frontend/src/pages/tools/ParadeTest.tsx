@@ -1,18 +1,18 @@
 /**
- * TestParade — test review parade.
+ * ParadeTest — test review parade.
  *
- * Same parade pattern as SettingParade and FormParade:
+ * Same parade pattern as ParadeSetting and ParadePrint:
  * left list of tests grouped by area, right panel shows details,
  * toolbar with feedback buttons. Users see what each test verifies,
  * its result, and the recommended action.
  *
- * LastChecked: 2026-08-31 | WhereUsed: /test-parade | WhoCreated: Bill+Claude
+ * LastChecked: 2026-08-31 | WhereUsed: /parade-test | WhoCreated: Bill+Claude
  */
 import { useEffect, useState } from "react";
 import PageMeta from "@/components/common/PageMeta";
 import apiClient from "../../api/axios";
 import { getUI } from "@/utils/contactUI";
-import "./TestParade.css";
+import "./ParadeTest.css";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -103,7 +103,7 @@ const FEEDBACK_ICON: Record<string, string> = {
 /*  Main Component                                                     */
 /* ------------------------------------------------------------------ */
 
-const TestParade: React.FC = () => {
+const ParadeTest: React.FC = () => {
   const active = getUI<string>("theme.active", "dark");
   const baseFontSize = getUI<number>(`theme.${active}.font.size`, 13);
 
@@ -222,7 +222,7 @@ const TestParade: React.FC = () => {
 
   return (
     <>
-      <PageMeta title="Test Parade" description="Automated test review" />
+      <PageMeta title="Parade: Test" description="Automated test review" />
 
       <div
         className="tp-container"
@@ -462,4 +462,4 @@ const TestParade: React.FC = () => {
   );
 };
 
-export default TestParade;
+export default ParadeTest;

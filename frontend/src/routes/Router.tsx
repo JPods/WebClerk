@@ -31,7 +31,7 @@ const CustomPageLoader = React.lazy(() => import("./CustomPageLoader"));
 const TokenBuilderPage = React.lazy(() => import("./TokenBuilderPage"));
 const FlightSimConsole = React.lazy(() => import("../pages/admin/FlightSimConsole"));
 const ParadeOfReportsPage = React.lazy(() => import("../pages/admin/ParadeOfReportsPage"));
-const ComponentParade = React.lazy(() => import("../pages/tools/ComponentParade"));
+const ParadeComponent = React.lazy(() => import("../pages/tools/ParadeComponent"));
 const LayoutWorkbench = React.lazy(() => import("../pages/tools/LayoutWorkbench"));
 const SelectListEditor = React.lazy(() => import("../pages/admin/SelectListEditor"));
 const Onboarding = React.lazy(() => import("../pages/Onboarding"));
@@ -125,7 +125,7 @@ const Router: React.FC = () => {
           <Route path="flight-sim" element={<S><FlightSimConsole /></S>} />
           <Route path="flight-sim/inventory" element={<S><FlightSimConsole /></S>} />
           <Route path="parade" element={<S><ParadeOfReportsPage /></S>} />
-          <Route path="component-parade" element={<S><ComponentParade /></S>} />
+          <Route path="parade-component" element={<S><ParadeComponent /></S>} />
           <Route path="layout-workbench" element={<S><LayoutWorkbench /></S>} />
 
           {/* Legacy /db/ routes — keep working for bookmarks */}

@@ -1,15 +1,15 @@
 /**
- * LayoutParade — audit tool showing layout coverage for every registered model.
+ * ParadeLayout — audit tool showing layout coverage for every registered model.
  *
  * Fetches /wcapi/_layout_parade/ and displays a table of all models with
  * their list/detail/panel layout status. Flags gaps for Alice to address.
  *
- * LastChecked: 2026-09-05 | WhereUsed: /layout-parade | WhoCreated: Bill+Claude
+ * LastChecked: 2026-09-05 | WhereUsed: /parade-layout | WhoCreated: Bill+Claude
  */
 import { useEffect, useState } from "react";
 import PageMeta from "@/components/common/PageMeta";
 import apiClient from "../../api/axios";
-import "./SettingParade.css";
+import "./ParadeSetting.css";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -61,7 +61,7 @@ type FilterMode = "all" | "gaps" | "covered";
 /*  Main Component                                                     */
 /* ------------------------------------------------------------------ */
 
-const LayoutParade: React.FC = () => {
+const ParadeLayout: React.FC = () => {
   const [data, setData] = useState<AuditResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -116,7 +116,7 @@ const LayoutParade: React.FC = () => {
 
   return (
     <>
-      <PageMeta title="Layout Parade" description="Layout coverage audit" />
+      <PageMeta title="Parade: Layout" description="Layout coverage audit" />
       <div className="sp-container">
         {/* Header */}
         <div className="sp-header">
@@ -378,4 +378,4 @@ const LayoutParade: React.FC = () => {
   );
 };
 
-export default LayoutParade;
+export default ParadeLayout;

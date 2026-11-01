@@ -81,9 +81,9 @@ const ICON_MAP: Record<string, LucideIcon> = {
   "flight-sim": Plane,
   databrowser: Database,
   json: Braces,
-  "form-parade": FileText,
-  "setting-parade": Settings,
-  "layout-parade": Settings,
+  "parade-print": FileText,
+  "parade-setting": Settings,
+  "parade-layout": Settings,
   selectlists: ClipboardList,
 };
 
@@ -112,9 +112,9 @@ const ROUTE_MAP: Record<string, string> = {
   databrowser: "/databrowser",
   json: "/json-tree",
   adjust: "/inventory-adjust",
-  "form-parade": "/form-parade",
-  "setting-parade": "/setting-parade",
-  "layout-parade": "/layout-parade",
+  "parade-print": "/parade-print",
+  "parade-setting": "/parade-setting",
+  "parade-layout": "/parade-layout",
   selectlists: "/selectlists",
 };
 
@@ -141,9 +141,9 @@ const DISPLAY_NAMES: Record<string, string> = {
   workorder: "Work Order",
   gantt: "Gantt",
   kanban: "Kanban",
-  "form-parade": "Form Parade",
-  "setting-parade": "Setting Parade",
-  "layout-parade": "Layout Parade",
+  "parade-print": "Parade: Print",
+  "parade-setting": "Parade: Setting",
+  "parade-layout": "Parade: Layout",
   selectlists: "Select Lists",
 };
 

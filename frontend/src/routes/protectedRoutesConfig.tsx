@@ -39,11 +39,11 @@ import CommerceDashboard from "../pages/admin/CommerceDashboard";
 import AliceTraining from "../pages/admin/AliceTraining";
 import TeamDashboard from "../pages/admin/TeamDashboard";
 import WhitelistTester from "../pages/tools/WhitelistTester";
-import FormParade from "../pages/tools/FormParade";
-import SettingParade from "../pages/tools/SettingParade";
-import LayoutParade from "../pages/tools/LayoutParade";
-import TestParade from "../pages/tools/TestParade";
-import ComponentParade from "../pages/tools/ComponentParade";
+import ParadePrint from "../pages/tools/ParadePrint";
+import ParadeSetting from "../pages/tools/ParadeSetting";
+import ParadeLayout from "../pages/tools/ParadeLayout";
+import ParadeTest from "../pages/tools/ParadeTest";
+import ParadeComponent from "../pages/tools/ParadeComponent";
 import LayoutWorkbench from "../pages/tools/LayoutWorkbench";
 import SelectListBrowser from "../pages/tools/SelectListBrowser";
 import AgendaView from "../pages/admin/AgendaView";
@@ -162,11 +162,11 @@ export const protectedRoutesConfig = [
   { path: PageRoutes.flightSimInventory, element: <S><FlightSimConsole /></S> },
   { path: PageRoutes.modelWorkbench, element: <AllModelsWorkbench /> },
   { path: PageRoutes.whitelist, element: <WhitelistTester /> },
-  { path: PageRoutes.formParade, element: <FormParade /> },
-  { path: PageRoutes.settingParade, element: <SettingParade /> },
-  { path: PageRoutes.layoutParade, element: <LayoutParade /> },
-  { path: PageRoutes.testParade, element: <TestParade /> },
-  { path: PageRoutes.componentParade, element: <ComponentParade /> },
+  { path: PageRoutes.paradePrint, element: <ParadePrint /> },
+  { path: PageRoutes.paradeSetting, element: <ParadeSetting /> },
+  { path: PageRoutes.paradeLayout, element: <ParadeLayout /> },
+  { path: PageRoutes.paradeTest, element: <ParadeTest /> },
+  { path: PageRoutes.paradeComponent, element: <ParadeComponent /> },
   { path: PageRoutes.layoutWorkbench, element: <LayoutWorkbench /> },
   { path: PageRoutes.selectLists, element: <SelectListBrowser /> },
   { path: PageRoutes.agenda, element: <AgendaView /> },

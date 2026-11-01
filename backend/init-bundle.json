@@ -3161,11 +3161,11 @@
           },
           {
             "icon": "🖨",
-            "name": "Form Parade",
-            "route": "/form-parade",
+            "name": "Parade: Print",
+            "route": "/parade-print",
             "source": "system",
             "category": "Data",
-            "description": "Review all print forms with sample data"
+            "description": "Review every printed document with sample data"
           },
           {
             "icon": "🏥",

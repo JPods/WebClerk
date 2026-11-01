@@ -1,12 +1,12 @@
 /**
- * ComponentParade — browse all layout components extracted from wc:model Settings.
+ * ParadeComponent — browse all layout components extracted from wc:model Settings.
  *
  * Left panel: models with their layout entries (panels, lists, details, cards, forms).
  * Right panel: live rendered preview with sample data from the database.
  *
- * URL: /component-parade?type=panel (or list, detail, card, form)
+ * URL: /parade-component?type=panel (or list, detail, card, form)
  *
- * LastChecked: 2026-09-14 | WhereUsed: /component-parade | WhoCreated: Bill+Claude
+ * LastChecked: 2026-09-14 | WhereUsed: /parade-component | WhoCreated: Bill+Claude
  */
 import { useEffect, useState, useCallback } from "react";
 import PageMeta from "@/components/common/PageMeta";
@@ -18,7 +18,7 @@ import {
   itemSummary,
   settingPath,
 } from "./LayoutPreviewRenderers";
-import "./SettingParade.css";
+import "./ParadeSetting.css";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -50,7 +50,7 @@ const TYPE_DESCRIPTIONS: Record<string, string> = {
 /*  Main Component                                                     */
 /* ------------------------------------------------------------------ */
 
-export default function ComponentParade() {
+export default function ParadeComponent() {
   const params = new URLSearchParams(window.location.search);
   const layoutType = params.get("type") || "panel";
 
@@ -131,7 +131,7 @@ export default function ComponentParade() {
 
   return (
     <>
-      <PageMeta title={TYPE_LABELS[layoutType] || "Component Parade"} />
+      <PageMeta title={TYPE_LABELS[layoutType] || "Parade: Component"} />
       <div className="sp-container" style={{ "--sp-fs": "13px" } as any}>
         {/* Header */}
         <div className="sp-header">
