@@ -7,6 +7,10 @@ Validates against Connection records (encryption.athena_token).
 
 POST /wcapi/instance/submit/
 Body: { "model_name": "action", "record": { ... } }
+
+Only the fields in ALLOWED_FIELDS are taken; the record is always inserted; a record carrying
+metadata.source_instance.local_uuid already received from the same connection is not received
+again.
 """
 import json
 import logging
@@ -22,8 +26,15 @@ logger = logging.getLogger(__name__)
 
 IS_HQ = config('WC_IS_HQ', default='false').lower() in ('true', '1', 'yes')
 
-# Models that remote instances are allowed to submit
-ALLOWED_MODELS = {'action'}
+# What a remote instance may set, per model. Nothing else is taken: not id, uuid or version
+# (an id made an UPDATE of HQ's own row — FAULT 2026-11-01), not project_id (a number in the
+# sender's database), not assigned_to or created_by (the sender's people).
+ALLOWED_FIELDS = {
+    'action': ('action', 'description', 'priority', 'kanban_column', 'action_type',
+               'project_name', 'metadata'),
+}
+#: refs keys a remote instance may set — words, never links to records.
+ALLOWED_REFS = ('tags', 'keywords')
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -46,7 +57,7 @@ class InstanceSubmitView(View):
         model_name = body.get('model_name', '')
         record = body.get('record', {})
 
-        if model_name not in ALLOWED_MODELS:
+        if model_name not in ALLOWED_FIELDS:
             return JsonResponse(
                 {'error': f'Model {model_name} not accepted'}, status=400
             )
@@ -62,23 +73,31 @@ class InstanceSubmitView(View):
                     {'error': f'Model {model_name} not found'}, status=400
                 )
 
-            # Tag the record with the source connection
-            metadata = record.get('metadata', {})
-            if not isinstance(metadata, dict):
-                metadata = {}
+            metadata = record.get('metadata')
+            metadata = dict(metadata) if isinstance(metadata, dict) else {}
             metadata['source_connection'] = {
                 'ida': connection.ida,
                 'name': connection.name,
                 'instance_uuid': (connection.config or {}).get('instance_uuid', ''),
             }
-            record['metadata'] = metadata
+            source_uuid = str((metadata.get('source_instance') or {}).get('local_uuid') or '')
 
-            # Create the record
-            instance = ModelClass()
-            for field_name, value in record.items():
-                if hasattr(instance, field_name):
-                    setattr(instance, field_name, value)
-            instance.save()
+            # The same record sent twice is received once.
+            if source_uuid:
+                seen = ModelClass.objects.filter(
+                    metadata__source_connection__ida=connection.ida,
+                    metadata__source_instance__local_uuid=source_uuid).first()
+                if seen is not None:
+                    return JsonResponse({'status': 'ok', 'model_name': model_name, 'id': seen.id,
+                                         'uuid': str(seen.uuid), 'duplicate': True}, status=200)
+
+            values = {k: record[k] for k in ALLOWED_FIELDS[model_name] if k in record}
+            values['metadata'] = metadata
+            refs = record.get('refs')
+            if isinstance(refs, dict):
+                values['refs'] = {k: refs[k] for k in ALLOWED_REFS if isinstance(refs.get(k), list)}
+            instance = ModelClass(**values)
+            instance.save(force_insert=True)
 
             logger.info(
                 "[WCHQ] Instance submit: model=%s id=%s from=%s",
