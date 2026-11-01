@@ -65,10 +65,12 @@ const HomeRedirect: React.FC = () => {
   return <Navigate to="/dashboard" replace />;
 };
 
-/** Floating widgets — hidden on public tool pages (e.g. /json-tree) */
+/** Floating widgets — hidden on public tool pages (e.g. /json-tree) and in a page shown inside a
+ *  frame (a parade's stop: the page alone; the parade around it has them). */
 const FloatingWidgets: React.FC = () => {
   const { pathname } = useLocation();
   if (pathname.startsWith('/json-tree')) return null;
+  if (window.self !== window.top) return null;
   return <>
     <DataSetBadge position="bottom-right" showDetails />
     <DevTools position="bottom-left" />

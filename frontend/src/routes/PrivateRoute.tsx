@@ -72,19 +72,21 @@ const AppLayout: React.FC = () => {
   // Redirect if not authenticated (rely on Redux state, not localStorage directly)
   if (!isAuthenticated) return <Navigate to="/login" replace />;
 
-  const sidebarWidth = isVisible
+  // A page shown inside a frame (a parade's stop) is the page alone: no top bar, no sidebar.
+  const framed = typeof window !== 'undefined' && window.self !== window.top;
+  const sidebarWidth = !framed && isVisible
     ? (isExpanded || isHovered || isMobileOpen ? 200 : 52)
     : 0;
 
   return (
     <div className="relative min-h-screen" style={{ backgroundColor: 'var(--wc-bg)', color: 'var(--wc-text)' }}>
       <ZoneTooltip />
-      <MacTopBar activePath={activePath || ""} />
-      <div className="relative h-[calc(100vh-40px)]">
-        <AppSidebar />
-        <Backdrop />
+      {!framed && <MacTopBar activePath={activePath || ""} />}
+      <div className={`relative ${framed ? 'h-screen' : 'h-[calc(100vh-40px)]'}`}>
+        {!framed && <AppSidebar />}
+        {!framed && <Backdrop />}
 
-        {!isVisible && (
+        {!framed && !isVisible && (
           <button
             className="fixed left-1 top-[52px] z-180 rounded-r border border-l-0 p-1.5 transition-colors"
             style={{ borderColor: 'var(--wc-border)', backgroundColor: 'var(--wc-surface)', color: 'var(--wc-text-muted)' }}

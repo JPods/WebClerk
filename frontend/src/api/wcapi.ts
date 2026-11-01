@@ -27,6 +27,8 @@ export interface ApiEnvelope<T = any> {
 
 export interface ModelNamesPayload {
   model_names: string[];
+  /** Each model's app and kind (the parades group by app) */
+  models: { name: string; app: string; kind: string; label: string }[];
   count: number;
 }
 

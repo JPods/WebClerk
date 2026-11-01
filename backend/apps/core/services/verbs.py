@@ -92,6 +92,7 @@ VERBS: Dict[str, Callable[[Actor, str, dict], Any]] = {
     # and what one can be made of (Bill, 2026-11-01; services/calculated.py).
     'calculated': _command('calculated'),
     'calculated_offer': _command('calculated_offer'),   # writes nothing
+    'parade_feedback': _command('parade_feedback'),     # a parade's Keep/Modify/Don't Need on a model (services/parade.py)
 }
 
 #: Which model answers which command, and the base service that does it. A command is

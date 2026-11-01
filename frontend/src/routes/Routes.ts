@@ -45,6 +45,7 @@
   static readonly modelWorkbench: string = "/model-workbench";
   static readonly whitelist: string = "/whitelist";
   static readonly paradePrint: string = "/parade-print";
+  static readonly paradeList: string = "/parade-list";
   static readonly paradeSetting: string = "/parade-setting";
   static readonly paradeLayout: string = "/parade-layout";
   static readonly paradeTest: string = "/parade-test";

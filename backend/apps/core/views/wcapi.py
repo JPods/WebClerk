@@ -1578,11 +1578,14 @@ class ModelNameListView(APIView):
         from apps.core.constants.model_registry import MODEL_REGISTRY
         # Use registry keys — these are the canonical names used in URLs and wcapi
         model_names = sorted(MODEL_REGISTRY.keys())
+        # Each model's app (apps.<app>.models…) and kind: the parades group and filter by app.
+        models = [{"name": k, "app": m.model.split('.')[1], "kind": m.kind, "label": m.plural}
+                  for k, m in sorted(MODEL_REGISTRY.items())]
         return Response({
             "status": "success",
             "code": 200,
             "message": "OK",
-            "data": {"model_names": model_names, "count": len(model_names)}
+            "data": {"model_names": model_names, "models": models, "count": len(model_names)}
         }, status=status.HTTP_200_OK)
 
 

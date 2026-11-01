@@ -40,6 +40,7 @@ import AliceTraining from "../pages/admin/AliceTraining";
 import TeamDashboard from "../pages/admin/TeamDashboard";
 import WhitelistTester from "../pages/tools/WhitelistTester";
 import ParadePrint from "../pages/tools/ParadePrint";
+import ParadeList from "../pages/tools/ParadeList";
 import ParadeSetting from "../pages/tools/ParadeSetting";
 import ParadeLayout from "../pages/tools/ParadeLayout";
 import ParadeTest from "../pages/tools/ParadeTest";
@@ -163,6 +164,7 @@ export const protectedRoutesConfig = [
   { path: PageRoutes.modelWorkbench, element: <AllModelsWorkbench /> },
   { path: PageRoutes.whitelist, element: <WhitelistTester /> },
   { path: PageRoutes.paradePrint, element: <ParadePrint /> },
+  { path: PageRoutes.paradeList, element: <ParadeList /> },
   { path: PageRoutes.paradeSetting, element: <ParadeSetting /> },
   { path: PageRoutes.paradeLayout, element: <ParadeLayout /> },
   { path: PageRoutes.paradeTest, element: <ParadeTest /> },
