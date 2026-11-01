@@ -53,6 +53,7 @@ export function readable(val: unknown): string | null {
   }
   if (val && typeof val === 'object') {
     const obj = val as Record<string, unknown>;
+    if (!Object.keys(obj).length) return '';
     if (obj.name || obj.display_name) return String(obj.name || obj.display_name);
     const lang = (navigator.language || 'en').slice(0, 2);
     if (typeof obj[lang] === 'string') return obj[lang] as string;

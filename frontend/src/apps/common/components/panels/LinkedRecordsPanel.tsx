@@ -109,7 +109,8 @@ const MODEL_ICONS: Record<string, string> = {
 // Inline search for adding linked records
 // ---------------------------------------------------------------------------
 
-const RecordSearchInline: React.FC<{
+/** The one inline record search: type, pick a row (assign, pick, a contact panel's assign). */
+export const RecordSearchInline: React.FC<{
   linkedModel: string;
   excludeIds: Set<number>;
   parentId?: number;

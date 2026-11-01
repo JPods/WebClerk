@@ -30,6 +30,7 @@ import useCashApplication, {
   InvoiceRecord,
 } from '../hooks/useCashApplication';
 import { formatCurrency } from '@/utils/stringUtils';
+import { DbColumns, type DbColumnDef } from '@/apps/common/components/panels/DbColumns';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -329,6 +330,43 @@ const ApplyCash: React.FC = () => {
   /*  Render                                                           */
   /* ---------------------------------------------------------------- */
 
+  // Payments and invoices: the shared list (DbColumns).
+  const cashColumns: DbColumnDef<any>[] = [
+    { key: 'reference', label: 'Reference', render: (c) => <span className="font-mono">{c.reference_number || c.ida || `PAY-${c.id}`}</span> },
+    { key: 'customer', label: 'Customer', render: (c) => c.refs?.links?.org?.[0]?.display_name || '--' },
+    { key: 'available', label: 'Available', align: 'right', width: 90,
+      render: (c) => <span className="font-mono" style={{ color: 'var(--db-accent-green)' }}>{formatCurrency(getCashAvailable(c))}</span> },
+    { key: 'amount', label: 'Original', align: 'right', width: 90, render: (c) => <span className="font-mono">{formatCurrency(c.amount)}</span> },
+    { key: 'dt_cash', label: 'Date', width: 90, render: (c) => formatDate(c.dt_cash || c.dt_created) },
+    { key: 'gateway', label: 'Type', width: 70, render: (c) => c.gateway || 'manual' },
+  ];
+
+  const invoiceColumns: DbColumnDef<any>[] = [
+    { key: 'ida', label: 'Invoice', render: (inv) => <span className="font-mono">{inv.ida || inv.invoice_no || `#${inv.id}`}</span> },
+    { key: 'dt', label: 'Date', width: 90, render: (inv) => formatDate(inv.dt || inv.dt_created) },
+    { key: 'total', label: 'Total', align: 'right', width: 90, render: (inv) => <span className="font-mono">{formatCurrency(inv.totals?.total)}</span> },
+    { key: 'balance', label: 'Balance', align: 'right', width: 90,
+      render: (inv) => <span className="font-mono" style={{ color: 'var(--db-accent-gold, #d97706)' }}>{formatCurrency(getInvoiceBalance(inv))}</span> },
+    { key: 'age', label: 'Age', align: 'center', width: 50, render: (inv) => {
+        const days = calculateDaysPastDue(inv);
+        return <span className={`inline-block min-w-[28px] px-1 rounded text-xs font-medium ${agingColor(days)}`}>{days}</span>;
+      } },
+    { key: 'apply', label: 'Apply', align: 'right', width: 100, render: (inv) => {
+        const balance = getInvoiceBalance(inv);
+        const current = applications.get(inv.id) ?? 0;
+        return (
+          <input data-wc="apply-cash-amount" type="number" step="0.01" min="0" max={balance}
+            value={current > 0 ? current : ''} placeholder="0.00" className="db-input font-mono"
+            style={{ width: 84, textAlign: 'right' }} onClick={(e) => e.stopPropagation()}
+            onChange={(e) => {
+              const val = parseFloat(e.target.value);
+              // Capped at the invoice's balance
+              setApplyAmount(inv.id, isNaN(val) || val <= 0 ? 0 : parseFloat(Math.min(val, balance).toFixed(2)));
+            }} />
+        );
+      } },
+  ];
+
   return (
     <div data-wc="apply-cash" className="p-4 space-y-4">
       <PageBreadcrumb pageTitle="Apply Cash" />
@@ -429,74 +467,16 @@ const ApplyCash: React.FC = () => {
               </div>
             ) : (
               <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
-                <table className="w-full text-xs">
-                  <thead className="bg-slate-100 dark:bg-slate-800 sticky top-0 z-10">
-                    <tr>
-                      <th className="p-1.5 text-left font-medium text-slate-600 dark:text-slate-300">
-                        Reference
-                      </th>
-                      <th className="p-1.5 text-left font-medium text-slate-600 dark:text-slate-300">
-                        Customer
-                      </th>
-                      <th className="p-1.5 text-right font-medium text-slate-600 dark:text-slate-300">
-                        Available
-                      </th>
-                      <th className="p-1.5 text-right font-medium text-slate-600 dark:text-slate-300">
-                        Original
-                      </th>
-                      <th className="p-1.5 text-left font-medium text-slate-600 dark:text-slate-300">
-                        Date
-                      </th>
-                      <th className="p-1.5 text-left font-medium text-slate-600 dark:text-slate-300">
-                        Type
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredCashEntries.map((cash) => {
-                      const isSelected = selectedCash?.id === cash.id;
-                      const available = getCashAvailable(cash);
-                      const custName =
-                        cash.refs?.links?.org?.[0]?.display_name || '--';
-
-                      return (
-                        <tr
-                          key={cash.id}
-                          data-wc="apply-cash-row"
-                          onClick={() => handleSelectCash(cash)}
-                          className={`cursor-pointer border-t border-slate-200 dark:border-slate-700 transition-colors ${
-                            isSelected
-                              ? 'bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-300 dark:ring-blue-700'
-                              : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                          }`}
-                        >
-                          <td className="p-1.5 font-mono">
-                            {cash.reference_number ||
-                              cash.ida ||
-                              `PAY-${cash.id}`}
-                          </td>
-                          <td className="p-1.5 text-slate-600 dark:text-slate-400 truncate max-w-[120px]">
-                            {custName}
-                          </td>
-                          <td className="p-1.5 text-right font-mono font-medium text-green-600 dark:text-green-400">
-                            {formatCurrency(available)}
-                          </td>
-                          <td className="p-1.5 text-right font-mono text-slate-500 dark:text-slate-500">
-                            {formatCurrency(cash.amount)}
-                          </td>
-                          <td className="p-1.5 text-slate-600 dark:text-slate-400">
-                            {formatDate(
-                              cash.dt_cash || cash.dt_created,
-                            )}
-                          </td>
-                          <td className="p-1.5 text-slate-600 dark:text-slate-400">
-                            {cash.gateway || 'manual'}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                <DbColumns<any>
+                  storageKey="apply-cash:payments"
+                  columns={cashColumns}
+                  data={filteredCashEntries}
+                  rowKey={(c) => c.id}
+                  compact
+                  openKey={selectedCash?.id ?? null}
+                  onMoveRow={(c) => handleSelectCash(c)}
+                  onOpenRow={(c) => handleSelectCash(c)}
+                />
               </div>
             )}
           </div>
@@ -575,126 +555,24 @@ const ApplyCash: React.FC = () => {
                   </div>
                 ) : (
                   <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
-                    <table className="w-full text-xs">
-                      <thead className="bg-slate-100 dark:bg-slate-800 sticky top-0 z-10">
-                        <tr>
-                          <th className="p-1.5 text-left font-medium text-slate-600 dark:text-slate-300">
-                            Invoice
-                          </th>
-                          <th className="p-1.5 text-left font-medium text-slate-600 dark:text-slate-300">
-                            Date
-                          </th>
-                          <th className="p-1.5 text-right font-medium text-slate-600 dark:text-slate-300">
-                            Total
-                          </th>
-                          <th className="p-1.5 text-right font-medium text-slate-600 dark:text-slate-300">
-                            Balance
-                          </th>
-                          <th className="p-1.5 text-center font-medium text-slate-600 dark:text-slate-300">
-                            Age
-                          </th>
-                          <th className="p-1.5 text-right font-medium text-slate-600 dark:text-slate-300">
-                            Apply
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {invoices.map((invoice) => {
-                          const balance = getInvoiceBalance(invoice);
-                          const days = calculateDaysPastDue(invoice);
-                          const currentAmt = applications.get(invoice.id) ?? 0;
-
-                          return (
-                            <tr
-                              key={invoice.id}
-                              data-wc="apply-cash-invoice-row"
-                              className={`border-t border-slate-200 dark:border-slate-700 ${
-                                currentAmt > 0
-                                  ? 'bg-green-50 dark:bg-green-900/10'
-                                  : ''
-                              }`}
-                            >
-                              <td className="p-1.5 font-mono">
-                                {invoice.ida ||
-                                  invoice.invoice_no ||
-                                  `#${invoice.id}`}
-                              </td>
-                              <td className="p-1.5 text-slate-600 dark:text-slate-400">
-                                {formatDate(invoice.dt || invoice.dt_created)}
-                              </td>
-                              <td className="p-1.5 text-right font-mono text-slate-600 dark:text-slate-400">
-                                {formatCurrency(invoice.totals?.total)}
-                              </td>
-                              <td className="p-1.5 text-right font-mono font-medium text-amber-600 dark:text-amber-400">
-                                {formatCurrency(balance)}
-                              </td>
-                              <td className="p-1.5 text-center">
-                                <span
-                                  className={`inline-block min-w-[28px] px-1 rounded text-xs font-medium ${agingColor(days)}`}
-                                >
-                                  {days}
-                                </span>
-                              </td>
-                              <td className="p-1.5 text-right">
-                                <div className="relative inline-block">
-                                  <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-slate-400 text-[10px]">
-                                    $
-                                  </span>
-                                  <input
-                                    data-wc="apply-cash-amount"
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    max={balance}
-                                    value={currentAmt > 0 ? currentAmt : ''}
-                                    placeholder="0.00"
-                                    onChange={(e) => {
-                                      const val = parseFloat(e.target.value);
-                                      if (isNaN(val) || val <= 0) {
-                                        setApplyAmount(invoice.id, 0);
-                                      } else {
-                                        // Cap at invoice balance
-                                        setApplyAmount(
-                                          invoice.id,
-                                          parseFloat(
-                                            Math.min(val, balance).toFixed(2),
-                                          ),
-                                        );
-                                      }
-                                    }}
-                                    className="w-20 pl-4 pr-1 py-0.5 text-xs text-right font-mono border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-1 focus:ring-green-500 focus:border-green-500"
-                                  />
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                      {/* Totals row */}
-                      <tfoot>
-                        <tr className="border-t-2 border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800/50">
-                          <td
-                            colSpan={3}
-                            className="p-1.5 text-right text-xs font-medium text-slate-500 dark:text-slate-400"
-                          >
-                            Totals
-                          </td>
-                          {/* Aggregate of server-provided invoice balances — no server-side aggregate available */}
-                          <td className="p-1.5 text-right font-mono font-medium text-amber-600 dark:text-amber-400 text-xs">
-                            {formatCurrency(
-                              invoices.reduce(
-                                (s, inv) => s + getInvoiceBalance(inv),
-                                0,
-                              ),
-                            )}
-                          </td>
+                    <DbColumns<any>
+                      storageKey="apply-cash:invoices"
+                      columns={invoiceColumns}
+                      data={invoices}
+                      rowKey={(inv) => inv.id}
+                      compact
+                      rowClassName={(inv) => ((applications.get(inv.id) ?? 0) > 0 ? 'dg-row--up' : undefined)}
+                      footer={
+                        <tr className="dg-tfoot-row">
                           <td />
-                          <td className="p-1.5 text-right font-mono font-medium text-green-600 dark:text-green-400 text-xs">
-                            {formatCurrency(totalApplied)}
-                          </td>
+                          <td colSpan={3} style={{ textAlign: 'right' }}>Totals</td>
+                          {/* Of the invoice balances the server sent: a summary of the rows shown */}
+                          <td style={{ textAlign: 'right' }}>{formatCurrency(invoices.reduce((t, inv) => t + getInvoiceBalance(inv), 0))}</td>
+                          <td />
+                          <td style={{ textAlign: 'right' }}>{formatCurrency(totalApplied)}</td>
                         </tr>
-                      </tfoot>
-                    </table>
+                      }
+                    />
                   </div>
                 )}
               </>

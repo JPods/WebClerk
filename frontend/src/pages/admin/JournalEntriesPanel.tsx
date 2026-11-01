@@ -10,6 +10,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import apiClient from '@/api/axios';
 import { formatCurrency } from '@/utils/stringUtils';
+import { DbColumns, type DbColumnDef } from '@/apps/common/components/panels/DbColumns';
 
 export interface JournalDoc { model: 'invoice' | 'cash' | 'receipt'; id: number; ida: string }
 
@@ -17,6 +18,14 @@ interface Entry { account: string; name: string; debit: number; credit: number; 
 interface Preview { posted: boolean; entries: Entry[]; debits: number; credits: number; balanced: boolean; note: string }
 
 const EXPLAIN_KEY = 'flightsim.journal.explain';
+
+/** The ledger table: the shared list (DbColumns), its balance line as the footer. */
+const LEDGER_COLUMNS: DbColumnDef<Entry>[] = [
+  { key: 'account', label: 'Account', render: (e) => <span style={{ fontFamily: 'ui-monospace, monospace' }}>{e.account}</span> },
+  { key: 'name', label: 'Name', render: (e) => e.name },
+  { key: 'debit', label: 'Debit', align: 'right', width: 90, render: (e) => (e.debit ? formatCurrency(e.debit) : '') },
+  { key: 'credit', label: 'Credit', align: 'right', width: 90, render: (e) => (e.credit ? formatCurrency(e.credit) : '') },
+];
 
 /** What a line means, said plainly — by the account's role (the code after its number:
  *  1100-accounts_receivable), then by side. The GL rows carry no purpose, so the role is the
@@ -122,26 +131,21 @@ const DocEntry: React.FC<{ doc: JournalDoc; explain: boolean; onPosted: () => vo
           </div>
         </div>
       ) : (
-        <table style={{ width: '100%', fontSize: 11, marginTop: 4 }}>
-          <thead><tr style={{ opacity: 0.7, textAlign: 'left' }}>
-            <th>Account</th><th>Name</th><th style={{ textAlign: 'right' }}>Debit</th><th style={{ textAlign: 'right' }}>Credit</th>
-          </tr></thead>
-          <tbody>
-            {preview.entries.map((e, i) => (
-              <tr key={i}>
-                <td style={{ fontFamily: 'ui-monospace, monospace' }}>{e.account}</td>
-                <td>{e.name}</td>
-                <td style={{ textAlign: 'right' }}>{e.debit ? formatCurrency(e.debit) : ''}</td>
-                <td style={{ textAlign: 'right' }}>{e.credit ? formatCurrency(e.credit) : ''}</td>
-              </tr>
-            ))}
-            <tr style={{ borderTop: '1px solid var(--db-border-light, #e9ecef)', fontWeight: 600 }}>
+        <DbColumns<Entry & { _i: number }>
+          storageKey="flightsim:journal"
+          columns={LEDGER_COLUMNS}
+          data={preview.entries.map((e, i) => ({ ...e, _i: i }))}
+          rowKey={(e) => e._i}
+          compact
+          footer={
+            <tr className="dg-tfoot-row">
+              <td />
               <td colSpan={2}>{preview.balanced ? 'Balanced' : 'OUT OF BALANCE'}</td>
               <td style={{ textAlign: 'right' }}>{formatCurrency(preview.debits)}</td>
               <td style={{ textAlign: 'right' }}>{formatCurrency(preview.credits)}</td>
             </tr>
-          </tbody>
-        </table>
+          }
+        />
       ))}
     </div>
   );

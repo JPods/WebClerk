@@ -8,6 +8,7 @@ import { LinkedRecordsPanel } from '@/apps/common/components/panels/LinkedRecord
 import type { TabsSection } from '@/hooks/useDetailLayout';
 import { getActiveLines } from '../../services/lineItemService';
 import { formatCurrency, formatPercent } from '@/utils/stringUtils';
+import { DbColumns, type DbColumnDef } from '@/apps/common/components/panels/DbColumns';
 
 /** Tabs that should render as LinkedRecordsPanel with db.columns header */
 const LINKED_TAB_MODELS: Record<string, string> = {
@@ -467,29 +468,25 @@ export const ShippingTabContent: React.FC<{ data: any }> = ({ data }) => {
     );
   }
 
+  // The record's shipments (an array in metadata.shipping) on the shared list: array elements are
+  // rows like records (Bill, 2026-11-01).
   return (
-    <table className="w-full db-font-xs border-collapse">
-      <thead>
-        <tr className="bg-[var(--db-surface-alt,#f1f3f5)] text-[var(--db-text,#212529)]">
-          <th className="text-left px-2 py-1.5 font-medium">carrier</th>
-          <th className="text-left px-2 py-1.5 font-medium">shipment id</th>
-          <th className="text-right px-2 py-1.5 font-medium">mass</th>
-          <th className="text-left px-2 py-1.5 font-medium">status</th>
-        </tr>
-      </thead>
-      <tbody>
-        {shipments.map((s: any, i: number) => (
-          <tr key={i} className="border-b border-[var(--db-border,#dee2e6)]">
-            <td className="px-2 py-1">{s.carrier ?? '—'}</td>
-            <td className="px-2 py-1 font-mono">{s.shipment_id ?? '—'}</td>
-            <td className="px-2 py-1 text-right">{s.mass != null ? `${s.mass} lbs` : '—'}</td>
-            <td className="px-2 py-1">{s.status ?? '—'}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <DbColumns<any>
+      storageKey="txn:shipping"
+      columns={SHIPPING_COLUMNS}
+      data={shipments.map((s, i) => ({ ...s, _i: i }))}
+      rowKey={(s) => s._i}
+      compact
+    />
   );
 };
+
+const SHIPPING_COLUMNS: DbColumnDef<any>[] = [
+  { key: 'carrier', label: 'carrier', render: (s) => s.carrier ?? '' },
+  { key: 'shipment_id', label: 'shipment id', render: (s) => <span className="font-mono">{s.shipment_id ?? ''}</span> },
+  { key: 'mass', label: 'mass', align: 'right', width: 90, render: (s) => (s.mass != null ? `${s.mass} lbs` : '') },
+  { key: 'status', label: 'status', width: 100, render: (s) => s.status ?? '' },
+];
 
 export const NotesTabContent: React.FC<{
   data: any;

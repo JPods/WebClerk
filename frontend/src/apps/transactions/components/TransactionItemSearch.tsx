@@ -3,12 +3,14 @@
  * TransactionItemSearch - Shared item search component for all transaction types
  * Configurable to show price (for sales) or cost (for purchases) as the primary value
  */
-import { FormEvent, useCallback, useMemo, useState } from "react";
+import { FormEvent, useCallback, useState } from "react";
 import { useDispatch } from "react-redux";
 
 import { showToast } from "../../../store/slices/toastSlice";
 import { searchItems as searchItemsApi } from "@/api/wcapi";
 import { useItemCard } from "@/components/common/ItemCard";
+import { DbColumns, type DbColumnDef } from "@/apps/common/components/panels/DbColumns";
+import { formatCell } from "@/apps/common/components/panels/cellFormat";
 import { priceLines, type LineFigures, type LinePricingContext } from "../services/linePricing";
 
 // Generic item search result - supports various field naming conventions
@@ -113,8 +115,6 @@ export function TransactionItemSearch({
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<ItemSearchResult[]>([]);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
-
-  const hasResults = useMemo(() => results.length > 0, [results]);
 
   // Determine column header
   const priceHeader = valueLabel ?? (useCost ? "Unit Cost" : "Unit Price");
@@ -239,6 +239,42 @@ export function TransactionItemSearch({
     return useCost ? f.cost.unit : f.price.price;
   };
 
+  const resultColumns: DbColumnDef<ItemSearchResult & { _key: string }>[] = [
+    { key: 'add', label: '', width: 64, render: (item) => {
+        const itemKey = resolveItemKey(item);
+        return (
+          <button type="button" onClick={(e) => { e.stopPropagation(); handleAddItem(item); }} disabled={!itemKey}
+            className={`rounded-md px-3 py-1 font-medium text-white ${itemKey ? "bg-green-500 hover:bg-green-600" : "cursor-not-allowed bg-gray-400"}`}
+            style={{ fontSize: 'inherit' }}>Add</button>
+        );
+      } },
+    { key: 'image', label: '', width: 44, render: (item) => resolveItemCode(item) ? (
+        <img src={`/wcapi/_image/item/${encodeURIComponent(resolveItemCode(item))}/tn.jpg`} alt=""
+          className="w-8 h-8 rounded object-cover" loading="lazy"
+          onError={(e) => { const img = e.target as HTMLImageElement; img.onerror = null; img.src = '/images/no-image.svg'; }} />
+      ) : null },
+    { key: 'item', label: 'Item', width: 120, render: (item) => (
+        <span className="cursor-pointer hover:underline" style={{ color: 'var(--db-accent, #0d6efd)' }}
+          onClick={(e) => { e.stopPropagation(); const code = resolveItemCode(item); if (code) showItemCard(code, (e.currentTarget as HTMLElement).getBoundingClientRect()); }}>
+          {resolveItemCode(item) || "--"}</span>
+      ) },
+    { key: 'description', label: 'Description', render: (item) => resolveItemDescription(item) || "--" },
+    { key: 'on_hand', label: 'On Hand', align: 'right', width: 80, render: (item) => resolveQtyOnHand(item).toLocaleString() },
+    { key: 'price', label: priceHeader, align: 'right', width: 100, render: (item) => (
+        <span title={otherFigure(item)}>{getUnitValue(item) === null ? "…"
+          : formatCell(getUnitValue(item), 'price', { type: 'currency' })}</span>
+      ) },
+    { key: 'quantity', label: 'Quantity', align: 'right', width: 110, render: (item) => {
+        const itemKey = resolveItemKey(item);
+        return (
+          <input type="text" inputMode="decimal" value={(quantities[itemKey] ?? defaultQuantity) || ""}
+            onClick={(e) => e.stopPropagation()}
+            onChange={(event) => handleQuantityChange(itemKey, event.target.value)}
+            className="db-input" style={{ width: 90, textAlign: 'right', fontSize: 'inherit' }} />
+        );
+      } },
+  ];
+
   return (
     <div className="space-y-4">
       <form
@@ -274,113 +310,15 @@ export function TransactionItemSearch({
         </div>
       )}
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full text-left text-sm">
-          <thead className="bg-gray-50 text-gray-700 dark:bg-gray-800 dark:text-gray-200">
-            <tr>
-              <th className="px-3 py-2"></th>
-              <th className="px-3 py-2 w-12"></th>
-              <th className="px-3 py-2">Item</th>
-              <th className="px-3 py-2">Description</th>
-              <th className="px-3 py-2 text-right">On Hand</th>
-              <th className="px-3 py-2 text-right">{priceHeader}</th>
-              <th className="px-3 py-2 text-right">Quantity</th>
-            </tr>
-          </thead>
-          <tbody>
-            {!hasResults && !loading ? (
-              <tr>
-                <td
-                  colSpan={7}
-                  className="px-3 py-4 text-center text-sm text-gray-500 dark:text-gray-400"
-                >
-                  {query.trim()
-                    ? "No matching items"
-                    : "Enter a search term to find catalog items."}
-                </td>
-              </tr>
-            ) : (
-              results.map((item, index) => {
-                const itemKey = resolveItemKey(item);
-                const rowKey =
-                  itemKey || `${resolveItemCode(item) || "result"}-${index}`;
-                const quantity = quantities[itemKey] ?? defaultQuantity;
-                return (
-                  <tr
-                    key={rowKey}
-                    className="border-b border-gray-100 last:border-none dark:border-gray-700"
-                  >
-                    <td className="px-3 py-2">
-                      <button
-                        type="button"
-                        onClick={() => handleAddItem(item)}
-                        disabled={!itemKey}
-                        className={`rounded-md px-3 py-1 font-medium text-white focus:outline-hidden focus:ring-2 focus:ring-green-400 ${
-                          itemKey
-                            ? "bg-green-500 hover:bg-green-600"
-                            : "cursor-not-allowed bg-gray-400 dark:bg-gray-700"
-                        }`}
-                        style={{ fontSize: 'inherit' }}
-                      >
-                        Add
-                      </button>
-                    </td>
-                    <td className="px-3 py-2">
-                      {resolveItemCode(item) ? (
-                        <img
-                          src={`/wcapi/_image/item/${encodeURIComponent(resolveItemCode(item))}/tn.jpg`}
-                          alt=""
-                          className="w-8 h-8 rounded object-cover bg-gray-100"
-                          loading="lazy"
-                          onError={(e) => { const img = e.target as HTMLImageElement; img.onerror = null; img.src = '/images/no-image.svg'; }}
-                        />
-                      ) : null}
-                    </td>
-                    <td
-                      className="px-3 py-2 text-blue-600 dark:text-blue-400 cursor-pointer hover:underline"
-                      onClick={(e) => {
-                        const code = resolveItemCode(item);
-                        if (code) showItemCard(code, (e.currentTarget as HTMLElement).getBoundingClientRect());
-                      }}
-                    >
-                      {resolveItemCode(item) || "--"}
-                    </td>
-                    <td className="px-3 py-2 text-gray-600 dark:text-gray-300">
-                      {resolveItemDescription(item) || "--"}
-                    </td>
-                    <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-300">
-                      {resolveQtyOnHand(item).toLocaleString()}
-                    </td>
-                    <td
-                      className="px-3 py-2 text-right text-gray-600 dark:text-gray-300"
-                      title={otherFigure(item)}
-                    >
-                      {getUnitValue(item) === null
-                        ? "…"
-                        : `$${getUnitValue(item)!.toLocaleString(undefined, {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}`}
-                    </td>
-                    <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-300">
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        value={quantity || ""}
-                        onChange={(event) =>
-                          handleQuantityChange(itemKey, event.target.value)
-                        }
-                        className="h-9 w-24 rounded border border-gray-300 px-2 text-right focus:border-blue-400 focus:outline-hidden focus:ring-2 focus:ring-blue-200 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                        style={{ fontSize: 'inherit' }}
-                      />
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+      {/* The results: the shared list (DbColumns), Add and quantity in their cells. */}
+      <DbColumns<ItemSearchResult & { _key: string }>
+        storageKey="txn:item-search"
+        columns={resultColumns}
+        data={results.map((item, index) => ({ ...item, _key: resolveItemKey(item) || `${resolveItemCode(item) || "result"}-${index}` }))}
+        rowKey={(r) => r._key}
+        compact
+        emptyMessage={loading ? "Searching…" : query.trim() ? "No matching items" : "Enter a search term to find catalog items."}
+      />
       {itemCardEl}
     </div>
   );

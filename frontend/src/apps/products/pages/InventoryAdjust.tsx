@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { saveCorrection } from "@/api/workorderApi";
 import { getRecords, searchItems } from "@/api/wcapi";
 import "@/pages/admin/DataBrowser.css";
+import { DbColumns, type DbColumnDef } from "@/apps/common/components/panels/DbColumns";
 
 interface AdjustmentLine {
   item_id: number;
@@ -169,6 +170,35 @@ export default function InventoryAdjust() {
 
   const hasChanges = lines.some((l) => l.adjust !== 0);
 
+  // The adjustment grid: the shared list (DbColumns) with the reason and quantity in their cells.
+  const adjustColumns: DbColumnDef<AdjustmentLine & { _idx: number }>[] = [
+    { key: 'ida', label: 'Item', width: 120, render: (l) => <strong>{l.ida}</strong> },
+    { key: 'name', label: 'Description', render: (l) => l.name },
+    { key: 'reason', label: 'Reason', width: 140, render: (l) => (
+        <select value={l.reason} onChange={(e) => updateReason(l._idx, e.target.value)} className="db-input"
+          style={{ width: '100%', padding: '2px 6px' }} onClick={(e) => e.stopPropagation()}>
+          {REASON_CODES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+        </select>
+      ) },
+    { key: 'qty_on_hand', label: 'Qty O/H', align: 'right', width: 80, render: (l) => l.qty_on_hand },
+    { key: 'adjust', label: 'Adjust', align: 'right', width: 90, render: (l) => (
+        <input type="number" value={l.adjust || ''} onChange={(e) => updateAdjust(l._idx, Number(e.target.value) || 0)}
+          onClick={(e) => e.stopPropagation()} className="db-input db-font-bold"
+          style={{ width: 70, padding: '2px 6px', textAlign: 'right',
+                   color: l.adjust > 0 ? 'var(--db-accent-green)' : l.adjust < 0 ? 'var(--db-accent-red)' : 'var(--db-text)' }} />
+      ) },
+    { key: 'new_on_hand', label: 'New O/H', align: 'right', width: 80, render: (l) => (
+        <span style={{ fontWeight: l.adjust !== 0 ? 600 : 400,
+                       color: l.new_on_hand < 0 ? 'var(--db-accent-red)' : l.adjust !== 0 ? 'var(--db-text)' : 'var(--db-text-muted)' }}>
+          {l.new_on_hand}</span>
+      ) },
+    { key: 'unit_cost', label: 'Cost', align: 'right', width: 80, render: (l) => l.unit_cost.toFixed(2) },
+    { key: 'remove', label: '', width: 36, render: (l) => (
+        <button onClick={(e) => { e.stopPropagation(); removeLine(l._idx); }} className="db-text-dim"
+          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, padding: '0 6px' }} title="Remove">×</button>
+      ) },
+  ];
+
   return (
     <div
       className="db-root"
@@ -275,174 +305,14 @@ export default function InventoryAdjust() {
 
       {/* Adjustment grid */}
       <div className="db-border-all" style={{ borderRadius: 4, overflow: "hidden" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr className="db-bg-surface db-border-bottom db-text-muted db-font-base" style={{ textTransform: "uppercase" }}>
-
-              <th style={{ padding: "8px 12px", textAlign: "left" }}>Item</th>
-              <th style={{ padding: "8px 12px", textAlign: "left" }}>
-                Description
-              </th>
-              <th style={{ padding: "8px 12px", textAlign: "left", width: 130 }}>
-                Reason
-              </th>
-              <th
-                style={{
-                  padding: "8px 12px",
-                  textAlign: "right",
-                  width: 80,
-                }}
-              >
-                Qty O/H
-              </th>
-              <th
-                style={{
-                  padding: "8px 12px",
-                  textAlign: "right",
-                  width: 90,
-                }}
-              >
-                Adjust
-              </th>
-              <th
-                style={{
-                  padding: "8px 12px",
-                  textAlign: "right",
-                  width: 80,
-                }}
-              >
-                New O/H
-              </th>
-              <th
-                style={{
-                  padding: "8px 12px",
-                  textAlign: "right",
-                  width: 80,
-                }}
-              >
-                Cost
-              </th>
-              <th style={{ width: 36 }}></th>
-            </tr>
-          </thead>
-          <tbody>
-            {lines.length === 0 && (
-              <tr>
-                <td
-                  colSpan={8}
-                  className="db-text-dim"
-                  style={{ padding: 24, textAlign: "center", fontSize: 13 }}
-                >
-                  Search for items above and add them to this list.
-                </td>
-              </tr>
-            )}
-            {lines.map((line, idx) => (
-              <tr
-                key={line.item_id}
-                className="db-border-bottom-light"
-                style={{
-                  background:
-                    line.adjust !== 0
-                      ? line.adjust > 0
-                        ? "rgba(34,197,94,0.08)"
-                        : "rgba(239,68,68,0.08)"
-                      : "transparent",
-                }}
-              >
-                <td className="db-font-bold" style={{ padding: "6px 12px", fontSize: 13 }}>
-                  {line.ida}
-                </td>
-                <td className="db-text-muted" style={{ padding: "6px 12px", fontSize: 13 }}>
-                  {line.name}
-                </td>
-                <td style={{ padding: "4px 8px" }}>
-                  <select
-                    value={line.reason}
-                    onChange={(e) => updateReason(idx, e.target.value)}
-                    className="db-input"
-                    style={{ width: "100%", padding: "4px 6px", fontSize: 12 }}
-                  >
-                    {REASON_CODES.map((r) => (
-                      <option key={r.value} value={r.value}>
-                        {r.label}
-                      </option>
-                    ))}
-                  </select>
-                </td>
-                <td
-                  style={{
-                    padding: "6px 12px",
-                    textAlign: "right",
-                    fontSize: 13,
-                  }}
-                >
-                  {line.qty_on_hand}
-                </td>
-                <td style={{ padding: "4px 8px", textAlign: "right" }}>
-                  <input
-                    type="number"
-                    value={line.adjust || ""}
-                    onChange={(e) =>
-                      updateAdjust(idx, Number(e.target.value) || 0)
-                    }
-                    className="db-input db-font-bold"
-                    style={{
-                      width: 70,
-                      padding: "4px 6px",
-                      color:
-                        line.adjust > 0
-                          ? "var(--db-accent-green)"
-                          : line.adjust < 0
-                          ? "var(--db-accent-red)"
-                          : "var(--db-text)",
-                      textAlign: "right",
-                      fontSize: 13,
-                    }}
-                  />
-                </td>
-                <td
-                  style={{
-                    padding: "6px 12px",
-                    textAlign: "right",
-                    fontSize: 13,
-                    fontWeight: line.adjust !== 0 ? 600 : 400,
-                    color:
-                      line.new_on_hand < 0
-                        ? "var(--db-accent-red)"
-                        : line.adjust !== 0
-                        ? "#fff"
-                        : "var(--db-text-muted)",
-                  }}
-                >
-                  {line.new_on_hand}
-                </td>
-                <td
-                  className="db-text-muted"
-                  style={{ padding: "6px 12px", textAlign: "right", fontSize: 13 }}
-                >
-                  {line.unit_cost.toFixed(2)}
-                </td>
-                <td style={{ padding: "4px" }}>
-                  <button
-                    onClick={() => removeLine(idx)}
-                    className="db-text-dim"
-                    style={{
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      fontSize: 16,
-                      padding: "2px 6px",
-                    }}
-                    title="Remove"
-                  >
-                    ×
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <DbColumns<AdjustmentLine & { _idx: number }>
+          storageKey="inventory:adjust"
+          columns={adjustColumns}
+          data={lines.map((l, i) => ({ ...l, _idx: i }))}
+          rowKey={(l) => l.item_id}
+          rowClassName={(l) => (l.adjust > 0 ? 'dg-row--up' : l.adjust < 0 ? 'dg-row--down' : undefined)}
+          emptyMessage="Search for items above and add them to this list."
+        />
       </div>
 
       {/* Footer buttons */}

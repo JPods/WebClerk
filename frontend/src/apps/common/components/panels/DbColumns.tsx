@@ -233,6 +233,10 @@ export interface DbColumnsProps<T = Record<string, unknown>> {
   groupSummary?: (records: T[]) => React.ReactNode;
   /** Rows shown faint (lines outside the selection a margin total is for). */
   dimmed?: (record: T) => boolean;
+  /** A row's own class (an adjustment up or down). */
+  rowClassName?: (record: T) => string | undefined;
+  /** Footer rows under the list (a ledger's balance line). */
+  footer?: React.ReactNode;
   /** Before a cell's content — TreeList's indent and chevron. */
   cellPrefix?: (record: T, col: DbColumnDef<T>, index: number) => React.ReactNode;
   collapsible?: boolean;
@@ -250,7 +254,7 @@ export interface DbColumnsProps<T = Record<string, unknown>> {
 export function DbColumns<T extends object>({
   storageKey, columns, data, rowKey, onOpenRow, onOpenWindow, onMoveRow, openKey = null,
   onRowAction, sectionLabel, sectionIcon, onAdd, onAssign, onRemove, extraActions, groupBy,
-  groupSummary, dimmed, cellPrefix, collapsible = true, defaultCollapsed = false, children,
+  groupSummary, dimmed, rowClassName, footer, cellPrefix, collapsible = true, defaultCollapsed = false, children,
   compact = false, emptyMessage, loading, error, onRetry,
 }: DbColumnsProps<T>) {
   // The column dialog: which columns show, in what order — saved under storageKey.
@@ -309,10 +313,12 @@ export function DbColumns<T extends object>({
             standard && picked.has(k) ? 'dg-row--checked' : '',
             standard && openKey != null && k === openKey ? 'dg-row--open' : '',
             dimmed?.(r) ? 'dg-row--dimmed' : '',
+            rowClassName?.(r) ?? '',
           ].filter(Boolean).join(' ');
           return { ...(standard ? gestures.rowProps(k) : {}), className: classes };
         }}
         cellPrefix={cellPrefix}
+        footer={footer}
         headerTrailer={
           <button type="button" title="Configure columns" className="dg-th-trailer"
             onClick={(e) => { e.stopPropagation(); fc.toggleDialog(); }}>

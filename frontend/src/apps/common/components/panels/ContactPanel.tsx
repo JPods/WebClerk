@@ -7,7 +7,7 @@
  */
 import { windowChannel } from '@/utils/windowChannel';
 import { usePanelOpen } from "@/hooks/usePanelAdd";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useWindowManager } from "@/context/WindowManagerContext";
 import {
   FaEnvelope,
@@ -16,9 +16,10 @@ import {
   FaStar,
   FaTimes,
 } from "react-icons/fa";
-import { getRecord, getRecords } from "@/api/wcapi";
+import { getRecord } from "@/api/wcapi";
 import { getModelDetailPath, getModelWindowTitle } from "./getModelDetailPath";
 import { DbColumns } from "./DbColumns";
+import { RecordSearchInline } from "./LinkedRecordsPanel";
 import type { DbColumnDef } from "./DbColumns";
 import { withDevIdentifier } from "@/components/common/DevIdentifier";
 import { TouchForm } from "@/pages/admin/TouchForm";
@@ -341,32 +342,7 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
   };
 
   const [adding, setAdding] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [searchLoading, setSearchLoading] = useState(false);
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => { if (adding) searchInputRef.current?.focus(); }, [adding]);
-
-  const existingIds = new Set(contacts.map(c => c.contact_id));
-
-  const doSearch = useCallback(async (q: string) => {
-    if (q.length < 2) { setSearchResults([]); return; }
-    setSearchLoading(true);
-    try {
-      const res = await getRecords("contact", { keyword: q, limit: 10 }) as any;
-      const records = (res?.results || []).filter((r: any) => !existingIds.has(r.id));
-      setSearchResults(records);
-    } catch { setSearchResults([]); }
-    setSearchLoading(false);
-  }, [existingIds]);
-
-  const handleSearchInput = (val: string) => {
-    setSearchQuery(val);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => doSearch(val), 300);
-  };
+  const existingIds = new Set(contacts.map(c => Number(c.contact_id)));
 
   const handleSelectContact = (record: any) => {
     if (onChange) {
@@ -380,8 +356,6 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
       onChange([...contacts, newContact]);
     }
     setAdding(false);
-    setSearchQuery("");
-    setSearchResults([]);
   };
 
   const contactPanelKey = `${parent_model}:${parentId}:contact`;
@@ -390,11 +364,7 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
-      if (detail?.panelKey && detail.panelKey !== contactPanelKey) {
-        setAdding(false);
-        setSearchQuery("");
-        setSearchResults([]);
-      }
+      if (detail?.panelKey && detail.panelKey !== contactPanelKey) setAdding(false);
     };
     window.addEventListener('panel-assign-opened', handler);
     return () => window.removeEventListener('panel-assign-opened', handler);
@@ -463,43 +433,8 @@ const ContactPanel: React.FC<ContactPanelProps> = ({
       />
       {opener.recordCard}
       {adding && (
-        <div style={{ padding: '6px 12px', borderTop: '1px solid var(--db-border)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <input
-              ref={searchInputRef}
-              type="text"
-              value={searchQuery}
-              onChange={(e) => handleSearchInput(e.target.value)}
-              placeholder="Search contact..."
-              className="db-input"
-              style={{ flex: 1, fontSize: 11, padding: '3px 8px' }}
-            />
-            <button onClick={() => { setAdding(false); setSearchQuery(""); setSearchResults([]); }} className="db-text-dim" style={{ fontSize: 11 }}>Cancel</button>
-          </div>
-          {searchLoading && <div style={{ fontSize: 10, color: 'var(--db-text-muted)', padding: '4px 0' }}>Searching...</div>}
-          {searchResults.length > 0 && (
-            <div style={{ maxHeight: 160, overflowY: 'auto', marginTop: 4 }}>
-              {searchResults.map((r) => (
-                <button
-                  key={r.id}
-                  onClick={() => handleSelectContact(r)}
-                  className="db-list-row"
-                  style={{ display: 'flex', gap: 8, padding: '4px 8px', width: '100%', textAlign: 'left', fontSize: 11, cursor: 'pointer' }}
-                >
-                  <span className="font-mono" style={{ width: 50, flexShrink: 0, color: 'var(--db-text-dim)' }}>
-                    #{r.id}
-                  </span>
-                  <span className="truncate" style={{ flex: 1 }}>
-                    {r.attention || r.name || [r.name_first, r.name_last].filter(Boolean).join(" ") || `Contact #${r.id}`}
-                  </span>
-                  {r.email && (
-                    <span style={{ fontSize: 10, color: 'var(--db-text-muted)' }}>{typeof r.email === 'string' ? r.email : ''}</span>
-                  )}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        <RecordSearchInline linkedModel="contact" excludeIds={existingIds}
+          onSelect={handleSelectContact} onClose={() => setAdding(false)} />
       )}
       {touchContact && (
         <TouchForm

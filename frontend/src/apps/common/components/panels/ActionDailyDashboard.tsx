@@ -17,6 +17,8 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { getRecords } from '@/api/wcapi';
 import { getModelDetailPath } from './getModelDetailPath';
 import { formatCurrency } from '@/utils/stringUtils';
+import { DbColumns, type DbColumnDef } from './DbColumns';
+import { formatCell } from './cellFormat';
 import { getUI } from '@/utils/contactUI';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -164,6 +166,17 @@ const DbCard: React.FC<{
 
 // ── Main Component ───────────────────────────────────────────────────────────
 
+const CARD_COLUMNS: DbColumnDef<any>[] = [
+  { key: 'ida', label: 'ida', width: 90, render: (r) => <strong>{r.ida || `#${r.id}`}</strong> },
+  { key: 'name', label: 'name', render: (r) => r.company || r.name || '' },
+  { key: 'total', label: 'total', align: 'right', width: 90, render: (r) => (r.totals?.total != null ? formatCurrency(r.totals.total) : '') },
+  { key: 'status', label: 'status', width: 80, render: (r) => r.status || '' },
+];
+
+const STATUS_COLOR: Record<string, string> = {
+  in_progress: 'var(--db-accent)', completed: 'var(--db-accent-green)', waiting: 'var(--db-accent-gold)',
+};
+
 const ActionDailyDashboard: React.FC<ActionDailyDashboardProps> = ({
   defaultStaffId,
   defaultDate,
@@ -250,6 +263,35 @@ const ActionDailyDashboard: React.FC<ActionDailyDashboardProps> = ({
     }
   };
 
+  const actionColumns: DbColumnDef<ActionRecord>[] = [
+    { key: 'priority', label: 'P', align: 'center', width: 30, render: (a) => (
+        <span style={{ fontWeight: 700, color: a.priority === 1 ? 'var(--db-accent-red)' : a.priority === 2 ? 'var(--db-accent-gold)' : 'var(--db-text-dim)' }}>
+          {a.priority === 1 ? '!' : a.priority === 2 ? '·' : ''}</span>
+      ) },
+    { key: 'action', label: 'Action', render: (a) => formatCell(a.action, 'action') },
+    { key: 'status', label: 'Status', width: 100, render: (a) => (
+        <span style={{ fontWeight: 600, textTransform: 'uppercase', color: STATUS_COLOR[a.status as string] ?? 'var(--db-text-dim)' }}>{a.status}</span>
+      ) },
+    { key: 'links', label: 'Links', render: (a) => {
+        const links = Object.entries(a.refs?.links || {})
+          .filter(([, v]) => Array.isArray(v) && v.length > 0)
+          .map(([model, records]) => ({ ...(records as LinkedRecord[])[0], model }));
+        return (
+          <span className="flex gap-2">
+            {links.map((lm) => (
+              <span key={`${lm.model}-${lm.id}`} className="db-bg-surface-alt"
+                style={{ padding: '1px 6px', borderRadius: 3, border: '1px solid var(--db-border-light)', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                title={`Open ${lm.model} ${lm.ida || lm.id}`}
+                onClick={(e) => { e.stopPropagation(); openTransaction(lm.model, lm.id); }}>
+                {lm.model.slice(0, 3)}{lm.totals?.total != null && ` $${Math.round(lm.totals.total)}`}
+              </span>
+            ))}
+          </span>
+        );
+      } },
+  ];
+
+
   return (
     <div className="db-bg db-text" style={{ padding: 16 }}>
       {/* ── Toolbar ──────────────────────────────────────────── */}
@@ -319,120 +361,33 @@ const ActionDailyDashboard: React.FC<ActionDailyDashboardProps> = ({
               expanded={expandedCard === card.model}
               onClick={() => setExpandedCard(expandedCard === card.model ? null : card.model)}
             >
-              {/* Expanded: list of individual transactions */}
-              {card.records.map((r) => (
-                <div
-                  key={`${r.model}-${r.id}`}
-                  className="db-list-row"
-                  style={{ padding: '6px 14px', fontSize: baseFontSize - 2, cursor: 'pointer' }}
-                  onClick={(e) => { e.stopPropagation(); openTransaction(r.model, r.id); }}
-                >
-                  <span style={{ fontWeight: 600, marginRight: 8 }}>{r.ida || `#${r.id}`}</span>
-                  <span className="db-text-muted" style={{ flex: 1 }}>
-                    {r.company || r.name || ''}
-                  </span>
-                  {r.totals?.total != null && (
-                    <span style={{ fontWeight: 600, marginLeft: 8 }}>
-                      {formatCurrency(r.totals?.total ?? 0)}
-                    </span>
-                  )}
-                  {r.status && (
-                    <span className="db-text-dim" style={{ fontSize: baseFontSize - 3, marginLeft: 8 }}>
-                      {r.status}
-                    </span>
-                  )}
-                  <span className="db-text-dim" style={{ marginLeft: 8 }}>↗</span>
-                </div>
-              ))}
+              {/* Expanded: its transactions on the shared list (DbColumns); a double-click opens one */}
+              <div onClick={(e) => e.stopPropagation()}>
+                <DbColumns<any>
+                  storageKey={`daily:card:${card.model}`}
+                  columns={CARD_COLUMNS}
+                  data={card.records}
+                  rowKey={(r) => `${r.model}-${r.id}`}
+                  compact
+                  onOpenRow={(r) => openTransaction(r.model, r.id)}
+                />
+              </div>
             </DbCard>
           ))}
         </div>
       )}
 
-      {/* ── Actions List ─────────────────────────────────────── */}
-      <div>
-        <div className="db-section-header" style={{ cursor: 'default' }}>
-          <span className="db-section-header__label">Actions</span>
-          <span className="db-section-header__count">({actions.length})</span>
-        </div>
-
-        {/* Column headers */}
-        <div className="db-list-header">
-          <span className="db-list-header__cell" style={{ width: 30, flexShrink: 0 }}>P</span>
-          <span className="db-list-header__cell" style={{ flex: 2 }}>Action</span>
-          <span className="db-list-header__cell" style={{ width: 90, flexShrink: 0 }}>Status</span>
-          <span className="db-list-header__cell" style={{ flex: 1 }}>Links</span>
-        </div>
-
-        {actions.length === 0 && !loading && (
-          <div className="db-list-empty">No actions for this period</div>
-        )}
-
-        {actions.map((a) => {
-          const links = a.refs?.links || {};
-          const linkModels = Object.entries(links)
-            .filter(([, v]) => Array.isArray(v) && v.length > 0)
-            .map(([model, records]) => {
-              const r = (records as LinkedRecord[])[0];
-              const value = r.totals?.total;
-              return { model, ida: r.ida, value, id: r.id };
-            });
-
-          return (
-            <div key={a.id} className="db-list-row" style={{ padding: '6px 12px', fontSize: baseFontSize - 1 }}>
-              {/* Priority */}
-              <span style={{
-                width: 30, flexShrink: 0, textAlign: 'center',
-                fontWeight: 700, fontSize: baseFontSize - 2,
-                color: a.priority === 1 ? 'var(--db-accent-red)'
-                     : a.priority === 2 ? 'var(--db-accent-gold)'
-                     : 'var(--db-text-dim)',
-              }}>
-                {a.priority === 1 ? '!' : a.priority === 2 ? '·' : ''}
-              </span>
-
-              {/* Action name */}
-              <span style={{ flex: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {a.action}
-              </span>
-
-              {/* Status */}
-              <span style={{
-                width: 90, flexShrink: 0, fontSize: baseFontSize - 3, fontWeight: 600, textTransform: 'uppercase',
-                color: a.status === 'in_progress' ? 'var(--db-accent)'
-                     : a.status === 'completed' ? 'var(--db-accent-green)'
-                     : a.status === 'waiting' ? 'var(--db-accent-gold)'
-                     : 'var(--db-text-dim)',
-              }}>
-                {a.status}
-              </span>
-
-              {/* Linked transaction badges */}
-              <span className="flex gap-2" style={{ flex: 1 }}>
-                {linkModels.map((lm) => (
-                  <span
-                    key={`${lm.model}-${lm.id}`}
-                    className="db-bg-surface-alt"
-                    style={{
-                      fontSize: baseFontSize - 3, padding: '1px 6px', borderRadius: 3,
-                      border: '1px solid var(--db-border-light)',
-                      cursor: 'pointer', whiteSpace: 'nowrap',
-                    }}
-                    title={`Open ${lm.model} ${lm.ida || lm.id}`}
-                    onClick={(e) => { e.stopPropagation(); openTransaction(lm.model, lm.id); }}
-                  >
-                    {lm.model.slice(0, 3)}
-                    {lm.value != null && ` $${Math.round(lm.value)}`}
-                  </span>
-                ))}
-                {linkModels.length === 0 && (
-                  <span className="db-text-dim" style={{ fontSize: baseFontSize - 3 }}>—</span>
-                )}
-              </span>
-            </div>
-          );
-        })}
-      </div>
+      {/* ── Actions List: the shared list (DbColumns) in its panel frame ── */}
+      <DbColumns<ActionRecord>
+        storageKey="daily:actions"
+        sectionLabel="Actions"
+        columns={actionColumns}
+        data={actions}
+        rowKey={(a) => a.id}
+        compact
+        loading={loading}
+        emptyMessage="No actions for this period"
+      />
     </div>
   );
 };
