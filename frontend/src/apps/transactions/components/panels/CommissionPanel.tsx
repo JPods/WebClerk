@@ -4,6 +4,7 @@
 // Hidden unless C toggle is active in footer bar.
 import React from 'react';
 import { formatCurrency, formatPercent } from '@/utils/stringUtils';
+import { DbColumns, type DbColumnDef } from '@/apps/common/components/panels/DbColumns';
 
 interface CommissionPanelProps {
   lines: any[];
@@ -12,9 +13,24 @@ interface CommissionPanelProps {
 }
 
 
+interface CommissionRow { id: number; itemCode: string; description: string; extended: number; reps: any[]; total: number; basis: string }
+
+// The shared list's columns (DbColumns): one row per line, its first rep's rates.
+const COLUMNS: DbColumnDef<CommissionRow>[] = [
+  { key: 'item', label: 'item', width: '120px', className: 'font-mono', render: (r) => r.itemCode },
+  { key: 'description', label: 'description', className: 'db-text-muted', render: (r) => r.description },
+  { key: 'extended', label: 'extended', width: '90px', className: 'text-right', render: (r) => formatCurrency(r.extended) },
+  { key: 'reps', label: 'rep(s)', width: '140px', className: 'db-text-muted',
+    render: (r) => r.reps.length ? r.reps.map((rep: any) => rep.name || rep.rep_ida).join(', ') : '—' },
+  { key: 'rate', label: 'rate', width: '60px', className: 'text-right', render: (r) => r.reps[0] ? `${r.reps[0].rate_pct}%` : '—' },
+  { key: 'eff', label: 'eff %', width: '60px', className: 'text-right', render: (r) => r.reps[0] ? formatPercent(r.reps[0].effective_rate, 2) : '—' },
+  { key: 'commission', label: 'commission', width: '90px', className: 'text-right font-medium db-text-purple',
+    render: (r) => <span className={r.reps.some((rep: any) => rep.override) ? 'italic' : ''}>{r.total > 0 ? formatCurrency(r.total) : '—'}</span> },
+];
+
 const CommissionPanel: React.FC<CommissionPanelProps> = ({ lines, selectedIds }) => {
   // Build rows from lines — one row per line, showing primary rep info
-  const rows = React.useMemo(() => {
+  const rows: CommissionRow[] = React.useMemo(() => {
     return lines.map((line, idx) => {
       const itemCode = line.item?.ida_item || line.ida_item || '—';
       const description = line.item?.description || line.description || '—';
@@ -103,46 +119,14 @@ const CommissionPanel: React.FC<CommissionPanelProps> = ({ lines, selectedIds })
       )}
 
       {/* Per-line table */}
-      <table className="w-full text-xs border-collapse">
-        <thead>
-          <tr className="db-surface-alt-muted">
-            <th className="text-left px-2 py-1.5 font-medium">Item</th>
-            <th className="text-left px-2 py-1.5 font-medium">Description</th>
-            <th className="text-right px-2 py-1.5 font-medium">Extended</th>
-            <th className="text-left px-2 py-1.5 font-medium">Rep(s)</th>
-            <th className="text-right px-2 py-1.5 font-medium">Rate</th>
-            <th className="text-right px-2 py-1.5 font-medium">Eff %</th>
-            <th className="text-right px-2 py-1.5 font-medium">Commission</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => {
-            const isSelected = selectedIds.size === 0 || selectedIds.has(r.id);
-            const primaryRep = r.reps[0];
-            const hasOverride = r.reps.some((rep: any) => rep.override);
-            return (
-              <tr
-                key={r.id}
-                className={`${isSelected ? '' : 'opacity-40'} db-border-bottom`}
-              >
-                <td className="px-2 py-1 font-mono">{r.itemCode}</td>
-                <td className="px-2 py-1 max-w-[180px] truncate db-text-muted">{r.description}</td>
-                <td className="px-2 py-1 text-right">{formatCurrency(r.extended)}</td>
-                <td className="px-2 py-1 db-text-muted">
-                  {r.reps.length === 0
-                    ? '—'
-                    : r.reps.map((rep: any) => rep.name || rep.rep_ida).join(', ')}
-                </td>
-                <td className="px-2 py-1 text-right">{primaryRep ? `${primaryRep.rate_pct}%` : '—'}</td>
-                <td className="px-2 py-1 text-right">{primaryRep ? formatPercent(primaryRep.effective_rate, 2) : '—'}</td>
-                <td className={`px-2 py-1 text-right font-medium db-text-purple ${hasOverride ? 'italic' : ''}`}>
-                  {r.total > 0 ? formatCurrency(r.total) : '—'}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      <DbColumns<CommissionRow>
+        storageKey="panel:lines:commission"
+        columns={COLUMNS}
+        data={rows}
+        rowKey={(r) => r.id}
+        dimmed={(r) => selectedIds.size > 0 && !selectedIds.has(r.id)}
+        compact
+      />
 
       {/* Footer totals */}
       <div className="px-2 py-2 text-xs db-bg-surface-alt" style={{ borderTop: '2px solid var(--db-border)' }}>

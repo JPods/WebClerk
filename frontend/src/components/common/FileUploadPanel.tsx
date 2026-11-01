@@ -1,9 +1,10 @@
 /**
- * FileUploadPanel — reusable photo/video/file upload for any record.
+ * FileUploadPanel — photo/video/file upload for any record.
  *
- * Every upload creates a Document record (target_model, record_id, role, path).
- * Phone camera opens directly via capture="environment".
- * Shows existing attachments from Document records linked to this record.
+ * Every upload creates a Document record and lists it in the record's refs.links.document;
+ * the save door lists the record back on the document (two-sided links, Bill 2026-10-31).
+ * Phone camera opens directly via capture="environment". The record's documents are the
+ * Documents panel (the shared list); this is only the way in.
  *
  * Usage:
  *   <FileUploadPanel modelName="action" recordId="42" recordIda="ACT-001" />
@@ -12,8 +13,8 @@
  *
  * Rule: every upload → Document record. No exceptions.
  */
-import { useState, useRef, useCallback, useEffect } from "react";
-import { getRecord, getRecords, saveRecord } from "@/api/wcapi";
+import { useState, useRef, useCallback } from "react";
+import { getRecord, saveRecord } from "@/api/wcapi";
 import { uploadDocument } from "@/apps/common/components/panels/documentUpload";
 import { useDispatch } from "react-redux";
 import { showToast } from "@/store/slices/toastSlice";
@@ -22,18 +23,7 @@ interface Props {
   modelName: string;
   recordId: string | number;
   recordIda?: string;
-  /** Compact mode — just the upload button, no attachment list */
-  compact?: boolean;
   className?: string;
-}
-
-/** A Document row — its own fields, as the model has them. */
-interface Attachment {
-  id: number;
-  name: string;
-  purpose?: string;
-  mime_type?: string;
-  size_bytes?: number;
 }
 
 const PURPOSE_OPTIONS = [
@@ -57,37 +47,12 @@ const FileUploadPanel: React.FC<Props> = ({
   modelName,
   recordId,
   recordIda,
-  compact = false,
   className = "",
 }) => {
-  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [loadingDocs, setLoadingDocs] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dispatch = useDispatch();
-
-  // Load existing Document records for this record
-  const loadAttachments = useCallback(async () => {
-    if (!recordId) return;
-    setLoadingDocs(true);
-    try {
-      const res = await getRecords("document", {
-        target_model: modelName,
-        record_id: String(recordId),
-        ordering: "-dt_created",
-        limit: 50,
-      }) as any;
-      setAttachments(res?.results || []);
-    } catch {
-      // Silent — attachments are supplementary
-    }
-    setLoadingDocs(false);
-  }, [modelName, recordId]);
-
-  useEffect(() => {
-    loadAttachments();
-  }, [loadAttachments]);
 
   // When files are selected, open the metadata dialog
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -138,29 +103,23 @@ const FileUploadPanel: React.FC<Props> = ({
           geolocation: geo,
         });
 
-        // Append to parent record's refs.links.document with denormalized data
+        // The record lists the document; its other side is written by the save door.
         try {
           const parentRes = await getRecord(modelName, Number(recordId));
           const parent = parentRes?.record || parentRes;
           const existing = parent?.refs?.links?.document || [];
           const ids = existing.map((l: any) => typeof l === 'number' ? l : l?.id).filter(Boolean);
           if (!ids.includes(result.document.id)) {
-            const newLink = {
-              id: result.document.id,
-              purpose: pending.purpose,
-              description: pending.description,
-              size_bytes: result.document.size_bytes,
-              name: result.document.name,
-              mime_type: result.document.mime_type,
-              ...(geo ? { lat: geo.lat, lng: geo.lng } : {}),
-            };
-            const newLinks = [...existing, newLink];
+            // The link is the id: the panel reads the document itself, never a copy.
+            const newLinks = [...existing, { id: result.document.id }];
             await saveRecord(modelName, {
               id: Number(recordId),
               'refs.links.document': newLinks,
             });
           }
-        } catch { /* refs.links update failed — document still exists */ }
+        } catch (err: any) {
+          dispatch(showToast({ message: `${pending.file.name} uploaded but not linked to this ${modelName}: ${err?.message || err}`, type: "error" }));
+        }
 
         dispatch(showToast({
           message: `${pending.file.name} uploaded (${(pending.file.size / 1024).toFixed(0)}KB)`,
@@ -174,18 +133,7 @@ const FileUploadPanel: React.FC<Props> = ({
     setPendingFiles([]);
     setUploading(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
-    if (!compact) loadAttachments();
-  }, [pendingFiles, modelName, recordId, recordIda, dispatch, compact, loadAttachments]);
-
-  const roleIcon = (role?: string) => {
-    switch (role) {
-      case "photo": return "📷";
-      case "video": return "🎥";
-      case "spec": return "📋";
-      case "tn": return "🖼";
-      default: return "📎";
-    }
-  };
+  }, [pendingFiles, modelName, recordId, recordIda, dispatch]);
 
   return (
     <div className={`${className}`}>
@@ -204,9 +152,6 @@ const FileUploadPanel: React.FC<Props> = ({
           />
         </label>
         {uploading && <span className="text-[10px] text-gray-400">Uploading...</span>}
-        {compact && attachments.length > 0 && (
-          <span className="text-[10px] text-gray-400">{attachments.length} file{attachments.length !== 1 ? 's' : ''}</span>
-        )}
       </div>
 
       {/* Upload metadata dialog */}
@@ -259,50 +204,6 @@ const FileUploadPanel: React.FC<Props> = ({
         </div>
       )}
 
-      {/* Attachment list (non-compact mode) */}
-      {!compact && attachments.length > 0 && (
-        <div className="mt-2 space-y-1">
-          {attachments.map((doc) => {
-            const isImage = doc.mime_type?.startsWith("image/");
-            return (
-              <div
-                key={doc.id}
-                className="flex items-center gap-2 text-[11px] text-gray-600 dark:text-gray-400 py-0.5 px-1 rounded hover:bg-gray-50 dark:hover:bg-gray-800"
-              >
-                <span>{roleIcon(doc.purpose)}</span>
-                {isImage && (
-                  <img
-                    src={`/wcapi/document/${doc.id}/download/`}
-                    alt={doc.name}
-                    className="h-6 w-6 rounded object-cover"
-                    loading="lazy"
-                  />
-                )}
-                <span className="truncate flex-1">{doc.name}</span>
-                {doc.size_bytes && (
-                  <span className="text-[9px] text-gray-400">
-                    {doc.size_bytes > 1048576
-                      ? `${(doc.size_bytes / 1048576).toFixed(1)}MB`
-                      : `${(doc.size_bytes / 1024).toFixed(0)}KB`}
-                  </span>
-                )}
-                <a
-                  href={`/wcapi/document/${doc.id}/download/`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[9px] text-indigo-500 hover:underline"
-                >
-                  open
-                </a>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {!compact && !loadingDocs && attachments.length === 0 && pendingFiles.length === 0 && (
-        <p className="text-[10px] text-gray-400 mt-1">No files attached. Use phone camera or choose a file.</p>
-      )}
     </div>
   );
 };

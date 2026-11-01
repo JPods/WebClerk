@@ -1,92 +1,30 @@
-/* LastChecked: 2026-10-27 | WhereUsed: ItemDetail BOM tab | WhoCreated: Claude */
+/* LastChecked: 2026-10-31 | WhereUsed: panelRegistry `bom` (item form) | WhoCreated: Claude */
 /**
- * BomPanel — BOM editor for an item.
- * List of BomCards with add-component search, inline editing of all fields.
- * Backend handles cycle detection and cost rollup. The panel frame draws the header, count,
- * buttons and status (usePanelFrame); the read is usePanelRecords.
+ * BomPanel — an item's bill of materials on the shared list (LinkedRecordsPanel): the BOM lines
+ * whose parent_item_id is the item, by sequence. "+ add" picks the component item and makes the
+ * line with both items at once (a line cannot exist without them); a line opens in its card.
+ * Its own: "Build from BOM" — a production workorder (build line → expand one level →
+ * complete). Backend handles cycle detection and cost rollup.
  */
-import React, { useState, useCallback, useMemo } from 'react';
-import { createRecord, searchItems } from '@/api/wcapi';
-import { usePanelRecords } from '@/hooks/usePanelRecords';
-import { usePanelFrame, PanelLabels } from '@/apps/common/components/CollapsiblePanel';
-import { buildItem } from '@/api/workorderApi';
+import React, { useCallback, useState } from 'react';
 import { useDispatch } from 'react-redux';
+import { LinkedRecordsPanel } from '@/apps/common/components/panels/LinkedRecordsPanel';
+import { buildItem } from '@/api/workorderApi';
 import { showToast } from '@/store/slices/toastSlice';
-import BomCard from './BomCard';
 
 export interface BomPanelProps {
   itemId: number;
   itemCode: string;
 }
 
+type Rec = Record<string, any>;
+const bySequence = (a: Rec, b: Rec) => (a.sequence || 0) - (b.sequence || 0) || (a.id || 0) - (b.id || 0);
+
 const BomPanel: React.FC<BomPanelProps> = ({ itemId, itemCode }) => {
   const dispatch = useDispatch();
-
-  // Selection
-  const [selectedId, setSelectedId] = useState<number | null>(null);
-
-  // Build from BOM
   const [showBuild, setShowBuild] = useState(false);
   const [buildQty, setBuildQty] = useState('1');
   const [building, setBuilding] = useState(false);
-
-  // Add component search
-  const [showSearch, setShowSearch] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [adding, setAdding] = useState(false);
-
-  const { records, refresh: fetchBom, status } = usePanelRecords('bill_of_material',
-    { parent_item_id: itemId, limit: 100 },
-    { emptyText: 'No BOM components — "+ add component" builds the bill of materials' });
-  const components = useMemo(() => [...records].sort((a: any, b: any) =>
-    (a.sequence || 0) - (b.sequence || 0) || (a.id || 0) - (b.id || 0)), [records]);
-
-  // Search for items to add as components
-  const handleSearch = useCallback(async (q: string) => {
-    setSearchQuery(q);
-    if (q.length < 2) { setSearchResults([]); return; }
-    setSearching(true);
-    try {
-      const res = await searchItems(q);
-      const items = res?.results || res || [];
-      // Filter out self and already-added components
-      const existingChildIds = new Set(components.map((c: any) => c.child_item_id || c.child_item));
-      const filtered = items.filter((item: any) => {
-        const id = item.id || item.item_id;
-        return id !== itemId && !existingChildIds.has(id);
-      });
-      setSearchResults(filtered.slice(0, 10));
-    } catch { setSearchResults([]); }
-    setSearching(false);
-  }, [itemId, components]);
-
-  // Add a component
-  const handleAddComponent = useCallback(async (item: any) => {
-    setAdding(true);
-    try {
-      const childId = item.id || item.item_id;
-      const childCode = item.ida_item || item.item_num || item.sku || '';
-      const childDesc = item.description || item.name || '';
-      // A BOM line cannot exist without its parent and child items: those go to `new`.
-      await createRecord('bill_of_material', {
-        parent_ida: itemCode,
-        child_ida: childCode,
-        child_description: childDesc,
-        sequence: (components.length + 1) * 10,
-      }, { parent_item_id: itemId, child_item_id: childId });
-      dispatch(showToast({ message: `Added ${childCode || childId} to BOM`, type: 'success' }));
-      setShowSearch(false);
-      setSearchQuery('');
-      setSearchResults([]);
-      fetchBom();
-    } catch (e: any) {
-      const msg = e?.response?.data?.detail || e?.response?.data?.message || 'Failed to add component';
-      dispatch(showToast({ message: msg, type: 'error' }));
-    }
-    setAdding(false);
-  }, [itemId, itemCode, components.length, dispatch, fetchBom]);
 
   const handleBuild = useCallback(async () => {
     const qty = parseFloat(buildQty);
@@ -96,8 +34,6 @@ const BomPanel: React.FC<BomPanelProps> = ({ itemId, itemCode }) => {
     }
     setBuilding(true);
     try {
-      // A build is a production workorder: build line → expand one BOM level → complete
-      // (workorder plan; the old bom/consume/ path built outside the door).
       const done: any = await buildItem(itemId, qty, 1);
       dispatch(showToast({
         message: `Built ${qty} × ${itemCode} on workorder ${done.workorder_id} (${done.lines_applied ?? '?'} lines applied)`,
@@ -112,126 +48,40 @@ const BomPanel: React.FC<BomPanelProps> = ({ itemId, itemCode }) => {
     setBuilding(false);
   }, [itemId, itemCode, buildQty, dispatch]);
 
-  const headerActions = useMemo(() => (
-    <>
-      {components.length > 0 && (
-        <button
-          onClick={() => { setShowBuild(v => !v); setShowSearch(false); }}
-          className="text-[9px] text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
-        >
+  return (
+    <LinkedRecordsPanel
+      linkedModel="bill_of_material" parentModel="item" parentId={itemId} byField="parent_item_id"
+      title="Bill of materials" defaultCollapsed={false} sort={bySequence}
+      pick={{
+        model: 'item', field: 'child_item_id',
+        values: (item, rows) => ({
+          parent_ida: itemCode,
+          child_ida: item.ida_item || item.ida || item.sku || '',
+          child_description: item.description || item.name || '',
+          sequence: (rows.length + 1) * 10,
+        }),
+      }}
+      extraActions={
+        <button type="button" className="db-section-header__action"
+          onClick={(e) => { e.stopPropagation(); setShowBuild(v => !v); }}>
           {showBuild ? '× cancel' : 'Build from BOM'}
         </button>
-      )}
-      <button
-        onClick={() => { setShowSearch(v => !v); setShowBuild(false); }}
-        className="text-[9px] text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 font-medium"
-      >
-        {showSearch ? '× cancel' : '+ add component'}
-      </button>
-    </>
-  ), [components.length, showBuild, showSearch]);
-  usePanelFrame({ badge: components.length, headerActions, status });
-
-  return (
-    <div className="p-2">
-      {/* Build from BOM */}
+      }
+    >
       {showBuild && (
-        <div className="mb-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-          <div className="text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">
-            Build {itemCode} — increments parent, decrements all children
+        <div className="px-3 py-2 flex items-end gap-3" style={{ borderTop: '1px solid var(--db-border)' }}>
+          <div>
+            <label className="db-font-xs db-text-dim block">Build {itemCode}: quantity</label>
+            <input type="number" step="1" min="1" value={buildQty} autoFocus
+              onChange={(e) => setBuildQty(e.target.value)} className="db-input w-24" />
           </div>
-          <div className="flex items-end gap-3">
-            <div>
-              <label className="text-[10px] text-slate-500 dark:text-slate-400">Quantity to build</label>
-              <input
-                type="number"
-                step="1"
-                min="1"
-                value={buildQty}
-                onChange={(e) => setBuildQty(e.target.value)}
-                autoFocus
-                className="w-24 px-2 py-1.5 text-xs rounded border border-blue-300 dark:border-blue-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-              />
-            </div>
-            <button
-              onClick={handleBuild}
-              disabled={building || !buildQty || parseFloat(buildQty) <= 0}
-              className="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded disabled:opacity-50"
-            >
-              {building ? 'Building...' : `Build ${buildQty || 0}`}
-            </button>
-          </div>
+          <button type="button" onClick={handleBuild} disabled={building || !(parseFloat(buildQty) > 0)}
+            className="db-section-header__action">
+            {building ? 'Building…' : `Build ${buildQty || 0}`}
+          </button>
         </div>
       )}
-
-      {/* Add component search */}
-      {showSearch && (
-        <div className="mb-3 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => handleSearch(e.target.value)}
-            placeholder="Search items by code or description..."
-            autoFocus
-            className="w-full px-2 py-1.5 text-xs rounded border border-green-300 dark:border-green-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-1 focus:ring-green-500"
-          />
-          {searching && <div className="text-[10px] text-slate-400 mt-1">Searching...</div>}
-          {searchResults.length > 0 && (
-            <div className="mt-1 max-h-40 overflow-y-auto">
-              {searchResults.map((item: any) => {
-                const code = item.ida_item || item.item_num || item.sku || '';
-                const desc = item.description || item.name || '';
-                return (
-                  <button
-                    key={item.id || item.item_id}
-                    onClick={() => handleAddComponent(item)}
-                    disabled={adding}
-                    className="w-full flex items-center gap-2 px-2 py-1 text-xs text-left hover:bg-green-100 dark:hover:bg-green-800/30 rounded"
-                  >
-                    <span className="font-mono text-slate-700 dark:text-slate-200 w-28 truncate">{code}</span>
-                    <span className="text-slate-500 dark:text-slate-400 flex-1 truncate">{desc}</span>
-                    <span className="text-green-600 dark:text-green-400 text-[9px] font-medium">+ add</span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-          {searchQuery.length >= 2 && !searching && searchResults.length === 0 && (
-            <div className="text-[10px] text-slate-400 mt-1">No items found</div>
-          )}
-        </div>
-      )}
-
-      {/* Column headers stay put while the components scroll */}
-      {components.length > 0 && (
-        <PanelLabels>
-          <span className="w-8 text-center">#</span>
-          <span className="w-28">Item</span>
-          <span className="flex-1">Description</span>
-          <span className="w-16 text-right">Qty</span>
-          <span className="w-16 text-right">Scrap%</span>
-          <span className="w-8">UOM</span>
-          <span className="w-12 text-center">Opt</span>
-          <span className="w-20"></span>
-        </PanelLabels>
-      )}
-
-      {/* Component list */}
-      {components.map((c: any) => (
-        <BomCard
-          key={c.id}
-          data={c}
-          parentItemId={itemId}
-          selected={selectedId === c.id}
-          onSave={() => fetchBom()}
-          onDelete={() => fetchBom()}
-          onSelect={(id) => setSelectedId(id === selectedId ? null : id)}
-          onOpen={(childId) => {
-            if (childId) window.open(`/item?id=${childId}`, '_blank');
-          }}
-        />
-      ))}
-    </div>
+    </LinkedRecordsPanel>
   );
 };
 

@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { saveCorrection, getInventoryLayers } from "@/api/workorderApi";
 import { usePanelRecords } from "@/hooks/usePanelRecords";
 import { usePanelFrame } from "@/apps/common/components/CollapsiblePanel";
+import { DbColumns, type DbColumnDef } from "@/apps/common/components/panels/DbColumns";
 
 interface LayerCount {
   layer_id: number;
@@ -94,6 +95,21 @@ export default function CycleCountPanel({ itemId }: Props) {
     setApplying(false);
   }, [rows, itemId, refresh]);
 
+  // The shared list's columns; the counted cell is the count entered against the layer.
+  const varianceStyle = (v: number) => ({ color: v > 0 ? "var(--db-accent-green)" : v < 0 ? "var(--db-accent-red)" : "var(--db-text-muted)" });
+  const columns: DbColumnDef<LayerCount>[] = [
+    { key: "warehouse_name", label: "warehouse", render: (r) => r.warehouse_name },
+    { key: "lot", label: "lot", width: "90px", render: (r) => r.lot },
+    { key: "system_qty", label: "system qty", width: "80px", className: "text-right", render: (r) => r.system_qty },
+    { key: "counted_qty", label: "counted", width: "90px", className: "text-right", render: (r) => (
+      <input type="number" value={r.counted_qty ?? ""} placeholder="-" className="db-input w-20 text-right"
+        onChange={(e) => updateCount(rows.indexOf(r), e.target.value === "" ? null : Number(e.target.value))} />
+    ) },
+    { key: "variance", label: "variance", width: "80px", className: "text-right", render: (r) => (
+      <span style={varianceStyle(r.variance)}>{r.counted_qty !== null ? `${r.variance > 0 ? "+" : ""}${r.variance}` : "-"}</span>
+    ) },
+  ];
+
   const hasVariances = rows.some((r) => r.counted_qty !== null && r.variance !== 0);
   // Aggregate of user-entered variance values — no server-side aggregate available
   const totalVariance = rows.reduce((s, r) => s + r.variance, 0);
@@ -113,56 +129,13 @@ export default function CycleCountPanel({ itemId }: Props) {
 
   return (
     <div className="p-2">
-      <table className="w-full text-xs border-collapse">
-        <thead className="sticky top-0" style={{ background: "var(--db-surface, #fff)" }}>
-          <tr className="text-slate-500 border-b border-slate-700">
-            <th className="text-left px-2 py-1">Warehouse</th>
-            <th className="text-left px-2 py-1">Lot</th>
-            <th className="text-right px-2 py-1">System Qty</th>
-            <th className="text-right px-2 py-1 w-24">Counted</th>
-            <th className="text-right px-2 py-1">Variance</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r, idx) => (
-            <tr
-              key={r.layer_id}
-              className={`border-b border-slate-800 ${
-                r.variance !== 0
-                  ? r.variance > 0
-                    ? "bg-green-900/10"
-                    : "bg-red-900/10"
-                  : ""
-              }`}
-            >
-              <td className="px-2 py-1 text-slate-300">{r.warehouse_name}</td>
-              <td className="px-2 py-1 text-slate-400">{r.lot}</td>
-              <td className="px-2 py-1 text-right font-mono">{r.system_qty}</td>
-              <td className="px-2 py-1 text-right">
-                <input
-                  type="number"
-                  value={r.counted_qty ?? ""}
-                  placeholder="-"
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    updateCount(idx, v === "" ? null : Number(v));
-                  }}
-                  className="w-20 px-1 py-0.5 text-right rounded border border-slate-600 bg-slate-900 text-slate-200 text-xs"
-                />
-              </td>
-              <td
-                className={`px-2 py-1 text-right font-semibold ${
-                  r.variance > 0 ? "text-green-400" : r.variance < 0 ? "text-red-400" : "text-slate-500"
-                }`}
-              >
-                {r.counted_qty !== null
-                  ? `${r.variance > 0 ? "+" : ""}${r.variance}`
-                  : "-"}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <DbColumns<LayerCount>
+        storageKey="panel:item:cycle_count"
+        columns={columns}
+        data={rows}
+        rowKey={(r) => r.layer_id}
+        compact
+      />
 
       <div className="flex items-center justify-between mt-3 px-1">
         <span className={`text-xs ${message.startsWith("Error") ? "text-red-400" : "text-green-400"}`}>

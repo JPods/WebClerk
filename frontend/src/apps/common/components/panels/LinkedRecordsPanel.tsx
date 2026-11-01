@@ -12,6 +12,11 @@
  *     parentId={42}
  *   />
  *
+ * Or the rows are the records whose own field names the parent (byField: a serial's item_id,
+ * a BOM line's parent_item_id) — the field is the link and the parent stores nothing. Every
+ * panel list is this code (Bill, 2026-10-31: "all panels and lists have the same inherited
+ * code and only very rare specialty behaviors"); a panel's speciality comes in as props.
+ *
  * The panel:
  *   1. Reads refs.links.{linkedModel} from parent record → [{id: N}, ...]
  *   2. Fetches those records via getRecords
@@ -26,7 +31,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { usePanelAdd, usePanelOpen } from "@/hooks/usePanelAdd";
 import { useWindowManager } from "@/context/WindowManagerContext";
 import { useDispatch } from "react-redux";
-import { getRecord, getRecords, saveRecord, getModelDetail } from "@/api/wcapi";
+import { getRecord, getRecords, saveRecord, createRecord, getModelDetail } from "@/api/wcapi";
 import { usePanelRecords } from "@/hooks/usePanelRecords";
 import { showToast } from "@/store/slices/toastSlice";
 import { DbColumns } from "./DbColumns";
@@ -70,6 +75,23 @@ interface LinkedRecordsPanelProps {
   removable?: boolean;
   /** Called when panel is removed */
   onRemovePanel?: () => void;
+  /** The rows are the records whose own field (this one) holds the parent's id. */
+  byField?: string;
+  /** Rows from a service view rather than the model channel (inventory layers). */
+  read?: (params: Record<string, unknown>) => Promise<Rec[]>;
+  /** Row order (a BOM by sequence). */
+  sort?: (a: Rec, b: Rec) => number;
+  /** "+ add" picks a record of another model: the row is made under the parent with the picked
+   *  id in `field` (a BOM component's child item). `values` adds what the pick supplies. */
+  pick?: { model: string; field: string; values?: (picked: Rec, rows: Rec[]) => Record<string, unknown> };
+  /** Count chips for this field's values above the rows; a click shows only that value. */
+  chipField?: string;
+  groupBy?: (r: Rec) => string;
+  groupSummary?: (rows: Rec[]) => React.ReactNode;
+  /** The panel's own buttons beside "+ add". */
+  extraActions?: React.ReactNode;
+  /** The panel's own content under the rows (a build form). */
+  children?: React.ReactNode;
 }
 
 // ---------------------------------------------------------------------------
@@ -181,6 +203,15 @@ export const LinkedRecordsPanel: React.FC<LinkedRecordsPanelProps> = ({
   onLinksChanged,
   removable = false,
   onRemovePanel,
+  byField,
+  read,
+  sort,
+  pick,
+  chipField,
+  groupBy,
+  groupSummary,
+  extraActions,
+  children,
 }) => {
   const windowManager = useWindowManager();
   const dispatch = useDispatch();
@@ -239,6 +270,12 @@ export const LinkedRecordsPanel: React.FC<LinkedRecordsPanelProps> = ({
   // The linked ids are the parent's refs.links.{linkedModel}; the rows are those records. One
   // read through the panel hook: a failure shows in the frame (it read as "none linked" before).
   const readLinked = useCallback(async (): Promise<Rec[]> => {
+    if (byField || read) {
+      const params = { [byField || 'parent_id']: parentId, limit: 500 };
+      const rows = read ? await read(params) : ((await getRecords(linkedModel, params)) as any)?.results || [];
+      setLinkedIds(rows.map((r: Rec) => r.id));
+      return rows;
+    }
     const res = await getRecord(parentModel, parentId);
     const parent = res?.record || res;
     const links = parent?.refs?.links?.[linkedModel] || [];
@@ -247,9 +284,14 @@ export const LinkedRecordsPanel: React.FC<LinkedRecordsPanelProps> = ({
     if (ids.length === 0) return [];
     const rows = await getRecords(linkedModel, { id__in: ids.join(','), limit: 100 }) as any;
     return rows?.results || [];
-  }, [parentModel, parentId, linkedModel]);
-  const { records, loading, error, refresh, status } = usePanelRecords<Rec>(linkedModel,
-    { parentModel, parentId, linkedModel }, { read: readLinked });
+  }, [parentModel, parentId, linkedModel, byField, read]);
+  const { records: readRows, loading, error, refresh, status } = usePanelRecords<Rec>(linkedModel,
+    { parentModel, parentId, linkedModel, byField }, { read: readLinked });
+  const [chip, setChip] = useState('');
+  const records = useMemo(() => {
+    const rows = chipField && chip ? readRows.filter(r => String(r[chipField] ?? '') === chip) : readRows;
+    return sort ? [...rows].sort(sort) : rows;
+  }, [readRows, chipField, chip, sort]);
   const initialLoadDone = status.empty || records.length > 0 || !!error;
 
   // The parent's refs.links changed when the parent was saved, from any window.
@@ -308,12 +350,26 @@ export const LinkedRecordsPanel: React.FC<LinkedRecordsPanelProps> = ({
     return () => { cancelled = true; };
   }, [editable, parentModel, parentId, linkedModel]);
   const orgContact = linkedModel === 'contact' && ORG_ROLES.includes(parentModel);
-  const addOptions = useMemo(() => !editable || !parentId ? null : orgContact
-    ? { parent: { field: `${parentModel}_id`, id: parentId } }
+  const addOptions = useMemo(() => !editable || !parentId ? null : orgContact || byField
+    ? { parent: { field: byField || `${parentModel}_id`, id: parentId } }
     : { values: inherited,
         afterMade: async (id: number) => { await saveLinks([...linkedIds, id]); } },
-  [editable, parentId, orgContact, parentModel, linkedModel, inherited, linkedIds, saveLinks]);
-  const { onAdd, addCard } = usePanelAdd(linkedModel, addOptions);
+  [editable, parentId, orgContact, byField, parentModel, linkedModel, inherited, linkedIds, saveLinks]);
+  const { onAdd: onAddCard, addCard } = usePanelAdd(linkedModel, addOptions);
+  // + add by picking (a BOM's child item): the row is made with the parent and the pick at once.
+  const [picking, setPicking] = useState(false);
+  const onAdd = pick ? (editable ? () => setPicking(v => !v) : undefined) : onAddCard;
+  const handlePick = useCallback(async (picked: Rec) => {
+    if (!pick || !byField) return;
+    try {
+      await createRecord(linkedModel, pick.values?.(picked, readRows) || {}, { [byField]: parentId, [pick.field]: picked.id });
+      setPicking(false);
+    } catch (err: any) {
+      dispatch(showToast({ message: `Could not add ${linkedModel}: ${err?.response?.data?.message || err?.message || err}`, type: 'error' }));
+    } finally {
+      refresh();
+    }
+  }, [pick, byField, linkedModel, parentId, readRows, dispatch, refresh]);
   const opener = usePanelOpen(linkedModel);
   const labelOf = (r: Rec) => String(r.name || r.attention || r.subject || r.ida || `#${r.id}`);
 
@@ -363,7 +419,7 @@ export const LinkedRecordsPanel: React.FC<LinkedRecordsPanelProps> = ({
     width: "56px",
     render: (r) => (
       <span className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-        {editable && (
+        {editable && !byField && !read && (
           <button type="button" title="Unlink" className="p-1 rounded transition-colors db-text-dim"
             onClick={() => handleRemove(r.id)}><FaTimes size={10} /></button>
         )}
@@ -381,6 +437,19 @@ export const LinkedRecordsPanel: React.FC<LinkedRecordsPanelProps> = ({
 
   const missingPanelDef = settingLoaded && !settingPanelCols;
 
+  // Count chips: each value of chipField with its count; a click shows only that value.
+  const counts = useMemo(() => {
+    const c: Record<string, number> = {};
+    if (chipField) for (const r of readRows) { const v = String(r[chipField] ?? ''); c[v] = (c[v] || 0) + 1; }
+    return c;
+  }, [readRows, chipField]);
+  const chips = chipField && Object.keys(counts).length > 1 ? Object.entries(counts).map(([v, n]) => (
+    <button key={v} type="button" className="db-section-header__action"
+      style={chip === v ? { fontWeight: 700, textDecoration: 'underline' } : undefined}
+      onClick={(e) => { e.stopPropagation(); setChip(chip === v ? '' : v); }}>{v || '—'} ({n})</button>
+  )) : null;
+  const panelActions = chips || extraActions ? <>{chips}{extraActions}</> : undefined;
+
   return (
     <DbColumns<Rec>
       storageKey={`panel:${parentModel}:${linkedModel}`}
@@ -394,7 +463,10 @@ export const LinkedRecordsPanel: React.FC<LinkedRecordsPanelProps> = ({
       sectionLabel={sectionLabel}
       sectionIcon={sectionIcon}
       onAdd={onAdd}
-      onAssign={editable ? openAssign : undefined}
+      onAssign={editable && !byField && !read ? openAssign : undefined}
+      extraActions={panelActions}
+      groupBy={groupBy}
+      groupSummary={groupSummary}
       onRemove={removable ? handleRemovePanel : undefined}
       defaultCollapsed={collapseWhenEmpty && initialLoadDone ? records.length === 0 : defaultCollapsed}
       key={collapseWhenEmpty ? `${panelKey}-${initialLoadDone}-${records.length > 0}` : panelKey}
@@ -418,6 +490,16 @@ export const LinkedRecordsPanel: React.FC<LinkedRecordsPanelProps> = ({
           onClose={() => setAssigning(false)}
         />
       )}
+      {picking && pick && (
+        <RecordSearchInline
+          linkedModel={pick.model}
+          excludeIds={new Set(readRows.map(r => Number(r[pick.field] ?? r[pick.field.replace(/_id$/, '')])).filter(Boolean))}
+          parentId={pick.model === parentModel ? parentId : undefined}
+          onSelect={handlePick}
+          onClose={() => setPicking(false)}
+        />
+      )}
+      {children}
       {addCard}
       {opener.recordCard}
     </DbColumns>

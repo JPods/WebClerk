@@ -9,8 +9,7 @@ import { showToast } from '@/store/slices/toastSlice';
 import InventoryPanel from '../panels/InventoryPanel';
 import MarginPanel from '../panels/MarginPanel';
 import SpecPanel from '../panels/SpecPanel';
-import ProductListPanel from '@/apps/products/components/ProductListPanel';
-import XRefCard from '@/apps/products/components/XRefCard';
+import { LinkedRecordsPanel } from '@/apps/common/components/panels/LinkedRecordsPanel';
 import CollapsiblePanel from '@/apps/common/components/CollapsiblePanel';
 import CommissionPanel from '../panels/CommissionPanel';
 import { TransactionItemSearch, resolveItemCode, resolveItemDescription, resolveQtyAvailable } from '../TransactionItemSearch';
@@ -400,10 +399,8 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
             {lc.activePanel === 'inventory' && <InventoryPanel itemIds={lc.inventoryItemIds} />}
             {lc.activePanel === 'spec' && selectedItemId && <SpecPanel itemId={selectedItemId} />}
             {lc.activePanel === 'xref' && selectedItemId && (
-              <ProductListPanel model="item_xref" itemId={selectedItemId} CardComponent={XRefCard}
-                headers={['Type', 'XRef Code', 'Description', 'Org']}
-                headerWidths={['w-16', 'w-28', 'flex-1', 'w-20']}
-                onCardClick={(id: number) => windowManager.ensureWindow(`/item_xref?id=${id}`, `XRef #${id}`)} />
+              <LinkedRecordsPanel linkedModel="item_xref" parentModel="item" parentId={selectedItemId}
+                byField="item_id" editable={false} title="Cross references" defaultCollapsed={false} />
             )}
           </div>
         </CollapsiblePanel>

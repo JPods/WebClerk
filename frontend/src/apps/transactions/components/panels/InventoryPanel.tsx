@@ -6,6 +6,8 @@ import { getItemsInventory } from '@/api/workorderApi';
 import { usePanelRecords } from '@/hooks/usePanelRecords';
 import { usePanelFrame } from '@/apps/common/components/CollapsiblePanel';
 import { formatCurrency } from '@/utils/stringUtils';
+import { DbColumns, type DbColumnDef } from '@/apps/common/components/panels/DbColumns';
+import { usePanelOpen } from '@/hooks/usePanelAdd';
 
 interface InventoryPanelProps {
   /** Item IDs to show inventory for */
@@ -28,44 +30,38 @@ const formatNum = (v: number | null | undefined): string =>
   v == null ? '—' : v.toLocaleString();
 
 
+// The shared list's columns (DbColumns): one row per item; a row opens the item.
+const COLUMNS: DbColumnDef<InventoryRow>[] = [
+  { key: 'ida', label: 'item', width: '120px', className: 'font-mono', render: (r) => r.ida },
+  { key: 'name', label: 'description', render: (r) => <span style={{ color: 'var(--db-text-muted)' }}>{r.name}</span> },
+  { key: 'available', label: 'available', width: '80px', className: 'text-right font-medium', render: (r) => formatNum(r.available) },
+  { key: 'on_so', label: 'on s/o', width: '70px', className: 'text-right', render: (r) => <span style={{ color: 'var(--db-accent-gold)' }}>{formatNum(r.on_so)}</span> },
+  { key: 'on_po', label: 'on p/o', width: '70px', className: 'text-right', render: (r) => <span style={{ color: 'var(--db-accent)' }}>{formatNum(r.on_po)}</span> },
+  { key: 'lead_time', label: 'lead', width: '60px', className: 'text-right', render: (r) => r.lead_time != null ? `${r.lead_time}d` : '—' },
+  { key: 'price_retail', label: 'price', width: '90px', className: 'text-right', render: (r) => formatCurrency(r.price_retail) },
+];
+
 const InventoryPanel = ({ itemIds }: InventoryPanelProps) => {
   const { records: rows, status } = usePanelRecords<InventoryRow>('item inventory', { ids: itemIds.join(',') },
     { enabled: itemIds.length > 0, read: getItemsInventory, emptyText: 'No inventory data available' });
   usePanelFrame({ badge: rows.length, status });
+  const opener = usePanelOpen('item');
   if (!rows.length) return null;
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-xs border-collapse">
-        <thead className="sticky top-0">
-          <tr style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' }}>
-            <th className="text-left px-2 py-1 font-medium">Item</th>
-            <th className="text-left px-2 py-1 font-medium">Description</th>
-            <th className="text-right px-2 py-1 font-medium">Available</th>
-            <th className="text-right px-2 py-1 font-medium">On S/O</th>
-            <th className="text-right px-2 py-1 font-medium">On P/O</th>
-            <th className="text-right px-2 py-1 font-medium">Lead</th>
-            <th className="text-right px-2 py-1 font-medium">Price</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr
-              key={r.id}
-              style={{ borderBottom: '1px solid var(--db-border)' }}
-            >
-              <td className="px-2 py-1 font-mono">{r.ida}</td>
-              <td className="px-2 py-1 max-w-[200px] truncate" style={{ color: 'var(--db-text-muted)' }}>{r.name}</td>
-              <td className="px-2 py-1 text-right font-medium">{formatNum(r.available)}</td>
-              <td className="px-2 py-1 text-right" style={{ color: 'var(--db-accent-gold)' }}>{formatNum(r.on_so)}</td>
-              <td className="px-2 py-1 text-right" style={{ color: 'var(--db-accent)' }}>{formatNum(r.on_po)}</td>
-              <td className="px-2 py-1 text-right">{r.lead_time != null ? `${r.lead_time}d` : '—'}</td>
-              <td className="px-2 py-1 text-right">{formatCurrency(r.price_retail)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <DbColumns<InventoryRow>
+      storageKey="panel:lines:inventory"
+      columns={COLUMNS}
+      data={rows}
+      rowKey={(r) => r.id}
+      onOpenRow={(r, el) => opener.open(r.id, r.ida, el)}
+      onOpenWindow={(r) => opener.openWindow(r.id)}
+      onMoveRow={(r, el) => opener.move(r.id, r.ida, el)}
+      openKey={opener.openId}
+      compact
+    >
+      {opener.recordCard}
+    </DbColumns>
   );
 };
 

@@ -12,6 +12,8 @@ import { getRecord, getRecords } from '@/api/wcapi';
 import { useWindowManager } from '@/context/WindowManagerContext';
 import { formatCurrency } from '@/utils/stringUtils';
 import { PanelFrame } from '@/apps/common/components/CollapsiblePanel';
+import { DbColumns, type DbColumnDef } from '@/apps/common/components/panels/DbColumns';
+import { usePanelOpen } from '@/hooks/usePanelAdd';
 
 type Rec = Record<string, any>;
 
@@ -95,6 +97,18 @@ async function loadRelated(modelName: string, record: Rec, tabs: string[]): Prom
   return Object.fromEntries(Object.entries(byModel).map(([m, map]) => [m, [...map.values()]]));
 }
 
+/** The shared list's columns for one kind (DbColumns); a payment shows its amount, a document
+ *  its total and balance. */
+const columnsFor = (model: string): DbColumnDef<Rec>[] => [
+  { key: 'ida', label: LABELS[model] || model, width: '110px', className: 'font-mono db-text-accent', render: (r) => r.ida || `#${r.id}` },
+  { key: 'status', label: 'status', width: '90px', render: (r) => r.status || '—' },
+  { key: 'date', label: 'date', width: '90px', render: dateOf },
+  { key: 'amount', label: model === 'cash' ? 'amount' : 'total', width: '100px', className: 'text-right font-mono',
+    render: (r) => formatCurrency(amountOf(model, r)) },
+  ...(model === 'cash' ? [] : [{ key: 'balance', label: 'balance', width: '100px', className: 'text-right font-mono',
+    render: (r: Rec) => formatCurrency(Number(r.totals?.balance ?? 0)) }]),
+];
+
 interface Props {
   modelName: string;
   record: Rec;
@@ -123,6 +137,7 @@ const RelatedTransactionsPanel: React.FC<Props> = ({ modelName, record, onNaviga
   }, [modelName, record?.id, record?.parent_id, record?.parent_model]);
 
   useEffect(() => { load(); }, [load]);
+  const opener = usePanelOpen(active || 'order');
 
   if (!tabs.length || !record?.id) return null;
 
@@ -158,28 +173,15 @@ const RelatedTransactionsPanel: React.FC<Props> = ({ modelName, record, onNaviga
         {!rows.length ? (
           <div className="p-3 text-xs db-text-dim">No {LABELS[active].toLowerCase()} linked to this {modelName}.</div>
         ) : (
-          <table className="w-full text-xs">
-            <thead className="sticky top-0" style={{ background: 'var(--db-surface, #fff)' }}>
-              <tr className="db-text-muted text-left">
-                <th className="px-3 py-1 font-medium">{LABELS[active]}</th>
-                <th className="px-3 py-1 font-medium">status</th>
-                <th className="px-3 py-1 font-medium">date</th>
-                <th className="px-3 py-1 font-medium text-right">{active === 'cash' ? 'amount' : 'total'}</th>
-                {active !== 'cash' && <th className="px-3 py-1 font-medium text-right">balance</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.id} onClick={() => open(active, r)} className="cursor-pointer hover:db-bg-row-active border-t db-border-color">
-                  <td className="px-3 py-1 font-mono db-text-accent">{r.ida || `#${r.id}`}</td>
-                  <td className="px-3 py-1">{r.status || '—'}</td>
-                  <td className="px-3 py-1">{dateOf(r)}</td>
-                  <td className="px-3 py-1 text-right font-mono">{formatCurrency(amountOf(active, r))}</td>
-                  {active !== 'cash' && <td className="px-3 py-1 text-right font-mono">{formatCurrency(Number(r.totals?.balance ?? 0))}</td>}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <DbColumns<Rec>
+            storageKey={`panel:${modelName}:related:${active}`}
+            columns={columnsFor(active)}
+            data={rows}
+            rowKey={(r) => r.id}
+            onOpenRow={(r) => open(active, r)}
+            onOpenWindow={(r) => opener.openWindow(r.id)}
+            compact
+          />
         )}
       </PanelFrame>
     </div>

@@ -83,10 +83,27 @@ Features:
 - Fetches linked records via wcapi
 - Displays in DbColumns with smart default columns (ida, name, status, plus model-specific: sku for items, channel for touches, totals for transactions)
 - Hamburger → FieldOrderDialog for column order, visibility, drag-reorder
-- "+ add" → inline type-ahead search with debounce
-- "×" per row → removes link, saves immediately
-- Click row → opens in new floating window (never navigates current view)
+- Columns from the linked model's `config.layout.panel`; the WC List Standard (`useListGestures`):
+  click selects, double-click or Enter opens the record's card (or its window), Option-double-click
+  opens a browser window
+- "+ add" → the model's card.add (usePanelAdd); "assign" → type-ahead search; "×" → unlink
 - storageKey: `panel:{parentModel}:{linkedModel}` — each context gets its own column config
+
+Every panel list is this component (Bill, 2026-10-31: "all panels and lists have the same
+inherited code and only very rare specialty behaviors"). A panel's speciality comes in as props:
+
+| Prop | For | Used by |
+|------|-----|---------|
+| `byField` | rows are the records whose own field holds the parent's id; nothing is stored on the parent; no unlink | serials, xref, specs (`item_id`), BOM (`parent_item_id`), catalog lines (`catalog_id`) |
+| `read` | rows from a service view | inventory layers (computed remaining) |
+| `sort` | row order | BOM by sequence, catalog item lines first |
+| `pick` | "+ add" picks a record of another model and makes the row with both ids | BOM component, catalog item line |
+| `chipField` | count chips per value; a click filters | serial status |
+| `groupBy` / `groupSummary` | a heading per group with its sums | layers by warehouse |
+| `extraActions` / `children` | the panel's own buttons and content | Build from BOM, + scope line, upload |
+
+Lists that are not records (an order's margin, commission and inventory views, the related
+documents) are `DbColumns` with columns in code.
 
 ---
 
@@ -187,13 +204,15 @@ Any new panel component must use `DbColumns` as its base. No custom table render
 ### Entity panels (specialized behavior beyond LinkedRecordsPanel)
 
 Actions are a LinkedRecordsPanel (refs.links.action, two-sided; Bill 2026-10-31): every list
-inherits one code, and a specialty belongs in the record's .form. These remain to be converted.
+inherits one code, and a specialty belongs in the record's .form. The two below are editors, not lists.
 
 | File | Why it's separate from LinkedRecordsPanel |
 |------|------------------------------------------|
 | `CommentsPanel.tsx` | Four-tab comment editor (Public/Process/Partner/Notes) |
-| `DocumentsPanel.tsx` | File upload, preview, download, virus scan |
 | `FinancialsPanel.tsx` | Margin calculation, aging summary, credit display |
+
+A record's documents are a LinkedRecordsPanel (refs.links.document, two-sided) with
+`FileUploadPanel` under the rows: an upload makes the Document and lists it on the record.
 
 These exist because they have domain-specific behavior that a generic linked-records list can't provide. They still draw no header, loading or empty text of their own: the frame does (`usePanelFrame`), lists read through `usePanelRecords`, and tables are `DbColumns`.
 
@@ -213,7 +232,7 @@ All panels read from `BaseModel` JSONB fields:
 |-------|--------|
 | `.refs.links.contact` | ContactPanel |
 | `.refs.links.{model}` | LinkedRecordsPanel (self-discovering) |
-| `.refs.links.document` | LinkedRecordsPanel or DocumentsPanel |
+| `.refs.links.document` | LinkedRecordsPanel (+ FileUploadPanel to upload) |
 | `.comments` | CommentsPanel |
 | `.config` | DynamicDetail form fields |
 
@@ -250,7 +269,6 @@ import { LinkedRecordsPanel } from '@/apps/common/components/panels/LinkedRecord
 import ContactPanel from '@/apps/common/components/panels/ContactPanel';
 import type { RefContact } from '@/apps/common/components/panels/ContactPanel';
 import CommentsPanel from '@/apps/common/components/panels/CommentsPanel';
-import DocumentsPanel from '@/apps/common/components/panels/DocumentsPanel';
 
 // Column config hook
 import { useListFieldConfig } from '@/hooks/useListFieldConfig';

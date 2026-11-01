@@ -14694,6 +14694,38 @@
                   "label": "dt_modified"
                 }
               ]
+            },
+            "edit": {
+              "title": "BOM component",
+              "fields": [
+                {
+                  "field": "sequence"
+                },
+                {
+                  "field": "quantity"
+                },
+                {
+                  "field": "scrap_factor",
+                  "label": "scrap factor"
+                },
+                {
+                  "field": "is_optional",
+                  "label": "optional",
+                  "type": "select",
+                  "options": [
+                    "true",
+                    "false"
+                  ]
+                },
+                {
+                  "field": "alternate_group",
+                  "label": "alternate group"
+                },
+                {
+                  "field": "change_reason",
+                  "label": "reason"
+                }
+              ]
             }
           },
           "form": {
@@ -14800,28 +14832,30 @@
           ],
           "panel": [
             {
-              "field": "ida",
-              "width": 80
-            },
-            {
-              "field": "purpose",
-              "width": 80
-            },
-            {
-              "field": "status",
-              "width": 70
+              "field": "sequence",
+              "width": 50,
+              "align": "right"
             },
             {
               "field": "child_ida",
-              "width": 100
+              "width": 120
             },
             {
               "field": "child_description",
-              "width": 160
+              "width": 220
             },
             {
-              "align": "right",
               "field": "quantity",
+              "width": 60,
+              "align": "right"
+            },
+            {
+              "field": "scrap_factor",
+              "width": 60,
+              "align": "right"
+            },
+            {
+              "field": "is_optional",
               "width": 60
             }
           ],
@@ -18503,8 +18537,78 @@
               "detail": "default"
             }
           },
-          "panel": [],
-          "card": [],
+          "panel": [
+            {
+              "field": "item_ida",
+              "width": 120
+            },
+            {
+              "field": "scope.all_items",
+              "width": 70
+            },
+            {
+              "field": "scope.categories",
+              "width": 140
+            },
+            {
+              "field": "adjustment_type",
+              "width": 110
+            },
+            {
+              "field": "adjustment_value",
+              "width": 90,
+              "align": "right"
+            },
+            {
+              "field": "price_unit",
+              "width": 90,
+              "align": "right",
+              "format": "currency"
+            },
+            {
+              "field": "min_qty",
+              "width": 70,
+              "align": "right"
+            },
+            {
+              "field": "max_qty",
+              "width": 70,
+              "align": "right"
+            }
+          ],
+          "card": {
+            "edit": {
+              "title": "Catalog line",
+              "fields": [
+                {
+                  "field": "adjustment_type",
+                  "label": "adjustment",
+                  "type": "select",
+                  "options": [
+                    "percent_off",
+                    "amount_off",
+                    "fixed_price"
+                  ]
+                },
+                {
+                  "field": "adjustment_value",
+                  "label": "value"
+                },
+                {
+                  "field": "price_unit",
+                  "label": "price unit"
+                },
+                {
+                  "field": "min_qty",
+                  "label": "min qty"
+                },
+                {
+                  "field": "max_qty",
+                  "label": "max qty"
+                }
+              ]
+            }
+          },
           "tabs": [
             "contacts",
             "actions",
@@ -25282,28 +25386,26 @@
           ],
           "panel": [
             {
-              "field": "ida",
-              "width": 80
+              "field": "name",
+              "width": 220
             },
             {
               "field": "purpose",
-              "width": 80
-            },
-            {
-              "field": "status",
-              "width": 70
-            },
-            {
-              "field": "name",
-              "width": 180
+              "width": 90
             },
             {
               "field": "mime_type",
-              "width": 80
+              "width": 110
             },
             {
-              "field": "comments.process",
-              "width": 120
+              "field": "size_bytes",
+              "width": 80,
+              "align": "right"
+            },
+            {
+              "field": "dt_created",
+              "width": 90,
+              "format": "date"
             }
           ],
           "active": {
@@ -33632,28 +33734,57 @@
           ],
           "panel": [
             {
-              "field": "ida",
-              "width": 80
-            },
-            {
-              "field": "purpose",
-              "width": 80
-            },
-            {
-              "field": "status",
-              "width": 70
-            },
-            {
-              "field": "item_ida",
-              "width": 100
-            },
-            {
               "field": "lot",
-              "width": 80
+              "width": 90
             },
             {
-              "field": "source_doc_type",
-              "width": 80
+              "field": "received",
+              "width": 60,
+              "align": "right"
+            },
+            {
+              "field": "issued",
+              "width": 60,
+              "align": "right"
+            },
+            {
+              "field": "remaining",
+              "width": 70,
+              "align": "right"
+            },
+            {
+              "field": "unit_po",
+              "width": 70,
+              "align": "right",
+              "format": "currency"
+            },
+            {
+              "field": "landed",
+              "width": 70,
+              "align": "right",
+              "format": "currency"
+            },
+            {
+              "field": "fifo_snapshot",
+              "width": 70,
+              "align": "right",
+              "format": "currency"
+            },
+            {
+              "field": "lifo_snapshot",
+              "width": 70,
+              "align": "right",
+              "format": "currency"
+            },
+            {
+              "field": "moving_avg",
+              "width": 70,
+              "align": "right",
+              "format": "currency"
+            },
+            {
+              "field": "parent_model",
+              "width": 90
             }
           ],
           "active": {
@@ -42431,28 +42562,26 @@
           ],
           "panel": [
             {
-              "field": "ida",
-              "width": 80
-            },
-            {
               "field": "purpose",
               "width": 80
             },
             {
-              "field": "status",
-              "width": 70
-            },
-            {
-              "field": "item_ida",
-              "width": 100
-            },
-            {
               "field": "external_sku",
-              "width": 100
+              "width": 130
             },
             {
               "field": "source_name",
-              "width": 100
+              "width": 150
+            },
+            {
+              "field": "cost",
+              "width": 80,
+              "align": "right",
+              "format": "currency"
+            },
+            {
+              "field": "is_preferred",
+              "width": 70
             }
           ],
           "active": {
@@ -74297,28 +74426,24 @@
           ],
           "panel": [
             {
-              "field": "ida",
-              "width": 80
-            },
-            {
-              "field": "purpose",
-              "width": 80
+              "field": "serial_ida",
+              "width": 140
             },
             {
               "field": "status",
-              "width": 70
-            },
-            {
-              "field": "serial_ida",
-              "width": 120
+              "width": 80
             },
             {
               "field": "item_ida",
-              "width": 100
+              "width": 110
             },
             {
               "field": "description",
-              "width": 160
+              "width": 200
+            },
+            {
+              "field": "site",
+              "width": 100
             }
           ],
           "active": {

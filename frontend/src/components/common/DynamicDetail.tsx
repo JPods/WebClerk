@@ -1015,7 +1015,6 @@ function DynamicDetail({
                 modelName={modelName}
                 recordId={recordId}
                 recordIda={data?.ida}
-                compact={hideToolbar}
               />
             )}
 

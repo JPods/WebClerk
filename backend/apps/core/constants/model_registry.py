@@ -102,6 +102,7 @@ MODEL_REGISTRY: Dict[str, ModelMeta] = {
     'item_usage': ModelMeta('item_usage', 'apps.products.models.ItemUsage', 'Item Usage', 'Item Usages', 'item-usages', kind='support', aliases=['item_usages']),
     'item_xref': ModelMeta('item_xref', 'apps.products.models.ItemXRef', 'Item XRef', 'Item XRefs', 'item-xrefs', kind='support', aliases=['item_xrefs']),
     'serial': ModelMeta('serial', 'apps.products.models.serial.Serial', 'Serial', 'Serials', 'serials', kind='support', aliases=['serials']),
+    'specification': ModelMeta('specification', 'apps.products.models.specification.Specification', 'Specification', 'Specifications', 'specifications', kind='support', aliases=['specifications']),
     'variant': ModelMeta('variant', 'apps.products.models.Variant', 'Variant', 'Variants', 'variants', kind='support', aliases=['variants']),
     'warehouse': ModelMeta('warehouse', 'apps.products.models.warehouse.Warehouse', 'Warehouse', 'Warehouses', 'warehouses', kind='support', aliases=['warehouses']),
 

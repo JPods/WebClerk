@@ -5,6 +5,7 @@
 // or only the lines selected." — WC2 behavior.
 import React from 'react';
 import { formatCurrency, formatPercent } from '@/utils/stringUtils';
+import { DbColumns, type DbColumnDef } from '@/apps/common/components/panels/DbColumns';
 
 interface MarginPanelProps {
   lines: any[];
@@ -20,9 +21,22 @@ const marginStyle = (margin: number): React.CSSProperties =>
       ? { color: 'var(--db-accent-red)' }
       : { color: 'var(--db-text-muted)' };
 
+interface MarginRow { id: number; itemCode: string; description: string; qty: number; price: number; cost: number; margin: number }
+
+// The shared list's columns (DbColumns): one row per line.
+const COLUMNS: DbColumnDef<MarginRow>[] = [
+  { key: 'item', label: 'item', width: '120px', className: 'font-mono', render: (r) => r.itemCode },
+  { key: 'description', label: 'description', render: (r) => <span style={{ color: 'var(--db-text-muted)' }}>{r.description}</span> },
+  { key: 'qty', label: 'qty', width: '60px', className: 'text-right', render: (r) => r.qty },
+  { key: 'price', label: 'price', width: '90px', className: 'text-right', render: (r) => formatCurrency(r.price) },
+  { key: 'cost', label: 'cost', width: '90px', className: 'text-right', render: (r) => formatCurrency(r.cost) },
+  { key: 'margin', label: 'margin', width: '90px', className: 'text-right font-medium',
+    render: (r) => <span style={marginStyle(r.margin)}>{r.margin !== 0 ? formatCurrency(r.margin) : '—'}</span> },
+];
+
 const MarginPanel: React.FC<MarginPanelProps> = ({ lines, selectedIds, isSellSide }) => {
   // Build margin rows from lines
-  const rows = React.useMemo(() => {
+  const rows: MarginRow[] = React.useMemo(() => {
     return lines.map((line, idx) => {
       const itemCode = line.item?.ida_item || line.ida_item || '—';
       const description = line.item?.description || line.description || '—';
@@ -60,39 +74,14 @@ const MarginPanel: React.FC<MarginPanelProps> = ({ lines, selectedIds, isSellSid
 
   return (
     <div>
-      <table className="w-full text-xs border-collapse">
-        <thead>
-          <tr style={{ background: 'var(--db-surface-alt)', color: 'var(--db-text-muted)' }}>
-            <th className="text-left px-2 py-1.5 font-medium">item</th>
-            <th className="text-left px-2 py-1.5 font-medium">description</th>
-            <th className="text-right px-2 py-1.5 font-medium">qty</th>
-            <th className="text-right px-2 py-1.5 font-medium">price</th>
-            <th className="text-right px-2 py-1.5 font-medium">cost</th>
-            <th className="text-right px-2 py-1.5 font-medium">margin</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => {
-            const isSelected = selectedIds.size === 0 || selectedIds.has(r.id);
-            return (
-              <tr
-                key={r.id}
-                className={isSelected ? '' : 'opacity-40'}
-                style={{ borderBottom: '1px solid var(--db-border)' }}
-              >
-                <td className="px-2 py-1 font-mono">{r.itemCode}</td>
-                <td className="px-2 py-1 max-w-[200px] truncate" style={{ color: 'var(--db-text-muted)' }}>{r.description}</td>
-                <td className="px-2 py-1 text-right">{r.qty}</td>
-                <td className="px-2 py-1 text-right">{formatCurrency(r.price)}</td>
-                <td className="px-2 py-1 text-right">{formatCurrency(r.cost)}</td>
-                <td className="px-2 py-1 text-right font-medium" style={marginStyle(r.margin)}>
-                  {r.margin !== 0 ? formatCurrency(r.margin) : '—'}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      <DbColumns<MarginRow>
+        storageKey="panel:lines:margin"
+        columns={COLUMNS}
+        data={rows}
+        rowKey={(r) => r.id}
+        dimmed={(r) => selectedIds.size > 0 && !selectedIds.has(r.id)}
+        compact
+      />
 
       {/* Footer totals */}
       <div className="px-2 py-2 text-xs" style={{ background: 'var(--db-surface-alt)', borderTop: '2px solid var(--db-border)' }}>

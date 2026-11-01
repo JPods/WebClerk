@@ -97,6 +97,14 @@ export interface DbColumnsProps<T = Record<string, unknown>> {
   onAssign?: () => void;
   /** Optional: remove panel — Option+Cmd/Ctrl+click on header */
   onRemove?: () => void;
+  /** A panel's own buttons beside "+ add" (Build from BOM, upload). */
+  extraActions?: React.ReactNode;
+  /** Rows under a heading per group, in the order the data gives them (layers by warehouse);
+   *  the heading carries what the group sums to. */
+  groupBy?: (record: T) => string;
+  groupSummary?: (records: T[]) => React.ReactNode;
+  /** Rows shown faint (lines outside the selection a margin total is for). */
+  dimmed?: (record: T) => boolean;
   /** Optional: collapsible section (default true if sectionLabel provided) */
   collapsible?: boolean;
   /** Optional: start collapsed */
@@ -136,6 +144,10 @@ export function DbColumns<T extends object>({
   onAdd,
   onAssign,
   onRemove,
+  extraActions,
+  groupBy,
+  groupSummary,
+  dimmed,
   collapsible = true,
   defaultCollapsed = false,
   renderRow,
@@ -226,8 +238,17 @@ export function DbColumns<T extends object>({
       )}
 
       {/* ── Data rows ─────────────────────────────────────────── */}
-      {data.map((record) => {
+      {data.map((record, i) => {
         const rk = rowKey(record);
+        const group = groupBy?.(record);
+        const heading = groupBy && (i === 0 || groupBy(data[i - 1]) !== group) ? (
+          <div key={`group:${group}`} className="db-list-group"
+               style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 12px 2px', fontWeight: 600 }}>
+            <span>{group}</span>
+            {groupSummary && <span className="db-text-dim" style={{ fontWeight: 400 }}>
+              {groupSummary(data.filter((r) => groupBy(r) === group))}</span>}
+          </div>
+        ) : null;
         const isSelected = standard ? picked.has(rk) : selectedKey != null && rk === selectedKey;
         const isOpen = standard && openKey != null && rk === openKey;
         const openStyle = isOpen ? { outline: '2px solid var(--db-accent, #0d6efd)', outlineOffset: -2 } : undefined;
@@ -235,18 +256,18 @@ export function DbColumns<T extends object>({
         // Custom row renderer
         if (renderRow) {
           return (
-            <div key={rk} className={isSelected ? 'db-list-row--checked' : ''} style={openStyle} {...rowGestures(record, rk)}>
+            <React.Fragment key={rk}>{heading}<div className={isSelected ? 'db-list-row--checked' : ''} style={openStyle} {...rowGestures(record, rk)}>
               {renderRow(record, visibleColumns)}
-            </div>
+            </div></React.Fragment>
           );
         }
 
         // Default columnar row
         return (
+          <React.Fragment key={rk}>{heading}
           <div
-            key={rk}
             className={`db-list-row ${isSelected ? 'db-list-row--checked' : ''}`}
-            style={{ padding: compact ? '3px 12px' : '6px 12px', ...openStyle }}
+            style={{ padding: compact ? '3px 12px' : '6px 12px', ...openStyle, ...(dimmed?.(record) ? { opacity: 0.4 } : {}) }}
             onClick={standard ? undefined : () => onSelectRow?.(record)}
             {...rowGestures(record, rk)}
           >
@@ -280,6 +301,7 @@ export function DbColumns<T extends object>({
               </button>
             )}
           </div>
+          </React.Fragment>
         );
       })}
 
@@ -296,15 +318,16 @@ export function DbColumns<T extends object>({
     </>
   );
 
-  const headerActions = React.useMemo(() => (onAdd || onAssign) ? (
+  const headerActions = React.useMemo(() => (onAdd || onAssign || extraActions) ? (
     <>
+      {extraActions}
       {onAdd && (
         <button type="button" className="db-section-header__action" data-wc="panel-add"
           onClick={(e) => { e.stopPropagation(); onAdd(e.currentTarget); }}>+ add</button>
       )}
       {onAssign && <button type="button" className="db-section-header__action" onClick={onAssign}>assign</button>}
     </>
-  ) : undefined, [onAdd, onAssign]);
+  ) : undefined, [onAdd, onAssign, extraActions]);
 
   const list = standard
     ? <div {...gestures.listProps} style={{ outline: 'none' }}>{table}</div>

@@ -26,9 +26,10 @@ type PanelRenderer = (ctx: PanelContext) => ReactElement;
 
 // ── Lazy imports — panels load on first tab click ──
 import { lazy, Suspense, createElement } from 'react';
+import { getInventoryLayers } from '@/api/workorderApi';
+import { formatCurrency } from '@/utils/stringUtils';
 
 const CommPanel = lazy(() => import('@/apps/communications/components/CommPanel'));
-const DocumentsPanel = lazy(() => import('@/apps/common/components/panels/DocumentsPanel'));
 const LinkedRecordsPanel = lazy(() => import('@/apps/common/components/panels/LinkedRecordsPanel').then(m => ({ default: m.LinkedRecordsPanel })));
 const CommentsPanel = lazy(() => import('@/apps/common/components/panels/CommentsPanel'));
 const FinancialsPanel = lazy(() => import('@/apps/common/components/panels/FinancialsPanel'));
@@ -39,12 +40,7 @@ const ProjectGanttPanel = lazy(() => import('@/apps/common/components/panels/Pro
 const ProjectActionGantt = lazy(() => import('@/apps/common/components/panels/ProjectActionGantt'));
 const BomPanel = lazy(() => import('@/apps/products/components/BomPanel'));
 const CatalogLinesPanel = lazy(() => import('@/apps/products/components/CatalogLinesPanel'));
-const SerialPanel = lazy(() => import('@/apps/products/components/SerialPanel'));
-const ProductListPanel = lazy(() => import('@/apps/products/components/ProductListPanel'));
-const InventoryLayersPanel = lazy(() => import('@/apps/products/components/InventoryLayersPanel'));
 const CycleCountPanel = lazy(() => import('@/apps/products/components/CycleCountPanel'));
-const XRefCard = lazy(() => import('@/apps/products/components/XRefCard'));
-const SpecCard = lazy(() => import('@/apps/products/components/SpecCard'));
 const DataGrid = lazy(() => import('@/components/common/DataGrid'));
 const PanelTable = lazy(() => import('@/apps/common/components/panels/PanelTable').then(m => ({ default: m.PanelTable })));
 const LazyTimeClockWidget = lazy(() => import('@/components/widgets/TimeClockWidget').then(m => ({ default: m.TimeClockWidget })));
@@ -65,12 +61,11 @@ const registry: Record<string, PanelRenderer> = {
     linkedModel: 'action', parentModel: ctx.modelName, parentId: ctx.data?.id, defaultCollapsed: false,
   })),
 
-  documents: (ctx) => wrap(createElement(DocumentsPanel, {
-    parent_model: ctx.modelName,
-    parentId: ctx.data.id,
-    data: ctx.data.refs?.links?.document,
-    isEditing: ctx.isEditing,
-  })),
+  // A record's documents are those it lists in refs.links.document, each listing it back; the
+  // upload under the rows makes the document and adds it there.
+  documents: (ctx) => wrap(createElement(LinkedRecordsPanel, {
+    linkedModel: 'document', parentModel: ctx.modelName, parentId: ctx.data?.id, defaultCollapsed: false,
+  }, createElement(LazyFileUploadPanel, { modelName: ctx.modelName, recordId: ctx.recordId, recordIda: ctx.data?.ida, className: 'px-3 py-1' }))),
 
   notes: (ctx) => wrap(createElement(CommentsPanel, {
     entityType: ctx.modelName,
@@ -170,31 +165,32 @@ const registry: Record<string, PanelRenderer> = {
 
   catalog_lines: (ctx) => wrap(createElement(CatalogLinesPanel, { catalogId: ctx.data.id })),
 
-  serials: (ctx) => wrap(createElement(SerialPanel, {
-    itemId: ctx.data.id,
-    itemCode: ctx.data.ida || ctx.data.item_code || `#${ctx.data.id}`,
+  // An item's serials, cross references and specifications: the records whose item_id is the
+  // item — the shared list, columns from each model's layout.panel.
+  serials: (ctx) => wrap(createElement(LinkedRecordsPanel, {
+    linkedModel: 'serial', parentModel: ctx.modelName, parentId: ctx.data?.id, byField: 'item_id',
+    chipField: 'status', title: 'Serials', defaultCollapsed: false,
   })),
 
-  xref: (ctx) => wrap(createElement(ProductListPanel, {
-    model: 'item_xref',
-    itemId: ctx.data.id,
-    filterField: 'item_id',
-    CardComponent: XRefCard,
-    headers: ['Type', 'XRef Code', 'Description', 'Org'],
-    headerWidths: ['w-16', 'w-28', 'flex-1', 'w-20'],
-    onCardClick: (id: any) => ctx.ensureWindow(`/item_xref?id=${id}`, `XRef #${id}`),
+  xref: (ctx) => wrap(createElement(LinkedRecordsPanel, {
+    linkedModel: 'item_xref', parentModel: ctx.modelName, parentId: ctx.data?.id, byField: 'item_id',
+    title: 'Cross references', defaultCollapsed: false,
   })),
 
-  specs: (ctx) => wrap(createElement(ProductListPanel, {
-    model: 'specification',
-    itemId: ctx.data.id,
-    filterField: 'item_id',
-    CardComponent: SpecCard,
-    headers: ['Name', 'Value', 'Unit', 'Category'],
-    headerWidths: ['w-32', 'w-24', 'w-16', 'flex-1'],
+  specs: (ctx) => wrap(createElement(LinkedRecordsPanel, {
+    linkedModel: 'specification', parentModel: ctx.modelName, parentId: ctx.data?.id, byField: 'item_id',
+    title: 'Specifications', defaultCollapsed: false,
   })),
 
-  layers: (ctx) => wrap(createElement(InventoryLayersPanel, { itemId: ctx.data.id })),
+  // An item's cost layers from the inventory service view (it computes what remains), by warehouse.
+  layers: (ctx) => wrap(createElement(LinkedRecordsPanel, {
+    linkedModel: 'inventory_layer', parentModel: ctx.modelName, parentId: ctx.data?.id, byField: 'item_id',
+    read: getInventoryLayers, editable: false, title: 'Inventory layers', defaultCollapsed: false,
+    groupBy: (l: any) => l.warehouse_name || l.warehouse_code || 'Default',
+    // Sums of the server's per-layer values; the view has no per-warehouse total.
+    groupSummary: (rows: any[]) => `${rows.reduce((s, l) => s + Number(l.remaining || 0), 0)} units | ${
+      formatCurrency(rows.reduce((s, l) => s + Number(l.remaining || 0) * Number(l.landed || 0), 0))} value`,
+  })),
 
   counts: (ctx) => wrap(createElement(CycleCountPanel, { itemId: ctx.data.id })),
 
