@@ -98,3 +98,16 @@ def test_a_line_payload_never_writes_events(client):
     assert saved.status_code in (400, 403)
     assert saved.json()['error']['code'] in ('events_are_the_record', 'transaction_denied')
     assert _q(tire) == 10
+
+
+def test_a_production_line_takes_its_sign_from_its_type(client):
+    """Build in, consume and scrap out, whatever sign the screen sent (one-form review B: the
+    sign was the workorder window's alone)."""
+    from apps.transactions.models import WorkOrderLine
+    cart, wheel, bolt = _item('Cart'), _item('Wheel', stock='40', cost='8'), _item('Bolt', stock='40', cost='1')
+    wo_id = _new_workorder(client, 'production', [
+        {'id': -1, 'line_type': 'build', 'item': {'item_id': cart.pk}, 'quantity': {'active': -2}},
+        {'id': -2, 'line_type': 'consume', 'item': {'item_id': wheel.pk}, 'quantity': {'active': 5}},
+        {'id': -3, 'line_type': 'scrap', 'item': {'item_id': bolt.pk}, 'quantity': {'active': 1}}])
+    got = {l.line_type: l.quantity['active'] for l in WorkOrderLine.objects.filter(workorder_id=wo_id)}
+    assert got == {'build': 2, 'consume': -5, 'scrap': -1}

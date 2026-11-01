@@ -49,3 +49,9 @@ export const APP_DETAIL_COMPONENTS: Record<string, React.LazyExoticComponent<Rea
   requisition: React.lazy(() => import('@/apps/transactions/components/TransactionDetail')),
   cash: React.lazy(() => import('@/apps/transactions/components/TransactionDetail')),
 };
+
+/** A non-staff login's form for a model with no form component of its own: the layout form
+ *  (config.layout.form) — never the field grid, which only staff see (Bill, 2026-11-01, an always
+ *  rule). Until one form (readmes/101-one-form.md) gives every model the same form. */
+export const FORM_FOR_ANY_MODEL = React.lazy(() => import('@/components/common/ModelDetailPage'));
+

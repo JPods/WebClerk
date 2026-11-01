@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.db import models
 from .base_line_model import BaseExecLineModel, EVENTS_HELP, default_events
 
@@ -62,6 +64,7 @@ class WorkOrderLine(BaseExecLineModel):
         that the book never moves: a save that changes it is refused. (Per-warehouse books wait
         for the warehouse review, action 31277.)"""
         from apps.transactions.services.line_door import is_correction
+        self._sign_by_type()
         if self.line_type == 'count' and is_correction(self):
             quantity = dict(self.quantity) if isinstance(self.quantity, dict) else {}
             if self.pk is None:
@@ -76,6 +79,19 @@ class WorkOrderLine(BaseExecLineModel):
                                   "counted; it does not change. Change the count (active) instead.",
                                   {'line_id': self.pk})
         return super().save(*args, **kwargs)
+
+    #: A production line's quantity carries its direction (Bill, 2026-09-26): build in, consume and
+    #: scrap out. The line type decides the sign, so 5 typed on a consume line is −5 — on the
+    #: server, whatever screen sent it (it was the workorder window's alone; one-form review B).
+    SIGN = {'build': 1, 'consume': -1, 'scrap': -1}
+
+    def _sign_by_type(self) -> None:
+        sign = self.SIGN.get(self.line_type or '')
+        if sign is None or not isinstance(self.quantity, dict):
+            return
+        active = self.quantity.get('active')
+        if isinstance(active, (int, float, Decimal)) and not isinstance(active, bool) and active:
+            self.quantity = {**self.quantity, 'active': sign * abs(active)}
 
     def _book(self) -> float:
         from apps.products.models import Item

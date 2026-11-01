@@ -2,11 +2,16 @@
 import { useMemo, useState, useCallback } from "react";
 import { getUI, setUI } from "@/utils/contactUI";
 
-/** Detail view preference from config.ui */
-export type DetailViewPref = 'app' | 'admin' | 'parade';
-export function getDetailViewPref(): DetailViewPref {
-  return getUI<DetailViewPref>('detail.default_view', 'app');
+/** Detail view preference from config.ui. Only staff see the grid (db.detail) or choose a view —
+ *  an always rule (Bill, 2026-11-01); everyone else sees the form. */
+export type DetailViewPref = 'form' | 'detail';
+export function getDetailViewPref(isStaff: boolean): DetailViewPref {
+  return isStaff && getUI<string>('detail.default_view', 'form') === 'detail' ? 'detail' : 'form';
 }
+
+/** is_staff (a superuser is staff): who may see db.detail and the View selector. */
+export const isStaffUser = (u: { is_staff?: boolean; is_superuser?: boolean } | null | undefined) =>
+  !!(u?.is_staff || u?.is_superuser);
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { FiLogOut } from "react-icons/fi";
@@ -30,7 +35,7 @@ export default function MacTopBar({ activePath }: Props) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [loggingOut, setLoggingOut] = useState(false);
-  const [detailView, setDetailView] = useState<DetailViewPref>(() => getDetailViewPref());
+  const [detailView, setDetailView] = useState<DetailViewPref>(() => getDetailViewPref(isStaffUser(user)));
 
   const orderedWindows = useMemo(() => [...windows].sort((a, b) => a.openedAt - b.openedAt), [windows]);
   const refreshExpires = useAppSelector((state) => state.auth.refreshExpires);
@@ -131,7 +136,7 @@ export default function MacTopBar({ activePath }: Props) {
         <HelpMenu />
         <TaskManagerIndicator />
 
-        <select data-wc="select" className="topbar-ctl" title="App: business forms (ui.json) | Admin: field grid (db.json) | Parade: rendered layouts" value={detailView}
+        {isStaffUser(user) && <select data-wc="select" className="topbar-ctl" title="Form: the business form (db.form) | Detail: every field, the grid (db.detail) — staff only" value={detailView}
           onChange={(e) => {
             const v = e.target.value as DetailViewPref;
             setUI('detail.default_view', v);
@@ -139,10 +144,9 @@ export default function MacTopBar({ activePath }: Props) {
             window.dispatchEvent(new CustomEvent('wc3-view-pref-changed', { detail: { mode: v } }));
           }}
         >
-          <option value="app">View: App</option>
-          <option value="admin">View: Admin</option>
-          <option value="parade">View: Parade</option>
-        </select>
+          <option value="form">View: Form</option>
+          <option value="detail">View: Detail</option>
+        </select>}
 
         <select data-wc="select" className="topbar-ctl" title="Font size"
           defaultValue={String(getUI('theme.' + getUI('theme.active', 'dark') + '.font.size', 14))}

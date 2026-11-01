@@ -6,7 +6,7 @@ import type { DraftGetter } from '../../hooks/useFormDraft';
 import { useDispatch } from 'react-redux';
 import { showToast } from '../../store/slices/toastSlice';
 import { useDataBrowser, numId, toFieldNames, type FieldSpec } from '../../hooks/useDataBrowser';
-import { getDetailViewPref } from '../../layout/MacTopBar';
+import { getDetailViewPref, isStaffUser, type DetailViewPref } from '../../layout/MacTopBar';
 import JsonEnvelopePanel from '../../components/common/JsonEnvelopePanel';
 import FieldOrderDialog from '../../components/common/FieldOrderDialog';
 import RelatedDialog from '../../components/common/RelatedDialog';
@@ -29,7 +29,7 @@ import { MatchCandidatesPanel } from './MatchCandidatesPanel';
 import { GroupedDetailFields } from './GroupedDetailFields';
 import { JsonSchemaTree } from '../../components/widgets/JsonSchemaTree';
 import { themes, type ThemeKey } from './dbThemes';
-import { APP_DETAIL_ROUTES, APP_DETAIL_COMPONENTS } from './dbRoutes';
+import { APP_DETAIL_ROUTES, APP_DETAIL_COMPONENTS, FORM_FOR_ANY_MODEL } from './dbRoutes';
 import './DataBrowser.css';
 
 // ---------------------------------------------------------------------------
@@ -53,62 +53,6 @@ const Btn: React.FC<{
     disabled={disabled} title={title} onClick={onClick}>{children}</button>
 );
 
-// ---------------------------------------------------------------------------
-// Layout Parade — renders a sample record through its detail component
-// ---------------------------------------------------------------------------
-
-const LayoutParadePane: React.FC<{
-  modelName: string;
-  Component: React.ComponentType<any>;
-}> = ({ modelName, Component }) => {
-  const [sampleId, setSampleId] = useState<number | null>(null);
-  const [sampleData, setSampleData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setSampleId(null);
-    setSampleData(null);
-    (async () => {
-      try {
-        const { getRecords } = await import('@/api/wcapi');
-        const res = await getRecords(modelName, { limit: 1 }) as any;
-        const rec = res?.results?.[0];
-        if (!cancelled && rec) {
-          setSampleId(rec.id);
-          setSampleData(rec);
-        }
-      } catch { /* no sample available */ }
-      if (!cancelled) setLoading(false);
-    })();
-    return () => { cancelled = true; };
-  }, [modelName]);
-
-  if (loading) return <div className="p-4 text-sm" style={{ color: 'var(--db-text-muted)' }}>Loading {modelName} sample...</div>;
-  if (!sampleId) return <div className="p-4 text-sm" style={{ color: 'var(--db-text-muted)' }}>No {modelName} records — layout preview needs at least one record.</div>;
-
-  return (
-    <div className="h-full">
-      <div className="px-3 py-1 text-xs font-mono" style={{ color: 'var(--db-accent)', background: 'var(--db-surface-alt)', borderBottom: '1px solid var(--db-border)' }}>
-        Parade: {modelName} #{sampleId}
-      </div>
-      <Component
-        modeProp="view"
-        recordId={sampleId}
-        id={sampleId}
-        modelName={modelName}
-        dataProp={sampleData}
-        hideBreadcrumb
-        inline
-        onSaved={() => {}}
-        onCancelInline={() => {}}
-        onRegisterActions={() => {}}
-        onEditStateChange={() => {}}
-      />
-    </div>
-  );
-};
 
 // ---------------------------------------------------------------------------
 // Component
@@ -378,16 +322,17 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
   const tList = themes[listTheme];
   const tDetail = themes[detailTheme];
   const baseFontSize = baseFontSizeNum;
-  const [viewPref, setViewPref] = useState<'app' | 'admin' | 'parade'>(() => getDetailViewPref());
+  const isStaff = isStaffUser(user);
+  const [viewPref, setViewPref] = useState<DetailViewPref>(() => getDetailViewPref(isStaff));
 
   // Listen for view pref changes from TopBar
   useEffect(() => {
     const handler = (e: Event) => {
-      setViewPref((e as CustomEvent).detail.mode);
+      setViewPref(isStaff && (e as CustomEvent).detail.mode === 'detail' ? 'detail' : 'form');
     };
     window.addEventListener('wc3-view-pref-changed', handler);
     return () => window.removeEventListener('wc3-view-pref-changed', handler);
-  }, []);
+  }, [isStaff]);
 
   // Load UI config from server on mount
   useEffect(() => {
@@ -991,7 +936,7 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
                 // An open form follows a plain click or arrow key, dropping unsaved edits (Bill,
                 // 2026-10-31); a closed one stays closed — selecting never opens it.
                 if (moved != null && db.selectedId != null && moved !== db.selectedId) {
-                  const admin = viewPref !== 'app' || !APP_DETAIL_COMPONENTS[db.selectedModel];
+                  const admin = isStaff && (viewPref === 'detail' || !APP_DETAIL_COMPONENTS[db.selectedModel]);
                   const draft = admin ? (db.isDirty && db.selectedRecord ? structuredClone(db.selectedRecord) : null)
                     : detailDraftRef.current?.() ?? null;
                   setDropped(draft ? { id: db.selectedId, draft, admin } : null);
@@ -1086,15 +1031,12 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
             ?? (isViewSource ? (db.selectedRecord as any)._sourceModel || db.selectedModel : db.selectedModel);
           const detailId = converted?.id
             ?? (isViewSource ? (db.selectedRecord as any)._sourceId || db.selectedId : db.selectedId);
-          const AppDetailComponent = viewPref === 'app' ? APP_DETAIL_COMPONENTS[detailModel] : null;
-          // Parade mode: render any model's layout — works on all models, not just settings
-          const paradeModel = viewPref === 'parade' ? (
-            db.selectedRecord?.purpose === 'wc:model' ? db.selectedRecord.parent_model : detailModel
-          ) : null;
-          const ParadeComponent = paradeModel ? APP_DETAIL_COMPONENTS[paradeModel] : null;
-          console.log('%c[DB-DETAIL]', 'color: cyan; font-size: 14px; font-weight: bold', { viewPref, detailModel, detailId, hasAppComponent: !!AppDetailComponent, willRenderApp: !!(viewPref === 'app' && AppDetailComponent && detailId), paradeModel });
+          // Only staff see the grid (an always rule, Bill 2026-11-01): anyone else gets the model's form,
+          // the layout form for a model with no form component of its own (until one form, plan 101).
+          const AppDetailComponent = viewPref === 'form'
+            ? (APP_DETAIL_COMPONENTS[detailModel] ?? (isStaff ? null : FORM_FOR_ANY_MODEL)) : null;
           return (
-        <div data-wc="db-detail-pane" data-zone="db.detail | .db-detail-pane | DataBrowser.tsx" data-theme={detailTheme} className={`db-detail-pane ${viewPref === 'app' && AppDetailComponent ? 'db-detail-pane--app' : ''}`} style={{ width: detailWidth, fontSize: baseFontSize }}>
+        <div data-wc="db-detail-pane" data-zone="db.detail | .db-detail-pane | DataBrowser.tsx" data-theme={detailTheme} className={`db-detail-pane ${AppDetailComponent ? 'db-detail-pane--app' : ''}`} style={{ width: detailWidth, fontSize: baseFontSize }}>
           {/* Glass detail toolbar removed — DetailToolbar in each ui.json component is the single source */}
           <div className="db-detail-body">
             {/* TouchBar — phone/email/text icons for contact-linked records */}
@@ -1108,34 +1050,8 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
                 touchPrefs={(user as any)?.config?.touch}
               />
             )}
-            {/* Parade mode: render layout preview */}
-            {viewPref === 'parade' && ParadeComponent && paradeModel && detailId ? (
-              <React.Suspense fallback={<div className="db-loading-fallback">Loading {paradeModel} layout...</div>}>
-                {db.selectedModel === 'setting' && db.selectedRecord?.purpose === 'wc:model' ? (
-                  <LayoutParadePane modelName={paradeModel} Component={ParadeComponent} />
-                ) : (
-                  <ParadeComponent
-                    modeProp="view"
-                    recordId={detailId}
-                    id={detailId}
-                    modelName={paradeModel}
-                    dataProp={db.selectedRecord}
-                    hideBreadcrumb
-                    inline
-                    onSaved={() => {}}
-                    onCancelInline={() => {}}
-                    onRegisterActions={() => {}}
-                    onEditStateChange={() => {}}
-                  />
-                )}
-              </React.Suspense>
-            ) : viewPref === 'parade' && db.selectedRecord && !ParadeComponent ? (
-              <div className="p-4 text-sm" style={{ color: 'var(--db-text-muted)' }}>
-                No layout component for <strong>{paradeModel || detailModel}</strong>. Available in App mode only.
-              </div>
-            ) : null}
             {/* App mode: render the model's Detail.tsx component inline */}
-            {viewPref === 'app' && AppDetailComponent && detailId ? (
+            {AppDetailComponent && detailId ? (
               <React.Suspense fallback={<div className="db-loading-fallback">Loading...</div>}>
                 <AppDetailComponent
                   key={converted ? `${converted.model}:${converted.id}` : undefined}
@@ -1159,8 +1075,8 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
                   onEditStateChange={(editing: boolean) => setDetailIsEditing(editing)}
                 />
               </React.Suspense>
-            ) : db.selectedRecord && viewPref !== 'parade' ? (
-              /* Admin mode: DataBrowser field grid — grouped or flat */
+            ) : db.selectedRecord && isStaff ? (
+              /* Detail (db.detail): the field grid — staff only, an always rule */
               <>
               {/* Item image — upper right in admin detail */}
               {detailModel === 'item' && db.selectedRecord.ida && (
@@ -1195,9 +1111,9 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
 
             {/* Related models render as LinkedRecordsPanels via refs.links — no generic panel */}
 
-            {/* JSON envelope panel — tree editors for metadata, prefs, config, refs.
-                Skip when app or parade mode renders the detail component (which has its own json_tree). */}
-            {viewPref !== 'app' && viewPref !== 'parade' && db.selectedRecord && (
+            {/* JSON envelope panel — tree editors for metadata, prefs, config, refs: part of the
+                detail (staff only); a form has its own json_tree. */}
+            {!AppDetailComponent && isStaff && db.selectedRecord && (
               <JsonEnvelopePanel
                 record={db.selectedRecord as Record<string, any>}
                 onChange={(field, value) => db.updateField(field, value)}
