@@ -369,6 +369,16 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
 
   // --- Field behaviors ---
   const [fieldBehaviors, setFieldBehaviors] = useState<Record<string, any>>({});
+  // Calculated fields (the model's config.calculated): the server works them out; the list shows
+  // them italic and never edits them.
+  const [calculatedFields, setCalculatedFields] = useState<Record<string, unknown>>({});
+  const listBehaviors = useMemo(() => {
+    const names = Object.keys(calculatedFields);
+    if (!names.length) return fieldBehaviors;
+    const out = { ...fieldBehaviors };
+    names.forEach((n) => { out[n] = { type: 'number', ...(out[n] || {}), calculated: true }; });
+    return out;
+  }, [fieldBehaviors, calculatedFields]);
   const [detailRowSizes, setDetailRowSizes] = useState<Record<string, number>>({});
   const [leafDeclarations, setLeafDeclarations] = useState<Record<string, any>>({});
 
@@ -637,6 +647,9 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
         if (Array.isArray(rf)) fields = rf.map(fieldName).filter((n): n is string => !!n);
         else if (isObj(rf)) fields = Object.keys(rf);
         setAllFields(fields);
+        setCalculatedFields(Array.isArray(rf)
+          ? Object.fromEntries(rf.filter((f: any) => f?.calculated).map((f: any) => [f.name, f.calculated]))
+          : {});
         dbLog('fetchRecords:fields', { model: selectedModel, fieldCount: fields.length, fields: fields.slice(0, 10) });
 
         const params: Record<string, unknown> = { limit: PAGE_SIZE, offset: page * PAGE_SIZE };
@@ -1354,7 +1367,7 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
     // Columns
     colWidths, setColWidths, handleColumnDrop, handleResizeStart, handleWidthClick,
     // Field behaviors
-    fieldBehaviors, detailRowSizes, setDetailRowSizes, leafDeclarations,
+    fieldBehaviors: listBehaviors, calculatedFields, detailRowSizes, setDetailRowSizes, leafDeclarations,
     // Field groups
     fieldGroups, currentCollapsed, toggleFieldGroup,
     // CRUD

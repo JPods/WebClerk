@@ -36,6 +36,9 @@ class CoreConfig(AppConfig):
         # fails to load must stop the server, not leave it unguarded.
         from apps.core.signals.access_signals import register_access_signals
         register_access_signals()
+        # A model's calculated fields: commands on its definition (services/calculated.py).
+        from apps.core.services import calculated
+        calculated.register()
 
         # Audit: field-level changes on save, written to the Log (purpose audit)
         try:

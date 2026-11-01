@@ -90,7 +90,7 @@ def _id_is_not_a_filter(model_name: str, value):
 
 
 #: Commands that write nothing (verbs.py says which). Throttled as reads, not as money.
-PREVIEW_COMMANDS = frozenset({'totals', 'journal_preview'})
+PREVIEW_COMMANDS = frozenset({'totals', 'journal_preview', 'calculated_offer'})
 
 
 class CommandChannelView(SaveWcapiView):

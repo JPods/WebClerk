@@ -1354,6 +1354,8 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
         open={showLayoutDialog !== null}
         mode={showLayoutDialog || 'list'}
         allFields={db.allFields}
+        modelName={db.selectedModel || undefined}
+        onCalculatedChange={() => db.fetchRecords()}
         visibleFields={showLayoutDialog === 'detail' ? db.visibleDetailFields : db.visibleListFields}
         fieldBehaviors={db.fieldBehaviors}
         rowSizes={db.detailRowSizes}

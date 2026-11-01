@@ -32,6 +32,7 @@ import { getRecords } from '@/api/wcapi';
 import { JsonLeafSelectorTree } from './JsonLeafSelector';
 import './JsonLeafSelector.css';
 import './FieldOrderDialog.css';
+import CalculatedFields from './CalculatedFields';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -69,6 +70,10 @@ interface Props {
   relatedModels?: string[];
   /** Called when user changes related models text */
   onRelatedModelsChange?: (models: string[]) => void;
+  /** The list's model: its calculated fields are defined here (list mode). */
+  modelName?: string;
+  /** A calculated field was defined or removed — the list reads its fields again. */
+  onCalculatedChange?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -105,7 +110,7 @@ const SIZABLE_TYPES = ['json', 'json-tree', 'textarea', 'text'];
 export default function FieldOrderDialog({
   open, mode, allFields, visibleFields, fieldBehaviors, rowSizes: initialRowSizes,
   savedLayouts, activeLayoutName, onApply, onSaveLayout, onDeleteLayout, onClose,
-  colWidths: initialColWidths, sampleRecord, pairedViewName, onPairedViewChange, relatedModels, onRelatedModelsChange,
+  colWidths: initialColWidths, sampleRecord, pairedViewName, onPairedViewChange, relatedModels, onRelatedModelsChange, modelName, onCalculatedChange,
 }: Props) {
   // Local edit state
   const [order, setOrder] = useState<string[]>([]);
@@ -381,6 +386,11 @@ export default function FieldOrderDialog({
                 className="fo-input"
               />
             </div>
+          )}
+
+          {/* Calculated fields — the server works them out; name one as a column above */}
+          {mode === 'list' && modelName && onCalculatedChange && (
+            <CalculatedFields modelName={modelName} onChanged={onCalculatedChange} />
           )}
 
           {/* Save name input (inline, shows when Save clicked) */}

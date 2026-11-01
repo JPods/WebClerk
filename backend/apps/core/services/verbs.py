@@ -88,6 +88,10 @@ VERBS: Dict[str, Callable[[Actor, str, dict], Any]] = {
     'unlock': _command('unlock'),               # an admin or superuser lifts it
     'totals': _command('totals'),               # what a document's unsaved edits will total; writes nothing
     'journal_preview': _command('journal_preview'),   # the journal entry a document makes; writes nothing
+    # A model's calculated fields, on its definition (a wc:model Setting): define or remove one,
+    # and what one can be made of (Bill, 2026-11-01; services/calculated.py).
+    'calculated': _command('calculated'),
+    'calculated_offer': _command('calculated_offer'),   # writes nothing
 }
 
 #: Which model answers which command, and the base service that does it. A command is

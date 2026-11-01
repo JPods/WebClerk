@@ -1246,6 +1246,13 @@ class WCAPIGetView(APIView):
                     payload = filter_setting_layout(Actor.from_request(request), payload)
             results.append(payload)
 
+        # Calculated fields (config.calculated): the server works them out for this page.
+        from apps.core.services import calculated
+        calc = calculated.values(model_key, ModelCls, [p.get("id") for p in results if p.get("id") is not None],
+                                 actor=Actor.from_request(request))
+        for payload in results:
+            payload.update(calc.get(payload.get("id"), {}))
+
         if self._normalize_model_key(model_key) == "action":
             action_ids = [obj.pk for obj in items if isinstance(getattr(obj, "pk", None), int)]
             attachment_map = self._action_attachments_map(action_ids)
@@ -1733,6 +1740,11 @@ class ModelDetailView(APIView):
         fields = []
         for f in ModelCls._meta.fields:
             fields.append({"name": f.name, "type": f.__class__.__name__})
+        # Calculated fields (config.calculated) are columns a list can name like any other.
+        from apps.core.services import calculated
+        for name, spec in calculated.defined(model_key).items():
+            if calculated.problem(ModelCls, name, spec) is None:
+                fields.append({"name": name, "type": "Calculated", "calculated": spec})
 
         return Response(
             {

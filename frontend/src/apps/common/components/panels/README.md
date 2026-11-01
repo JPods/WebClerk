@@ -178,6 +178,13 @@ part of DbColumn".
   users show and omit records and the sums follow. Which columns total is `cellFormat.footerKind`:
   a behavior's `footer` (sum / average / count / none, set in the behavior dialog), else amounts
   and quantities sum and prices, rates and per-unit costs do not.
+- **Calculated fields are data** (Bill, 2026-11-01): a model's `config.calculated` names them —
+  `{"lines_amount": {"calc": "sum", "of": "totals.amount", "over": "lines"}}` — and any list names
+  one as a column. The server works them out for the page it returns, one grouped query
+  (`services/calculated.py`), shown only to a role that may see what they are made of. Defined
+  in the column dialog ("Calculated fields"), through commands on the model's definition:
+  `POST /wcapi/setting/<id>/calculated/` and `…/calculated_offer/`. One level of related rows;
+  a value through several levels is a tree's rollup.
 - **A tree's rows come depth-first from the server** (`bom_ops.expand_tree`): each parent
   followed by its children, with their level.
 
