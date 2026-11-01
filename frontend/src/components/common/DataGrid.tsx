@@ -18,36 +18,14 @@
 import { EDIT_IN_LIST_HELP, LIST_HELP, useListGestures } from '@/hooks/useListGestures';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { parseFragments, matchesFragments } from '@/utils/searchFragments';
-import { formatPhone } from '@/utils/fieldFormatters';
-import './DataGrid.css';
+import { DbColumnsTable, type DbColumnDef } from '@/apps/common/components/panels/DbColumns';
+import { cellAlign, cellTitle, fieldLabel, formatCell, headerStyle, valueAt } from '@/apps/common/components/panels/cellFormat';
 
 // ---------------------------------------------------------------------------
 // Universal dt formatter — stored GMT epoch ms, displayed local
 // Rule: date-only fields → local date, time fields → local time, default → ISO local
 // Field naming convention: dt_ prefix = datetime, date_ = date-only
 // ---------------------------------------------------------------------------
-
-// Date formatting — uses the single canonical formatter from fieldFormatters
-import { formatDt } from '@/utils/fieldFormatters';
-
-// ---------------------------------------------------------------------------
-// Header label styles — behavior-driven (matches FieldRow convention)
-// ---------------------------------------------------------------------------
-
-const _HEADER_COLORS: Record<string, string> = {
-  readonly: '#94a3b8', timestamp: '#94a3b8',       // italic gray — system
-  email: '#166534', phone: '#166534', address: '#166534', url: '#166534', geo: '#166534', // green — action
-  select: '#1e40af', lookup: '#1e40af',             // blue — select
-};
-const _HEADER_ITALIC = new Set(['readonly', 'timestamp', 'hidden']);
-
-function _headerStyle(behType?: string): React.CSSProperties | undefined {
-  if (!behType) return undefined;
-  const color = _HEADER_COLORS[behType];
-  const italic = _HEADER_ITALIC.has(behType);
-  if (!color && !italic) return undefined;
-  return { color, fontStyle: italic ? 'italic' : undefined };
-}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -184,12 +162,6 @@ export interface DataGridProps {
   externalShowFilters?: boolean;
   /** External control of dupes visibility */
   externalShowDupes?: boolean;
-
-  // --- Tree/hierarchy support (BOM, org charts, category trees) ---
-  treeColumn?: string;        // which column gets indent + expand/collapse chevron
-  levelField?: string;        // data field carrying the depth number (e.g., 'level')
-  childFlag?: string;         // data field indicating row has children (e.g., 'is_subassembly')
-  treeIndent?: number;        // px per level (default 20)
 
   // --- Line card / operational features (db.list with config) ---
   /** Custom footer bar content — rendered below the Σ row, above panels */
@@ -480,41 +452,6 @@ export default function DataGrid(props: DataGridProps) {
   // --- Drag reorder ---
   const [dragField, setDragField] = useState<string | null>(null);
 
-  // --- Grouping ---
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
-
-  // --- Tree / hierarchy state ---
-  const [collapsedNodes, setCollapsedNodes] = useState<Set<number>>(new Set());
-  const treeColumn = props.treeColumn || null;
-  const levelField = props.levelField || 'level';
-  const childFlag = props.childFlag || 'is_subassembly';
-  const treeIndent = props.treeIndent || 20;
-
-  const toggleTreeNode = useCallback((rowIdx: number) => {
-    setCollapsedNodes((prev) => {
-      const next = new Set(prev);
-      if (next.has(rowIdx)) next.delete(rowIdx); else next.add(rowIdx);
-      return next;
-    });
-  }, []);
-
-  // Filter out rows hidden by collapsed parents
-  const treeFilteredRecords = useMemo(() => {
-    if (!treeColumn) return null; // not in tree mode
-    const result: Array<{ rec: any; originalIdx: number }> = [];
-    let skipBelow = -1; // skip rows deeper than this level
-    for (let i = 0; i < records.length; i++) {
-      const level = Number(records[i][levelField] ?? 0);
-      if (skipBelow >= 0 && level > skipBelow) continue;
-      skipBelow = -1; // reset skip
-      result.push({ rec: records[i], originalIdx: i });
-      // If this node is collapsed and has children, skip its descendants
-      if (collapsedNodes.has(i) && records[i][childFlag]) {
-        skipBelow = level;
-      }
-    }
-    return result;
-  }, [treeColumn, records, levelField, childFlag, collapsedNodes]);
 
   // --- Duplicate detection ---
   const [showDupes, setShowDupes] = useState(props.externalShowDupes ?? false);
@@ -535,18 +472,6 @@ export default function DataGrid(props: DataGridProps) {
       })
     );
   }, [records, filters]);
-
-  // --- Grouped records ---
-  const groupedRecords = useMemo(() => {
-    if (!groupByField) return null;
-    const groups = new Map<string, any[]>();
-    filteredRecords.forEach((rec) => {
-      const key = String(rec[groupByField] ?? '(empty)');
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key)!.push(rec);
-    });
-    return groups;
-  }, [filteredRecords, groupByField]);
 
   // --- Footer totals ---
   const totals = useMemo(() => {
@@ -668,98 +593,33 @@ export default function DataGrid(props: DataGridProps) {
     return {};
   }, [colorRules]);
 
-  // --- Render helpers ---
-  const renderCell = (rec: any, field: string, rid: number | null) => {
-    // Check for rich column custom renderer first
-    const richCol = richColMap.get(field);
-    if (richCol?.cell && !(editCell?.rid === rid && editCell?.field === field)) {
-      return richCol.cell(rec);
-    }
-
-    const v = richCol?.selector ? richCol.selector(rec)
-      : (field.includes('.') || field.includes('['))
-        ? field.replace(/\[(\d+)\]/g, '.$1').split('.').reduce((o: any, k: string) => {
-            if (o == null) return o;
-            // [0] on an object means "first value", not numeric index
-            if (o[k] === undefined && !Array.isArray(o) && typeof o === 'object') {
-              const vals = Object.values(o);
-              const idx = parseInt(k, 10);
-              if (!isNaN(idx) && idx < vals.length) return vals[idx];
-            }
-            return o[k];
-          }, rec)
-        : rec[field];
-    const isEditing = editCell?.rid === rid && editCell?.field === field;
-
-    if (isEditing) {
-      const beh = fieldBehaviors[field];
-      if (beh?.type === 'select' && beh.options) {
-        return (
-          <select value={editValue} onChange={(e) => setEditValue(e.target.value)}
-            onBlur={() => commitEdit()} onKeyDown={(e) => { if (e.key === 'Escape') cancelEdit(); if (e.key === 'Enter') commitEdit(); }}
-            ref={editRef as any} autoFocus className="dg-cell-edit"
-            >
-            <option value="">--</option>
-            {beh.options.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
-        );
-      }
+  // --- A cell being edited: its editor. Every other cell is its column's render. ---
+  const cellType = (f: string) => ({ type: fieldBehaviors[f]?.type, format: fieldSpecs[f]?.format, precision: fieldBehaviors[f]?.precision });
+  const editorFor = (rid: number | null, field: string): React.ReactNode | undefined => {
+    if (!(editCell?.rid === rid && editCell?.field === field)) return undefined;
+    const beh = fieldBehaviors[field];
+    if (beh?.type === 'select' && beh.options) {
       return (
-        <input ref={editRef} value={editValue}
-          onChange={(e) => setEditValue(e.target.value)}
-          onBlur={() => commitEdit()}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') { e.preventDefault(); commitEdit('down'); }
-            if (e.key === 'Escape') cancelEdit();
-            if (e.key === 'Tab') { e.preventDefault(); commitEdit('right'); }
-          }}
-          className="dg-cell-edit"
-        />
+        <select value={editValue} onChange={(e) => setEditValue(e.target.value)}
+          onBlur={() => commitEdit()} onKeyDown={(e) => { if (e.key === 'Escape') cancelEdit(); if (e.key === 'Enter') commitEdit(); }}
+          ref={editRef as any} autoFocus className="dg-cell-edit">
+          <option value="">--</option>
+          {beh.options.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
       );
     }
-
-    // Format based on FieldSpec
-    const spec = fieldSpecs[field];
-    if (v == null || v === '') return '';
-    if (typeof v === 'object' && v !== null && !Array.isArray(v)) {
-      // Record reference objects — show name
-      if (v.name || v.display_name) return String(v.name || v.display_name);
-      // Multilingual or keyed object — show best display value
-      // Priority: user language (en) → first string value → JSON fallback
-      const lang = (navigator.language || 'en').slice(0, 2);
-      if (v[lang]) return String(v[lang]);
-      if (v['en']) return String(v['en']);
-      const firstVal = Object.values(v).find(x => typeof x === 'string');
-      if (firstVal) return String(firstVal);
-      return JSON.stringify(v).slice(0, 50);
-    }
-    if (Array.isArray(v)) return JSON.stringify(v).slice(0, 50);
-    if (typeof v === 'boolean') return v ? '\u2705' : '';
-    const beh = fieldBehaviors[field];
-    if ((spec?.format === 'currency' || beh?.type === 'currency') && typeof v === 'number') {
-      const dp = beh?.precision ?? 2;
-      return v.toLocaleString('en-US', { minimumFractionDigits: dp, maximumFractionDigits: dp });
-    }
-    if (spec?.format === 'percent' && typeof v === 'number') {
-      return (v >= 1 ? v : v * 100).toFixed(1) + '%';
-    }
-    if (spec?.format === 'date' && v) {
-      return formatDt(v, 'date', field);
-    }
-    if (beh?.type === 'timestamp' || beh?.type === 'datetime') {
-      return formatDt(v, 'date', field);
-    }
-    if (typeof v === 'number' && /^dt_/.test(field) && v > 1e12) {
-      return formatDt(v, 'date', field);
-    }
-    if ((spec?.format === 'number' || beh?.type === 'number') && typeof v === 'number') {
-      const ndp = beh?.precision ?? 0;
-      return v.toLocaleString('en-US', { minimumFractionDigits: ndp, maximumFractionDigits: ndp });
-    }
-    if ((spec?.format === 'phone' || beh?.type === 'phone' || /^phone/.test(field)) && typeof v === 'string' && v.replace(/\D/g, '').length >= 7) {
-      return formatPhone(v);
-    }
-    return String(v);
+    return (
+      <input ref={editRef} value={editValue}
+        onChange={(e) => setEditValue(e.target.value)}
+        onBlur={() => commitEdit()}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') { e.preventDefault(); commitEdit('down'); }
+          if (e.key === 'Escape') cancelEdit();
+          if (e.key === 'Tab') { e.preventDefault(); commitEdit('right'); }
+        }}
+        className="dg-cell-edit"
+      />
+    );
   };
 
   // --- Row click handler: plain=select+check, shift=range, ctrl/cmd=toggle ---
@@ -806,122 +666,82 @@ export default function DataGrid(props: DataGridProps) {
     help: props.editInList ? LIST_HELP + EDIT_IN_LIST_HELP : LIST_HELP,
   });
 
-  // --- Auto-justify: FieldSpec > fieldBehaviors > name inference > data inference ---
-  const getAlign = useCallback((field: string): 'left' | 'right' | 'center' => {
-    // FieldSpec align wins (user-saved or smart default)
-    const spec = fieldSpecs[field];
-    if (spec?.align) return spec.align;
-    // Check field behaviors next
-    const beh = fieldBehaviors[field];
-    if (beh?.type === 'text' || beh?.type === 'email' || beh?.type === 'phone' || beh?.type === 'address' || beh?.type === 'select' || beh?.type === 'lookup' || beh?.type === 'textarea' || beh?.type === 'json' || beh?.type === 'readonly' || beh?.type === 'url') return 'left';
-    if (beh?.type === 'currency' || beh?.type === 'number') return 'right';
-    if (beh?.type === 'timestamp' || beh?.type === 'datetime') return 'center';
-    if (beh?.type === 'boolean') return 'center';
+  // Compute effective width per column — every column gets an explicit width
+  const DEFAULT_COL_W = 120;
+  const INDICATOR_W = 8;
+  const effectiveColWidths = useMemo(() => {
+    const w: Record<string, number> = {};
+    columns.forEach((f) => { w[f] = colWidths[f] || DEFAULT_COL_W; });
+    return w;
+  }, [columns, colWidths]);
+  const tableWidth = useMemo(() =>
+    INDICATOR_W + columns.reduce((sum, f) => sum + effectiveColWidths[f], 0),
+    [columns, effectiveColWidths]);
 
-    // Infer from field name
-    const fl = field.toLowerCase();
-    if (fl.startsWith('dt_') || fl.includes('date') || fl.includes('_dt')) return 'center';
-    if (fl === 'total' || fl === 'balance' || fl === 'amount' || fl === 'debit' || fl === 'credit' || fl === 'price' || fl === 'cost' || fl === 'qty' || fl === 'quantity' || fl === 'version' || fl === 'priority' || fl === 'sequence' || fl === 'difficulty' || fl === 'health_rating' || fl === 'security_level' || fl === 'line_number' || fl === 'count_accessed' || fl === 'percent_complete' || fl === 'burndown' || fl === 'linkage') return 'right';
-    if (fl === 'is_active' || fl === 'is_archived' || fl === 'is_commission' || fl === 'is_superuser' || fl === 'is_staff' || fl === 'is_preferred') return 'center';
+  // --- The columns: one per field, formatted and aligned as in every list (cellFormat) ---
+  const gridColumns = useMemo<DbColumnDef<any>[]>(() => columns.map((f) => {
+    const rich = richColMap.get(f);
+    const sample = records.slice(0, 5).map((r) => r[f]).find((v) => v != null);
+    return {
+      key: f,
+      label: fieldSpecs[f]?.label || fieldBehaviors[f]?.label || fieldLabel(f),
+      width: effectiveColWidths[f],
+      align: cellAlign(f, { ...cellType(f), align: fieldSpecs[f]?.align }, sample),
+      calculated: !!fieldBehaviors[f]?.calculated,
+      headerStyle: headerStyle(fieldBehaviors[f]?.type),
+      render: rich?.cell
+        ? (rec: any) => rich.cell!(rec)
+        : (rec: any) => formatCell(rich?.selector ? rich.selector(rec) : valueAt(rec, f), f, cellType(f)),
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [columns, richColMap, fieldSpecs, fieldBehaviors, effectiveColWidths, records]);
 
-    // Infer from first non-null value in records
-    if (records.length > 0) {
-      for (const r of records.slice(0, 5)) {
-        const v = r[field];
-        if (v == null) continue;
-        if (typeof v === 'number') return 'right';
-        if (typeof v === 'boolean') return 'center';
-        break;
-      }
-    }
+  // A list that opens on double-click marks the open record apart from the selection.
+  const opensApart = !!props.onSelectRows;
+  const rowProps = (rec: any, idx: number) => {
+    const rid = numId(rec.id);
+    const isActive = rid !== null && selectedId === rid;
+    const isChecked = rid !== null && selectedRowIds.has(rid);
+    const ruleStyle = getRowStyle(rec);
+    const classes: string[] = [];
+    if (isChecked || (isActive && !opensApart)) classes.push('dg-row--checked');
+    else if (idx % 2 === 1) classes.push('dg-row--striped');
+    if (rid !== null && dupeIds.has(rid)) classes.push('dg-row--dupe');
+    if (isActive && opensApart) classes.push('dg-row--open');
+    return {
+      'data-rid': rid,
+      'aria-selected': isChecked || (isActive && !opensApart),
+      'aria-current': isActive && opensApart ? true : undefined,
+      className: classes.join(' '),
+      style: ruleStyle.background ? { background: ruleStyle.background, color: ruleStyle.color, fontWeight: ruleStyle.fontWeight } : undefined,
+      ...(opensApart && rid !== null ? gestures.rowProps(rid) : {
+        onClick: (e: React.MouseEvent) => handleRowClick(e, rid, idx, filteredRecords),
+        onDoubleClick: () => { if (rid !== null) { handleSelectRecord(rid); props.onRowDoubleClicked?.(rec); } },
+      }),
+    } as Record<string, unknown>;
+  };
 
-    return 'left';
-  }, [fieldBehaviors, records]);
-
-  // --- Render a block of rows (used by both flat and grouped) ---
-  const renderRows = (rows: any[], treeOriginalIndices?: number[]) =>
-    rows.map((rec, idx) => {
-      const rid = numId(rec.id);
-      const isActive = rid !== null && selectedId === rid;
-      const isChecked = rid !== null && selectedRowIds.has(rid);
-      const isDupe = rid !== null && dupeIds.has(rid);
-      const ruleStyle = getRowStyle(rec);
-
-      // Tree state for this row
-      const rowLevel = treeColumn ? Number(rec[levelField] ?? 0) : 0;
-      const rowHasChildren = treeColumn ? !!rec[childFlag] : false;
-      const originalIdx = treeOriginalIndices ? treeOriginalIndices[idx] : idx;
-      const isCollapsed = collapsedNodes.has(originalIdx);
-
-      // A list that opens on double-click marks the open record apart from the selection.
-      const opensApart = !!props.onSelectRows;
-      const rowClasses = ['dg-row'];
-      if (isChecked || (isActive && !opensApart)) rowClasses.push('dg-row--checked');
-      else if (idx % 2 === 1) rowClasses.push('dg-row--striped');
-      if (isDupe) rowClasses.push('dg-row--dupe');
-      if (isActive && opensApart) rowClasses.push('dg-row--open');
-
-      return (
-        <tr key={rid ?? `r-${idx}`} data-rid={rid}
-          role="row"
-          aria-selected={isChecked || (isActive && !opensApart)}
-          aria-current={isActive && opensApart ? true : undefined}
-          className={rowClasses.join(' ')}
-          style={ruleStyle.background ? { background: ruleStyle.background, color: ruleStyle.color, fontWeight: ruleStyle.fontWeight } : undefined}
-          {...(opensApart && rid !== null ? gestures.rowProps(rid) : {
-            onClick: (e: React.MouseEvent) => handleRowClick(e, rid, idx, rows),
-            onDoubleClick: () => { if (rid !== null) { handleSelectRecord(rid); props.onRowDoubleClicked?.(rec); } },
-          })}
-        >
-          <td className={`dg-td-indicator${pinnedColumn ? ' dg-td-indicator--pinned' : ''}`} role="gridcell">
-            {isChecked && <div className="dg-check-bar" />}
-          </td>
-          {columns.map((f, ci) => {
-            const isTreeCol = treeColumn && f === treeColumn;
-            const isPinned = ci === 0 && pinnedColumn === f;
-            const tdClasses = ['dg-td'];
-            if (isPinned) tdClasses.push('dg-td--pinned');
-            if (isActive && isPinned) tdClasses.push('dg-td--active');
-            if (fieldBehaviors[f]?.calculated) tdClasses.push('dg-td--calculated');
-            const canEdit = !!onCellEdit && cellEditable(f, rec[f]);
-            const result = cellResult && cellResult.rid === rid && cellResult.field === f ? cellResult : null;
-            if (result) tdClasses.push(result.error ? 'dg-td--failed' : 'dg-td--saved');
-            if (props.editInList && canEdit) tdClasses.push('dg-td--editable');
-            return (
-            <td key={f}
-              role="gridcell"
-              aria-readonly={canEdit ? false : undefined}
-              className={tdClasses.join(' ')}
-              style={{
-                textAlign: getAlign(f),
-                paddingLeft: isTreeCol ? `${8 + rowLevel * treeIndent}px` : undefined,
-                width: effectiveColWidths[f], minWidth: effectiveColWidths[f],
-              }}
-              // A list whose double-click opens the record edits a cell only with edit-in-list on.
-              onDoubleClick={props.onSelectRows && !props.editInList ? undefined : (e) => { if (rid !== null && !e.altKey) startEdit(rid, f, rec[f]); }}
-              // Cmd-click toggles the row; Cmd-Option-click is the cell's own (an ida's image, Bill 2026-10-31).
-              onClick={props.onCellClick ? (e: React.MouseEvent) => { if ((e.metaKey || e.ctrlKey) && e.altKey && props.onCellClick) { e.stopPropagation(); props.onCellClick(e, f, rec); } } : undefined}
-              title={result?.error ? `Not saved: ${result.error}` : (/^dt_/.test(f) || fieldBehaviors[f]?.type === 'timestamp' || fieldBehaviors[f]?.type === 'datetime') && rec[f] ? formatDt(rec[f], 'datetime', f) : String(rec[f] ?? '')}
-            >
-              {isTreeCol ? (
-                <span className="dg-tree-cell">
-                  {rowHasChildren ? (
-                    <span className="dg-tree-chevron"
-                      onClick={(e) => { e.stopPropagation(); toggleTreeNode(originalIdx); }}>
-                      {isCollapsed ? '▶' : '▼'}
-                    </span>
-                  ) : (
-                    <span className="dg-tree-leaf">·</span>
-                  )}
-                  {renderCell(rec, f, rid)}
-                </span>
-              ) : renderCell(rec, f, rid)}
-            </td>
-            );
-          })}
-        </tr>
-      );
-    });
+  const cellProps = (rec: any, col: DbColumnDef<any>): React.TdHTMLAttributes<HTMLTableCellElement> => {
+    const f = col.key;
+    const rid = numId(rec.id);
+    const isPinned = columns[0] === f && pinnedColumn === f;
+    const canEdit = !!onCellEdit && cellEditable(f, rec[f]);
+    const result = cellResult && cellResult.rid === rid && cellResult.field === f ? cellResult : null;
+    const classes: string[] = [];
+    if (isPinned) classes.push('dg-td--pinned');
+    if (isPinned && rid !== null && selectedId === rid) classes.push('dg-td--active');
+    if (result) classes.push(result.error ? 'dg-td--failed' : 'dg-td--saved');
+    if (props.editInList && canEdit) classes.push('dg-td--editable');
+    return {
+      className: classes.join(' '),
+      'aria-readonly': canEdit ? false : undefined,
+      // A list whose double-click opens the record edits a cell only with edit-in-list on.
+      onDoubleClick: props.onSelectRows && !props.editInList ? undefined : (e) => { if (rid !== null && !e.altKey) startEdit(rid, f, rec[f]); },
+      // Cmd-click toggles the row; Cmd-Option-click is the cell's own (an ida's image, Bill 2026-10-31).
+      onClick: props.onCellClick ? (e: React.MouseEvent) => { if ((e.metaKey || e.ctrlKey) && e.altKey && props.onCellClick) { e.stopPropagation(); props.onCellClick(e, f, rec); } } : undefined,
+      title: result?.error ? `Not saved: ${result.error}` : cellTitle(rec[f], f, cellType(f)),
+    };
+  };
 
   // --- Export ---
   const exportJSON = useCallback(() => {
@@ -949,18 +769,6 @@ export default function DataGrid(props: DataGridProps) {
 
   const dragScrollRef = useRef<{ startX: number; startScrollLeft: number } | null>(null);
 
-  // Compute effective width per column — every column gets an explicit width
-  const DEFAULT_COL_W = 120;
-  const INDICATOR_W = 8;
-  const effectiveColWidths = useMemo(() => {
-    const w: Record<string, number> = {};
-    columns.forEach((f) => { w[f] = colWidths[f] || DEFAULT_COL_W; });
-    return w;
-  }, [columns, colWidths]);
-  const tableWidth = useMemo(() =>
-    INDICATOR_W + columns.reduce((sum, f) => sum + effectiveColWidths[f], 0),
-    [columns, effectiveColWidths]);
-
   // --- Early returns (AFTER all hooks) ---
   if (props.loading) {
     return (
@@ -985,6 +793,104 @@ export default function DataGrid(props: DataGridProps) {
       </div>
     );
   }
+
+  // --- A column's header: sort, Shift-drag reorder, right-click menu, width badge, resize ---
+  const headerCell = (col: DbColumnDef<any>, ci: number) => {
+    const f = col.key;
+    const sortIdx = multiSorts.findIndex((m) => m.field === f);
+    const sortDir = sort?.field === f ? sort.direction : null;
+    const badge = (el: HTMLElement, on: boolean) => {
+      const b = el.querySelector('.dg-width-badge') as HTMLElement | null;
+      if (b) b.style.opacity = on ? '1' : '0';
+    };
+    return {
+      props: {
+        'aria-sort': sortDir === 'asc' ? 'ascending' : sortDir === 'desc' ? 'descending' : 'none',
+        className: ci === 0 && pinnedColumn === f ? 'dg-th--pinned' : undefined,
+        draggable: true,
+        onDragStart: (e) => { if (props.disableReorder || !e.shiftKey) { e.preventDefault(); return; } setDragField(f); },
+        onDragOver: (e) => e.preventDefault(),
+        onDrop: () => { if (dragField) onColumnDrop(dragField, f); setDragField(null); },
+        onMouseEnter: (e) => badge(e.currentTarget, true),
+        onMouseLeave: (e) => badge(e.currentTarget, false),
+        onClick: (e) => {
+          if (e.shiftKey && props.onHeaderClick && fieldBehaviors[f]?.bulkEditable) {
+            e.preventDefault();
+            props.onHeaderClick(f);
+          } else {
+            handleSort(f, e.ctrlKey || e.metaKey);
+          }
+        },
+        onContextMenu: (e) => {
+          if (props.onDeleteColumn || props.onSaveLayout) {
+            e.preventDefault();
+            setContextMenu({ x: e.clientX, y: e.clientY, field: f, colIdx: ci });
+            setContextSubmenu(null);
+          }
+        },
+        title: fieldBehaviors[f]?.bulkEditable ? `${f} · Click to sort · Shift-click to bulk edit` : `${f} · Click to sort`,
+      } as React.ThHTMLAttributes<HTMLTableCellElement>,
+      content: (
+        <>
+          {props.headerEditField === f ? (
+            <span className="dg-header-edit" onClick={(e) => e.stopPropagation()}>
+              <input autoFocus type="text"
+                value={props.headerEditValue || ''}
+                onChange={(e) => props.onHeaderEditChange?.(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') props.onHeaderEditApply?.(); if (e.key === 'Escape') props.onHeaderEditCancel?.(); }}
+                className="dg-header-edit-input"
+              />
+              <span className="dg-header-edit-ok" onClick={() => props.onHeaderEditApply?.()}>✓</span>
+              <span className="dg-header-edit-cancel" onClick={() => props.onHeaderEditCancel?.()}>✕</span>
+            </span>
+          ) : (
+            <>
+              <span className={fieldBehaviors[f]?.bulkEditable ? 'dg-th-name--bulk' : undefined} style={col.headerStyle}>{col.label}</span>
+              {sortDir && <span className="dg-sort-arrow">{sortDir === 'asc' ? '↑' : '↓'}</span>}
+              {sortIdx >= 0 && <span className="dg-sort-order">({sortIdx + 1})</span>}
+            </>
+          )}
+          {/* Width badge — visible on hover, click to type */}
+          {colWidths[f] && onWidthClick && (
+            <span className="dg-width-badge"
+              onClick={(e) => { e.stopPropagation(); onWidthClick(f, e.currentTarget); }}
+              title="Click to set width"
+            >{colWidths[f]}</span>
+          )}
+          <span className="dg-resize-handle"
+            onMouseDown={(e) => onResizeStart(f, e)} onClick={(e) => e.stopPropagation()}
+            onDoubleClick={(e) => { e.stopPropagation(); onWidthClick?.(f, e.currentTarget as HTMLElement); }}
+          />
+        </>
+      ),
+    };
+  };
+
+  // The scroll box: the gestures' list props and sideways drag-scrolling when the table overflows.
+  const containerProps: React.HTMLAttributes<HTMLDivElement> = {
+    ...gestures.listProps,
+    style: { cursor: tableWidth > (scrollRef.current?.clientWidth ?? Infinity) ? 'grab' : undefined },
+    onMouseDown: (e) => {
+      if (!scrollRef.current || tableWidth <= scrollRef.current.clientWidth) return;
+      if (e.button !== 0) return;
+      // Don't interfere with resize handles, edit inputs, or header clicks
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === 'INPUT' || tag === 'SELECT' || tag === 'BUTTON') return;
+      const target = e.target as HTMLElement;
+      if (target.style.cursor === 'col-resize' || target.closest('[style*="col-resize"]')) return;
+      dragScrollRef.current = { startX: e.clientX, startScrollLeft: scrollRef.current.scrollLeft };
+    },
+    onMouseMove: (e) => {
+      if (!dragScrollRef.current || !scrollRef.current) return;
+      const dx = e.clientX - dragScrollRef.current.startX;
+      if (Math.abs(dx) > 3) {
+        scrollRef.current.style.cursor = 'grabbing';
+        scrollRef.current.scrollLeft = dragScrollRef.current.startScrollLeft - dx;
+      }
+    },
+    onMouseUp: () => { if (scrollRef.current) scrollRef.current.style.cursor = ''; dragScrollRef.current = null; },
+    onMouseLeave: () => { if (scrollRef.current) scrollRef.current.style.cursor = ''; dragScrollRef.current = null; },
+  };
 
   // --- Toolbar ---
   const toolbar = (
@@ -1013,105 +919,15 @@ export default function DataGrid(props: DataGridProps) {
   return (
     <div className="dg-root" role="grid" aria-label="Data grid" aria-rowcount={filteredRecords.length} aria-colcount={columns.length} style={{ '--dg-fs': props.fontSize ? `${fontSize}px` : 'var(--db-font-size, 13px)', '--dg-fs-sm': props.fontSize ? `${fontSize - 1}px` : 'calc(var(--db-font-size, 13px) - 1px)', '--dg-fs-xs': props.fontSize ? `${fontSize - 2}px` : 'calc(var(--db-font-size, 13px) - 2px)' } as React.CSSProperties}>
       {!props.hideToolbar && toolbar}
-      <div className="dg-scroll" style={{ cursor: tableWidth > (scrollRef.current?.clientWidth ?? Infinity) ? 'grab' : undefined }}
-        {...gestures.listProps}
-        onMouseDown={(e) => {
-          // Only drag-scroll on middle button or when table overflows
-          if (!scrollRef.current || tableWidth <= scrollRef.current.clientWidth) return;
-          if (e.button !== 0) return;
-          // Don't interfere with resize handles, edit inputs, or header clicks
-          const tag = (e.target as HTMLElement).tagName;
-          if (tag === 'INPUT' || tag === 'SELECT' || tag === 'BUTTON') return;
-          const target = e.target as HTMLElement;
-          if (target.style.cursor === 'col-resize' || target.closest('[style*="col-resize"]')) return;
-          dragScrollRef.current = { startX: e.clientX, startScrollLeft: scrollRef.current.scrollLeft };
-        }}
-        onMouseMove={(e) => {
-          if (!dragScrollRef.current || !scrollRef.current) return;
-          const dx = e.clientX - dragScrollRef.current.startX;
-          if (Math.abs(dx) > 3) {
-            scrollRef.current.style.cursor = 'grabbing';
-            scrollRef.current.scrollLeft = dragScrollRef.current.startScrollLeft - dx;
-          }
-        }}
-        onMouseUp={() => { if (scrollRef.current) scrollRef.current.style.cursor = ''; dragScrollRef.current = null; }}
-        onMouseLeave={() => { if (scrollRef.current) scrollRef.current.style.cursor = ''; dragScrollRef.current = null; }}>
-        <table className="dg-table" style={{ width: tableWidth }}>
-          <thead>
-            {/* Header row */}
-            <tr className="dg-thead-row" role="row">
-              <th className={`dg-th-indicator${pinnedColumn ? ' dg-th-indicator--pinned' : ''}`} role="columnheader" />
-              {columns.map((f, ci) => {
-                const sortIdx = multiSorts.findIndex((s) => s.field === f);
-                const sortDir = sort?.field === f ? sort.direction : null;
-                return (
-                  <th key={f}
-                    role="columnheader"
-                    aria-sort={sortDir === 'asc' ? 'ascending' : sortDir === 'desc' ? 'descending' : 'none'}
-                    className={`dg-th${fieldBehaviors[f]?.calculated ? ' dg-th--calculated' : ''}${ci === 0 && pinnedColumn === f ? ' dg-th--pinned' : ''}`}
-                    style={{
-                      textAlign: getAlign(f),
-                      width: effectiveColWidths[f], minWidth: effectiveColWidths[f],
-                    }}
-                    draggable
-                    onDragStart={(e) => { if (props.disableReorder || !e.shiftKey) { e.preventDefault(); return; } setDragField(f); }}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={() => { if (dragField) onColumnDrop(dragField, f); setDragField(null); }}
-                    onMouseEnter={(e) => { const badge = e.currentTarget.querySelector('.dg-width-badge') as HTMLElement; if (badge) badge.style.opacity = '1'; }}
-                    onMouseLeave={(e) => { const badge = e.currentTarget.querySelector('.dg-width-badge') as HTMLElement; if (badge) badge.style.opacity = '0'; }}
-                    onClick={(e) => {
-                      if (e.shiftKey && props.onHeaderClick && fieldBehaviors[f]?.bulkEditable) {
-                        e.preventDefault();
-                        props.onHeaderClick(f);
-                      } else {
-                        handleSort(f, e.ctrlKey || e.metaKey);
-                      }
-                    }}
-                    onContextMenu={(e) => {
-                      if (props.onDeleteColumn || props.onSaveLayout) {
-                        e.preventDefault();
-                        setContextMenu({ x: e.clientX, y: e.clientY, field: f, colIdx: ci });
-                        setContextSubmenu(null);
-                      }
-                    }}
-                    title={fieldBehaviors[f]?.bulkEditable ? `${f} · Click to sort · Shift-click to bulk edit` : `${f} · Click to sort`}
-                  >
-                    {props.headerEditField === f ? (
-                      <span className="dg-header-edit" onClick={(e) => e.stopPropagation()}>
-                        <input autoFocus type="text"
-                          value={props.headerEditValue || ''}
-                          onChange={(e) => props.onHeaderEditChange?.(e.target.value)}
-                          onKeyDown={(e) => { if (e.key === 'Enter') props.onHeaderEditApply?.(); if (e.key === 'Escape') props.onHeaderEditCancel?.(); }}
-                          className="dg-header-edit-input"
-                        />
-                        <span className="dg-header-edit-ok" onClick={() => props.onHeaderEditApply?.()}>✓</span>
-                        <span className="dg-header-edit-cancel" onClick={() => props.onHeaderEditCancel?.()}>✕</span>
-                      </span>
-                    ) : (
-                      <>
-                        <span className={fieldBehaviors[f]?.bulkEditable ? 'dg-th-name--bulk' : undefined} style={_headerStyle(fieldBehaviors[f]?.type)}>{(fieldSpecs[f]?.label || fieldBehaviors[f]?.label || (f.includes('.') ? f.split('.').slice(-2).join('.') : f)).replace(/\[\d+\]$/, '')}</span>
-                        {sortDir && <span className="dg-sort-arrow">{sortDir === 'asc' ? '↑' : '↓'}</span>}
-                        {sortIdx >= 0 && <span className="dg-sort-order">({sortIdx + 1})</span>}
-                      </>
-                    )}
-                    {/* Width badge — visible on hover, click to type */}
-                    {colWidths[f] && onWidthClick && (
-                      <span className="dg-width-badge"
-                        onClick={(e) => { e.stopPropagation(); onWidthClick(f, e.currentTarget); }}
-                        title="Click to set width"
-                      >{colWidths[f]}</span>
-                    )}
-                    <span className="dg-resize-handle"
-                      onMouseDown={(e) => onResizeStart(f, e)} onClick={(e) => e.stopPropagation()}
-                      onDoubleClick={(e) => { e.stopPropagation(); if (onWidthClick) { onWidthClick(f, e.currentTarget as HTMLElement); } }}
-                      onMouseEnter={(e) => { const badge = (e.currentTarget.previousElementSibling?.previousElementSibling) as HTMLElement; if (badge?.classList.contains('dg-width-badge')) badge.style.opacity = '1'; }}
-                      onMouseLeave={(e) => { const badge = (e.currentTarget.previousElementSibling?.previousElementSibling) as HTMLElement; if (badge?.classList.contains('dg-width-badge')) badge.style.opacity = '0'; }}
-                    />
-                  </th>
-                );
-              })}
-            </tr>
-
+        <DbColumnsTable<any>
+          columns={gridColumns}
+          rows={filteredRecords}
+          rowKey={(rec) => numId(rec.id) ?? JSON.stringify(rec).slice(0, 40)}
+          fixedWidths
+          headerWhenEmpty
+          pinnedIndicator={!!pinnedColumn}
+          headerCell={headerCell}
+          headerRows={<>
             {/* Filter row */}
             {showFilters && (
               <tr className="dg-filter-row">
@@ -1140,66 +956,30 @@ export default function DataGrid(props: DataGridProps) {
                 })}
               </tr>
             )}
-          </thead>
-
-          <tbody>
-            {groupedRecords ? (
-              // Grouped rendering
-              Array.from(groupedRecords.entries()).map(([groupKey, groupRows]) => {
-                const isCollapsed = collapsedGroups.has(groupKey);
-                return (
-                  <React.Fragment key={groupKey}>
-                    <tr className="dg-group-row" role="row"
-                      onClick={() => setCollapsedGroups((p) => { const n = new Set(p); if (n.has(groupKey)) { n.delete(groupKey); } else { n.add(groupKey); } return n; })}>
-                      <td colSpan={columns.length + 1} className="dg-group-label">
-                        {isCollapsed ? '▶' : '▼'} {groupByField}: {groupKey} ({groupRows.length})
-                      </td>
-                    </tr>
-                    {!isCollapsed && renderRows(groupRows)}
-                  </React.Fragment>
-                );
-              })
-            ) : treeFilteredRecords ? (
-              renderRows(
-                treeFilteredRecords.map((t) => t.rec),
-                treeFilteredRecords.map((t) => t.originalIdx)
-              )
-            ) : (
-              renderRows(filteredRecords)
-            )}
-          </tbody>
-
-          {/* Footer totals */}
-          {Object.keys(totals).length > 0 && (
-            <tfoot>
+          </>}
+          footer={Object.keys(totals).length > 0 ? (
               <tr className="dg-tfoot-row" role="row">
                 <td className="dg-tfoot-sigma">Σ</td>
                 {columns.map((f) => {
                   const t_data = totals[f];
                   if (!t_data) return <td key={f} className="dg-tfoot-empty" />;
-                  const beh = fieldBehaviors[f];
-                  const dp = beh?.precision ?? 2;
-                  const display = (beh?.type === 'currency')
-                    ? t_data.sum.toLocaleString('en-US', { minimumFractionDigits: dp, maximumFractionDigits: dp })
-                    : t_data.sum.toLocaleString();
-                  return (
-                    <td key={f} className="dg-tfoot-cell">
-                      {display}
-                    </td>
-                  );
+                  return <td key={f} className="dg-tfoot-cell" style={{ textAlign: 'right' }}>
+                    {formatCell(t_data.sum, f, { ...cellType(f), type: fieldBehaviors[f]?.type === 'currency' ? 'currency' : 'number' })}</td>;
                 })}
               </tr>
-            </tfoot>
-          )}
-        </table>
-
-        {filteredRecords.length === 0 && (
-          <div className="dg-empty">
-            {Object.values(filters).some((v) => v.trim()) ? 'No records match filters.' : 'No records.'}
-          </div>
-        )}
-      </div>
-
+            ) : undefined}
+          rowProps={rowProps}
+          marked={(rec) => { const rid = numId(rec.id); return rid !== null && selectedRowIds.has(rid); }}
+          cellProps={cellProps}
+          renderCell={(rec, col) => editorFor(numId(rec.id), col.key)}
+          groupBy={groupByField ? (rec) => String(rec[groupByField] ?? '(empty)') : undefined}
+          groupLabel={(g, recs) => `${groupByField}: ${g} (${recs.length})`}
+          collapsibleGroups
+          empty={<div className="dg-empty">{Object.values(filters).some((v) => v.trim()) ? 'No records match filters.' : 'No records.'}</div>}
+          scroll
+          containerRef={scrollRef}
+          containerProps={containerProps}
+        />
       {/* Custom footer bar (line card: Lns/Items/Deposit/Backlog/Total + buttons) */}
       {props.footerBar}
 

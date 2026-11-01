@@ -91,7 +91,8 @@ def expand_tree(
     max_depth: int = 20,
     cost_basis: str = 'avg',
 ) -> list[BOMTreeRow]:
-    """BFS expansion of BOM into a flat list with level tracking.
+    """Depth-first expansion of a BOM into a flat list with level tracking: each sub-assembly's
+    components follow it, so the list reads as the tree (TreeList shows it so).
 
     Each row carries: item info, level depth, qty_plan (per parent unit),
     qty_actual (total needed for the build), and cost fields.
@@ -103,14 +104,10 @@ def expand_tree(
       'landed' — landed cost including freight/duty
     """
     rows: list[BOMTreeRow] = []
-    queue: deque[tuple[int, int, Decimal]] = deque()  # (parent_id, level, cumulative_qty)
-    queue.append((parent_id, 0, qty))
 
-    while queue:
-        current_parent, level, parent_cum_qty = queue.popleft()
+    def walk(current_parent: int, level: int, parent_cum_qty: Decimal) -> None:
         if level >= max_depth:
-            continue
-
+            return
         lines = list_bom_lines(current_parent, as_of=as_of, revision=revision)
         for line in lines:
             qty_plan = line.quantity * (Decimal("1") + line.scrap_factor)
@@ -147,10 +144,11 @@ def expand_tree(
             )
             rows.append(row)
 
-            # If sub-assembly, recurse into its children
+            # A sub-assembly's components come right after it
             if has_children:
-                queue.append((line.child_item_id, level + 1, qty_actual))
+                walk(line.child_item_id, level + 1, qty_actual)
 
+    walk(parent_id, 0, qty)
     return rows
 
 

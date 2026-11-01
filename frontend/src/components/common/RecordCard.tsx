@@ -18,7 +18,7 @@ import { showToast } from '@/store/slices/toastSlice';
 import { getRecord, saveRecord } from '@/api/wcapi';
 import CardRenderer from '@/components/cards/CardRenderer';
 import type { CardSpec } from '@/components/cards/cardRegistry';
-import { readable } from '@/apps/common/components/panels/panelColumnUtils';
+import { readable } from '@/apps/common/components/panels/cellFormat';
 
 export interface ParentLink {
   /** The new record's field that links it to the parent (customer_id, contact_id). */

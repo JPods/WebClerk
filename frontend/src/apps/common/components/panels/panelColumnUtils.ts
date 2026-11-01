@@ -5,12 +5,11 @@
  *   1. db.panel from the model's workbench_fields Setting (explicit columns)
  *   2. Auto-detection from the first record's keys (fallback)
  *
- * Format heuristics apply in both paths: currency for total/price/amount,
- * date for dt_*, phone for phone fields, etc.
+ * Cells format through cellFormat, as in every list.
  */
 import React from 'react';
-import type { PanelColumnDef } from './PanelTable';
-import { formatField, type FieldType } from '@/utils/fieldFormatters';
+import type { DbColumnDef } from './DbColumns';
+import { cellAlign, fieldLabel, formatCell, valueAt } from './cellFormat';
 
 // ── Thumbnails ────────────────────────────────────────────────────────
 // A column spec of { field: "ida_item", format: "image" } renders the item's
@@ -36,19 +35,6 @@ function thumbnail(ida: string): React.ReactNode {
   });
 }
 
-// ── Dot-path resolution (e.g. "comments.process") ──────────────────────
-
-function resolveDotPath(obj: Record<string, unknown>, path: string): unknown {
-  if (!path.includes('.')) return obj[path];
-  const parts = path.split('.');
-  let cur: unknown = obj;
-  for (const p of parts) {
-    if (cur == null || typeof cur !== 'object') return undefined;
-    cur = (cur as Record<string, unknown>)[p];
-  }
-  return cur;
-}
-
 // ── Types matching DbFieldSpec from setting.py ───────────────────────────
 
 interface DbFieldSpec {
@@ -57,24 +43,6 @@ interface DbFieldSpec {
   align?: 'left' | 'center' | 'right';
   visible?: boolean;
   format?: 'currency' | 'percent' | 'date' | 'number' | 'json' | 'phone' | 'masked' | 'image';
-}
-
-// ── Format heuristics by field name ──────────────────────────────────────
-
-const FORMAT_BY_NAME: Record<string, FieldType> = {
-  total: 'currency', price: 'currency', cost: 'currency', amount: 'currency',
-  subtotal: 'currency', balance: 'currency', msrp: 'currency', unit_price: 'currency',
-  phone: 'phone', fax: 'phone', mobile: 'phone',
-  email: 'email',
-  zip: 'zip', postal_code: 'zip',
-};
-
-function guessFormat(field: string): FieldType | undefined {
-  if (FORMAT_BY_NAME[field]) return FORMAT_BY_NAME[field];
-  if (field.startsWith('dt_')) return 'date';
-  if (field.endsWith('_price') || field.endsWith('_cost') || field.endsWith('_amount')) return 'currency';
-  if (field.endsWith('_phone') || field.endsWith('_fax')) return 'phone';
-  return undefined;
 }
 
 // Width hints by field name
@@ -91,87 +59,39 @@ const SKIP_FIELDS = new Set([
   'metadata', 'prefs', 'refs', 'config',
 ]);
 
-/** A JSON value people read as text: a language map ({en: '…'}) is the viewer's language, else
- *  its first entry (an action's action); a list of named records is their names (assigned_to). */
-export function readable(val: unknown): string | null {
-  if (Array.isArray(val)) {
-    if (!val.length) return '';
-    return val.every((v) => v && typeof v === 'object' && 'name' in (v as object))
-      ? val.map((v) => String((v as { name: unknown }).name ?? '')).filter(Boolean).join(', ')
-      : null;
-  }
-  if (val && typeof val === 'object') {
-    const entries = Object.entries(val as Record<string, unknown>);
-    if (!entries.length || !entries.every(([k, v]) => /^[a-z]{2}$/.test(k) && typeof v === 'string')) return null;
-    const lang = (navigator.language || 'en').slice(0, 2);
-    const map = val as Record<string, string>;
-    return map[lang] ?? map.en ?? String(entries[0][1]);
-  }
-  return null;
-}
-
 // ── Build from DbFieldSpec (db.panel Setting) ────────────────────────────
 
-export function buildColumnsFromSpecs(specs: DbFieldSpec[]): PanelColumnDef<Record<string, unknown>>[] {
+type Rec = Record<string, unknown>;
+
+export function buildColumnsFromSpecs(specs: DbFieldSpec[]): DbColumnDef<Rec>[] {
   return specs
     .filter((s) => s.visible !== false)
     .map((s) => {
-      const fmt = s.format as FieldType | undefined ?? guessFormat(s.field);
-      const align = s.align === 'right' ? 'text-right' : s.align === 'center' ? 'text-center' : '';
-      const px = s.width ?? WIDTH_BY_NAME[s.field];
-
-      // Label: use leaf segment for dot-paths (e.g. "comments.process" → "process")
-      const label = String(s.format) === 'image' ? '' : s.field.includes('.')
-        ? s.field.split('.').pop()!.replace(/_/g, ' ')
-        : s.field.replace(/_/g, ' ');
-
+      const image = String(s.format) === 'image';
       return {
         key: s.field,
-        label,
-        width: px ? `${px}px` : undefined,
-        className: align || undefined,
-        render: (r: Record<string, unknown>) => {
-          const val = resolveDotPath(r, s.field);
-          // an image column stays blank rather than showing an em dash — a
-          // missing picture should not look like missing data
-          if (String(s.format) === 'image') {
-            return val == null || val === '' ? null : thumbnail(String(val));
-          }
-          if (val == null || val === '') return '—';
-          if (fmt) return formatField(val, fmt, s.field);
-          const said = readable(val);
-          if (said != null) return said || '—';
-          if (typeof val === 'object') return JSON.stringify(val).slice(0, 80);
-          return String(val);
-        },
-      } satisfies PanelColumnDef<Record<string, unknown>>;
+        label: image ? '' : fieldLabel(s.field).replace(/_/g, ' '),
+        width: s.width ?? WIDTH_BY_NAME[s.field],
+        align: cellAlign(s.field, { format: s.format, align: s.align }),
+        // An image column: the field supplies the identity, the format the picture.
+        render: image
+          ? (r: Rec) => { const v = valueAt(r, s.field); return v == null || v === '' ? null : thumbnail(String(v)); }
+          : (r: Rec) => formatCell(valueAt(r, s.field), s.field, { format: s.format }),
+      } satisfies DbColumnDef<Rec>;
     });
 }
 
 // ── Build from record keys (auto-detection fallback) ─────────────────────
 
-export function buildColumnsFromRecord(record: Record<string, unknown>, maxCols = 6): PanelColumnDef<Record<string, unknown>>[] {
-  const keys = Object.keys(record)
+export function buildColumnsFromRecord(record: Rec, maxCols = 6): DbColumnDef<Rec>[] {
+  return Object.keys(record)
     .filter((k) => !SKIP_FIELDS.has(k))
-    .slice(0, maxCols);
-
-  return keys.map((field) => {
-    const fmt = guessFormat(field);
-    const px = WIDTH_BY_NAME[field];
-    const align = fmt === 'currency' || fmt === 'number' || fmt === 'percent' ? 'text-right' : '';
-
-    return {
+    .slice(0, maxCols)
+    .map((field) => ({
       key: field,
       label: field.replace(/_/g, ' '),
-      width: px ? `${px}px` : undefined,
-      className: align || undefined,
-      render: (r: Record<string, unknown>) => {
-        const val = r[field];
-        if (val == null || val === '') return '—';
-        if (fmt) return formatField(val, fmt, field);
-        if (typeof val === 'object') return JSON.stringify(val).slice(0, 60);
-        return String(val);
-      },
-    } satisfies PanelColumnDef<Record<string, unknown>>;
-  });
+      width: WIDTH_BY_NAME[field],
+      align: cellAlign(field, {}, record[field]),
+      render: (r: Rec) => formatCell(r[field], field),
+    }));
 }

@@ -42,7 +42,7 @@ const BomPanel = lazy(() => import('@/apps/products/components/BomPanel'));
 const CatalogLinesPanel = lazy(() => import('@/apps/products/components/CatalogLinesPanel'));
 const CycleCountPanel = lazy(() => import('@/apps/products/components/CycleCountPanel'));
 const DataGrid = lazy(() => import('@/components/common/DataGrid'));
-const PanelTable = lazy(() => import('@/apps/common/components/panels/PanelTable').then(m => ({ default: m.PanelTable })));
+const DbColumns = lazy(() => import('@/apps/common/components/panels/DbColumns').then(m => ({ default: m.DbColumns })));
 const LazyTimeClockWidget = lazy(() => import('@/components/widgets/TimeClockWidget').then(m => ({ default: m.TimeClockWidget })));
 const LazyBillableWidget = lazy(() => import('@/components/widgets/BillableWidget').then(m => ({ default: m.BillableWidget })));
 const LazyFileUploadPanel = lazy(() => import('@/components/common/FileUploadPanel'));
@@ -144,7 +144,7 @@ const registry: Record<string, PanelRenderer> = {
       ...(ctx.data.refs?.links?.customer ? [{ type: 'Customer', ...ctx.data.refs.links.customer }] : []),
       ...(ctx.data.refs?.links?.vendor ? [{ type: 'Vendor', ...ctx.data.refs.links.vendor }] : []),
     ];
-    return wrap(createElement(PanelTable, {
+    return wrap(createElement(DbColumns, {
       storageKey: `panel:${ctx.modelName}:organizations`,
       columns: [
         { key: 'type', label: 'type', width: '80px', className: 'font-semibold text-slate-600 dark:text-slate-300', render: (r: any) => String(r.type ?? '—') },

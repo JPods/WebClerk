@@ -1,5 +1,5 @@
 /**
- * DataGrid.css — styles for the DataGrid component.
+ * DbColumns.css — the one table every list draws (DbColumns, DataGrid, TreeList).
  * Uses CSS custom properties from the nearest .db-root ancestor (set by DataBrowser.css).
  */
 
@@ -512,3 +512,54 @@
 .dg-ctx-submenu-item:hover {
   background: var(--db-row-hover, #f1f3f5);
 }
+
+/* ---------------------------------------------------------------------------
+   The base list (DbColumns) — a table that fills its panel, rows as the record list's
+   --------------------------------------------------------------------------- */
+
+/* A panel's list flows in its frame: no scroll box of its own, so the header sticks to the
+   frame that scrolls (TFTS 2026-10-27). */
+.dg-flow {
+  min-width: 0;
+}
+
+.dg-table--fluid {
+  table-layout: auto;
+  width: 100%;
+}
+
+.dg-table--fluid .dg-td {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 0;
+}
+
+.dg-row--compact .dg-td {
+  padding-top: 3px;
+  padding-bottom: 3px;
+}
+
+.dg-row--dimmed {
+  opacity: 0.4;
+}
+
+.dg-group-summary {
+  float: right;
+  font-weight: 400;
+  color: var(--db-text-muted, #6c757d);
+}
+
+.dg-th-trailer {
+  float: right;
+  border: none;
+  background: transparent;
+  color: var(--db-text-dim, #adb5bd);
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.dg-th-trailer:hover {
+  color: var(--db-accent, #0d6efd);
+}
+

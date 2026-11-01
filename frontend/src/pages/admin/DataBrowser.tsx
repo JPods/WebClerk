@@ -1212,7 +1212,7 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
 
             {/* BOM panel — show when viewing an Item (Admin mode only) */}
             {viewPref !== 'app' && db.selectedRecord && db.selectedModel === 'item' && db.selectedId && (
-              <BOMPanel itemId={db.selectedId} theme={tDetail} fontSize={baseFontSize} />
+              <BOMPanel itemId={db.selectedId} />
             )}
 
             {/* Match candidates panel — full detail cards for each candidate */}

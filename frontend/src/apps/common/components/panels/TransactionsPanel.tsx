@@ -26,8 +26,7 @@ import { getModelDetailPath, getModelWindowTitle } from "./getModelDetailPath";
 import type { UserRole } from "./types";
 import { ALL_ROLES, USER_ROLES } from "./types";
 import { withDevIdentifier } from "@/components/common/DevIdentifier";
-import { PanelTable } from "./PanelTable";
-import type { PanelColumnDef } from "./PanelTable";
+import { DbColumns, type DbColumnDef } from "./DbColumns";
 import { formatDt } from '@/utils/fieldFormatters';
 import { formatCurrency } from '@/utils/stringUtils';
 
@@ -155,7 +154,7 @@ const TransactionsPanel: React.FC<TransactionsPanelProps> = ({
   const tables = useMemo(() => SUB_TABLES[orgType] ?? [], [orgType]);
 
   // Column definitions for transaction rows
-  const txnColumns = useMemo<PanelColumnDef<TransactionRecord>[]>(
+  const txnColumns = useMemo<DbColumnDef<TransactionRecord>[]>(
     () => [
       {
         key: "ida",
@@ -339,7 +338,7 @@ const TransactionsPanel: React.FC<TransactionsPanelProps> = ({
                       {t.label}
                     </h4>
                     <div className="border rounded-md overflow-hidden" style={{ borderColor: 'var(--db-border)' }}>
-                      <PanelTable<TransactionRecord>
+                      <DbColumns<TransactionRecord>
                         storageKey={`panel:transactions:${t.model}`}
                         columns={txnColumns}
                         data={records}

@@ -151,32 +151,34 @@ The `configSource` property tells the UI where current config came from: `'local
 
 ---
 
-## Base Component: DbColumns
+## One row engine: DbColumns, and what inherits from it (Bill, 2026-11-01)
 
-Every panel renders through `DbColumns` — the single source of truth for all tabular displays.
+Bill: "one set of code to manage rows of records/array elements with specialty features added as
+needed"; "DbColumn is the parent that DataGrid inherits and expands on … relatively simple list
+displays in panels and more complex in db.lists"; "cascade or tree list might inherit but not be
+part of DbColumn".
+
+| Layer | File | Adds | Used by |
+|---|---|---|---|
+| `DbColumnsTable` | `DbColumns.tsx` | the one `<table>`: labels, rows, alignment, group headings, slots | everything below |
+| `DbColumns` | `DbColumns.tsx` | column dialog (storageKey), the WC List Standard gestures, the panel frame | every panel |
+| `DataGrid` | `components/common/DataGrid.tsx` | column filters, sort, edit-in-list, Σ footer, dupes, color rules, column menu, toolbar | record lists, transaction lines |
+| `TreeList` | `TreeList.tsx` | parent/child fold and indent | the BOM tree |
+
+- **One look for a value:** cells format through `cellFormat.ts` (`formatCell`, `cellAlign`,
+  `headerStyle`) — the same in a panel, a record list or a tree. Empty is blank.
+- **One CSS:** `DbColumns.css` (`dg-*` classes on the `--db-*` theme variables).
+- **The extension slots** (`DbColumnsTable` props): `headerCell` (an extension's own header
+  cell), `headerRows` (a filter row), `footer` (Σ), `rowProps` / `cellProps` (classes, handlers),
+  `renderCell` (an editor while editing), `cellPrefix` (a tree's chevron), `groupBy` /
+  `groupLabel` / `groupSummary`.
+- **A tree's rows come depth-first from the server** (`bom_ops.expand_tree`): each parent
+  followed by its children, with their level.
 
 ```tsx
-<DbColumns<T>
-  storageKey="panel:order:contacts"
-  columns={columnDefs}
-  data={records}
-  rowKey={(r) => r.id}
-  sectionLabel="Contacts"
-  sectionIcon="👤"
-  onAdd={() => handleAdd()}
-  defaultCollapsed={true}
-  compact
-/>
+<DbColumns<T> storageKey="panel:order:contacts" columns={columnDefs} data={records}
+  rowKey={(r) => r.id} sectionLabel="Contacts" onAdd={(el) => add(el)} compact />
 ```
-
-DbColumns provides:
-- Section header with collapse ▶/▼, count badge, "+ add" button
-- Column headers with hamburger (FaSlidersH) → FieldOrderDialog
-- Column persistence via `useListFieldConfig` (three-tier inheritance)
-- Row rendering with selection highlighting
-- Custom row rendering via `renderRow` prop
-- Empty state message
-- Children slot (e.g., inline search form)
 
 ---
 
@@ -198,9 +200,10 @@ If `linkedModel === parentModel && record.id === parentId`, the click does nothi
 
 With self-discovering panels, the old integration matrix (which model has which panel) is obsolete. Every model gets every panel through DynamicDetail. The data determines what appears, not a configuration matrix.
 
-### 5. New panels use DbColumns
+### 5. Every list of rows is DbColumns or inherits from it
 
-Any new panel component must use `DbColumns` as its base. No custom table rendering. This ensures consistent column config, hamburger, and behavior across all panels.
+A panel uses `DbColumns`; a heavier list uses `DataGrid`; a hierarchy uses `TreeList`. No
+custom table rendering. A speciality is a prop or a slot, not a new table.
 
 ---
 
@@ -212,8 +215,10 @@ Any new panel component must use `DbColumns` as its base. No custom table render
 |------|------|
 | `../CollapsiblePanel.tsx` | The one panel frame — header, count, actions, collapse, loading/error/empty; panels declare theirs with `usePanelFrame` |
 | `@/hooks/usePanelRecords.ts` | The one panel read — records plus the status the frame shows |
-| `DbColumns.tsx` | The one panel table — sticky column labels; inside the frame when given `sectionLabel` |
-| `PanelTable.tsx` | Re-export: `DbColumns as PanelTable` |
+| `DbColumns.tsx` | The row engine's base: `DbColumnsTable` (the one table) and `DbColumns` (a panel's list) |
+| `DbColumns.css` | The one table's CSS |
+| `cellFormat.ts` | How a value looks in any list cell |
+| `TreeList.tsx` | DbColumns with parent/child fold and indent |
 | `LinkedRecordsPanel.tsx` | Universal any-model-to-any-model linking panel |
 | `ContactPanel.tsx` | Specialized contact panel with purpose/role |
 | `getModelDetailPath.ts` | Model → detail route + window size mapping |
