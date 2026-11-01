@@ -96,7 +96,6 @@ inherited code and only very rare specialty behaviors"). A panel's speciality co
 |------|-----|---------|
 | `byField` | rows are the records whose own field holds the parent's id; nothing is stored on the parent; no unlink | serials, xref, specs (`item_id`), BOM (`parent_item_id`), catalog lines (`catalog_id`) |
 | `read` | rows from a service view | inventory layers (computed remaining) |
-| `sort` | row order | BOM by sequence, catalog item lines first |
 | `pick` | "+ add" picks a record of another model and makes the row with both ids | BOM component, catalog item line |
 | `chipField` | count chips per value; a click filters | serial status |
 | `groupBy` / `groupSummary` | a heading per group with its sums | layers by warehouse |
@@ -104,6 +103,27 @@ inherited code and only very rare specialty behaviors"). A panel's speciality co
 
 Lists that are not records (an order's margin, commission and inventory views, the related
 documents) are `DbColumns` with columns in code.
+
+### Row order — one rule for every list (Bill, 2026-11-01)
+
+No panel sorts its rows. The server's list endpoint orders every list, panel and report the same
+way (`backend/apps/core/services/list_order.py`):
+
+1. What was asked: a column click, `?ordering=a,-b`, a saved search.
+2. The model's `config.orderby` on its wc:model Setting, such as `["parent_item_id", "sequence"]`.
+3. `sequence`, when the model has one.
+4. Newest first (`-dt_created`).
+
+`id` ends every order, so tied rows keep their places from one read to the next. An unknown
+field in an ordering is dropped, not obeyed.
+
+**Why `config.orderby` leads `sequence`:** a bill of materials ordered by `sequence` alone lists
+every parent's line 1, then every parent's line 2. What is wanted is each parent's lines
+together, in sequence: `["parent_item_id", "sequence"]`. A sequence orders rows *within*
+something, and only `orderby` can say within what.
+
+The first guess for each model is `list_order.DEFAULT`, seeded into `config.orderby`. The
+company changes it on the Setting; a reseed keeps the company's.
 
 ---
 

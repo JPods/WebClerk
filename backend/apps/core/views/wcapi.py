@@ -16,7 +16,7 @@ from rest_framework.views import APIView
 from drf_spectacular.utils import OpenApiParameter, extend_schema, inline_serializer
 from django.utils import timezone
 
-from apps.core.services import access
+from apps.core.services import access, list_order
 from apps.core.services import record_serialize as services
 from apps.core.services.door import Actor
 from apps.core.constants.filter_operators import ALLOWED_LOOKUPS
@@ -306,10 +306,7 @@ class WCAPIGetView(APIView):
             return []
         try:
             qs = manager.all()
-            try:
-                qs = qs.order_by("id")
-            except Exception:
-                pass
+            qs = qs.order_by(*list_order.order(qs.model._meta.model_name, qs.model))
         except Exception as e:
             logger.error("_serialize_lines: exception getting queryset: %s", e)
             return []
@@ -973,36 +970,26 @@ class WCAPIGetView(APIView):
         except (ValueError, TypeError):
             return 500, 0
 
-    def _validate_ordering(self, ordering: str, ModelCls) -> Optional[str]:
-        # Map common field names
+    def _validate_ordering(self, ordering: str, ModelCls) -> Optional[list]:
+        """The fields of a comma-separated ordering the model has; unknown ones are dropped."""
         ordering_map = {
             'created_at': 'dt_created',
-            '-created_at': '-dt_created',
             'updated_at': 'dt_modified',
-            '-updated_at': '-dt_modified',
-            'name': 'name',
-            '-name': '-name',
         }
+        fields = []
+        for f in ordering.split(','):
+            f = f.strip()
+            sign = '-' if f.startswith('-') else ''
+            fields.append(sign + ordering_map.get(f.lstrip('-'), f.lstrip('-')))
+        return list_order.valid(fields, ModelCls) or None
 
-        if ordering in ordering_map:
-            ordering = ordering_map[ordering]
-
-        field_name = ordering.lstrip('-')
-        field_names = {f.name for f in ModelCls._meta.get_fields()}
-        if field_name not in field_names:
-            return None
-        # The field check is the validation: order_by is lazy and never raised here. The
-        # objects.active() this tried exists only on BaseModel's manager, so for a thin model
-        # (Pending, Log) every ordering was dropped (Fable review, 2026-10-28).
-        return ordering
-
-    def _parse_ordering(self, request, model_key: str, ModelCls) -> Optional[str]:
+    def _parse_ordering(self, request, model_key: str, ModelCls) -> Optional[list]:
         """
         Parse and validate ordering parameter.
         
         Supports: ?ordering=field_name or ?ordering=-field_name or ?order_by=...
         
-        Returns validated ordering string or None.
+        Returns the validated fields, or None.
         """
         ordering = request.query_params.get('ordering') or request.query_params.get('order_by')
         if not ordering:
@@ -1220,20 +1207,11 @@ class WCAPIGetView(APIView):
         total_count = qs.count()
         
         # Parse and apply ordering
+        # What was asked, else config.orderby, else sequence, else newest (services/list_order).
         ordering = self._parse_ordering(request, model_key, ModelCls)
         if not ordering and isinstance(saved_data.get("ordering"), str):
             ordering = self._validate_ordering(saved_data.get("ordering"), ModelCls)
-        if ordering:
-            qs = qs.order_by(ordering)
-        else:
-            # Default ordering
-            try:
-                qs = qs.order_by('-dt_created')
-            except Exception:
-                try:
-                    qs = qs.order_by('-id')
-                except Exception:
-                    pass
+        qs = qs.order_by(*list_order.order(model_key, ModelCls, ordering))
         
         # Parse pagination
         pagination_defaults: Dict[str, Any] = {}

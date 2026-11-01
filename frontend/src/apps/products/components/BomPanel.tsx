@@ -17,9 +17,6 @@ export interface BomPanelProps {
   itemCode: string;
 }
 
-type Rec = Record<string, any>;
-const bySequence = (a: Rec, b: Rec) => (a.sequence || 0) - (b.sequence || 0) || (a.id || 0) - (b.id || 0);
-
 const BomPanel: React.FC<BomPanelProps> = ({ itemId, itemCode }) => {
   const dispatch = useDispatch();
   const [showBuild, setShowBuild] = useState(false);
@@ -51,7 +48,7 @@ const BomPanel: React.FC<BomPanelProps> = ({ itemId, itemCode }) => {
   return (
     <LinkedRecordsPanel
       linkedModel="bill_of_material" parentModel="item" parentId={itemId} byField="parent_item_id"
-      title="Bill of materials" defaultCollapsed={false} sort={bySequence}
+      title="Bill of materials" defaultCollapsed={false}
       pick={{
         model: 'item', field: 'child_item_id',
         values: (item, rows) => ({

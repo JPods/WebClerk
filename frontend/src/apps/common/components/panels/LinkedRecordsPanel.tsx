@@ -79,8 +79,6 @@ interface LinkedRecordsPanelProps {
   byField?: string;
   /** Rows from a service view rather than the model channel (inventory layers). */
   read?: (params: Record<string, unknown>) => Promise<Rec[]>;
-  /** Row order (a BOM by sequence). */
-  sort?: (a: Rec, b: Rec) => number;
   /** "+ add" picks a record of another model: the row is made under the parent with the picked
    *  id in `field` (a BOM component's child item). `values` adds what the pick supplies. */
   pick?: { model: string; field: string; values?: (picked: Rec, rows: Rec[]) => Record<string, unknown> };
@@ -205,7 +203,6 @@ export const LinkedRecordsPanel: React.FC<LinkedRecordsPanelProps> = ({
   onRemovePanel,
   byField,
   read,
-  sort,
   pick,
   chipField,
   groupBy,
@@ -289,9 +286,9 @@ export const LinkedRecordsPanel: React.FC<LinkedRecordsPanelProps> = ({
     { parentModel, parentId, linkedModel, byField }, { read: readLinked });
   const [chip, setChip] = useState('');
   const records = useMemo(() => {
-    const rows = chipField && chip ? readRows.filter(r => String(r[chipField] ?? '') === chip) : readRows;
-    return sort ? [...rows].sort(sort) : rows;
-  }, [readRows, chipField, chip, sort]);
+    // Rows come in the model's list order (the server's: asked, config.orderby, sequence, newest).
+    return chipField && chip ? readRows.filter(r => String(r[chipField] ?? '') === chip) : readRows;
+  }, [readRows, chipField, chip]);
   const initialLoadDone = status.empty || records.length > 0 || !!error;
 
   // The parent's refs.links changed when the parent was saved, from any window.

@@ -17,8 +17,6 @@ export interface CatalogLinesPanelProps {
   catalogId: number;
 }
 
-type Rec = Record<string, any>;
-const itemLinesFirst = (a: Rec, b: Rec) => (a.item ? 0 : 1) - (b.item ? 0 : 1) || a.id - b.id;
 const list = (s: string) => s.split(',').map(x => x.trim()).filter(Boolean);
 
 const CatalogLinesPanel: React.FC<CatalogLinesPanelProps> = ({ catalogId }) => {
@@ -47,7 +45,7 @@ const CatalogLinesPanel: React.FC<CatalogLinesPanelProps> = ({ catalogId }) => {
   return (
     <LinkedRecordsPanel
       linkedModel="catalog_line" parentModel="catalog" parentId={catalogId} byField="catalog_id"
-      title="Lines" defaultCollapsed={false} sort={itemLinesFirst}
+      title="Lines" defaultCollapsed={false}
       pick={{ model: 'item', field: 'item_id' }}
       extraActions={
         <button type="button" className="db-section-header__action"

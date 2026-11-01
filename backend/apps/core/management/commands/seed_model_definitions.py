@@ -29,6 +29,7 @@ their config into the combined structure. Auto-generates what's missing.
 from django.core.management.base import BaseCommand
 from apps.core import layouts
 from apps.core.models.setting import Setting
+from apps.core.services import list_order
 from apps.core.constants.model_registry import MODEL_REGISTRY, get_model_meta
 from apps.core.services.field_behaviors import (
     get_field_behaviors, get_field_groups, get_model_field_map, SEED_PURPOSES, USER_DEFINED_PURPOSE,
@@ -173,6 +174,8 @@ def build_model_config(model_key):
         'layout': layouts.build(model_key),
         'searches': [],
         'defaults': salvaged.get('defaults', {}),
+        # The order a list reads in, first guess (apps/core/services/list_order).
+        'orderby': list(list_order.DEFAULT.get(model_key, [])),
     }
     return config
 
@@ -253,7 +256,7 @@ class Command(BaseCommand):
             if existing:
                 # MERGE, not REPLACE.
                 # Seed regenerates: behaviors, access, schema, field_groups,
-                #   formatting, searches, defaults, enrichment. selectlists are kept.
+                #   formatting, searches, defaults, enrichment. selectlists and orderby are kept.
                 # config.layout is the company's: kept, only the parts it lacks are added
                 #   (apps/core/layouts); staff reset one part with POST /wcapi/_layout_reset/.
                 config['layout'] = layouts.fill(model_key, (existing.config or {}).get('layout'))[0]
@@ -261,6 +264,10 @@ class Command(BaseCommand):
                 old_lists = (existing.config or {}).get('selectlists')
                 if isinstance(old_lists, dict):
                     config['selectlists'] = old_lists
+                # So is the order its lists read in.
+                old_order = (existing.config or {}).get('orderby')
+                if isinstance(old_order, list):
+                    config['orderby'] = old_order
 
                 existing.config = config
                 existing.name = f'{meta.singular} Model Definition'
