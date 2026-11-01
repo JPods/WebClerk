@@ -42948,13 +42948,6 @@
             "type": "json-tree",
             "label": "Internal Notes"
           },
-          "totals.amount": {
-            "type": "currency",
-            "label": "Amount",
-            "readonly": true,
-            "precision": 2,
-            "description": "Computed: (qty * unit) - discount_amount"
-          },
           "price.is_fixed": {
             "type": "boolean",
             "label": "Price Fixed",

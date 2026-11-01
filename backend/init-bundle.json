@@ -43001,13 +43001,6 @@
             "type": "readonly",
             "label": "health rating"
           },
-          "totals.amount": {
-            "type": "currency",
-            "label": "Amount",
-            "readonly": true,
-            "precision": 2,
-            "description": "Computed: (qty * unit) - discount_amount"
-          },
           "comments.notes": {
             "type": "json-tree",
             "label": "Internal Notes"
