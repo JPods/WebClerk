@@ -28,7 +28,6 @@ urlpatterns = [
     # Contact paste parser
     # Upstream Alice — any WC3 can serve these for downstream instances
     path("alice/ask/", views.AliceAskUpstreamView.as_view(), name="alice-ask-upstream"),
-    path("alice/ask-claude/", views.AliceAskClaudeUpstreamView.as_view(), name="alice-ask-claude-upstream"),
     # Episodes — telemetry-style feed and review
     path("episodes/feed/", views.EpisodeFeedView.as_view(), name="episode-feed"),
     path("episodes/review/", views.EpisodeReviewView.as_view(), name="episode-review"),

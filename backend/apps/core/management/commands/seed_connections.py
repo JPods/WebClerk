@@ -833,7 +833,6 @@ CONNECTIONS = [
         'config': {
             'endpoint': '',                 # e.g. 'https://hq.example.com'
             'key': '',                      # shared sync key
-            'subscription_tier': 'standard',
             'content_types': [
                 'gl_journal',               # journal entries → curated for accounting
                 'alice_escalation',         # low-confidence questions → HQ Alice
@@ -868,14 +867,12 @@ CONNECTIONS = [
         'purpose': 'sync',
         'status': 'active',
         'comment': (
-            'AI Escalation Chain: Alice local → Alice at WCHQ → Alice+Claude at WCHQ. '
+            'AI Escalation Chain: Alice local → Alice at WCHQ → Claude, called by WCHQ. '
             'Tier 1: Alice answers locally via Ollama RAG (always first, free). '
-            'Tier 2: If confidence < 40%, escalate to WCHQ Alice — WCHQ runs a '
-            'larger model on shared infrastructure (standard subscription). '
-            'Tier 3: If WCHQ Alice is also low-confidence, WCHQ internally '
-            'escalates to Claude (professional subscription). The individual '
-            'installation never needs a Claude API key — WCHQ manages that '
-            'relationship centrally. All escalations logged as '
+            'Tier 2: If confidence < 40%, ask WCHQ Alice, who has the experience of '
+            'every installation (subscription, $9 per staff user a month). '
+            'Tier 3: Only WCHQ calls Claude, when its own Alice is also not sure; '
+            'an installation never does. All escalations logged as '
             'AliceObservation(category=escalation).'
         ),
         'config': {
@@ -892,17 +889,17 @@ CONNECTIONS = [
                         'name': 'wchq_alice',
                         'source': 'WCHQ shared Alice',
                         'trigger': 'confidence < 40%',
-                        'cost': '$4/person/mo',
-                        'subscription': 'standard',
+                        'cost': '$9 per staff user a month',
+                        'subscription': 'subscribed',
                         'endpoint': '/wcapi/alice/ask/',
                     },
                     {
                         'name': 'wchq_claude',
                         'source': 'WCHQ calls Claude',
                         'trigger': 'WCHQ Alice also low confidence',
-                        'cost': '$9/person/mo',
-                        'subscription': 'professional',
-                        'endpoint': '/wcapi/alice/ask-claude/',
+                        'cost': 'included',
+                        'subscription': 'subscribed',
+                        'endpoint': '/wcapi/alice/ask/',
                     },
                 ],
                 'confidence': {

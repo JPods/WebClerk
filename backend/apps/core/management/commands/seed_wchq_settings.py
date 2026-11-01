@@ -4,14 +4,15 @@ Records seeded:
   1. wc:wchq_connection — Controls all interaction between local WC3 and WCHQ
   2. claude_api — Claude API key and escalation chain configuration
   3. wc:subscription — WCHQ subscription status (controls Tier 2 LLM fallback)
-  4. Item: WCHQ-STD — Standard subscription ($4/person/mo, Alice Tier 2)
-  5. Item: WCHQ-PRO — Professional subscription ($9/person/mo, Alice+Claude Tier 3)
+  4. Item: WCHQ-SUB — the one subscription, $9 per staff user a month (Bill, 2026-11-01):
+     WCHQ Alice, Claude when WCHQ calls it, and the support channel
 
 Subscription Items exist at WCHQ (as products to sell) and at each local WC3
 (as products to order). They are normal commerce — orders, invoices, cash_entries.
 
-All new users get 2 months free professional access to harvest episodes and
-polish associative recall triggers from a larger base.
+All new users get 2 months free (60 days) to harvest episodes and polish associative
+recall triggers from a larger base. An owner who wants Claude direct adds their own
+Connection (channel 'claude_api'); that is on their own account, outside the subscription.
 
 Usage:
     python manage.py seed_wchq_settings
@@ -109,9 +110,9 @@ WCHQ_CONFIG = {
 
 
 ESCALATION_CONFIG = {
-    # ── Escalation Chain — Alice local → WCHQ Alice → WCHQ+Claude ──
-    # Individual installations never need a Claude API key.
-    # WCHQ manages the Claude relationship centrally.
+    # ── Escalation Chain — Alice local → WCHQ Alice → Claude, called by WCHQ ──
+    # An installation asks WCHQ, never Claude: WCHQ alone decides when Claude is worth
+    # the call. An owner's own 'claude_api' Connection goes direct, outside the subscription.
     "escalation": {
         "enabled": True,
         "confidence_threshold": 0.40,       # below this → escalate to WCHQ
@@ -131,15 +132,15 @@ ESCALATION_CONFIG = {
                 "order": 2,
                 "source": "WCHQ shared LLM",
                 "trigger": "confidence < threshold",
-                "requires": "standard subscription",
+                "requires": "subscription",
                 "cost": "subscription",
             },
             "wchq_claude": {
                 "order": 3,
                 "source": "WCHQ calls Claude",
                 "trigger": "WCHQ Alice also low confidence",
-                "requires": "professional subscription",
-                "cost": "subscription (higher tier)",
+                "requires": "subscription",
+                "cost": "included in the subscription",
             },
         },
     },
@@ -156,12 +157,10 @@ ESCALATION_CONFIG = {
 SUBSCRIPTION_CONFIG = {
     # ── WCHQ Subscription — controls escalation tiers ──────────────
     "subscribed": False,                    # user activates after purchase
-    "tier": "community",                    # community | standard | professional
-    #   community    = free, run your own Ollama, no WCHQ escalation
-    #   standard     = $4/person/mo, WCHQ Alice (Tier 2)
-    #   professional = $9/person/mo, WCHQ Alice+Claude (Tier 3)
+    #   not subscribed = free, run your own Ollama, no WCHQ escalation
+    #   subscribed     = $9 per staff user a month: WCHQ Alice, and Claude when WCHQ calls it
     "staff_count": 0,                       # auto-counted from is_staff
-    "item_ida": "",                         # WCHQ-STD or WCHQ-PRO — the Item being subscribed to
+    "item_ida": "",                         # WCHQ-SUB — the Item being subscribed to
     "billing": {
         "billing_cycle": "monthly",
         "last_cash_utc": "",
@@ -169,18 +168,16 @@ SUBSCRIPTION_CONFIG = {
     },
     "trial": {
         "active": False,                    # True during trial period
-        "tier_during_trial": "professional",  # full access during trial
         "trial_days": 60,                   # 2 months free
         "start_utc": "",                    # ISO — set when installation first connects to WCHQ
         "end_utc": "",                      # ISO — start + 60 days
         "converted": False,                 # True if user subscribed after trial
     },
     "features": {
-        "wchq_alice": False,                # True for standard+ (Tier 2)
-        "wchq_alice_claude": False,         # True for professional (Tier 3)
-        "cross_instance_queries": False,    # True for professional
-        "priority_support": False,          # True for professional
-        "coaching_library": True,           # True for all tiers
+        "wchq_alice": False,                # True while subscribed or in trial
+        "cross_instance_queries": False,    # True while subscribed or in trial
+        "support": False,                   # True while subscribed or in trial
+        "coaching_library": True,           # always
     },
 }
 
@@ -191,62 +188,16 @@ SUBSCRIPTION_CONFIG = {
 
 SUBSCRIPTION_ITEMS = [
     {
-        "ida": "WCHQ-STD",
-        "name": "WCHQ Alice Standard",
+        "ida": "WCHQ-SUB",
+        "name": "WCHQ Subscription",
         "kind": "service",
         "uom": "MO",
         "description": (
-            "WCHQ Alice Tier 2 — $4/person/month. "
-            "Alice escalates questions she can't answer locally to WCHQ's shared LLM. "
+            "$9 per staff user a month. Alice asks WCHQ when she can't answer locally; "
+            "WCHQ's Alice answers from the experience of every installation and calls Claude "
+            "when she is not sure. Includes the support channel. "
             "PII scrubbed before send. All exchanges logged locally. "
-            "Includes 2-month free trial with full professional access."
-        ),
-        "price": {
-            "base": "4.00",
-            "currency": "USD",
-        },
-        "cost": {
-            "standard": "0.80",
-            "currency": "USD",
-        },
-        "config": {
-            "service": {
-                "billing": {
-                    "currency": "USD",
-                    "tiers": [
-                        {"unit": "person", "rate": "4.00", "cost": "0.80",
-                         "min_minutes": 0, "dt_effective": 0},
-                    ],
-                    "rounding": {"strategy": "HALF_UP", "places": 2},
-                    "version": 1,
-                },
-                "approach": "itemized",
-                "default_duration_minutes": 0,
-            },
-            "subscription": {
-                "tier": "standard",
-                "features": ["wchq_alice", "coaching_library"],
-                "trial_days": 60,
-                "trial_tier": "professional",
-            },
-        },
-        "flags": {
-            "not_tracked": True,    # no physical inventory
-            "discountable": False,  # price is the price
-        },
-    },
-    {
-        "ida": "WCHQ-PRO",
-        "name": "WCHQ Alice + Claude Professional",
-        "kind": "service",
-        "uom": "MO",
-        "description": (
-            "WCHQ Alice + Claude Tier 3 — $9/person/month. "
-            "Alice escalates to WCHQ Alice (Tier 2), and WCHQ Alice can further "
-            "escalate to Claude (Tier 3) for complex questions. "
-            "Individual installations never need a Claude API key — WCHQ manages centrally. "
-            "Includes cross-instance pattern queries and priority support. "
-            "Includes 2-month free trial."
+            "Includes a 2-month (60-day) free trial."
         ),
         "price": {
             "base": "9.00",
@@ -271,19 +222,14 @@ SUBSCRIPTION_ITEMS = [
                 "default_duration_minutes": 0,
             },
             "subscription": {
-                "tier": "professional",
-                "features": [
-                    "wchq_alice", "wchq_alice_claude",
-                    "cross_instance_queries", "priority_support",
-                    "coaching_library",
-                ],
+                "features": ["wchq_alice", "cross_instance_queries", "support",
+                             "coaching_library"],
                 "trial_days": 60,
-                "trial_tier": "professional",
             },
         },
         "flags": {
-            "not_tracked": True,
-            "discountable": False,
+            "not_tracked": True,    # no physical inventory
+            "discountable": False,  # price is the price
         },
     },
 ]
@@ -393,5 +339,5 @@ class Command(BaseCommand):
             f"  Alice learning:  {cfg.get('alice_learning', {}).get('post_help_patterns', '?')}\n"
             f"  Admin review:    {cfg.get('admin_review', {}).get('frequency', '?')}\n"
             f"  Subscription Items: {items_created} created\n"
-            f"  Trial: 60 days free professional access for all new users\n"
+            f"  Trial: 60 days free for all new users\n"
         ))

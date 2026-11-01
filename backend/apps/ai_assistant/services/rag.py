@@ -28,7 +28,9 @@ from .prompt_templates import wrap_query, get_available_modes
 from .vector_store import VectorStoreManager
 from .escalation import (
     score_confidence,
+    ask_claude,
     escalate_to_wchq,
+    own_claude,
     log_escalation,
     CONFIDENCE_ESCALATE_THRESHOLD,
 )
@@ -146,11 +148,23 @@ class RAGService:
                 "tier_used": tier_used,
             }
 
-        # --- Tier 2/3: WCHQ escalation (low confidence) ---
-        # WCHQ runs its own Alice. If the subscription tier is
-        # 'professional', WCHQ can internally escalate to Claude.
-        # The individual installation never needs a Claude API key.
-        if confidence.score < CONFIDENCE_ESCALATE_THRESHOLD:
+        # --- Tier 2/3: low confidence ---
+        # An owner with their own Claude key calls Claude direct, on their own account.
+        # Otherwise WCHQ: its Alice answers, and WCHQ alone decides when to call Claude.
+        if confidence.score < CONFIDENCE_ESCALATE_THRESHOLD and own_claude():
+            try:
+                answer, _usage, claude_model = ask_claude(question, answer, '', context, mode)
+                tier_used = 'claude_direct'
+                escalation_log.append({"from": "alice_local", "to": tier_used,
+                                       "reason": "low_confidence",
+                                       "local_confidence": confidence.score, "model": claude_model})
+                log_escalation(question=question, local_confidence=confidence.score,
+                               tier_used=tier_used, reason="Own Claude connection")
+            except Exception as e:
+                logger.warning("Claude direct failed: %s — using local answer", e)
+                escalation_log.append({"from": "alice_local", "to": "claude_direct",
+                                       "reason": "low_confidence", "error": str(e)})
+        elif confidence.score < CONFIDENCE_ESCALATE_THRESHOLD:
             try:
                 wchq_result = escalate_to_wchq(
                     question=question,

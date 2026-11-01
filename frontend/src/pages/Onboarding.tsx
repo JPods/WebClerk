@@ -4,7 +4,7 @@
  * Three steps:
  *   1. Who are you? (name, email, company)
  *   2. What do you need? (industry, goals, pain points)
- *   3. Choose your plan (community, starter, professional, enterprise)
+ *   3. Choose your plan (community, or subscribe at $9 per staff user a month)
  *
  * On submit: POST to webclerk.com/wcapi/register-installation/
  * Receives Athena token, stores it in local Connection record.
@@ -15,8 +15,8 @@ import { getRecords, saveRecord, createRecord } from "@/api/wcapi";
 
 const WCHQ_URL = "https://webclerk.com";
 
-// Pricing: $14 per 5 staff users. Alice counts is_staff.
-const PRICE_PER_5 = 14;
+// Pricing: $9 per staff user a month (Bill, 2026-11-01). Alice counts is_staff.
+const PRICE_PER_STAFF = 9;
 
 interface FormData {
   name_first: string;
@@ -334,10 +334,10 @@ const Onboarding: React.FC = () => {
               onClick={() => update("subscribed", true)}
             >
               <div className="font-semibold text-lg">Subscribe</div>
-              <div className="text-blue-600 font-bold text-xl mt-1">${PRICE_PER_5}/mo per 5 users</div>
+              <div className="text-blue-600 font-bold text-xl mt-1">${PRICE_PER_STAFF}/mo per staff user</div>
               <ul className="mt-3 text-sm text-gray-600 space-y-1">
                 <li>- Everything in Community</li>
-                <li>- Alice cloud AI (no Ollama needed)</li>
+                <li>- Alice at WCHQ, who calls Claude when she is not sure</li>
                 <li>- Direct support channel</li>
                 <li>- Alice counts your staff — price adjusts automatically</li>
               </ul>
@@ -347,7 +347,7 @@ const Onboarding: React.FC = () => {
           {form.subscribed && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-gray-700">
               Alice will count your active staff users and report monthly. A company with 12 staff users
-              pays ${Math.ceil(12 / 5) * PRICE_PER_5}/mo. Price adjusts as your team grows or shrinks.
+              pays ${12 * PRICE_PER_STAFF}/mo. Price adjusts as your team grows or shrinks.
               No contracts. Cancel anytime.
             </div>
           )}

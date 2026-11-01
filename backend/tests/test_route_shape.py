@@ -88,7 +88,6 @@ KNOWN_VIOLATIONS = frozenset({
     'wcapi/_test_parade_run/',
     'wcapi/_view/',
     'wcapi/_wchq_submit/',
-    'wcapi/ai/alice/ask-claude/',
     'wcapi/ai/alice/ask/',
     'wcapi/ai/ask/',
     'wcapi/ai/coaching/',

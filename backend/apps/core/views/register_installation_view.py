@@ -25,19 +25,15 @@ from django.views.decorators.csrf import csrf_exempt
 
 logger = logging.getLogger(__name__)
 
-# Pricing: $14 per 5 staff users per month. Alice counts is_staff.
+# One price (Bill, 2026-11-01): $9 per staff user a month. Alice counts is_staff.
 # Community (free) = run your own Ollama, no cloud.
-# Subscribed = Alice cloud + support channel, priced by staff count.
-PRICE_PER_5_USERS = 1400  # cents
+# Subscribed = WCHQ Alice, Claude when WCHQ calls it, and the support channel.
+PRICE_PER_STAFF = 900  # cents
 
 
 def calculate_monthly_price(staff_count: int) -> int:
-    """$14 per 5 staff users, rounded up. Minimum 1 block."""
-    if staff_count <= 0:
-        return 0
-    import math
-    blocks = math.ceil(staff_count / 5)
-    return blocks * PRICE_PER_5_USERS
+    """$9 for each staff user."""
+    return max(0, staff_count) * PRICE_PER_STAFF
 
 
 def get_staff_count() -> int:

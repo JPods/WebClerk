@@ -3,11 +3,12 @@ AI Escalation Chain — Alice local → Alice at WCHQ → Alice+Claude at WCHQ.
 
 Three tiers of answer quality:
     1. Alice local (Ollama RAG) — fast, private, free, always first
-    2. Alice at WCHQ (WCHQ shared LLM) — better model, subscription
-    3. Alice+Claude at WCHQ — WCHQ calls Claude on behalf of the installation
+    2. Alice at WCHQ — better model, and the experience of every installation
+    3. Claude — called only by WCHQ, when its own Alice is not sure
 
-Individual installations never need a Claude API key. WCHQ manages the
-Claude relationship centrally. Users just need a subscription.
+An installation asks WCHQ, never Claude: most questions repeat, so WCHQ's experience answers
+them, and WCHQ alone decides when Claude is worth the call (Bill, 2026-11-01). One
+subscription, $9 per staff user a month, covers it.
 
 Confidence scoring determines when to escalate. All escalations are
 logged as AliceObservation(category='escalation') for pattern analysis.
@@ -126,7 +127,6 @@ def score_confidence(
 # ── WCHQ endpoints ──────────────────────────────────────────────────
 
 WCHQ_ALICE_PATH = "/wcapi/ai/alice/ask/"                # on WCHQ_URL
-WCHQ_ALICE_CLAUDE_PATH = "/wcapi/ai/alice/ask-claude/"
 
 
 def _get_athena_token() -> str:
@@ -176,16 +176,61 @@ def _is_subscribed() -> bool:
     return _is_trial_active(config)
 
 
-def _subscription_tier() -> str:
-    """Return the effective subscription tier.
+def own_claude() -> bool:
+    """This server holds its own Claude key: one active Connection with channel 'claude_api'.
+    WCHQ holds one; an owner may add one to call Claude direct, on their own account and
+    outside the subscription (Bill, 2026-11-01)."""
+    from apps.sync.services.connections import ConnectionUnavailable, active_connection
+    try:
+        active_connection('claude_api')
+        return True
+    except ConnectionUnavailable:
+        return False
 
-    During trial, returns the trial tier (professional).
-    After trial, returns the paid tier or community.
-    """
-    config = _get_subscription_config()
-    if _is_trial_active(config):
-        return config.get('trial', {}).get('tier_during_trial', 'professional')
-    return config.get('tier', 'community')
+
+def ask_claude(question, local_answer, alice_answer, context_summary, mode):
+    """Call Claude with this server's own key (the Connection with channel 'claude_api').
+    Returns (answer, usage, model)."""
+    import anthropic
+    from apps.sync.services.connections import ConnectionUnavailable, active_connection, credentials
+
+    try:
+        conn = active_connection('claude_api')
+    except ConnectionUnavailable as e:
+        raise ValueError(f"No Claude API Connection: {e}")
+    api_key = credentials(conn).get('api_key', '')
+    if not api_key:
+        raise ValueError(f"Connection {conn.pk} ({conn.name}) has no credentials.api_key")
+
+    model = (conn.config or {}).get('model') or 'claude-sonnet-5-5'
+
+    system_prompt = (
+        "You are Alice, a commerce assistant for WebClerk installations. "
+        "An installation's own AI could not answer this question confidently. "
+        "Provide a clear, accurate answer."
+    )
+
+    user_parts = [f"Question: {question}"]
+    if local_answer:
+        user_parts.append(f"\nLocal answer (low confidence):\n{local_answer}")
+    if alice_answer:
+        user_parts.append(f"\nUpstream Alice answer (also low confidence):\n{alice_answer}")
+    if context_summary:
+        user_parts.append(f"\nContext:\n{context_summary}")
+
+    client = anthropic.Anthropic(api_key=api_key)
+    response = client.messages.create(
+        model=model, max_tokens=2048,
+        system=system_prompt,
+        messages=[{"role": "user", "content": "\n".join(user_parts)}],
+    )
+
+    answer = response.content[0].text if response.content else ""
+    usage = {
+        'input_tokens': response.usage.input_tokens,
+        'output_tokens': response.usage.output_tokens,
+    }
+    return answer, usage, model
 
 
 def escalate_to_wchq(
@@ -200,8 +245,7 @@ def escalate_to_wchq(
 
     Tier 2: WCHQ runs its own Alice with a larger model. The installation
     sends the question (not raw data) plus the local confidence score.
-    WCHQ Alice answers. If WCHQ's Alice is also low-confidence and the
-    subscription tier allows it, WCHQ will internally escalate to Claude.
+    WCHQ Alice answers; if she is also not sure, WCHQ calls Claude itself.
 
     Episodes (if provided) are sent as structured context — Claude gets
     the team's accumulated experience, not just the raw question.
@@ -222,12 +266,8 @@ def escalate_to_wchq(
             "Register this installation at webclerk.com."
         )
 
-    tier = _subscription_tier()
-
-    # Choose endpoint based on subscription tier
-    # Standard: WCHQ Alice only. Professional: WCHQ can escalate to Claude.
     from apps.sync.services.connections import wchq_link
-    url = wchq_link()[0] + (WCHQ_ALICE_CLAUDE_PATH if tier == 'professional' else WCHQ_ALICE_PATH)
+    url = wchq_link()[0] + WCHQ_ALICE_PATH
 
     # Scrub PII before sending upstream
     from .pii_scrub import scrub_pii
@@ -263,7 +303,6 @@ def escalate_to_wchq(
                 "local_confidence": local_confidence,
                 "context_summary": context[:2000] if context else "",
                 "mode": mode,
-                "tier": tier,
                 "response_id": response_id,
             }
             if episode_context:
