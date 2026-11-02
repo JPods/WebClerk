@@ -297,17 +297,28 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 				errs.append(str(e))
 			return False, errs
 
+	def _org_type_from_proxy(self):
+		"""A Customer, Vendor, Rep, Employee or Manufacturer is that org_type."""
+		if getattr(self._meta, 'proxy', False) and self.__class__.__name__ in (
+				'Customer', 'Vendor', 'Rep', 'Employee', 'Manufacturer'):
+			self.org_type = self.__class__.__name__.lower()
+
 	def api_validate_payload(self, data: dict, is_update: bool):  # called by universal save view when enabled
 		"""Universal API integration hook.
 
 		Returns (ok, errors). Delegates to validate_aspects with partial flag for updates.
 		Filters patch payload to aspect + core fields so unrelated metadata fields do not cause noise.
 		"""
+		# The model decides the type: a sent org_type that contradicts it is refused, not overwritten.
+		sent = data.get('org_type')
+		self._org_type_from_proxy()
+		if sent and self.org_type and sent != self.org_type:
+			return False, [f"org_type: '{sent}' is not a {self.org_type}; a {self.__class__.__name__} is saved as {self.org_type}"]
 		aspect_keys = set(self.ASPECT_LIMITS.keys()) | {"org_type","company","status","is_active"}
 		if is_update:
-			patch_subset = {k: v for k, v in data.items() if k in aspect_keys}
+			patch_subset = {k: v for k, v in data.items() if k in aspect_keys and k != 'org_type'}
 			return self.validate_aspects(partial=True, data=patch_subset)
-		# full create/update (no id): validate full snapshot
+		# full create (no id): validate the whole snapshot, its type set as save would
 		return self.validate_aspects(partial=False)
 
 	# Example: customize universal dict to expose org_type & company directly
@@ -397,19 +408,7 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 				.first()
 			)
 
-		# For proxy models, ensure org_type is set correctly
-		if getattr(self._meta, 'proxy', False):
-			model_name = self.__class__.__name__
-			if model_name == 'Customer' and self.org_type != 'customer':
-				self.org_type = 'customer'
-			elif model_name == 'Vendor' and self.org_type != 'vendor':
-				self.org_type = 'vendor'
-			elif model_name == 'Rep' and self.org_type != 'rep':
-				self.org_type = 'rep'
-			elif model_name == 'Employee' and self.org_type != 'employee':
-				self.org_type = 'employee'
-			elif model_name == 'Manufacturer' and self.org_type != 'manufacturer':
-				self.org_type = 'manufacturer'
+		self._org_type_from_proxy()
 		
 		try:
 			# Try to validate aspects, but don't fail save if validation fails

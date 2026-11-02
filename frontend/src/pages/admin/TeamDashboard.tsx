@@ -521,31 +521,26 @@ export default function TeamDashboard() {
       );
       setContacts(teamContacts);
 
-      // 2. Collect unique org IDs and batch-fetch
-      const orgIds = new Set<number>();
+      // 2. Collect the org IDs by kind (each kind is its own model) and batch-fetch
+      const orgIds = new Map<string, Set<number>>();
       for (const c of teamContacts) {
-        for (const fk of [
-          "customer_id",
-          "vendor_id",
-          "employee_id",
-          "manufacturer_id",
-          "rep_id",
-        ]) {
-          const v = c[fk as keyof ContactApiTask] as number | null;
-          if (v) orgIds.add(v);
+        for (const kind of ["customer", "vendor", "employee", "manufacturer", "rep"]) {
+          const v = c[`${kind}_id` as keyof ContactApiTask] as number | null;
+          if (!v) continue;
+          if (!orgIds.has(kind)) orgIds.set(kind, new Set());
+          orgIds.get(kind)!.add(v);
         }
       }
-      if (orgIds.size > 0) {
-        const orgRes = await getRecords("orgbase", {
-          id__in: Array.from(orgIds).join(","),
-          limit: orgIds.size,
-        });
-        const map = new Map<number, OrgSummary>();
-        for (const o of (orgRes?.results ?? []) as OrgSummary[]) {
-          map.set(o.id, o);
-        }
-        setOrgMap(map);
+      const pages = await Promise.all(
+        Array.from(orgIds, ([kind, ids]) =>
+          getRecords(kind, { id__in: Array.from(ids).join(","), limit: ids.size }),
+        ),
+      );
+      const map = new Map<number, OrgSummary>();
+      for (const page of pages) {
+        for (const o of (page?.results ?? []) as OrgSummary[]) map.set(o.id, o);
       }
+      setOrgMap(map);
 
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to load team data");

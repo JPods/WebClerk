@@ -247,8 +247,11 @@ def resolve_model(raw_model_name: str):
     if not raw_model_name:
         raise Refused(400, 'missing_model_name', 'Missing required field: model_name',
                       'Provide model_name (singular)')
+    from apps.core.services.field_leaves import canonical_key
     norm_key = normalize_table_key(raw_model_name)
-    model = get_model(norm_key) if norm_key else None
+    # Only a registered model is reachable: a Django model outside MODEL_REGISTRY ('orgbase')
+    # has no access block, and was answered "success" with no rows.
+    model = get_model(norm_key) if norm_key and canonical_key(norm_key) else None
     if not model:
         raise Refused(400, 'unknown_model', f'Unknown model: {raw_model_name}',
                       f'Unknown model: {raw_model_name}')

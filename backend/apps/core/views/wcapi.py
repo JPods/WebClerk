@@ -1023,7 +1023,7 @@ class WCAPIGetView(APIView):
         if record_id is not None:
             obj = services.get_item(model_key, request=request, id=record_id)
             if not obj:
-                return api_response(data={"record": None}, status_code=status.HTTP_200_OK)
+                return api_response(data={"model_name": model_key, "record": None}, status_code=status.HTTP_200_OK)
 
             allow = None
             logger = logging.getLogger(__name__)
@@ -1111,7 +1111,7 @@ class WCAPIGetView(APIView):
                 except Exception:
                     payload["refs"] = getattr(obj, "refs", {}) or {}
             
-            return api_response(data={"record": payload}, status_code=status.HTTP_200_OK)
+            return api_response(data={"model_name": model_key, "record": payload}, status_code=status.HTTP_200_OK)
 
         # List retrieval with filters, search, and pagination. visible_queryset applies the
         # role filter (RBAC query scoping, readmes/wcapi-query-scoping.md): an external user
@@ -1266,6 +1266,7 @@ class WCAPIGetView(APIView):
         total_pages = (total_count + limit - 1) // limit if limit > 0 else 1
         
         response_data = {
+            "model_name": model_key,
             "results": results,
             "count": len(results),
             "total": total_count,
