@@ -323,7 +323,12 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
   const tDetail = themes[detailTheme];
   const baseFontSize = baseFontSizeNum;
   const isStaff = isStaffUser(user);
-  const [viewPref, setViewPref] = useState<DetailViewPref>(() => getDetailViewPref(isStaff));
+  // ?view=form|detail shows this page one way without changing the saved choice (parade-form's
+  // Form/Detail flip); staff only, like the selector.
+  const [viewPref, setViewPref] = useState<DetailViewPref>(() => {
+    const asked = new URLSearchParams(window.location.search).get('view');
+    return isStaff && (asked === 'form' || asked === 'detail') ? asked : getDetailViewPref(isStaff);
+  });
 
   // Listen for view pref changes from TopBar
   useEffect(() => {

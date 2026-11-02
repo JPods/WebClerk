@@ -1382,11 +1382,14 @@ Allie ──nightly──► reads process/inbox/, sessions/, retrospections/
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {[
-              { label: 'Panel Parade', desc: 'db.panel columns for every linked record panel', url: '/parade-component?type=panel' },
-              { label: 'Form Parade', desc: 'db.form layouts — App view detail sections', url: '/parade-component?type=form' },
-              { label: 'Detail Parade', desc: 'db.detail field order for Admin view', url: '/parade-component?type=detail' },
-              { label: 'List Parade', desc: 'db.list column order for all list views', url: '/parade-component?type=list' },
-              { label: 'Card Parade', desc: 'db.card layouts for Kanban and compact views', url: '/parade-component?type=card' },
+              { label: 'Parade: List', desc: "Each model's list as users see it", url: '/parade-list' },
+              { label: 'Parade: Form', desc: "Each model's form on its first record; flip to Detail", url: '/parade-form' },
+              { label: 'Parade: Print', desc: 'Every printed document with sample data', url: '/parade-print' },
+              { label: 'Panel layouts', desc: 'db.panel columns for every linked record panel', url: '/parade-component?type=panel' },
+              { label: 'Form layouts', desc: 'db.form layouts — the sections as data', url: '/parade-component?type=form' },
+              { label: 'Detail layouts', desc: 'db.detail field order (staff)', url: '/parade-component?type=detail' },
+              { label: 'List layouts', desc: 'db.list column order for all list views', url: '/parade-component?type=list' },
+              { label: 'Card layouts', desc: 'db.card layouts for Kanban and compact views', url: '/parade-component?type=card' },
               { label: 'Layout Audit', desc: 'Coverage report — which models have which layouts', url: '/parade-layout' },
             ].map((p) => (
               <button key={p.label}

@@ -3167,6 +3167,22 @@
             "description": "Review every printed document with sample data"
           },
           {
+            "icon": "☰",
+            "name": "Parade: List",
+            "route": "/parade-list",
+            "source": "system",
+            "category": "Data",
+            "description": "Walk each model's list, one at a time"
+          },
+          {
+            "icon": "▤",
+            "name": "Parade: Form",
+            "route": "/parade-form",
+            "source": "system",
+            "category": "Data",
+            "description": "Walk each model's form on its first record; staff flip to Detail"
+          },
+          {
             "icon": "🏥",
             "name": "DB Health",
             "route": "/databrowser?model=setting&view=dbsr_review",

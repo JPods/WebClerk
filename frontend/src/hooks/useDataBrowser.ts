@@ -865,11 +865,14 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
     return () => window.removeEventListener('wc:reload-behaviors', handler);
   }, [fetchRecords]);
 
-  // Auto-select record from sessionStorage (set by MacTopBar double-click, spawn links, etc.)
+  // Auto-select a record: ?id= in the URL (a parade stop, a link), else sessionStorage (set by
+  // MacTopBar double-click, spawn links, etc.)
   const autoSelectDone = useRef(false);
+  // Read at mount: the model route rewrites the URL before the records arrive.
+  const urlIdRef = useRef(new URLSearchParams(window.location.search).get('id'));
   useEffect(() => {
     if (autoSelectDone.current || !records.length || !isActiveWindow) return;
-    const stored = sessionStorage.getItem('db_auto_select');
+    const stored = urlIdRef.current ?? sessionStorage.getItem('db_auto_select');
     if (stored) {
       sessionStorage.removeItem('db_auto_select');
       const id = parseInt(stored, 10);

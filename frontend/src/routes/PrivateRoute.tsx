@@ -61,7 +61,9 @@ const AppLayout: React.FC = () => {
       skipAutoCreateForPathRef.current = null;
       return;
     }
-    ensureWindow(location.pathname, deriveTitle(location.pathname));
+    // Keep the query: a link's ?id= / ?view= / filters reach the page it opens.
+    ensureWindow(location.pathname + location.search, deriveTitle(location.pathname));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a new window per path, not per query change
   }, [location.pathname, ensureWindow, skipAutoCreateForPathRef]);
 
   // Show loading while auth state is being determined
