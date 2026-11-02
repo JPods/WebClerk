@@ -1,3 +1,7 @@
+"""A new rep, vendor, manufacturer or employee gets the company's default GL accounts (Bill,
+2026-11-02: "We assign a default gl from company.setting and the users must change it"). The
+defaults come from the role map in wc:company_profile config.gl_defaults, checked against the chart.
+"""
 import pytest
 
 from apps.orgs.models import OrgBase, OrgType
@@ -5,7 +9,7 @@ from apps.orgs.models import OrgBase, OrgType
 pytestmark = pytest.mark.django_db
 
 
-def test_new_rep_gets_default_activity_gl_account():
+def test_new_rep_gets_default_activity_gl_account(chart_of_accounts):
     rep = OrgBase.objects.create(org_type=OrgType.REP, company="Rep A", gl_accounts={})
 
     assert isinstance(rep.gl_accounts, dict)
@@ -13,7 +17,7 @@ def test_new_rep_gets_default_activity_gl_account():
     assert rep.gl_accounts.get("commission")
 
 
-def test_new_vendor_and_manufacturer_get_purchase_activity_gl_account():
+def test_new_vendor_and_manufacturer_get_purchase_activity_gl_account(chart_of_accounts):
     vendor = OrgBase.objects.create(org_type=OrgType.VENDOR, company="Vendor A", gl_accounts={})
     manufacturer = OrgBase.objects.create(org_type=OrgType.MANUFACTURER, company="Manufacturer A", gl_accounts={})
 
@@ -23,7 +27,7 @@ def test_new_vendor_and_manufacturer_get_purchase_activity_gl_account():
     assert manufacturer.gl_accounts.get("purchase")
 
 
-def test_new_employee_gets_default_activity_gl_account():
+def test_new_employee_gets_default_activity_gl_account(chart_of_accounts):
     employee = OrgBase.objects.create(org_type=OrgType.EMPLOYEE, company="Employee A", gl_accounts={})
 
     assert employee.gl_accounts.get("activity")
