@@ -1175,7 +1175,10 @@ class WCAPIGetView(APIView):
         
         # Parse and apply filters
         try:
-            filters = self._parse_filters(request, model_key, ModelCls, reserved_keys=consumed_filter_params)
+            # The saved search's own parameters (its keyword and request filters) are not fields.
+            keyword_param = saved_data.get("request_keyword")
+            reserved = consumed_filter_params | ({keyword_param} if isinstance(keyword_param, str) else set())
+            filters = self._parse_filters(request, model_key, ModelCls, reserved_keys=reserved)
         except UnknownFilterError as e:
             # Alice tracks rejected filters and recommends the fix; repeats escalate
             # to WC_HQ, then to Bill (apps/ai_assistant/services/filter_coach.py).

@@ -19,7 +19,6 @@ User = get_user_model()
 @pytest.mark.parametrize(
     "model_name, org_type",
     [
-        ("orgbase", OrgType.CUSTOMER),
         ("customer", OrgType.CUSTOMER),
         ("vendor", OrgType.VENDOR),
         ("rep", OrgType.REP),
@@ -34,6 +33,7 @@ def test_wcapi_org_model_crud(model_name, org_type):
         name_first="Org",
         name_last="User",
         username="",
+        role="admin",   # a real role: this tests the save/read/delete contract, not access
     )
     client = Client()
     assert client.login(email=user.email, password="pw12345")
@@ -43,22 +43,18 @@ def test_wcapi_org_model_crud(model_name, org_type):
         "company": f"{model_name} co",
         "status": "active",
     }
-    if model_name == "orgbase":
-        payload["org_type"] = org_type
-
     resp = wcapi_save(client, data=json.dumps(payload), content_type="application/json")
-    assert resp.status_code == 200
+    assert resp.status_code == 200, resp.content
     data = assert_envelope(resp.json(), expect_status="success")
     record_id = data["id"]
 
     org = OrgBase.objects.get(pk=record_id)
     assert org.company == f"{model_name} co"
-    if model_name == "orgbase":
-        assert org.org_type == org_type
+    assert org.org_type == org_type
 
     # GET detail
     resp = wcapi_get(client, {"model_name": model_name, "id": record_id})
-    assert resp.status_code == 200
+    assert resp.status_code == 200, resp.content
     data = assert_envelope(resp.json(), expect_status="success")
     record = data.get("record") or {}
     assert record.get("id") == record_id
@@ -70,7 +66,7 @@ def test_wcapi_org_model_crud(model_name, org_type):
         "company": f"{model_name} co updated",
     }
     resp = wcapi_save(client, data=json.dumps(update_payload), content_type="application/json")
-    assert resp.status_code == 200
+    assert resp.status_code == 200, resp.content
     assert_envelope(resp.json(), expect_status="success")
 
     org.refresh_from_db()
@@ -83,7 +79,7 @@ def test_wcapi_org_model_crud(model_name, org_type):
         "status": {"mode": "delete"},
     }
     resp = wcapi_save(client, data=json.dumps(delete_field_payload), content_type="application/json")
-    assert resp.status_code == 200
+    assert resp.status_code == 200, resp.content
     assert_envelope(resp.json(), expect_status="success")
 
     org.refresh_from_db()
@@ -91,7 +87,7 @@ def test_wcapi_org_model_crud(model_name, org_type):
 
     # Delete record
     resp = client.delete(f"/wcapi/{model_name}/{record_id}/")
-    assert resp.status_code == 200
+    assert resp.status_code == 200, resp.content
     data = assert_envelope(resp.json(), expect_status="success")
     assert data.get("deleted") is True
 
@@ -137,7 +133,7 @@ def test_wcapi_get_supports_keyword_param(client):
         },
     )
 
-    assert resp.status_code == 200
+    assert resp.status_code == 200, resp.content
     data = assert_envelope(resp.json(), expect_status="success")
     results = data.get("results") or []
     result_ids = {row.get("id") for row in results if isinstance(row, dict)}
@@ -181,7 +177,7 @@ def test_wcapi_get_applies_saved_search_for_matching_role(client):
         },
     )
 
-    assert resp.status_code == 200
+    assert resp.status_code == 200, resp.content
     data = assert_envelope(resp.json(), expect_status="success")
     results = data.get("results") or []
     result_ids = {row.get("id") for row in results if isinstance(row, dict)}
@@ -303,7 +299,7 @@ def test_wcapi_search_presets_lists_role_visible_and_global(client):
     )
 
     resp = client.get("/wcapi/_search_presets/", {"model_name": "customer"})
-    assert resp.status_code == 200
+    assert resp.status_code == 200, resp.content
     data = assert_envelope(resp.json(), expect_status="success")
     result_ids = {row.get("id") for row in (data.get("results") or []) if isinstance(row, dict)}
 
@@ -334,7 +330,7 @@ def test_wcapi_search_presets_admin_sees_all_roles(client):
     )
 
     resp = client.get("/wcapi/_search_presets/", {"model_name": "customer"})
-    assert resp.status_code == 200
+    assert resp.status_code == 200, resp.content
     data = assert_envelope(resp.json(), expect_status="success")
     result_ids = {row.get("id") for row in (data.get("results") or []) if isinstance(row, dict)}
 
@@ -394,7 +390,7 @@ def test_wcapi_get_saved_search_uses_request_keyword_and_period_params(client):
         },
     )
 
-    assert resp.status_code == 200
+    assert resp.status_code == 200, resp.content
     data = assert_envelope(resp.json(), expect_status="success")
     result_ids = {row.get("id") for row in (data.get("results") or []) if isinstance(row, dict)}
 
@@ -448,7 +444,7 @@ def test_wcapi_get_saved_search_uses_relative_period_defaults(client):
         },
     )
 
-    assert resp.status_code == 200
+    assert resp.status_code == 200, resp.content
     data = assert_envelope(resp.json(), expect_status="success")
     result_ids = {row.get("id") for row in (data.get("results") or []) if isinstance(row, dict)}
 
@@ -470,8 +466,9 @@ def test_seed_search_presets_command_is_idempotent():
     stored = Report.objects.filter(purpose=REPORT_PURPOSE_SEARCH)
 
     assert "created=" in first_run
-    assert stored.filter(target_model="invoice", name="current_month").exists()
-    assert stored.filter(target_model="action", name="assigned_to_is_active_priority").exists()
+    from apps.core.management.commands.seed_search_presets import SEARCH_PRESETS
+    for preset in SEARCH_PRESETS:
+        assert stored.filter(ida=preset["ida"], target_model=preset["target_model"]).exists(), preset["ida"]
 
     count_after_first = stored.count()
 

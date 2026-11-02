@@ -15,6 +15,7 @@ Usage from views::
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import dataclass
 from typing import Sequence
 
@@ -126,15 +127,20 @@ def _build_fts_query(
         return _build_simple_query(qs, fragments, search_fields, has_refs)
 
     # Build SearchVector from all eligible text fields
-    vector = SearchVector(fts_fields[0], config='english')
+    # 'simple', not 'english': a fragment is the start of a word as typed ("bil" finds "Bill"),
+    # and stemming would cut the stored word shorter than the fragment ("running" -> "run").
+    vector = SearchVector(fts_fields[0], config='simple')
     for field_name in fts_fields[1:]:
-        vector = vector + SearchVector(field_name, config='english')
+        vector = vector + SearchVector(field_name, config='simple')
 
-    # Build combined query from all fragments
+    # Build combined query from all fragments: each word of a fragment is a prefix (word:*).
+    # plainto_tsquery matched whole words only, so "zz" never found "zzcurrent-month".
     combined_sq = None
     for frag in fragments:
-        # Use plainto_tsquery for natural language matching (handles stemming)
-        sq = SearchQuery(frag.value, config='english', search_type='plain')
+        words = re.findall(r'[a-z0-9]+', frag.value)
+        if not words:
+            return _build_simple_query(qs, fragments, search_fields, has_refs)
+        sq = SearchQuery(' & '.join(f'{w}:*' for w in words), config='simple', search_type='raw')
         if combined_sq is None:
             combined_sq = sq
         else:
