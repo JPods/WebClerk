@@ -146,10 +146,11 @@ def pack_gls() -> dict:
 
 def pack_init() -> dict:
     """Everything a new database starts from."""
+    # No chart: a new database takes its chart from a chart file (install_chart), which also
+    # writes the role map into the company profile.
     bundle = {}
     bundle.update(pack_settings())
     bundle.update(pack_reports())
-    bundle.update({'gl_accounts': pack_gls()['gl_accounts']})
     return bundle
 
 

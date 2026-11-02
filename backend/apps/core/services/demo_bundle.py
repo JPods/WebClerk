@@ -185,6 +185,9 @@ def sanitize_setting(setting: dict) -> dict:
                 gw["name"] = f"account_{i + 1}"
                 gw["account"] = f"Demo account {i + 1}"
     if purpose == "wc:company_profile":
+        # The role map points into a chart; it travels with the chart (the gls bundle, or
+        # chart.install from apps/accounts/charts/), never ahead of it (Bill, 2026-10-30).
+        config.pop("gl_defaults", None)
         primary = config.get("primary_org")
         if isinstance(primary, dict):
             primary.pop("wc2defaults", None)

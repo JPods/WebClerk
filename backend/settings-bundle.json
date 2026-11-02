@@ -4275,33 +4275,6 @@
             "reviewed_by_contact_id": null
           }
         },
-        "gl_defaults": {
-          "note": "Which chart account each posting role uses. Every code must be an active GlAccount (apps/accounts/services/chart.py).",
-          "scrap": "5300-scrap_shrinkage",
-          "inventory": "1200-inventory",
-          "fx_gain_loss": "7100-fx_gain_loss",
-          "other_income": "4900-miscellaneous_income",
-          "sales_revenue": "4000-sales_revenue",
-          "discount_given": "4920-sales_discounts",
-          "default_expense": "6950-general_admin",
-          "accounts_payable": "2000-accounts_payable",
-          "shipping_revenue": "4100-shipping_revenue",
-          "bad_debt_writeoff": "6500-bad_debt",
-          "other_receivables": "1110-other_receivables",
-          "retained_earnings": "3000-retained_earnings",
-          "sales_tax_payable": "2100-sales_tax_payable",
-          "undeposited_funds": "1000-cash",
-          "commission_expense": "6100-commission_expense",
-          "commission_payable": "2210-commissions_payable",
-          "small_stings_payable": "2230-small_stings_payable",
-          "small_sting_expense": "6550-small_sting_expense",
-          "cost_of_goods_sold": "5000-cost_of_goods_sold",
-          "accounts_receivable": "1100-accounts_receivable",
-          "finance_charge_income": "4200-finance_charge_income",
-          "small_balance_writeoff": "4930-small_balance_writeoff",
-          "received_not_billed": "2050-received_not_billed",
-          "opening_balance_equity": "3050-opening_balance_equity"
-        },
         "primary_org": {
           "id": 2,
           "company": "WebClerk",

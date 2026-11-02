@@ -132,6 +132,11 @@ def get_bundle(name: str = 'init', *, offline: bool = False,
 
     bundle, disk_err = load_from_disk(path)
     if bundle is not None:
+        # The shipped file is the whole init set; a named bundle is only its own parts. Asking
+        # for 'reports' loaded every Setting too, authoritatively.
+        parts = DISK_PARTS.get(name)
+        if parts is not None:
+            bundle = {k: v for k, v in bundle.items() if k in parts}
         return bundle, 'disk', ''
     return None, '', disk_err
 
@@ -145,10 +150,13 @@ def get_bundle(name: str = 'init', *, offline: bool = False,
 # apps/core/services/record_import.py carries the scar that says why.)
 BUNDLE_PARTS = (
     # bundle key      model label           the recommended set is the authority
-    ('settings',      'core.Setting'),
     ('gl_accounts',   'accounts.GlAccount'),
+    ('settings',      'core.Setting'),
     ('reports',       'core.Report'),
 )
+
+#: The parts of the shipped init file that each named bundle is (None: all of it).
+DISK_PARTS = {'reports': {'reports'}, 'settings': {'settings'}, 'gls': {'gl_accounts', 'settings'}}
 
 
 def load_bundle(bundle: dict, *, dry_run: bool = False) -> dict[str, Any]:
