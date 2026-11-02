@@ -946,6 +946,30 @@ def journalize_receipt(receipt_id: int, ida_prefix: str = '') -> dict:
         rows.append((inv_account, value, Decimal('0'), 'inventory', str(move.pk)))
         rows.append((rnb, Decimal('0'), value, 'inventory', str(move.pk)))
 
+    # Shortages this receipt filled (inventory_layers.fill_deficits): those units were shipped or
+    # used before they were received. Their cost is the layer's; if the document that took them
+    # short already posted them at the deficit's cost, post only the difference (Bill, 2026-11-02).
+    fills = list(InventoryMovement.objects.select_related('inventory_layer').filter(
+        parent_model='receiptline', parent_id__in=[l.pk for l in lines],
+        movement_type=InventoryMovement.MOVEMENT_ISSUE, metadata__has_key='deficit_fill', dt_journaled=0))
+    for move in fills:
+        fill = move.metadata['deficit_fill']
+        qty = Decimal(str(fill['qty']))
+        landed = Decimal(str(((move.inventory_layer.cost if move.inventory_layer else {}) or {}).get('landed') or 0))
+        unit = landed - Decimal(str(fill['unit_cost'])) if fill.get('short_posted') else landed
+        value = (qty * unit).quantize(Decimal('0.01'))
+        if not value:
+            continue
+        item_gls = _get_item_gls(move.item_id) if move.item_id else {}
+        used_by = f'receipt {receipt.ida} filling shortage #{fill["deficit_id"]}'
+        target = {'cogs': item_gls.get('cogs') or _role('cost_of_goods_sold', used_by),
+                  'wip': _role('work_in_process', used_by), 'scrap': _role('scrap', used_by)}[fill['target']]
+        inv_account = item_gls.get('inventory') or _role('inventory', used_by)
+        debit, credit = (target, inv_account) if value > 0 else (inv_account, target)
+        rows.append((debit, abs(value), Decimal('0'), 'general', str(move.pk)))
+        rows.append((credit, Decimal('0'), abs(value), 'general', str(move.pk)))
+    movements += fills
+
     payable = sum((Decimal(str((l.totals or {}).get('amount', 0) or 0)) for l in received), Decimal('0'))
     payable = payable.quantize(Decimal('0.01'))
     if payable and receipt.source_type == 'small_sting':

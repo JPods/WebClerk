@@ -338,6 +338,10 @@ class Pending(CoreModel):
         if not ReceiptLine.objects.filter(pk=spec.get('line_id')).update(inventory_layer=layer):
             raise ValidationError({'layer': f"receipt line {spec.get('line_id')} not found "
                                             f"for layer {layer.pk}"})
+        # Goods shipped before they were received: the receipt fills those shortages first, and its
+        # journal trues up their cost (Bill, 2026-11-02).
+        from apps.products.services.inventory.inventory_layers import fill_deficits
+        fill_deficits(layer, parent_model='receiptline', parent_id=spec['line_id'])
 
     def _note_count_book(self, item_id, quantity):
         """A count's book was taken when the line was saved; if stock moved before this apply,

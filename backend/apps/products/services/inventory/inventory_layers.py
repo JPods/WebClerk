@@ -373,6 +373,80 @@ def settle_deficit(item_id: int, qty: Decimal, *, source_pending_id: Optional[in
     return left
 
 
+def _short_posted(deficit) -> bool:
+    """Has the document that took this deficit short posted it (at the deficit's unit cost)?"""
+    from django.apps import apps as dj_apps
+    changes = deficit.changes or {}
+    parent_model, parent_id = changes.get('parent_model'), changes.get('parent_id')
+    if parent_model == 'invoiceline':
+        line = dj_apps.get_model('transactions', 'InvoiceLine').objects.filter(pk=parent_id).only('invoice_id').first()
+        return bool(line and dj_apps.get_model('transactions', 'Invoice').objects.filter(
+            pk=line.invoice_id).exclude(dt_journaled=0).exists())
+    if parent_model == 'workorderline':
+        line = dj_apps.get_model('transactions', 'WorkOrderLine').objects.filter(pk=parent_id).only('workorder_id').first()
+        if line is None:
+            return False
+        from apps.accounts.services.journalize import _standing_event_ids
+        return f'deficit-{deficit.pk}' in _standing_event_ids(
+            dj_apps.get_model('accounts', 'GlJournal'), line.workorder_id, 'workorder')
+    return False
+
+
+def _short_target(deficit) -> str:
+    """Where the shortage's cost went: cost of goods for a sale, WIP or scrap for a workorder."""
+    from django.apps import apps as dj_apps
+    changes = deficit.changes or {}
+    if changes.get('parent_model') != 'workorderline':
+        return 'cogs'
+    line = dj_apps.get_model('transactions', 'WorkOrderLine').objects.filter(
+        pk=changes.get('parent_id')).only('line_type').first()
+    return 'scrap' if line is not None and line.line_type == 'scrap' else 'wip'
+
+
+def fill_deficits(layer, *, parent_model: str, parent_id) -> list[dict]:
+    """A receipt's new layer fills the item's open shortages first, oldest first (Bill, 2026-11-02:
+    "I must ship an invoice. The product arrived, but was not yet received. So I ship it ... an
+    adjustment must be made when the receipt is processed").
+
+    Each fill issues from the layer (one movement, parented to the receipt line) and is recorded on
+    the deficit. The movement carries what the receipt's journal needs to true up the cost: the
+    deficit's unit cost, whether its document already posted the shortage at that cost, and where
+    the cost went. Returns the fills.
+    """
+    from apps.core.models.pending import DEFICIT_PURPOSE, Pending
+    fills = []
+    room = Decimal(str(layer.remaining_qty()))
+    for p in (Pending.objects.select_for_update()
+              .filter(purpose=DEFICIT_PURPOSE, record_id=str(layer.item_id), dt_processed=0).order_by('id')):
+        if room <= 0:
+            break
+        take = min(p.incremental_remaining('deficit_qty'), room)
+        if take <= 0:
+            continue
+        fill = {'deficit_id': p.pk, 'qty': float(take),
+                'unit_cost': float((p.changes or {}).get('unit_cost') or 0),
+                'short_posted': _short_posted(p), 'target': _short_target(p)}
+        layer.mark_issue(take)
+        layer.save(update_fields=['quantity'])
+        move = InventoryMovement.objects.create(
+            item_id=layer.item_id, warehouse=layer.warehouse, inventory_layer=layer,
+            site_code=layer.warehouse.site_code, movement_type=InventoryMovement.MOVEMENT_ISSUE,
+            quantity=-take, reason=f'Fills shortage #{p.pk}'[:120],
+            parent_model=parent_model, parent_id=parent_id, metadata={'deficit_fill': fill})
+        meta = dict(p.metadata or {})
+        meta['incremental_apply'] = list(meta.get('incremental_apply') or []) + [
+            {'qty': float(take), 'movement_id': move.pk, 'layer_id': layer.pk}]
+        p.metadata = meta
+        fields = ['metadata', 'dt_modified', 'version']
+        if p.incremental_remaining('deficit_qty') <= 0:
+            p.mark_processed(save=False)
+            fields.append('dt_processed')
+        p.save(update_fields=fields)
+        fills.append({**fill, 'movement_id': move.pk})
+        room -= take
+    return fills
+
+
 # ---------------------------------------------------------------------------
 # 6. Count check — two-phase blind counting (#5)
 # ---------------------------------------------------------------------------
@@ -614,7 +688,7 @@ def _create_deficit_alert(item: Item, deficit_qty: Decimal, batch_id: str, reaso
 
 __all__ = [
     'create_layer', 'consume_fifo', 'consume_lifo', 'consume_by_item_method', 'give_back',
-    'settle_deficit',
+    'settle_deficit', 'fill_deficits',
     'recalc_average_cost', 'split_layer', 'transfer_layer',
     'classify_abc',
     'compute_margin_velocity', 'update_item_margin_velocity',
