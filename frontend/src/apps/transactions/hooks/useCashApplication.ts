@@ -25,7 +25,10 @@ export interface CashRecord {
   gateway?: string;
   cash_method_id?: number;
   cash_method_name?: string;
-  org_id?: string;
+  customer?: number | null;
+  company?: { id: number; name: string } | null;
+  type?: string;
+  method?: string;
   contact_id?: number;
   refs?: {
     invoice_ids?: number[];

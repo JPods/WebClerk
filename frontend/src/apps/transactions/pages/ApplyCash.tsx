@@ -77,6 +77,7 @@ const ApplyCash: React.FC = () => {
   const [cashEntries, setCashEntries] = useState<CashRecord[]>([]);
   const [loadingCashEntries, setLoadingCashEntries] = useState(false);
   const [selectedCash, setSelectedCash] = useState<CashRecord | null>(null);
+  const customerName = (c: CashRecord) => c.company?.name || (c.customer ? `Customer #${c.customer}` : '--');
 
   /* ---------- cash filters ---------- */
   const [cashSearch, setCashSearch] = useState('');
@@ -92,6 +93,10 @@ const ApplyCash: React.FC = () => {
 
   /* ---------- submit state ---------- */
   const [submitting, setSubmitting] = useState(false);
+
+  // ?cash=<id> from the cash record's Apply Cash button, read once at mount
+  const askedCash = React.useRef<string | null>(new URLSearchParams(window.location.search).get('cash'));
+  const handleSelectCashRef = React.useRef<((cash: CashRecord) => void) | null>(null);
 
   /* ---------------------------------------------------------------- */
   /*  Load all unapplied cash                                      */
@@ -115,11 +120,13 @@ const ApplyCash: React.FC = () => {
           ? (result.items as CashRecord[])
           : [];
 
-      // Keep only cash with remaining balance > 0
-      const unapplied = records.filter((p) => {
-        return p.available > 0.005; // tolerance for floating point
-      });
+      // Money in (and its adjustments: a discount, a write-off) with some left to apply
+      const unapplied = records.filter((p) => p.type === 'cash_in' && p.available > 0.005);
       setCashEntries(unapplied);
+      // Opened from a cash record (?cash=<id>): that cash, selected
+      const asked = Number(askedCash.current);
+      const mine = asked ? unapplied.find((p) => p.id === asked) : undefined;
+      if (mine) { askedCash.current = null; handleSelectCashRef.current?.(mine); }
     } catch (err) {
       console.error('Failed to load cash:', err);
       dispatch(showToast({ message: 'Failed to load cash', type: 'error' }));
@@ -142,8 +149,7 @@ const ApplyCash: React.FC = () => {
     const q = cashSearch.toLowerCase();
     return cashEntries.filter((p) => {
       const ref = (p.reference_number || p.ida || `PAY-${p.id}`).toLowerCase();
-      const org =
-        p.refs?.links?.org?.[0]?.display_name?.toLowerCase() || '';
+      const org = customerName(p).toLowerCase();
       return ref.includes(q) || org.includes(q) || String(p.id).includes(q);
     });
   }, [cashEntries, cashSearch]);
@@ -154,7 +160,7 @@ const ApplyCash: React.FC = () => {
 
   const loadInvoicesForCash = useCallback(
     async (cash: CashRecord) => {
-      const orgId = cash.org_id || cash.refs?.links?.org?.[0]?.id;
+      const orgId = cash.customer;
       if (!orgId) {
         setInvoices([]);
         dispatch(
@@ -181,6 +187,7 @@ const ApplyCash: React.FC = () => {
     },
     [loadInvoicesForCash],
   );
+  handleSelectCashRef.current = handleSelectCash;
 
   /* ---------------------------------------------------------------- */
   /*  Application amount helpers                                       */
@@ -321,8 +328,7 @@ const ApplyCash: React.FC = () => {
   const selectedCustomerName = useMemo(() => {
     if (!selectedCash) return '';
     return (
-      selectedCash.refs?.links?.org?.[0]?.display_name ||
-      `Customer #${selectedCash.org_id || '?'}`
+      customerName(selectedCash)
     );
   }, [selectedCash]);
 
@@ -333,12 +339,12 @@ const ApplyCash: React.FC = () => {
   // Payments and invoices: the shared list (DbColumns).
   const cashColumns: DbColumnDef<any>[] = [
     { key: 'reference', label: 'Reference', render: (c) => <span className="font-mono">{c.reference_number || c.ida || `PAY-${c.id}`}</span> },
-    { key: 'customer', label: 'Customer', render: (c) => c.refs?.links?.org?.[0]?.display_name || '--' },
+    { key: 'customer', label: 'Customer', render: (c) => customerName(c) },
     { key: 'available', label: 'Available', align: 'right', width: 90,
       render: (c) => <span className="font-mono" style={{ color: 'var(--db-accent-green)' }}>{formatCurrency(getCashAvailable(c))}</span> },
     { key: 'amount', label: 'Original', align: 'right', width: 90, render: (c) => <span className="font-mono">{formatCurrency(c.amount)}</span> },
     { key: 'dt_cash', label: 'Date', width: 90, render: (c) => formatDate(c.dt_cash || c.dt_created) },
-    { key: 'gateway', label: 'Type', width: 70, render: (c) => c.gateway || 'manual' },
+    { key: 'method', label: 'Method', width: 90, render: (c) => (c.method || '').replace('_', ' ') || '--' },
   ];
 
   const invoiceColumns: DbColumnDef<any>[] = [

@@ -432,6 +432,9 @@ const UiDetailView: React.FC<UiDetailProps> = ({
           onCancel={handleCancel}
           onClose={onClose}
           onWorkflowComplete={onWorkflowComplete as ((result?: any) => void) | undefined}
+          // Money in with some left: apply it across the customer's open invoices (one check, many)
+          onApplyCash={modelName === 'cash' && data?.type === 'cash_in' && Number(data?.available) > 0
+            ? () => windowManager.ensureWindow(`/transactions/apply-cash?cash=${data.id}`, 'Apply Cash') : undefined}
         />
       )}
 

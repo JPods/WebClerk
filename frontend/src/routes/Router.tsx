@@ -26,6 +26,7 @@ const UnifiedGanttPage = React.lazy(() => import("../apps/utils/gantt/UnifiedGan
 const JsonTreeApplet = React.lazy(() => import("../pages/tools/JsonTreeApplet"));
 const JsonSchemaReference = React.lazy(() => import("../pages/tools/JsonSchemaReference"));
 const InventoryAdjust = React.lazy(() => import("../apps/products/pages/InventoryAdjust"));
+const ApplyCash = React.lazy(() => import("../apps/transactions/pages/ApplyCash"));
 const CycleCountMobile = React.lazy(() => import("../apps/products/pages/CycleCountMobile"));
 const CustomPageLoader = React.lazy(() => import("./CustomPageLoader"));
 const TokenBuilderPage = React.lazy(() => import("./TokenBuilderPage"));
@@ -117,6 +118,7 @@ const Router: React.FC = () => {
           <Route path="accounting" element={<DDCardDashboard dashboardName="accounting" />} />
           <Route path="inventory-dashboard" element={<S><InventoryDashboard /></S>} />
           <Route path="inventory-adjust" element={<S><InventoryAdjust /></S>} />
+          <Route path="transactions/apply-cash" element={<S><ApplyCash /></S>} />
           <Route path="cycle-count" element={<S><CycleCountMobile /></S>} />
           {/* page-designer removed — grapesjs dependency eliminated */}
           <Route path="databrowser" element={<DataBrowser />} />

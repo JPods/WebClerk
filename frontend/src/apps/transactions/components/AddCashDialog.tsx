@@ -42,6 +42,13 @@ const METHODS = [
   { value: 'card', label: 'Card (entered by hand)' },
   { value: 'other', label: 'Other' },
 ];
+/** An invoice's settlements that are not money: each its own Cash on its own GL (Bill, 2026-11-02:
+ *  "A 2% net 10 discount is 2 cash entries ... with different gls"). */
+const ADJUSTMENTS = [
+  { value: 'discount', label: 'Discount (early payment)' },
+  { value: 'write_off', label: 'Write-off' },
+  { value: 'small_balance', label: 'Small balance' },
+];
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -73,7 +80,7 @@ const AddCashDialog: React.FC<AddCashDialogProps> = ({
 
   const fields: RelatedField[] = [
     { name: 'amount', label: model === 'receipt' ? 'Amount paid' : 'Amount received', kind: 'number', required: true },
-    { name: 'method', label: 'Method', kind: 'select', options: METHODS },
+    { name: 'method', label: 'Method', kind: 'select', options: canWriteOff ? [...METHODS, ...ADJUSTMENTS] : METHODS },
     { name: 'date', label: 'Date', kind: 'date' },
     { name: 'reference', label: 'Reference / check #', kind: 'text', placeholder: 'Check #, trans ID…' },
     { name: 'reason', label: 'Note', kind: 'textarea', placeholder: 'Optional' },
