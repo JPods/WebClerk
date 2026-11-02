@@ -165,11 +165,21 @@ def load_bundle(bundle: dict, *, dry_run: bool = False) -> dict[str, Any]:
     The chart goes in before the reports and the role map that point into it,
     which is why BUNDLE_PARTS is ordered.
     """
+    from django.apps import apps as dj_apps
     from apps.core.services.record_import import import_records
 
     result: dict[str, Any] = {'errors': []}
     for key, model_label in BUNDLE_PARTS:
         records = bundle.get(key) or []
+        if records and key == 'gl_accounts' and dj_apps.get_model(model_label).objects.exists():
+            # A chart loads into a new database only, as install_chart does: journals name
+            # accounts by code, so a chart is changed account by account, never reloaded.
+            result[key] = {'created': 0, 'updated': 0}
+            result['errors'].append(
+                'This database already has a chart of accounts; the bundle\'s chart was not loaded. '
+                'Change accounts in the chart and posting roles in the company profile '
+                '(config.gl_defaults).')
+            continue
         part = import_records(
             model_label, records,
             match_on=('uuid',),

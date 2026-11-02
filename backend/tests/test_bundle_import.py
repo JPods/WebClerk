@@ -131,3 +131,19 @@ def test_defects_are_one_log_one_action_and_a_folder(tmp_path, settings):
     record.refresh_from_db()
     assert again['bundle_id'] == record.pk and record.status == 'defects'
     assert (tmp_path / record.config['payload_path']).exists()
+
+
+@pytest.mark.django_db
+def test_a_bundle_never_reloads_a_chart(tmp_path, settings, chart_of_accounts):
+    """A chart loads into a new database only; a bundle's chart is refused once there is one."""
+    from apps.accounts.models import GlAccount
+    settings.WORK_DIR = tmp_path
+    before = GlAccount.objects.count()
+    theirs = {'uuid': str(uuid.uuid4()), 'ida': '9999-zz_bundle_account', 'name': 'zz bundle account',
+              'type': 'expense', 'category': 'expense', 'is_active': True}
+
+    result = bundle_import.run('gls', {'gl_accounts': [theirs]}, source='test')
+
+    assert 'already has a chart of accounts' in result['errors'][0]
+    assert GlAccount.objects.count() == before
+    assert Bundle.objects.get(pk=result['bundle_id']).status == 'defects'
