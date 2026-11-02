@@ -54,13 +54,15 @@ class Command(BaseCommand):
         # Get all models
         all_models = []
         exclude_apps = {'contenttypes', 'auth', 'sessions', 'admin'}
+        # Reference data is real or absent, never faked (faker filled currency names with people's names)
+        exclude_models = {'accounts.Currency'}
         for app_config in apps.get_app_configs():
             if app_config.label in exclude_apps:
                 continue
             if specific_apps and app_config.label not in specific_apps:
                 continue
             for model in app_config.get_models():
-                if model._meta.abstract or model._meta.proxy:
+                if model._meta.abstract or model._meta.proxy or model._meta.label in exclude_models:
                     continue
                 all_models.append(model)
 
@@ -227,7 +229,7 @@ class Command(BaseCommand):
                 elif 'path' in field_name.lower():
                     value = fake.file_path().replace(' ', '_')[:max_length]
                 elif 'code' in field_name.lower():
-                    value = fake.currency_code() if 'currency' in model._meta.label.lower() else fake.lexify(text='???')[:max_length]
+                    value = fake.lexify(text='???')[:max_length]
                 elif field_name == 'movement_type' and model._meta.label == 'products.InventoryMovement':
                     value = 'issue'
                 elif field_name == 'site' and model._meta.label == 'products.Serial':

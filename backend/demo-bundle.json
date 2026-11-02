@@ -146548,12 +146548,10 @@
           "source": null,
           "parents": [],
           "keywords": [
+            "1",
             "d04628f1-39ae-4ec0-86f3-d7dcddcae87b",
-            "foster",
-            "ida-1",
-            "later",
-            "mathew",
-            "nio"
+            "dollar",
+            "usd"
           ],
           "categories": [],
           "depends_on": {},
@@ -146579,9 +146577,9 @@
           "records": {}
         },
         "health_rating": 50,
-        "code": "NIO",
-        "name": "Mathew Foster",
-        "symbol": "Later.",
+        "code": "USD",
+        "name": "US Dollar",
+        "symbol": "$",
         "precision": 2,
         "is_active": true
       },
@@ -146677,11 +146675,11 @@
           "parents": [],
           "keywords": [
             "03037894-f26f-4f79-90d7-06cc42e579d3",
-            "coach",
-            "ida-2",
-            "jerry",
-            "szl",
-            "thompson"
+            "2",
+            "ca$",
+            "cad",
+            "canadian",
+            "dollar"
           ],
           "categories": [],
           "depends_on": {},
@@ -146707,10 +146705,10 @@
           "records": {}
         },
         "health_rating": 50,
-        "code": "SZL",
-        "name": "Jerry Thompson",
-        "symbol": "Coach.",
-        "precision": 0,
+        "code": "CAD",
+        "name": "Canadian Dollar",
+        "symbol": "CA$",
+        "precision": 2,
         "is_active": true
       },
       {
@@ -146804,12 +146802,12 @@
           "source": null,
           "parents": [],
           "keywords": [
+            "3",
             "83abce42-51fe-4c55-b91a-b4da711fc655",
-            "another",
-            "evan",
-            "ida-3",
-            "lrd",
-            "stafford"
+            "mexican",
+            "mx$",
+            "mxn",
+            "peso"
           ],
           "categories": [],
           "depends_on": {},
@@ -146835,10 +146833,10 @@
           "records": {}
         },
         "health_rating": 50,
-        "code": "LRD",
-        "name": "Evan Stafford",
-        "symbol": "Another.",
-        "precision": 4,
+        "code": "MXN",
+        "name": "Mexican Peso",
+        "symbol": "MX$",
+        "precision": 2,
         "is_active": true
       },
       {
@@ -146933,11 +146931,10 @@
           "parents": [],
           "keywords": [
             "0705dbeb-e93e-4f7a-8e8d-acdb8bd5948b",
-            "boyd",
-            "build",
-            "ida-4",
-            "matthew",
-            "vef"
+            "4",
+            "gbp",
+            "pound",
+            "sterling"
           ],
           "categories": [],
           "depends_on": {},
@@ -146963,10 +146960,10 @@
           "records": {}
         },
         "health_rating": 50,
-        "code": "VEF",
-        "name": "Matthew Boyd",
-        "symbol": "Build.",
-        "precision": 0,
+        "code": "GBP",
+        "name": "Pound Sterling",
+        "symbol": "£",
+        "precision": 2,
         "is_active": true
       },
       {
@@ -147061,10 +147058,11 @@
           "parents": [],
           "keywords": [
             "4b6a2755-7cde-43d2-9f12-f3160cd2e59a",
-            "brandon",
-            "coleman",
-            "garden",
-            "ida-5",
+            "5",
+            "dollar",
+            "new",
+            "nt$",
+            "taiwan",
             "twd"
           ],
           "categories": [],
@@ -147092,9 +147090,9 @@
         },
         "health_rating": 50,
         "code": "TWD",
-        "name": "Brandon Coleman",
-        "symbol": "Garden.",
-        "precision": 1,
+        "name": "New Taiwan Dollar",
+        "symbol": "NT$",
+        "precision": 2,
         "is_active": true
       },
       {
@@ -147189,10 +147187,9 @@
           "parents": [],
           "keywords": [
             "0c7d904d-9d98-43c3-8b6c-a480f586c2f2",
-            "bgn",
-            "ida-6",
-            "jensen",
-            "melissa"
+            "6",
+            "jpy",
+            "yen"
           ],
           "categories": [],
           "depends_on": {},
@@ -147218,10 +147215,10 @@
           "records": {}
         },
         "health_rating": 50,
-        "code": "BGN",
-        "name": "Melissa Jensen",
-        "symbol": "Name.",
-        "precision": 1,
+        "code": "JPY",
+        "name": "Yen",
+        "symbol": "¥",
+        "precision": 0,
         "is_active": true
       },
       {
@@ -147315,11 +147312,11 @@
           "source": null,
           "parents": [],
           "keywords": [
+            "7",
             "785db897-c767-4a06-b4e2-697276946c01",
+            "brazilian",
             "brl",
-            "ida-7",
-            "powers",
-            "tina"
+            "real"
           ],
           "categories": [],
           "depends_on": {},
@@ -147346,9 +147343,9 @@
         },
         "health_rating": 50,
         "code": "BRL",
-        "name": "Tina Powers",
-        "symbol": "Not.",
-        "precision": 3,
+        "name": "Brazilian Real",
+        "symbol": "R$",
+        "precision": 2,
         "is_active": true
       },
       {
@@ -147443,10 +147440,8 @@
           "parents": [],
           "keywords": [
             "1dba0e8c-6d18-44cd-a2aa-36e0c7a5a55b",
-            "fleming",
-            "ida-8",
-            "justin",
-            "stand",
+            "8",
+            "baht",
             "thb"
           ],
           "categories": [],
@@ -147474,9 +147469,9 @@
         },
         "health_rating": 50,
         "code": "THB",
-        "name": "Justin Fleming",
-        "symbol": "Stand.",
-        "precision": 1,
+        "name": "Baht",
+        "symbol": "฿",
+        "precision": 2,
         "is_active": true
       },
       {
@@ -147570,12 +147565,12 @@
           "source": null,
           "parents": [],
           "keywords": [
-            "daniel",
+            "9",
+            "cny",
+            "cn¥",
             "ed433fe1-a5c0-42d9-936d-6727207dd7ff",
-            "enough",
-            "hrk",
-            "ida-9",
-            "michael"
+            "renminbi",
+            "yuan"
           ],
           "categories": [],
           "depends_on": {},
@@ -147601,10 +147596,10 @@
           "records": {}
         },
         "health_rating": 50,
-        "code": "HRK",
-        "name": "Michael Daniel",
-        "symbol": "Enough.",
-        "precision": 0,
+        "code": "CNY",
+        "name": "Yuan Renminbi",
+        "symbol": "CN¥",
+        "precision": 2,
         "is_active": true
       },
       {
@@ -147698,12 +147693,10 @@
           "source": null,
           "parents": [],
           "keywords": [
+            "10",
             "7ee807e2-2a67-40d9-912e-342e6cf99574",
             "eur",
-            "ida-10",
-            "laura",
-            "live",
-            "trujillo"
+            "euro"
           ],
           "categories": [],
           "depends_on": {},
@@ -147730,8 +147723,8 @@
         },
         "health_rating": 50,
         "code": "EUR",
-        "name": "Laura Trujillo",
-        "symbol": "Live.",
+        "name": "Euro",
+        "symbol": "€",
         "precision": 2,
         "is_active": true
       },
@@ -147821,10 +147814,10 @@
           "source": null,
           "parents": [],
           "keywords": [
+            "11",
             "ad41d4b1-1666-4b38-ad42-db885378b7b5",
             "currency",
             "fake",
-            "zz-fake-currency",
             "zzf"
           ],
           "categories": [],
@@ -178903,7 +178896,7 @@
         "health_rating": 65,
         "name": "Mr. George Martinez III",
         "code": "FxP",
-        "currency": "Food.",
+        "currency": "USD",
         "dt_effective_start": 1750492076098,
         "dt_effective_end": 1764512337122,
         "is_active": true,
@@ -179035,7 +179028,7 @@
         "health_rating": 65,
         "name": "Derek Gonzalez",
         "code": "TXv",
-        "currency": "Street.",
+        "currency": "USD",
         "dt_effective_start": 1744512436760,
         "dt_effective_end": 1764512337122,
         "is_active": true,
@@ -179167,7 +179160,7 @@
         "health_rating": 65,
         "name": "Jennifer Dodson",
         "code": "xmt",
-        "currency": "Culture.",
+        "currency": "USD",
         "dt_effective_start": 1746690281647,
         "dt_effective_end": 1764512337122,
         "is_active": true,
@@ -179299,7 +179292,7 @@
         "health_rating": 65,
         "name": "John Kirby",
         "code": "Hhs",
-        "currency": "Moment.",
+        "currency": "USD",
         "dt_effective_start": 1742533879313,
         "dt_effective_end": 1764512337122,
         "is_active": true,
@@ -179431,7 +179424,7 @@
         "health_rating": 65,
         "name": "Heidi Marquez",
         "code": "eoo",
-        "currency": "Base no.",
+        "currency": "USD",
         "dt_effective_start": 1761252990023,
         "dt_effective_end": 1764512337122,
         "is_active": true,
@@ -179563,7 +179556,7 @@
         "health_rating": 65,
         "name": "Keith Johnson",
         "code": "rHh",
-        "currency": "Senior.",
+        "currency": "USD",
         "dt_effective_start": 1745599678521,
         "dt_effective_end": 1764512337122,
         "is_active": true,
@@ -179695,7 +179688,7 @@
         "health_rating": 65,
         "name": "Eric Pratt",
         "code": "SJF",
-        "currency": "Pass.",
+        "currency": "USD",
         "dt_effective_start": 1759736842542,
         "dt_effective_end": 1764512337122,
         "is_active": true,
@@ -179827,7 +179820,7 @@
         "health_rating": 65,
         "name": "Mary Williams",
         "code": "ilo",
-        "currency": "Room.",
+        "currency": "USD",
         "dt_effective_start": 1751837077259,
         "dt_effective_end": 1764512337122,
         "is_active": true,
@@ -179959,7 +179952,7 @@
         "health_rating": 65,
         "name": "Nicole Gutierrez",
         "code": "mfV",
-        "currency": "Cause.",
+        "currency": "USD",
         "dt_effective_start": 1736215215859,
         "dt_effective_end": 1764512337122,
         "is_active": true,
@@ -180091,7 +180084,7 @@
         "health_rating": 65,
         "name": "Laura Mason",
         "code": "Peb",
-        "currency": "Later.",
+        "currency": "USD",
         "dt_effective_start": 1750737655108,
         "dt_effective_end": 1764512337122,
         "is_active": true,
