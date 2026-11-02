@@ -92,6 +92,8 @@ VERBS: Dict[str, Callable[[Actor, str, dict], Any]] = {
     # and what one can be made of (Bill, 2026-11-01; services/calculated.py).
     'calculated': _command('calculated'),
     'calculated_offer': _command('calculated_offer'),   # writes nothing
+    'hold': _command('hold'),          # edit hold (services/edit_hold.py): writes nothing to the record
+    'release': _command('release'),
     'parade_feedback': _command('parade_feedback'),     # a parade's Keep/Modify/Don't Need on a model (services/parade.py)
 }
 

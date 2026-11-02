@@ -108,6 +108,10 @@ def _load_or_new(actor: Actor, model_cls, model_key: str, record_id, expected_ve
     except model_cls.DoesNotExist:  # type: ignore[attr-defined]
         raise Refused(404, 'not_found', 'Record not found', 'Record not found')
 
+    if actor.user_id:
+        from apps.core.services.edit_hold import check as check_hold
+        check_hold(actor, model_key, record_id)
+
     if expected_version is not None:
         current = getattr(obj, 'version', None)
         if current is not None and current != expected_version:

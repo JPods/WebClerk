@@ -394,6 +394,12 @@ class SaveWcapiView(APIView):
         data['id'] = record_id
         if data.get('version') is not None:
             data['version'] = coerce_int(data['version'])
+        # If-Match names the version the client edited: it wins over the body's; '*' skips the check.
+        if_match = (request.META.get('HTTP_IF_MATCH') or '').strip().removeprefix('W/').strip('"')
+        if if_match == '*':
+            data.pop('version', None)
+        elif if_match:
+            data['version'] = coerce_int(if_match)
 
         # ── Write-through: forward to remote, store bundle locally ──
         if is_write_through():

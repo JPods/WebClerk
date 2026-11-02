@@ -22,6 +22,7 @@ import { getRecord, newRecord, saveRecord } from '@/api/wcapi';
 import { COMMUNICATION_FIELDS, communicationField, communicationValue, showsCommunication } from '@/utils/communicationFields';
 import { windowChannel } from '@/utils/windowChannel';
 import { useWindowManager } from '@/context/WindowManagerContext';
+import { useEditHold, heldNotice } from '@/hooks/useEditHold';
 import { useDetailLayout } from '@/hooks/useDetailLayout';
 import { selectCompanyInfo, selectLogos } from '@/store/slices/companySlice';
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
@@ -158,15 +159,19 @@ const ModelDetailPage: React.FC<ModelDetailPageProps> = ({
     return problems.length ? describeJsonLimitProblems(problems) : undefined;
   }, [limitsReady, isEditing, editData, data, modelName]);
 
+  // One person edits a record at a time: someone else's hold makes it read-only, with the notice.
+  const hold = useEditHold(modelName, recordId || undefined);
+  useEffect(() => { if (isEditing) hold.touch(); }, [editData]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
-    if (autoEdit && data && !isEditing) {
+    if (autoEdit && data && !isEditing && !hold.heldBy) {
       setEditData({ ...data });
       setIsEditing(true);
     }
-  }, [autoEdit, data]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [autoEdit, data, hold.heldBy]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Edit handlers ──
-  const handleEdit = () => { setEditData({ ...data }); setIsEditing(true); };
+  const handleEdit = () => { if (hold.heldBy) return; setEditData({ ...data }); setIsEditing(true); };
   const handleCancel = () => { setEditData(data); setIsEditing(false); };
   useFormDraft({ recordId, data, editData, setEditData, setIsEditing, draft, onRegisterDraft });
   const handleClose = () => {
@@ -411,6 +416,11 @@ const ModelDetailPage: React.FC<ModelDetailPageProps> = ({
 
   return (
     <div className="flex flex-col h-full overflow-hidden" data-wc={`${modelName}-detail`} data-zone={`db.detail.form | .${modelName}-detail | ModelDetailPage.tsx`}>
+      {hold.heldBy && (
+        <div data-wc="edit-hold-notice" className="shrink-0 px-4 py-1.5 text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300">
+          {heldNotice(hold.heldBy)}
+        </div>
+      )}
       {/* Toolbar — hidden when inline (databrowser owns it) */}
       {!inline && (
         <DetailToolbar

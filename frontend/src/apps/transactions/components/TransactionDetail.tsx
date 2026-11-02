@@ -13,6 +13,7 @@ import { showToast } from '@/store/slices/toastSlice';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState } from '@/store';
 import { useWindowManager } from '@/context/WindowManagerContext';
+import { useEditHold, heldNotice } from '@/hooks/useEditHold';
 import { useDetailLayout, type DetailLayout } from '@/hooks/useDetailLayout';
 import { applyCustomerDefaults, DISPLAY_ONLY_KEYS } from '@/apps/transactions/utils/applyCustomerDefaults';
 import { changedFields } from '@/utils/changedFields';
@@ -178,7 +179,10 @@ const UiDetailView: React.FC<UiDetailProps> = ({
     return 'open';
   }, [data, layout]);
 
-  const canEdit = editTier !== 'closed';
+  // One person edits a record at a time: someone else's hold makes it read-only, with the notice.
+  const hold = useEditHold(modelName, recordId || undefined);
+  useEffect(() => { if (isEditing) hold.touch(); }, [editData]); // eslint-disable-line react-hooks/exhaustive-deps
+  const canEdit = editTier !== 'closed' && !hold.heldBy;
   const isPendMode = editTier === 'pend';
 
   // Auto-edit
@@ -405,6 +409,11 @@ const UiDetailView: React.FC<UiDetailProps> = ({
         {editTier === 'closed' && (
           <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
             closed
+          </span>
+        )}
+        {hold.heldBy && (
+          <span data-wc="edit-hold-notice" className="text-xs px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300">
+            {heldNotice(hold.heldBy)}
           </span>
         )}
         {designMode && (

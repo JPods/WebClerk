@@ -41,6 +41,9 @@ class CoreConfig(AppConfig):
         calculated.register()
         from apps.core.services import parade
         parade.register()
+        # One person edits a record at a time (services/edit_hold.py).
+        from apps.core.services import edit_hold
+        edit_hold.register()
 
         # Audit: field-level changes on save, written to the Log (purpose audit)
         try:
