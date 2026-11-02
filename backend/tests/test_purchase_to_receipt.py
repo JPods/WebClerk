@@ -12,7 +12,6 @@ never changes after (2026-09-28).
 """
 import pytest
 
-from apps.core.models import Setting
 from apps.core.models.pending import Pending
 from apps.products.models import Item, Warehouse
 from apps.transactions.models import Purchase, PurchaseLine, Receipt, ReceiptLine
@@ -177,13 +176,14 @@ def test_an_over_shipment_is_accepted_and_flagged_to_alice_once(admin_client):
     r = _convert(admin_client, po.pk, {'lines': [{'line_id': pa.pk, 'qty': 12}]})
     assert r.status_code == 200, r.content
     receipt_id = _data(r)['receipt_id']
-    notes = Setting.objects.filter(purpose='alice_pending', role='action_required',
-                                   config__kind='over_receipt', config__purchase_line_id=pa.pk)
+    from apps.ai_assistant.services.notes import open_alice_actions
+    notes = open_alice_actions('action_required', kind='over_receipt', purchase_line_id=pa.pk)
     assert not notes.exists(), 'planned: nothing received yet'
     assert _receive(admin_client, receipt_id).status_code == 200
     assert _stock(a)[0] == 12
     assert notes.count() == 1
-    assert (notes[0].config['ordered'], notes[0].config['received']) == (10, 12)
+    details = notes[0].config['alice']['details']
+    assert (details['ordered'], details['received']) == (10, 12)
     line = ReceiptLine.objects.get(receipt_id=receipt_id)
     assert admin_client.patch(f'/wcapi/receipt/{receipt_id}/', {'lines': [{'id': line.pk, 'lot': 'L1'}]},
                               content_type='application/json').status_code == 200
@@ -194,7 +194,8 @@ def test_a_receipt_within_the_order_raises_no_flag(admin_client):
     a = _item('Widget')
     po, (pa,) = _po((a, 10, PO_COST))
     assert _convert(admin_client, po.pk).status_code == 200
-    assert not Setting.objects.filter(purpose='alice_pending', config__kind='over_receipt').exists()
+    from apps.ai_assistant.services.notes import open_alice_actions
+    assert not open_alice_actions('action_required', kind='over_receipt').exists()
 
 
 @pytest.mark.parametrize('lines, code', [
