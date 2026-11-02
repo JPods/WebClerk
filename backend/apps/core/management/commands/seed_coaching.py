@@ -699,17 +699,14 @@ Delete a record (no body).
 DELETE /wcapi/customer/42/
 ```
 
-### POST /wcapi/manage/
+### POST /wcapi/_manage/
 Administrative actions (GL posting, executable reports, etc.).
 ```json
 {"action": "post_gl", "model_name": "invoice", "id": 42}
 ```
 
-### GET /wcapi/model_name/list/
-List all available model names.
-
-### GET /wcapi/model_name/detail/?model_name=customer
-Get field metadata for a model.
+### GET /wcapi/schema/
+The OpenAPI schema: every route and its fields.
 
 ## Security
 Every request requires JWT auth. Role-based query scoping restricts external users to their own data. Field filtering strips unauthorized fields from responses. See readmes/wcapi-query-scoping.md.

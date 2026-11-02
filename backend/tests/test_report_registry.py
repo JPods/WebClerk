@@ -35,7 +35,7 @@ def _staff():
         password=TEST_PASSWORD,
         name_first="Staff",
         name_last="Tester",
-        role="staff",
+        role="accounting",
     )
 
 

@@ -184,22 +184,22 @@ def seed_shipped_reports() -> list[RegistryEntry]:
 
 
 def list_executable_reports() -> Dict[str, Any]:
-    """The tally reports this installation has.
+    """The executable reports this installation has.
 
     An installation with none has not been given them yet. Ask WC_HQ for the
     reports bundle; if that cannot be reached, seed this release's own. Either
     way the caller gets a list, not a failure.
     """
-    reports = _reports_from_records("tally")
+    reports = _reports_from_records(executable=True)
 
     if not reports:
         from apps.core.services.installation_init import ensure_defined
 
-        if ensure_defined("tally_reports"):
-            reports = _reports_from_records("tally")
+        if ensure_defined("executable_reports"):
+            reports = _reports_from_records(executable=True)
 
     if not reports:
-        reports = seed_shipped_tally_reports()
+        reports = seed_shipped_reports()
 
     return {
         "reports": reports,

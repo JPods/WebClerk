@@ -73,14 +73,8 @@ def _resolve_period(params: Dict[str, Any]) -> tuple[date, date]:
     return start_date, end_date
 
 
-def _iter_totals(rows: Iterable[tuple[Optional[dict], Any]]) -> Decimal:
-    total = Decimal("0")
-    for totals_json, scalar_total in rows:
-        if isinstance(totals_json, dict):
-            total += _as_decimal(totals_json.get("total"))
-        else:
-            total += _as_decimal(scalar_total)
-    return total
+def _iter_totals(rows: Iterable[Optional[dict]]) -> Decimal:
+    return sum((_as_decimal(t.get("total")) for t in rows if isinstance(t, dict)), Decimal("0"))
 
 
 def get_summary_by_period(params: Dict[str, Any]) -> Dict[str, Any]:
@@ -135,9 +129,8 @@ def get_summary_by_period(params: Dict[str, Any]) -> Dict[str, Any]:
             # If no date field exists we cannot place records in a period safely.
             continue
 
-        if "totals" in field_names or "total" in field_names:
-            totals_rows = qs.values_list("totals", "total")
-            model_total = _iter_totals(totals_rows)
+        if "totals" in field_names:
+            model_total = _iter_totals(qs.values_list("totals", flat=True))
         else:
             model_total = Decimal("0")
 
@@ -192,17 +185,17 @@ def _sales_by_dimension_month(params: Dict[str, Any], *, dimension_field: str) -
     if "is_archived" in field_names:
         qs = qs.filter(is_archived=False)
 
-    value_fields = [dimension_field, "dt_created", "totals", "total"]
+    value_fields = [dimension_field, "dt_created", "totals"]
     grouped: dict[tuple[int, str], dict[str, Any]] = {}
     org_ids: set[int] = set()
 
-    for dim_id, dt_created, totals_json, scalar_total in qs.values_list(*value_fields):
+    for dim_id, dt_created, totals_json in qs.values_list(*value_fields):
         dim_pk = int(dim_id or 0)
         if dim_pk <= 0:
             continue
 
         month = _month_key_from_ms(dt_created)
-        amount = _as_decimal(totals_json.get("total") if isinstance(totals_json, dict) else scalar_total)
+        amount = _as_decimal((totals_json or {}).get("total"))
 
         key = (dim_pk, month)
         entry = grouped.get(key)
@@ -282,7 +275,7 @@ def get_sales_by_customer_year(params: Dict[str, Any]) -> Dict[str, Any]:
     grouped: dict[tuple[int, int], dict[str, Any]] = {}
     org_ids: set[int] = set()
 
-    for customer_id, dt_created, totals_json, scalar_total in qs.values_list("customer_id", "dt_created", "totals", "total"):
+    for customer_id, dt_created, totals_json in qs.values_list("customer_id", "dt_created", "totals"):
         dim_pk = int(customer_id or 0)
         if dim_pk <= 0:
             continue
@@ -291,7 +284,7 @@ def get_sales_by_customer_year(params: Dict[str, Any]) -> Dict[str, Any]:
         except Exception:
             continue
 
-        amount = _as_decimal(totals_json.get("total") if isinstance(totals_json, dict) else scalar_total)
+        amount = _as_decimal((totals_json or {}).get("total"))
         key = (dim_pk, year)
         entry = grouped.get(key)
         if entry is None:
