@@ -94,7 +94,9 @@ def test_an_adjustment_lands_in_adjusted_not_received():
     buyer = _customer('Adjusted Buyer')
     inv = _invoice(buyer, 100.00)
     cash = Cash.objects.create(amount=Decimal('90.00'), customer_id=buyer.pk)
-    apply_cash_to_invoice(cash.pk, inv.pk, Decimal('90.00'), discount_amt=10, acted_by=1)
+    apply_cash_to_invoice(cash.pk, inv.pk, Decimal('90.00'))
+    disc = Cash.objects.create(amount=Decimal('10.00'), customer_id=buyer.pk, method='discount')
+    apply_cash_to_invoice(disc.pk, inv.pk, Decimal('10.00'), acted_by=1)
     recalculate_totals(inv.pk, 'invoice')
     inv.refresh_from_db()
     assert inv.totals['received'] == 90.0

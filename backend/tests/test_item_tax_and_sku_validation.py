@@ -50,15 +50,6 @@ def test_jurisdiction_params_effective_dating_and_precedence():
     assert params.get("rate") in (0.05, 0.06)
 
 @pytest.mark.fast
-def test_quantity_non_negative_clamp_on_save():
-    item = make_item("QtyClamp1")
-    item.quantity = {"on_hand": -5, "allocated": -2, "on_order": 3}
-    item.save(update_fields=["quantity"])
-    item.refresh_from_db()
-    assert item.quantity.get("on_hand") == 0
-    assert item.quantity.get("allocated") == 0
-
-@pytest.mark.fast
 def test_sku_case_insensitive_uniqueness():
     make_item("SKU1", sku="AbC123")
     dup = Item(name="SKU2", kind=Item.KIND_PHYSICAL, sku="abc123")

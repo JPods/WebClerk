@@ -452,10 +452,6 @@ def apply_cash_to_invoice(
     amount,
     reason: str = '',
     contact_id: Optional[int] = None,
-    discount_pct: float = 0,
-    discount_amt: float = 0,
-    dismiss_balance: bool = False,
-    fx_difference: float = 0,
     acted_by: Optional[int] = None,
     gateway_event_id: Optional[str] = None,
 ) -> Dict[str, Any]:
@@ -468,12 +464,13 @@ def apply_cash_to_invoice(
     settles a credit memo (refund cash is negative). If the invoice is not
     locked, applies immediately; if locked, queues for celery.
 
-    A discount, a write-off, a dismissed balance and an FX difference are all cash-side
-    adjustments: each is its own Cash record applied through this same Pending path, and
-    the invoice total stays what was sold.
+    The one path for applying cash (Bill, 2026-11-02). A 2% early-payment discount is two Cash
+    records: the money received (total − 2%) and the 2% (method 'discount', its own GL); a
+    write-off, a dismissed small balance and an FX difference likewise. The user creates each
+    and applies it here; nothing here makes one. The invoice total stays what was sold.
 
     Returns:
-        {pending_id, state, amount, applied, adjustments}
+        {pending_id, state, amount, applied}
     """
     from apps.core.models.pending import Pending
     from apps.transactions.models import Invoice, Cash
@@ -481,46 +478,6 @@ def apply_cash_to_invoice(
     cash = Cash.objects.select_for_update().get(pk=cash_id)
     invoice = Invoice.objects.select_for_update().get(pk=invoice_id)
     amount = _d(amount)
-
-    # Bill (2026-09-19): an adjustment — a discount, a write-off, a dismissed balance,
-    # an FX difference — is never automatic. It is a positive action by a user,
-    # recorded as theirs, within the company's policy.
-    wants_adjustment = discount_amt > 0 or discount_pct > 0 or dismiss_balance or fx_difference != 0
-    if wants_adjustment and not acted_by:
-        raise ValueError("An adjustment (discount, write-off, dismissed balance, FX) is a user's "
-                         "decision: it needs the signed-in user who made it.")
-    decision = {'decided_by_user_id': acted_by, 'dt_decided': _utc_now_iso()} if wants_adjustment else None
-
-    adjustments = []
-
-    # ── Discount — an adjustment cash that settles part of the balance ──
-    disc_value = Decimal('0')
-    if discount_amt > 0:
-        disc_value = Decimal(str(discount_amt))
-    elif discount_pct > 0:
-        totals = invoice.totals or {}
-        invoice_total = Decimal(str(totals.get('total', 0)))
-        disc_value = (invoice_total * Decimal(str(discount_pct)) / 100).quantize(Decimal('0.01'))
-
-    if disc_value > 0:
-        _check_policy(invoice, 'discount', disc_value)
-        _create_adjustment_cash(
-            invoice, 'discount', disc_value,
-            reason=(f'{discount_pct}% cash discount' if discount_pct > 0 else 'Cash discount'),
-            source_cash=cash, decision=decision,
-        )
-        adjustments.append({'type': 'discount', 'amount': float(disc_value)})
-
-    # ── FX difference (cash-side) ────────────────────────────────
-    if fx_difference != 0:
-        fx_amt = abs(Decimal(str(fx_difference)))
-        method = 'fx_gain' if fx_difference > 0 else 'fx_loss'
-        _create_adjustment_cash(
-            invoice, method, fx_amt,
-            reason='Currency exchange difference',
-            source_cash=cash, decision=decision,
-        )
-        adjustments.append({'type': method, 'amount': float(fx_amt)})
 
     _check_application(cash, invoice, amount)
 
@@ -563,26 +520,12 @@ def apply_cash_to_invoice(
 
     applied = pending.is_processed()
 
-    # ── Dismiss remaining balance ───────────────────────────────────
-    if dismiss_balance and applied:
-        invoice.refresh_from_db()
-        remaining = Decimal(str((invoice.totals or {}).get('balance', 0)))
-        if remaining > 0:                         # a write-off: never refused (Bill, 2026-09-26)
-            _create_adjustment_cash(
-                invoice, 'small_balance', remaining,
-                reason=reason or 'Balance dismissed by user',
-                source_cash=cash, decision=decision,
-            )
-            adjustments.append({'type': 'write_off', 'amount': float(remaining)})
-
     result = {
         'pending_id': pending.pk,
         'state': 'applied' if applied else 'pending',
         'amount': float(amount),
         'applied': applied,
     }
-    if adjustments:
-        result['adjustments'] = adjustments
     return result
 
 

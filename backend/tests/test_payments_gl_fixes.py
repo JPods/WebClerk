@@ -21,6 +21,13 @@ def _invoice(total_unit=20.00, customer_id=None, rate=0.05):
     return inv
 
 
+def _settle(inv, amount, method, acted_by=1):
+    """A settlement the user makes: its own Cash record, applied by the one path."""
+    from apps.transactions.services.cash.cash_pending import apply_cash_to_invoice
+    adj = Cash.objects.create(amount=Decimal(str(amount)), method=method, invoice=inv)
+    return adj, apply_cash_to_invoice(adj.pk, inv.pk, Decimal(str(amount)), acted_by=acted_by)
+
+
 @pytest.mark.django_db
 def test_cash_takes_its_type_from_the_sign():
     """#10: a receipt saved without a type is cash_in."""
@@ -31,20 +38,24 @@ def test_cash_takes_its_type_from_the_sign():
 
 
 @pytest.mark.django_db
-def test_a_cash_discount_reduces_the_invoice_and_posts_to_sales_discounts(chart_of_accounts):
-    """#1 and #1b."""
+def test_an_early_payment_discount_is_two_cash_records_and_the_invoice_is_unchanged(chart_of_accounts):
+    """Bill, 2026-11-02: 2%/10 is two cash entries — the money (total − 2%) and the 2% on its own
+    GL — applied by the one path; the invoice total stays what was sold."""
     from apps.transactions.services.cash.cash_pending import apply_cash_to_invoice
-    from apps.accounts.services.journalize import journalize_invoice
+    from apps.accounts.services.journalize import journalize_cash
     from apps.accounts.services.chart import role_account
     inv = _invoice(20.00)                                   # 20.00 + 1.00 tax = 21.00
-    cash = Cash.objects.create(amount=Decimal("10.00"))
-    apply_cash_to_invoice(cash.pk, inv.pk, 10, discount_amt=2, acted_by=1)
+    money = Cash.objects.create(amount=Decimal("20.58"))    # 21.00 − 2%
+    apply_cash_to_invoice(money.pk, inv.pk, Decimal("20.58"))
+    disc, _ = _settle(inv, "0.42", 'discount')
     inv.refresh_from_db()
-    assert inv.totals["total"] == pytest.approx(19.00)      # 21 − 2, never 23
-    result = journalize_invoice(inv.pk)
-    assert result.get("created"), result
-    disc = [p for p in result["postings"] if p["account"] == role_account('discount_given')]
-    assert disc and disc[0]["debit"] == pytest.approx(2.00)
+    assert inv.totals["total"] == pytest.approx(21.00)
+    assert inv.totals["received"] == pytest.approx(20.58)   # money only
+    assert inv.totals["adjusted"] == pytest.approx(0.42)
+    assert inv.totals["balance"] == pytest.approx(0.00)
+    accounts = {p["account"]: p for p in journalize_cash(disc.pk)["postings"]}
+    assert accounts[role_account('discount_given')]["debit"] == pytest.approx(0.42)
+    assert role_account('undeposited_funds') not in accounts          # never to the bank
 
 
 @pytest.mark.django_db
@@ -68,7 +79,8 @@ def test_a_small_balance_dismissal_is_adjusted_not_received_and_posts_to_writeof
     from apps.accounts.services.chart import role_account
     inv = _invoice(20.00)                                   # 21.00
     cash = Cash.objects.create(amount=Decimal("20.50"))
-    apply_cash_to_invoice(cash.pk, inv.pk, Decimal("20.50"), dismiss_balance=True, acted_by=1)
+    apply_cash_to_invoice(cash.pk, inv.pk, Decimal("20.50"))
+    _settle(inv, "0.50", 'small_balance')
     inv.refresh_from_db()
     assert inv.totals["received"] == pytest.approx(20.50)   # money only
     assert inv.totals["adjusted"] == pytest.approx(0.50)
@@ -126,8 +138,9 @@ def test_no_adjustment_without_a_user():
     from apps.transactions.services.cash.cash_pending import apply_cash_to_invoice
     inv = _invoice(20.00)
     cash = Cash.objects.create(amount=Decimal("20.50"))
-    with pytest.raises(ValueError, match="user's decision"):
-        apply_cash_to_invoice(cash.pk, inv.pk, Decimal("20.50"), dismiss_balance=True)
+    apply_cash_to_invoice(cash.pk, inv.pk, Decimal("20.50"))
+    with pytest.raises(ValueError, match="person's decision"):
+        _settle(inv, "0.50", 'small_balance', acted_by=None)
 
 
 @pytest.mark.django_db
@@ -135,10 +148,10 @@ def test_the_write_off_records_who_decided(chart_of_accounts):
     from apps.transactions.services.cash.cash_pending import apply_cash_to_invoice
     inv = _invoice(20.00)
     cash = Cash.objects.create(amount=Decimal("20.50"))
-    apply_cash_to_invoice(cash.pk, inv.pk, Decimal("20.50"), dismiss_balance=True, acted_by=7)
-    adj = Cash.objects.get(invoice=inv, method='small_balance')
-    assert adj.metadata["decision"]["decided_by_user_id"] == 7
-    assert adj.metadata["decision"]["dt_decided"].endswith("Z")
+    apply_cash_to_invoice(cash.pk, inv.pk, Decimal("20.50"))
+    _, applied = _settle(inv, "0.50", 'small_balance', acted_by=7)
+    from apps.core.models.pending import Pending
+    assert Pending.objects.get(pk=applied["pending_id"]).changes["acted_by"] == 7
 
 
 @pytest.mark.django_db
@@ -153,7 +166,8 @@ def test_a_write_off_is_never_limited(chart_of_accounts):
     company.save()
     inv = _invoice(20.00)                                   # 21.00
     cash = Cash.objects.create(amount=Decimal("20.50"))
-    apply_cash_to_invoice(cash.pk, inv.pk, Decimal("20.50"), dismiss_balance=True, acted_by=1)
+    apply_cash_to_invoice(cash.pk, inv.pk, Decimal("20.50"))
+    _settle(inv, "0.50", 'small_balance')
     inv.refresh_from_db()
     assert inv.totals["balance"] == pytest.approx(0.00) and inv.totals["adjusted"] == pytest.approx(0.50)
 
