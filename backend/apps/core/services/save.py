@@ -13,8 +13,8 @@ What the caller supplies is an **actor**, not a request: who is writing, and in 
 capacity. HTTP builds one from its request; a command builds one directly. The policy
 differs by actor; the door does not.
 
-The view above it keeps what is genuinely HTTP: parsing the body, query parameters,
-write-through forwarding, and turning the result (or a ``Refused``) into a response.
+The view above it keeps what is genuinely HTTP: parsing the body, query parameters
+and turning the result (or a ``Refused``) into a response.
 
 Phases, in order:
     1 resolve    model key → model class; the record, locked, with its version checked
@@ -591,7 +591,6 @@ def save_record(actor: Actor, data: dict, *, model_key: Optional[str] = None,
         record=record, version=getattr(obj, 'version', None), linked=ctx.linked,
         messages=messages,
         warning=_setting_warning(actor, model_key, obj),
-        sync=_queue_remote_sync(model_key, getattr(obj, 'id', None)),
     )
     console_logger.info("[SAVE] %s #%s saved by %s", model_key, result.obj_id, actor.describe())
     return result
@@ -915,16 +914,3 @@ def _setting_warning(actor: Actor, model_key: str, obj) -> Optional[str]:
         return _setting_edit_warning(actor.user, model_key, obj)
     except Exception:  # noqa: BLE001 — a coaching note never fails a save
         return None
-
-
-def _queue_remote_sync(model_key: str, obj_id) -> Optional[Dict[str, Any]]:
-    if obj_id is None:
-        return None
-    try:
-        from common.sync_tasks import dispatch_sync_to_remote
-        task_id = dispatch_sync_to_remote(model_key.lower(), obj_id)
-        if task_id:
-            return {'sync_task_id': task_id, 'sync_status': 'queued'}
-    except Exception:  # noqa: BLE001 — a queued push never blocks the write
-        pass
-    return None

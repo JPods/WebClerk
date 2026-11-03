@@ -1,10 +1,9 @@
 # path: apps/core/views/save_view.py
 from common.api_responses import api_response
-from common.write_through import is_write_through, forward_and_store
 from django.conf import settings
 import logging
 from apps.core.services.save import (Actor, Refused, STAFF_ONLY_MODELS,
-                                     TRANSACTION_LINE_MODELS, resolve_model)
+                                     TRANSACTION_LINE_MODELS)
 
 console_logger = logging.getLogger('console')  # Console logger for debugging
 # This module provides a Django view for saving (creating or updating) records in a database table via a POST request with JSON payload.
@@ -400,25 +399,6 @@ class SaveWcapiView(APIView):
             data.pop('version', None)
         elif if_match:
             data['version'] = coerce_int(if_match)
-
-        # ── Write-through: forward to remote, store bundle locally ──
-        if is_write_through():
-            model_cls = None
-            try:
-                model_cls, _key, _norm = resolve_model(data.get('model_name') or '')
-            except Refused as refused:
-                return api_response(success=False, status_code=refused.status,
-                                    message=refused.message, error=refused.as_error())
-            console_logger.info("[SAVE_VIEW] Write-through mode — forwarding save to remote DB")
-            wt_payload, wt_status = forward_and_store(request, model_cls, data)
-            if wt_status >= 400:
-                return api_response(
-                    success=False, status_code=wt_status,
-                    message=wt_payload.get('detail', 'Write-through failed'),
-                    error={'code': wt_payload.get('code', 'write_through_error'),
-                           'details': wt_payload},
-                )
-            return api_response(data=wt_payload, status_code=wt_status)
 
         # ── The door ──
         # Everything a save does lives in core/services/save.py, so a command, a sync

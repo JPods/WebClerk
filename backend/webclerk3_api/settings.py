@@ -168,29 +168,10 @@ _force_pg = os.environ.get('PYTEST_FORCE_DB') == '1'
 _explicit_sqlite = os.environ.get('USE_SQLITE_TEST') == '1'
 _running_pytest = bool(os.environ.get('PYTEST_CURRENT_TEST'))
 
-# DB_MODE: forced to 'local' until production server is stood up.
-# Remote/write-through modes existed here but were removed 2026-06-27
-# after python-decouple silently read a stale env var ('bill') instead
-# of the .env value ('local'), routing all queries to the remote DB.
-# When production is ready, redesign with proper environment separation
-# (not a toggle on a dev machine). Remote DB config (_remote_db_cfg)
-# is kept below for reference but unused.
-_db_mode = 'local'
-
-# ── Remote DB configuration (shared by remote + write-through modes) ──
-_remote_db_cfg = {
-    'ENGINE': 'django.db.backends.postgresql',
-    'NAME': config('REMOTE_DATABASE_NAME', default=config('DATABASE_NAME', default='commerce_expert')),
-    'USER': config('REMOTE_DATABASE_USER', default=config('DATABASE_USER', default='postgres')),
-    'PASSWORD': config('REMOTE_DATABASE_PASS', default=config('DATABASE_PASS', default='')),
-    'HOST': config('REMOTE_DATABASE_HOST', default=config('DATABASE_HOST', default='localhost')),
-    'PORT': config('REMOTE_DATABASE_PORT', default=config('DATABASE_PORT', default='5432')),
-    'ATOMIC_REQUESTS': False,
-    'CONN_MAX_AGE': 600,
-    'CONN_HEALTH_CHECKS': True,
-}
-
-# ── Local DB configuration (shared by local + write-through modes) ──
+# One database, local. The remote, write-through and local-sync modes were deleted 2026-11-02
+# (Bill: "junk from when we cared nothing about data integrity" — they overwrote records
+# silently, matched by id across databases). A second copy exchanges records by Bundle and
+# resolves disputes by hand (readme 103).
 _local_db_cfg = {
     'ENGINE': 'django.db.backends.postgresql',
     'NAME': config('LOCAL_DATABASE_NAME', default='commerce_expert'),
@@ -205,50 +186,11 @@ _local_db_cfg = {
 
 
 if _force_pg or (not _explicit_sqlite and not _running_pytest and not _force_pg):
-    # Postgres path (default)
-    if _db_mode == 'write-through':
-        # Write-through: local DB serves all reads; saves forward to remote.
-        # 'default' = local (fast reads), '_wt_remote' = remote (authoritative writes)
-        DATABASES = {
-            'default': _local_db_cfg,
-            '_wt_remote': _remote_db_cfg,
-        }
-        WRITE_THROUGH_ENABLED = True
-        LOCAL_SYNC_ENABLED = False
-        WRITE_THROUGH_REMOTE_ALIAS = '_wt_remote'
-        WRITE_THROUGH_TIMEOUT = int(config('WRITE_THROUGH_TIMEOUT', default='30'))
-        print(f'\n[webClerk3] Data Set: {config("DATA_SET_KIND", default="live")} - {config("DATA_SET_NAME", default="Unknown")}', file=sys.stderr)
-        print(f'[webClerk3] Database: WRITE-THROUGH  read=LOCAL@{_local_db_cfg["HOST"]}  write=REMOTE@{_remote_db_cfg["HOST"]}\n', file=sys.stderr)
-    elif _db_mode == 'local-sync':
-        # Local-sync: saves to local (fast), Celery pushes to remote async.
-        # 'default' = local (all reads & writes), '_wt_remote' = remote (async target)
-        DATABASES = {
-            'default': _local_db_cfg,
-            '_wt_remote': _remote_db_cfg,
-        }
-        WRITE_THROUGH_ENABLED = False
-        LOCAL_SYNC_ENABLED = True
-        WRITE_THROUGH_REMOTE_ALIAS = '_wt_remote'
-        print(f'\n[webClerk3] Data Set: {config("DATA_SET_KIND", default="live")} - {config("DATA_SET_NAME", default="Unknown")}', file=sys.stderr)
-        print(f'[webClerk3] Database: LOCAL-SYNC  save=LOCAL@{_local_db_cfg["HOST"]}  async→REMOTE@{_remote_db_cfg["HOST"]}\n', file=sys.stderr)
-    elif _db_mode == 'local':
-        # Local database for debugging
-        DATABASES = {
-            'default': _local_db_cfg,
-        }
-        WRITE_THROUGH_ENABLED = False
-        LOCAL_SYNC_ENABLED = False
-        print(f'\n[webClerk3] Data Set: {config("DATA_SET_KIND", default="live")} - {config("DATA_SET_NAME", default="Unknown")}', file=sys.stderr)
-        print(f'[webClerk3] Database: LOCAL @ {DATABASES["default"]["HOST"]}:{DATABASES["default"]["PORT"]}/{DATABASES["default"]["NAME"]}\n', file=sys.stderr)
-    else:
-        # Remote database for team collaboration (default)
-        DATABASES = {
-            'default': _remote_db_cfg,
-        }
-        WRITE_THROUGH_ENABLED = False
-        LOCAL_SYNC_ENABLED = False
-        print(f'\n[webClerk3] Data Set: {config("DATA_SET_KIND", default="live")} - {config("DATA_SET_NAME", default="Unknown")}', file=sys.stderr)
-        print(f'[webClerk3] Database: REMOTE @ {DATABASES["default"]["HOST"]}:{DATABASES["default"]["PORT"]}/{DATABASES["default"]["NAME"]}\n', file=sys.stderr)
+    DATABASES = {
+        'default': _local_db_cfg,
+    }
+    print(f'\n[webClerk3] Data Set: {config("DATA_SET_KIND", default="live")} - {config("DATA_SET_NAME", default="Unknown")}', file=sys.stderr)
+    print(f'[webClerk3] Database: LOCAL @ {DATABASES["default"]["HOST"]}:{DATABASES["default"]["PORT"]}/{DATABASES["default"]["NAME"]}\n', file=sys.stderr)
 else:
     # Fast in-memory database for tests
     DATABASES = {

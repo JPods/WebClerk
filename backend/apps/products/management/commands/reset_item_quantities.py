@@ -31,7 +31,7 @@ For each item (not deleted; qq/zz scratch items included — the assessors read 
 DEMO DATA ONLY. Bill: *"The key in demo data is establishing a balance. That is not true of
 real data where defects must be accounted for."* Real data keeps its defects on the record
 and is corrected by accounted entries, never by a reset. The command refuses any database
-whose name does not say demo (or a pytest test_ database), and write-through mode.
+whose name does not say demo (or a pytest test_ database).
 
     manage.py reset_item_quantities                       # dry run
     manage.py reset_item_quantities --apply
@@ -78,8 +78,7 @@ class Command(BaseCommand):
             BUCKETS as COMMITMENTS, post_repair, wanted_by_item)
 
         db_name = str(settings.DATABASES['default'].get('NAME') or '')
-        if getattr(settings, 'WRITE_THROUGH_ENABLED', False) or not (
-                'demo' in db_name.lower() or db_name.startswith('test_')):
+        if not ('demo' in db_name.lower() or db_name.startswith('test_')):
             raise CommandError(f"refusing to reset '{db_name}': demo data only — real data "
                                "keeps its defects on the record (Bill, 2026-09-21)")
 

@@ -10,6 +10,10 @@ no file. A bundle's payload is ``{"records": [{"model_name": "...", "uuid": "...
 one is a new record that keeps it, with id and ida assigned (save_record, _by_uuid). Nothing is
 ever matched on name or SKU at load — the pre-import shows look-alikes (with their id, ida and
 uuid) so the person cleans the data up first.
+
+A row exported from WebClerk carries the version its record had then. If that record has
+changed since, the row is not applied over the change (readme 103: the base moved): the
+pre-import names it, and Alice's approval and the import refuse until a person settles it.
 """
 from __future__ import annotations
 
@@ -130,6 +134,28 @@ def _look_alikes(model_key: str, row: Dict[str, Any]) -> List[Dict[str, Any]]:
     return list(found.values())
 
 
+def _changed_since_export(rows: List[Dict[str, Any]]) -> Dict[int, Dict[str, Any]]:
+    """Rows exported at a version their record has since moved past: {row: {exported, current}}.
+    A row with no version was not exported from here and is not compared."""
+    from apps.core.services.door import resolve_model
+    moved: Dict[int, Dict[str, Any]] = {}
+    for i, row in enumerate(rows):
+        if row.get('version') in (None, ''):
+            continue
+        model_cls, _, _ = resolve_model(row['model_name'])
+        current = model_cls.objects.filter(uuid=row['uuid']).values_list('version', flat=True).first()
+        if current is not None and str(current) != str(row['version']):
+            moved[i] = {'exported': row['version'], 'current': current}
+    return moved
+
+
+def _refuse_changed(moved: Dict[int, Dict[str, Any]]) -> None:
+    if moved:
+        raise Refused(409, 'changed_since_export', f'{len(moved)} record(s) changed in WebClerk after this '
+                      f'bundle was exported; importing would overwrite those changes. Settle each by hand '
+                      f'and export again, or drop the row.', {'rows': sorted(moved)})
+
+
 def preview(ctx) -> Dict[str, Any]:
     """Alice's pre-import: every row through the real door, then all of it rolled back."""
     from apps.core.models.pending import Pending
@@ -146,6 +172,7 @@ def preview(ctx) -> Dict[str, Any]:
         known_by_row[i] = model_cls.objects.filter(uuid=row['uuid']).exists()
         if not known_by_row[i]:
             alikes_by_row[i] = _look_alikes(model_key, row)
+    moved = _changed_since_export(rows)
     sid = transaction.savepoint()
     try:
         for i, row in enumerate(rows):
@@ -155,6 +182,8 @@ def preview(ctx) -> Dict[str, Any]:
                                      'action': 'update' if known else 'new'}
             if alikes_by_row.get(i):
                 entry['look_alikes'] = alikes_by_row[i]
+            if i in moved:
+                entry['changed_since_export'] = moved[i]
             before = Pending.objects.order_by('-pk').values_list('pk', flat=True).first() or 0
             try:
                 with transaction.atomic():
@@ -178,6 +207,7 @@ def preview(ctx) -> Dict[str, Any]:
                'update': sum(1 for r in results if r['action'] == 'update'),
                'refused': sum(1 for r in results if r['action'] == 'refused'),
                'look_alike_rows': sum(1 for r in results if r.get('look_alikes')),
+               'changed_since_export': len(moved),
                'services': services}
     run = _run(bundle)
     run.update({'content_hash': content_hash(bundle, rows), 'approvals': {},
@@ -208,6 +238,7 @@ def approve(ctx) -> Dict[str, Any]:
     if summary.get('refused'):
         raise Refused(409, 'preview_refusals', f'{summary["refused"]} row(s) were refused in the pre-import; '
                       f'clean them up first.', {'refused': summary['refused']})
+    _refuse_changed(_changed_since_export(rows))
     if who == 'alice' and summary.get('look_alike_rows'):
         raise Refused(409, 'look_alikes', f'{summary["look_alike_rows"]} new row(s) look like existing '
                       f'records; put the existing uuid on each row, or confirm they are new, and preview '
@@ -238,6 +269,7 @@ def run_import(ctx) -> Dict[str, Any]:
     if missing:
         raise Refused(409, 'approval_required', f'Waiting for {" and ".join(missing)} to approve this content '
                       f'(an approval of different content does not count).', {'waiting_for': missing})
+    _refuse_changed(_changed_since_export(rows))            # a record may have moved since approval
     created = updated = 0
     for i, row in enumerate(rows):
         try:

@@ -123,6 +123,35 @@ def test_import_needs_both_approvals_of_this_content_and_a_superuser(client, dja
     assert Item.objects.get(uuid=fresh).sku == 'N-8'
 
 
+def test_a_record_changed_since_export_is_never_overwritten(client, django_user_model):
+    """Readme 103 (Bill, 11-02): the base is the record as it stands. A row exported at version v
+    whose record has moved on is named by the pre-import and refused — before approval and again
+    at import — so a person settles it; the change made here is never written over."""
+    known = Item.objects.create(name='Gear', sku='G-1')
+    exported_at = known.version
+    b = _bundle([{'model_name': 'item', 'uuid': str(known.uuid), 'version': exported_at,
+                  'name': 'Gear (from the other copy)'}])
+    boss = 'boss9@wc.test'
+    _client(client, django_user_model, boss, is_superuser=True, role='admin')
+
+    _cmd(client, b, 'preview')                               # unchanged: nothing to flag
+    _approve_both(client, django_user_model, b)
+    known.name = 'Gear (changed here)'
+    known.save()                                             # the record moves after approval
+    client.logout(); client.force_login(django_user_model.objects.get(email=boss))
+    status, _, body = _cmd(client, b, 'import')
+    assert status == 409 and body['error']['code'] == 'changed_since_export', body
+
+    status, result, body = _cmd(client, b, 'preview')
+    assert status == 200 and result['summary']['changed_since_export'] == 1, body
+    known.refresh_from_db()
+    assert result['rows'][0]['changed_since_export'] == {'exported': exported_at, 'current': known.version}
+    client.logout(); client.force_login(django_user_model.objects.get(email=ALICE))
+    status, _, body = _cmd(client, b, 'approve')
+    assert status == 409 and body['error']['code'] == 'changed_since_export'
+    assert Item.objects.get(pk=known.pk).name == 'Gear (changed here)'
+
+
 def test_a_changed_bundle_voids_its_approvals(client, django_user_model):
     b = _bundle([{'model_name': 'item', 'uuid': str(uuid.uuid4()), 'name': 'Washer'}])
     boss = 'boss5@wc.test'

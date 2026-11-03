@@ -46,8 +46,6 @@ SKIP_FILE_NAMES = {
     'dedup.py',
     'load_qa.py',
     'export_data.py',
-    'restore_data.py',
-    'restore_data_smart.py',
     # Service files with local default paths for dev convenience
     'watch_code.py',
     'record_dedup.py',

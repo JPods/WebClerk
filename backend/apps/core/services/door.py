@@ -223,7 +223,6 @@ class SaveResult:
     linked: bool = False
     messages: List[str] = field(default_factory=list)
     warning: Optional[str] = None
-    sync: Optional[Dict[str, Any]] = None
 
     def payload(self) -> Dict[str, Any]:
         data = {
@@ -235,8 +234,6 @@ class SaveResult:
         }
         if self.messages:
             data['messages'] = list(self.messages)
-        if self.sync:
-            data.update(self.sync)
         return data
 
 
