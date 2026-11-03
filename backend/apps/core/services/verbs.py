@@ -71,7 +71,7 @@ VERBS: Dict[str, Callable[[Actor, str, dict], Any]] = {
     'receive': _command('receive'),
     'convert': _command('convert'),
     'allocate': _command('allocate'),
-    'release': _command('release'),
+    'unallocate': _command('unallocate'),
     'apply_balance': _command('apply_balance'),
     'add_cash': _command('add_cash'),
     # Import on one route (plan §17.13): Alice's pre-import, the approvals, the import.
@@ -112,6 +112,11 @@ def register_command(model_key: str, verb: str, base: Callable, *,
     gated as usual; the base still decides what they may do."""
     if verb not in VERBS:
         raise ValueError(f'{verb} is not in VERBS; add it there first.')
+    if (model_key, verb) in COMMANDS:
+        # One name, one meaning: a second registration once won silently — 'release' meant
+        # "give allocated stock back" on item and "drop my edit hold" everywhere else, and every
+        # item form's hold/release pair got a 500 (found 2026-11-03).
+        raise ValueError(f'{model_key} already has a command {verb!r}; one name, one meaning.')
     COMMANDS[(model_key, verb)] = {'base': base, 'needs_record': needs_record,
                                    'public': public, 'admit': admit}
 

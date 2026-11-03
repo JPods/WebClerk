@@ -64,6 +64,8 @@ def _move(item_id: int, delta: Decimal, *, acted_by: str, reason: str,
 def allocate(item_id: int, qty, *, acted_by: str, reason: str = '',
              order_id: Optional[int] = None) -> Dict[str, Any]:
     """Set goods aside. Never more than is on hand."""
+    if qty in (None, ''):
+        raise ValidationError({'qty': 'say how much to set aside'})
     delta = Decimal(str(qty))
     if delta <= 0:
         raise ValidationError({'qty': 'allocate a positive quantity; use release to give it back'})
@@ -73,9 +75,11 @@ def allocate(item_id: int, qty, *, acted_by: str, reason: str = '',
 def release(item_id: int, qty, *, acted_by: str, reason: str = '',
             order_id: Optional[int] = None) -> Dict[str, Any]:
     """Give allocated goods back. Never more than is allocated."""
+    if qty in (None, ''):
+        raise ValidationError({'qty': 'say how much to give back'})
     delta = Decimal(str(qty))
     if delta <= 0:
-        raise ValidationError({'qty': 'release a positive quantity'})
+        raise ValidationError({'qty': 'unallocate a positive quantity'})
     return _move(item_id, -delta, acted_by=acted_by, reason=reason, order_id=order_id, verb='release')
 
 
@@ -94,7 +98,8 @@ def allocation_history(item_id: int, limit: int = 50) -> list[dict]:
 __all__ = ['allocate', 'release', 'allocation_history']
 
 
-# ── the commands: POST /wcapi/item/<id>/allocate/ and /release/ ───────
+# ── the commands: POST /wcapi/item/<id>/allocate/ and /unallocate/ ────
+# ('release' is the edit hold's verb on every model, item included.)
 
 def _command(verb):
     def base(ctx) -> Dict[str, Any]:
@@ -118,4 +123,4 @@ def register() -> None:
     (Bill, 2026-09-19 and 2026-09-24)."""
     from apps.core.services.verbs import register_command
     register_command('item', 'allocate', _command('allocate'))
-    register_command('item', 'release', _command('release'))
+    register_command('item', 'unallocate', _command('unallocate'))

@@ -247,12 +247,12 @@ export function resolveModelName(input: string): string {
     }
   }
 
-  // Fallback: assume the normalized input IS the model name
-  // This handles cases where the exact model name is passed
-  console.warn(
-    `[resolveModelName] Unknown model "${input}", using normalized: "${normalized}"`,
-  );
-  return normalized;
+  // Fallback: the input is already a model key. A key keeps its underscores — stripping them
+  // never makes a key (found 2026-11-03: /other_org asked _model_detail for "otherorg" and
+  // /inventory_adjustment_run for "inventoryadjustmentrun"; both 400 "invalid model").
+  const key = input.toLowerCase().replace(/-/g, "_");
+  console.warn(`[resolveModelName] "${input}" is not in MODEL_NAME_MAP; using "${key}"`);
+  return key;
 }
 
 /**
