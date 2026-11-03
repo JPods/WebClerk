@@ -373,6 +373,10 @@ def _inject_leaf_behaviors(model_key, field_map, behaviors):
 
 # ── Core: field behavior detection ───────────────────────────────────────
 
+#: FK names that are an org role; each is its own registry key.
+_ORG_ROLE_FIELDS = ('customer', 'vendor', 'manufacturer', 'rep', 'employee', 'other_org')
+
+
 def _registry_key_for(model_cls) -> str:
     """The MODEL_REGISTRY key for a Django model class — read from the registry, never a
     hand-kept map (one drifted: ai_message's FKs pointed at 'aimessage'). OrgBase is
@@ -461,7 +465,11 @@ def get_field_behaviors(model_key, field_map=None, overrides=None):
         if hasattr(field, 'related_model') and field.related_model is not None:
             related = field.related_model
             related_name = related.__name__.lower() if related else ''
-            lookup_model = _registry_key_for(related)
+            # An OrgBase pointer looks up the role the field names: item.vendor searches
+            # vendors, not customers (found 2026-11-03: 17 lookups on 9 models searched
+            # customers for a vendor, manufacturer or rep).
+            lookup_model = (name if related_name == 'orgbase' and name in _ORG_ROLE_FIELDS
+                            else _registry_key_for(related))
             display = 'display_name' if related_name in ('orgbase', 'customer') else 'name' if hasattr(related, 'name') else 'ida'
             behaviors[name] = {'type': 'lookup', 'model': lookup_model, 'display': display}
             continue
