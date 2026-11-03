@@ -133,6 +133,13 @@ def filter_setting_layout(actor, setting_data: dict) -> dict:
         return setting_data
 
     allowed = set(get_allowed_fields(actor, target_model, mode="view"))
+    # A computed column (OrgBase.display_name, Contact.phone, …) is no leaf a Setting names;
+    # the record carries it when the role may view its source (filter_response_data), so the
+    # column stays for the same reason. Found 2026-11-03: every customer, vendor, manufacturer,
+    # employee, other_org, rep and contact list lost display_name/phone/address_full/domain.
+    for name, source in _computed_from(target_model).items():
+        if source in allowed:
+            allowed.add(name)
 
     def column_allowed(col) -> bool:
         field = col if isinstance(col, str) else (col.get('field', '') if isinstance(col, dict) else '')
