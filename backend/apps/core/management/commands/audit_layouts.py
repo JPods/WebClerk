@@ -21,6 +21,28 @@ from apps.core.models.setting import Setting
 from apps.core.constants.model_registry import MODEL_REGISTRY, get_model_meta
 
 
+
+def _columns_not_leaves(model_key: str, cols: list) -> list:
+    """List columns naming no leaf of the model — the door would drop them, so the audit says so.
+    A computed value (OrgBase.display_name, Contact.phone, …) counts as a leaf: it is served
+    whenever its COMPUTED_FROM source is."""
+    from apps.core.services import field_leaves as fl
+    from apps.core.services.field_projection import _computed_from
+    try:
+        leaves = set(fl.model_leaves(model_key)['leaves'])
+    except Exception:  # noqa: BLE001 — an unregistered model has no leaves to check
+        return []
+    leaves |= set(_computed_from(model_key).keys())
+    out = []
+    for c in cols:
+        f = c.get('field') if isinstance(c, dict) else c
+        if not isinstance(f, str) or f == 'comments.process':
+            continue
+        if f in leaves or any(l.startswith(f + '.') for l in leaves):
+            continue
+        out.append(f)
+    return out
+
 def audit_all_layouts():
     """Return a list of dicts, one per registered model, with layout coverage info."""
     results = []
@@ -71,6 +93,7 @@ def audit_all_layouts():
                     if isinstance(cols, list) and len(cols) > 0:
                         entry['has_list_layout'] = True
                         entry['list_column_count'] = len(cols)
+                        entry['columns_not_leaves'] = _columns_not_leaves(model_key, cols)
 
             # Detail layout: layout.detail.default.fields
             detail_section = layout.get('detail', {})
@@ -154,6 +177,9 @@ def audit_all_layouts():
             entry['gaps'].append('missing card layout')
         if not entry['has_form_layout']:
             entry['gaps'].append('missing form layout')
+        for col in entry.get('columns_not_leaves') or []:
+            # The door drops such a column silently; the 2026-11-03 sweep found 28 lists short.
+            entry['gaps'].append(f'list column is no field: {col}')
         if entry['gaps']:
             entry['needs_attention'] = True
 
