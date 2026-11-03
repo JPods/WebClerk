@@ -1,5 +1,5 @@
 -- FK Orphan Check + UUID Population Script
--- Run: DB_MODE=remote python manage.py dbshell < tools/remote_fk_check.sql
+-- Run: python manage.py dbshell < tools/remote_fk_check.sql
 
 \echo '=== ORPHANED FK REFERENCES ==='
 

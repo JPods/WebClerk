@@ -4,7 +4,6 @@ set -e
 WC3_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RESTART_REQUEST_FILE="$WC3_DIR/tools/.restart_django"
 ENV_FILE="$WC3_DIR/.env"
-DEV_CONFIG_FILE="$WC3_DIR/tools/dev-config.json"
 
 cd "$WC3_DIR"
 
@@ -18,38 +17,6 @@ if [ ! -x "$PY_BIN" ]; then
 fi
 
 echo "Starting Django with same-terminal auto-restart loop"
-echo "Use this command for dev: ./runserver.sh [local|remote]"
-
-# Accept optional argument: ./runserver.sh local|remote  (default: local)
-INITIAL_DB_MODE="${1:-local}"
-if [[ "$INITIAL_DB_MODE" != "local" && "$INITIAL_DB_MODE" != "remote" ]]; then
-  echo "Usage: ./runserver.sh [local|remote]  (default: local)"
-  exit 1
-fi
-
-ensure_default_mode() {
-  local mode="$INITIAL_DB_MODE"
-  if [ -f "$ENV_FILE" ]; then
-    if grep -q '^DB_MODE=' "$ENV_FILE"; then
-      sed -i '' "s/^DB_MODE=.*/DB_MODE=$mode/" "$ENV_FILE"
-    else
-      echo "DB_MODE=$mode" >> "$ENV_FILE"
-    fi
-  fi
-
-  if [ -f "$DEV_CONFIG_FILE" ]; then
-    python3 << EOF
-import json
-from pathlib import Path
-path = Path("$DEV_CONFIG_FILE")
-config = json.loads(path.read_text())
-config["db_mode"] = "$mode"
-path.write_text(json.dumps(config, indent=2))
-EOF
-  fi
-
-  echo "DB mode set to: $mode"
-}
 
 free_port_8000() {
   local pids
@@ -69,7 +36,6 @@ free_port_8000() {
   fi
 }
 
-ensure_default_mode
 free_port_8000
 
 # ── Start Celery worker+beat in the background ──────────────────

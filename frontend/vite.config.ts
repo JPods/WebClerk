@@ -17,21 +17,6 @@ function getAppVersion(): string {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Read backend DB_MODE from webClerk3/.env
-function getBackendDbMode(): string {
-  try {
-    const backendEnvPath = path.resolve(__dirname, "../webClerk3/.env");
-    if (fs.existsSync(backendEnvPath)) {
-      const envContent = fs.readFileSync(backendEnvPath, "utf-8");
-      const match = envContent.match(/^DB_MODE=(.+)$/m);
-      if (match) return match[1].trim().toUpperCase();
-    }
-  } catch {
-    /* ignore */
-  }
-  return "UNKNOWN";
-}
-
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   // Load env to display in startup message
@@ -41,8 +26,6 @@ export default defineConfig(({ mode }) => {
   const apiTarget = env.VITE_API_TARGET || "http://127.0.0.1:8000";
   const dataSetId = env.VITE_DATA_SET_KIND || "live";
   const dataSetName = env.VITE_DATA_SET_NAME || "Unknown";
-  const dbMode = getBackendDbMode();
-  const dbColor = dbMode === "REMOTE" ? "\x1b[32m" : "\x1b[34m"; // Green for remote, blue for local
 
   // Startup banner
   console.log("\n");
@@ -54,7 +37,6 @@ export default defineConfig(({ mode }) => {
     "\x1b[36m%s\x1b[0m",
     `  [React2025] Data Set: ${dataSetId} - ${dataSetName}`,
   );
-  console.log(`  [React2025] Database: ${dbColor}${dbMode}\x1b[0m`);
   console.log("\x1b[36m%s\x1b[0m", "  Proxying API to http://localhost:8000");
   console.log(
     "\x1b[36m%s\x1b[0m",

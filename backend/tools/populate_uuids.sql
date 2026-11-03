@@ -1,5 +1,5 @@
 -- Populate NULL UUIDs on all affected remote tables
--- Run: DB_MODE=remote python manage.py dbshell < tools/populate_uuids.sql
+-- Run: python manage.py dbshell < tools/populate_uuids.sql
 -- Uses PostgreSQL gen_random_uuid() to generate UUID v4 values
 
 BEGIN;

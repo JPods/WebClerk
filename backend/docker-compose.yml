@@ -45,7 +45,6 @@ services:
       LOCAL_DATABASE_PASS: webclerk
       LOCAL_DATABASE_HOST: db
       LOCAL_DATABASE_PORT: 5432
-      DB_MODE: local
       DATA_SET_KIND: live
       DATA_SET_NAME: Docker WebClerk
       DEBUG: "True"
@@ -75,7 +74,6 @@ services:
       LOCAL_DATABASE_PASS: webclerk
       LOCAL_DATABASE_HOST: db
       LOCAL_DATABASE_PORT: 5432
-      DB_MODE: local
       DATA_SET_KIND: live
       CELERY_BROKER_URL: redis://redis:6379/0
     depends_on:

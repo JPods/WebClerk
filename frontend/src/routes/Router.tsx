@@ -3,7 +3,6 @@ import React from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from "react-router-dom";
 import { WindowManagerNavigationSync } from "../context/WindowManagerContext";
 import { DataSetBadge } from '../components/DataSetBadge';
-import { DevTools } from '../components/DevTools';
 import { AiHelpWidget } from '../components/AiHelpWidget';
 import { IssueReporter } from '../components/IssueReporter';
 import PrivateRoute from "./PrivateRoute";
@@ -74,7 +73,6 @@ const FloatingWidgets: React.FC = () => {
   if (window.self !== window.top) return null;
   return <>
     <DataSetBadge position="bottom-right" showDetails />
-    <DevTools position="bottom-left" />
     <AiHelpWidget position="bottom-right" />
     <IssueReporter />
   </>;

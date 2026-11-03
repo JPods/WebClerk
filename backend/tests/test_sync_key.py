@@ -1,6 +1,5 @@
 """Import plan §17.5 security gaps (Bill, 2026-09-27): the shared bundle key never leaves the server;
 receiving a bundle imports nothing; the dev tools need a signed-in superuser."""
-import json
 
 import pytest
 
@@ -58,15 +57,3 @@ def test_the_self_connection_gets_a_random_key():
     call_command('seed_self_connection')
     conn = Connection.objects.get(ida='self-connection')
     assert len(conn.sync_key) >= 32 and conn.sync_key != 'self-connection'
-
-
-@pytest.mark.parametrize('path', ['/wcapi/_dev_sync/', '/wcapi/_dev_switch/', '/wcapi/_dev_restart/'])
-def test_the_dev_tools_need_a_superuser(client, django_user_model, path):
-    from django.urls import resolve
-    resolve(path)                                         # routed, or the test is wrong
-    r = client.post(path, json.dumps({'direction': 'upload'}), content_type='application/json')
-    assert r.status_code == 403 and 'superuser' in json.dumps(r.json())
-    clerk = django_user_model.objects.create_user(email='clerk@wc.test', password='x', username='', role='admin')
-    client.force_login(clerk)
-    r = client.post(path, json.dumps({'direction': 'upload'}), content_type='application/json')
-    assert r.status_code == 403 and 'superuser' in json.dumps(r.json())

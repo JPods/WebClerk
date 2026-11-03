@@ -60,7 +60,6 @@ DATA_SET_KIND=live
 DATA_SET_NAME=My WebClerk
 
 # Database — local PostgreSQL
-DB_MODE=local
 LOCAL_DATABASE_HOST=localhost
 LOCAL_DATABASE_PORT=5432
 LOCAL_DATABASE_NAME=commerce_expert

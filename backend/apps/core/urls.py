@@ -27,7 +27,6 @@ from apps.core.views.system_info import SystemInfoView
 from apps.core.views.wchq_submit_view import WchqSubmitView
 from apps.core.views.inquiry_view import InquiryStartView, InquiryView
 from apps.core.views.bootstrap_view import BootstrapView
-from apps.core.views.dev_tools import dev_config_status, dev_switch_mode, dev_restart_servers, dev_sync_status, dev_sync_data
 from apps.core.views.refs_mismatch_view import RefsMismatchView
 from apps.core.views.permissions import UserPermissionsView, ModelPermissionsView
 from apps.core.views.image_view import ImageView
@@ -88,11 +87,6 @@ urlpatterns = [
     path("wcapi/_qa_groups/", ListQuestionGroupsView.as_view(), name="wcapi-qa-groups"),
     path("wcapi/_qa/<str:parent_model>/<int:parent_id>/", ParentQAView.as_view(), name="wcapi-qa-parent"),
     # Dev tools
-    path("wcapi/_dev_config/", dev_config_status, name="dev-config"),
-    path("wcapi/_dev_sync_status/", dev_sync_status, name="dev-sync-status"),
-    path("wcapi/_dev_switch/", dev_switch_mode, name="dev-switch"),
-    path("wcapi/_dev_sync/", dev_sync_data, name="dev-sync"),
-    path("wcapi/_dev_restart/", dev_restart_servers, name="dev-restart"),
     # Refs mismatch audit
     path("wcapi/_refs_mismatch/", RefsMismatchView.as_view(), name="refs-mismatch"),
     # Sample data + parade

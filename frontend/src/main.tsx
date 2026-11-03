@@ -23,24 +23,6 @@ console.log(
   "color: #22c55e; font-weight: bold; font-size: 14px;",
 );
 
-// Fetch and display backend database mode (optional - endpoint may not exist)
-fetch("/wcapi/_dev_config/")
-  .then((res) => (res.ok ? res.json() : null))
-  .then((data) => {
-    const configData = data?.data?.data || data?.data;
-    if (configData?.db_mode) {
-      const mode = configData.db_mode.toUpperCase();
-      const color = mode === "REMOTE" ? "#22c55e" : "#3b82f6";
-      console.log(
-        `%c[React2025] Backend DB: ${mode} database`,
-        `color: ${color}; font-weight: bold; font-size: 14px;`,
-      );
-    }
-  })
-  .catch(() => {
-    /* Backend dev config not available - expected in production */
-  });
-
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ThemeProvider>

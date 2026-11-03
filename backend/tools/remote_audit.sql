@@ -1,5 +1,5 @@
 -- Remote Database Data Cleanup Audit
--- Run: DB_MODE=remote python manage.py dbshell < tools/remote_audit.sql
+-- Run: python manage.py dbshell < tools/remote_audit.sql
 
 \echo '=== 1. DUPLICATE UUIDs ==='
 SELECT 'actions' as tbl, uuid, count(*) as cnt FROM actions GROUP BY uuid HAVING count(*) > 1
