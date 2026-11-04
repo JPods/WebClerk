@@ -76,6 +76,8 @@ interface SimulationDef {
  *  There is deliberately NO default item. A literal here is a guess about
  *  someone else's data set — the previous one named a training item that no
  *  longer exists, so every panel sat empty with nothing saying why. */
+/** Models whose header carries ship_via and finance (base_transaction_model). */
+const TRANSACTION_HEADER_MODELS = new Set(["quote", "order", "invoice", "purchase", "workorder", "receipt"]);
 const SIM_ITEM_KEY = "wc:flightsim:item_ida";
 const DEFAULT_SIM_ITEM_IDA = "";
 
@@ -495,18 +497,29 @@ const FlightSimConsole: React.FC = () => {
    *  change them back; the outcome then changes (Bill, 2026-09-19). */
   const createSimRecord = async (model: string): Promise<number | null> => {
     try {
-      const defaults = await manageAction("get_sim_header_defaults", {}) as any;
-      const simHeader = defaults?.data ?? defaults ?? {};
+      // ship_via and finance are transaction-header columns. A contact or an
+      // item has neither, and the backend refuses unknown fields.
+      let header: Record<string, unknown> = {};
+      if (TRANSACTION_HEADER_MODELS.has(model)) {
+        const defaults = await manageAction("get_sim_header_defaults", {}) as any;
+        const simHeader = defaults?.data ?? defaults ?? {};
+        header = {
+          ...(simHeader.ship_via ? { ship_via: simHeader.ship_via } : {}),
+          ...(simHeader.finance ? { finance: simHeader.finance } : {}),
+        };
+      }
       const result = await createRecord(model, {
         status: "planned",
-        ...(simHeader.ship_via ? { ship_via: simHeader.ship_via } : {}),
-        ...(simHeader.finance ? { finance: simHeader.finance } : {}),
+        ...header,
         metadata: { training: true, flight_sim: true },
       }) as any;
       const newId = result?.id;
+      if (!newId) setSimError(`Could not create the ${model} this simulation starts from.`);
       return newId || null;
     } catch (e) {
-      console.error(`Failed to create ${model}:`, e);
+      // Say so on the screen. "Ready" with nothing behind it reads as "waiting
+      // for you", not "the first record was refused".
+      setSimError(`Could not create ${model}: ${(e as Error)?.message ?? String(e)}`);
       return null;
     }
   };
@@ -631,7 +644,7 @@ const FlightSimConsole: React.FC = () => {
         setRightRecordId(recordId);
       }
     } catch (e) {
-      console.error("Start simulation failed:", e);
+      setSimError(`Start failed: ${(e as Error)?.message ?? String(e)}`);
     } finally {
       setLoading(false);
     }
