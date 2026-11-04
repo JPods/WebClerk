@@ -12,18 +12,24 @@ LABEL = {'canceled': 'Canceled', 'complete': 'Complete', 'on_hold': 'On Hold'}
 
 
 def _options(options, status):
-    out = []
+    """One spelling each, order kept, first occurrence wins (a list holding both spellings
+    would otherwise end with the one word twice)."""
+    out, seen = [], set()
     for o in options:
         if isinstance(o, str):
-            out.append(MAP.get(o, 'on_hold' if status and o == 'hold' else o))
+            v = MAP.get(o, 'on_hold' if status and o == 'hold' else o)
         elif isinstance(o, dict) and isinstance(o.get('value'), str):
             v = MAP.get(o['value'], 'on_hold' if status and o['value'] == 'hold' else o['value'])
             o = {**o, 'value': v}
             if v in LABEL and 'label' in o:
                 o['label'] = LABEL[v]
-            out.append(o)
         else:
             out.append(o)
+            continue
+        if v in seen:
+            continue
+        seen.add(v)
+        out.append(v if isinstance(o, str) else o)
     return out
 
 
