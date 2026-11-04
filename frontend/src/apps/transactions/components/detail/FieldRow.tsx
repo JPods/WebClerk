@@ -271,8 +271,8 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
   };
   const isDate = field.startsWith('dt_') || DATE_FIELDS.has(field) || DATE_FIELDS.has(label)
     || fieldType === 'date' || fieldType === 'timestamp';
-  // A dt_ nobody typed a behavior for is a plan date; the registry draws every typed field.
-  const widgetType = fieldType || (isDate ? 'date' : undefined);
+  // A dt_ with no declared behavior is shown, not typed (declare a plan date in field_behaviors).
+  const widgetType = fieldType || (isDate ? 'timestamp' : undefined);
   const fmtType = detectFormatType(field, label);
   const displayVal = val == null ? '—'
     : isDate ? formatDate(val)

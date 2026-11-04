@@ -7,7 +7,13 @@ import type { WidgetProps } from "./types";
 import { getRecord, getRecords } from "@/api/wcapi";
 
 const s = "w-full px-1.5 py-0.5 text-[inherit] border border-gray-300 rounded bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white disabled:opacity-60";
-const nameOf = (rec: any) => rec?.display_name || rec?.name || rec?.company || rec?.ida || (rec?.id ? `#${rec.id}` : "");
+/** A name as text: an i18n object ({en: "..."}) gives its first string, never "[object Object]". */
+export const asText = (v: any): string =>
+  typeof v === "string" ? v
+  : v && typeof v === "object" && !Array.isArray(v) ? String(Object.values(v).find(x => typeof x === "string") ?? "")
+  : v == null ? "" : String(v);
+export const nameOf = (rec: any): string =>
+  asText(rec?.display_name) || asText(rec?.name) || asText(rec?.company) || asText(rec?.ida) || (rec?.id ? `#${rec.id}` : "");
 
 export const LookupWidget: React.FC<WidgetProps> = ({ name, value: v, onChange, disabled, model = "", className, mode }) => {
   const [query, setQuery] = useState("");

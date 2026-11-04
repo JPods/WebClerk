@@ -442,6 +442,7 @@ def get_field_behaviors(model_key, field_map=None, overrides=None):
         if ftype == 'DecimalField' and name in (
             'amount', 'total', 'balance', 'value_original', 'value_available',
             'fee_amount', 'cost_snapshot', 'discount_potential',
+            'tendered', 'change', 'available',   # cash: money entered shows .00 (Bill, 2026-11-03)
         ):
             behaviors[name] = {'type': 'currency'}
             continue

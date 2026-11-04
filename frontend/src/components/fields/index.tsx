@@ -115,7 +115,7 @@ export function renderField(
     || (typeof effectiveValue === 'boolean' ? 'boolean' : '')
     || (isJson && !isI18n ? 'json' : '')
     || (isLong ? 'textarea' : '')
-    || (name.startsWith('dt_') ? 'date' : '')
+    || (name.startsWith('dt_') ? 'timestamp' : '')   // undeclared dt_: shown, not typed — declare it in field_behaviors
     || (typeof effectiveValue === 'number' ? 'number' : '');
   const typeName = autoType || 'text';
 
