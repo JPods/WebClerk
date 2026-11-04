@@ -17,6 +17,7 @@ import { useEditHold, heldNotice } from '@/hooks/useEditHold';
 import { useDetailLayout, type DetailLayout } from '@/hooks/useDetailLayout';
 import { applyCustomerDefaults, DISPLAY_ONLY_KEYS } from '@/apps/transactions/utils/applyCustomerDefaults';
 import { changedFields } from '@/utils/changedFields';
+import { applyDerived } from '@/utils/derivedFields';
 import { convertedTarget, type ConvertedTarget } from '../utils/convertedTarget';
 import { getActiveLines, getRemovedLines, isPersistedLine } from '../services/lineItemService';
 import type { TransactionLine } from '../types/transactionTypes';
@@ -208,7 +209,8 @@ const UiDetailView: React.FC<UiDetailProps> = ({
   const handleFieldChange = useCallback((field: string, value: unknown) => {
     setEditData((prev: any) => {
       if (!prev) return prev;
-      if (!field.includes('.')) return { ...prev, [field]: value };
+      // The derived rule (attention from the names) is the same here as on ModelDetailPage.
+      if (!field.includes('.')) return applyDerived(modelName, prev, { ...prev, [field]: value }, field);
       // Nested write: config.ship_to.company → prev.config.ship_to.company
       const parts = field.split('.');
       const clone = JSON.parse(JSON.stringify(prev));
@@ -234,7 +236,7 @@ const UiDetailView: React.FC<UiDetailProps> = ({
         });
       }
     }
-  }, [dispatch]);
+  }, [dispatch, modelName]);
 
   // The line card gets every line, removed ones included — they stay on screen
   // marked deleted until the save. Guard anyway: if a child ever hands back a
@@ -291,7 +293,8 @@ const UiDetailView: React.FC<UiDetailProps> = ({
       if (typeof onAfterSave === 'function') onAfterSave();
     } catch (err: any) {
       const resp = err?.response?.data;
-      const detail = resp?.detail || resp?.message || resp?.error?.details || err?.message || String(err);
+      const raw = resp?.message || resp?.detail || resp?.error?.details || err?.message || String(err);
+      const detail = Array.isArray(raw) ? raw.join('; ') : raw;
       console.error('[TransactionDetail] Save failed:', { err, response: resp, status: err?.response?.status, url: err?.config?.url, method: err?.config?.method });
       dispatch(showToast({ message: `Save failed: ${typeof detail === 'string' ? detail : JSON.stringify(detail)}`, type: 'error' }));
     } finally {

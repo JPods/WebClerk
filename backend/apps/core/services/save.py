@@ -380,6 +380,11 @@ def _assign(obj, data: dict, model_cls, model_key: str, norm_key: str,
     m2m_field_names = {f.name for f in obj._meta.get_fields()
                        if f.many_to_many or f.one_to_many}
 
+    # A feeder is a door, not a column (Contact.FEEDER_FIELDS): its value leaves the payload
+    # here and the model's save makes the record it feeds. Left in, it is an unknown field.
+    feeders = getattr(model_cls, 'FEEDER_FIELDS', None) or {}
+    obj._feed = {k: data.pop(k) for k in list(data) if k in feeders}
+
     from apps.core.services.save_field_assignment import assign_fields
     assignment = assign_fields(obj, data, model_cls, json_field_names, m2m_field_names,
                                model_name=model_key)
