@@ -59,7 +59,7 @@ class CashModelTest(TestCase):
             status="complete"
         )
 
-        expected_str = f"Cash #{cash.id} - +75.50 (completed) for Invoice #{self.invoice.id}"
+        expected_str = f"Cash #{cash.id} - +75.50 (complete) for Invoice #{self.invoice.id}"
         self.assertEqual(str(cash), expected_str)
 
     def test_cash_refs_and_metadata_defaults(self):
