@@ -457,15 +457,13 @@ export async function getRecord(model_name: string, id: number) {
 // Computed property fields that don't exist as model columns — they cause envelope_invalid
 // errors when the backend tries to pack them into config. These are @property methods on
 // TransactionBaseModel, not real DB fields. An Email record's `email` is its own column, not the
-// computed property (Bill, 2026-10-16). On a contact they are feeders (Bill, 2026-11-03):
-// typed there, each makes the contact's communication record (Contact.FEEDER_FIELDS).
+// computed property (Bill, 2026-10-16). On a contact they are edited in their record's card
+// (Bill, 2026-11-03: the card, not typing into the contact), so a contact never sends them.
 const NOT_SAVED = ['email', 'phone', 'address_full', 'company_name'];
 
 /** Whether a save of this model carries this field (an edit-in-list cell is locked when not). */
 export function savesField(model_name: string, field: string): boolean {
-  if (!NOT_SAVED.includes(field)) return true;
-  const resolved = resolveModelName(model_name);
-  return resolved === 'contact' || (field === 'email' && resolved === 'email');
+  return !NOT_SAVED.includes(field) || (field === 'email' && resolveModelName(model_name) === 'email');
 }
 
 export async function saveRecord(model_name: string, payload: any) {

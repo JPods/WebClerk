@@ -18,6 +18,8 @@ import { useDetailLayout, type DetailLayout } from '@/hooks/useDetailLayout';
 import { applyCustomerDefaults, DISPLAY_ONLY_KEYS } from '@/apps/transactions/utils/applyCustomerDefaults';
 import { changedFields } from '@/utils/changedFields';
 import { applyDerived } from '@/utils/derivedFields';
+import { COMMUNICATION_FIELDS, communicationField, communicationValue } from '@/utils/communicationFields';
+import CommunicationCard from '@/components/common/CommunicationCard';
 import { convertedTarget, type ConvertedTarget } from '../utils/convertedTarget';
 import { getActiveLines, getRemovedLines, isPersistedLine } from '../services/lineItemService';
 import type { TransactionLine } from '../types/transactionTypes';
@@ -343,18 +345,46 @@ const UiDetailView: React.FC<UiDetailProps> = ({
   }, [previewInputs, modelName]);
 
   // ── Current data (edit or read) ─────────────────────────────────
+  // A contact's phone, address, domain and email are kept in their own records: the field
+  // shows the cache entry its pointer names and opens that record's card (ModelDetailPage
+  // does the same; Bill, 2026-11-03: the card, not typing into the contact).
+  const [commCard, setCommCard] = useState<{ field: string; anchor: DOMRect } | null>(null);
+  const openCommunication = useCallback((field: string, el: HTMLElement) => {
+    if (communicationField(modelName, field)) setCommCard({ field, anchor: el.getBoundingClientRect() });
+  }, [modelName]);
+  // A card save saves this record on the server too: take what changed — cache, pointers,
+  // login email, version — and keep unsaved edits here.
+  const refreshCommunications = useCallback(async () => {
+    if (!recordId) return;
+    const response = await getRecord(modelName, recordId);
+    const record = (response as any)?.record || response;
+    const pointers = Object.values(COMMUNICATION_FIELDS[modelName] || {}).map(c => c.pointer);
+    const pick = (prev: any) => prev && ({
+      ...prev, refs: record.refs, ...Object.fromEntries(pointers.map(p => [p, record[p]])),
+      email: record.email, version: record.version, dt_modified: record.dt_modified,
+    });
+    setData(pick);
+    setEditData(pick);
+  }, [modelName, recordId]);
+  const commSpec = commCard && communicationField(modelName, commCard.field);
+
   const currentData = useMemo(() => {
-    if (!isEditing) return data;
-    if (!editData || !preview) return editData;
+    const withCache = (rec: any) => rec && COMMUNICATION_FIELDS[modelName] ? {
+      ...rec,
+      ...Object.fromEntries(Object.entries(COMMUNICATION_FIELDS[modelName])
+        .map(([f, c]) => [f, communicationValue(c, rec)])),
+    } : rec;
+    if (!isEditing) return withCache(data);
+    if (!editData || !preview) return withCache(editData);
     return {
-      ...editData,
+      ...withCache(editData),
       totals: preview.totals,
       lines: (editData.lines || []).map((l: any) => {
         const t = preview.line_totals[String(l.id)];
         return t ? { ...l, totals: t } : l;
       }),
     };
-  }, [isEditing, data, editData, preview]);
+  }, [isEditing, data, editData, preview, modelName]);
 
   // ── Loading states ──────────────────────────────────────────────
   if (layoutLoading || loading) {
@@ -462,6 +492,10 @@ const UiDetailView: React.FC<UiDetailProps> = ({
       )}
 
       {/* Document lineage — shows chain when this record has parent/children */}
+      {commCard && commSpec && data && (
+        <CommunicationCard comm={commSpec} owner={data} anchor={commCard.anchor}
+          onChanged={refreshCommunications} onClose={() => setCommCard(null)} />
+      )}
       {currentData && (
         <TransactionFlowIndicator modelName={modelName} record={currentData} onNavigate={rest.onNavigate as any} />
       )}
@@ -481,6 +515,7 @@ const UiDetailView: React.FC<UiDetailProps> = ({
                   onChange={handleFieldChange}
                   cardSpecs={activeLayout.card}
                   behaviors={activeLayout.behaviors}
+                  onOpenField={openCommunication}
                   custSearch={{
                     party: custSearch.party,
                     open: custSearch.open,

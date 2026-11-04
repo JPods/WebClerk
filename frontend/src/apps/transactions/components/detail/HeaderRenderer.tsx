@@ -1,5 +1,6 @@
 /* LastChecked: 2026-08-16 | WhereUsed: UiDetail | WhoCreated: Claude */
 import React from 'react';
+import { communicationField } from '@/utils/communicationFields';
 import FieldRow, { lockedFieldsForRecord } from './FieldRow';
 import { getNestedValue } from './FieldRow';
 import CardRenderer from '@/components/cards/CardRenderer';
@@ -34,6 +35,9 @@ export interface HeaderRendererProps {
   cardSpecs?: Record<string, CardSpec>;
   /** Field behaviors from Setting config.behaviors — drives label styles and select options */
   behaviors?: Record<string, any>;
+  /** A field kept in another record (a contact's phone, address, domain, email) opens that
+   *  record's card instead of an input (Bill, 2026-11-03). */
+  onOpenField?: (field: string, el: HTMLElement) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -41,7 +45,7 @@ export interface HeaderRendererProps {
 // ---------------------------------------------------------------------------
 
 /** Render header — supports card-based layout, three-column layout, and rows layout */
-const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditing, modelName, onChange, custSearch, cardSpecs, behaviors = {} }) => {
+const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditing, modelName, onChange, custSearch, cardSpecs, behaviors = {}, onOpenField }) => {
 
   // ── Card-based layout (new: header.cards references named card specs) ──
   if (section.header?.cards && cardSpecs) {
@@ -187,6 +191,8 @@ const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditin
                   lockedFields={lockedFieldsForRecord(data)}
                   help={f.help}
                   onChange={onChange}
+                  onOpen={onOpenField && communicationField(modelName, f.field)
+                    ? (el: HTMLElement) => onOpenField(f.field, el) : undefined}
                 />
               );
             })}

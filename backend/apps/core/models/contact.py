@@ -101,11 +101,6 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
 
     # Properties to include in API serialization (not DB fields, but computed from FK pointers)
     COMPUTED_FIELDS = ["phone", "address_full", "domain", "display_name"]
-    #: Feeders (Bill, 2026-11-03): a value typed into phone, address_full or domain on the
-    #: contact form makes the communication record and points the contact at it — the
-    #: record is the truth, the contact field is the door. kind → the record's value field.
-    FEEDER_FIELDS = {"phone": ("phone", "number"), "address_full": ("address", "full"),
-                     "domain": ("domain", "path")}
     #: Each computed value and the field it is derived from: a role that may view the
     #: source is served the value (field_projection.filter_response_data).
     COMPUTED_FROM = {"phone": "phone_id", "address_full": "address_id",
@@ -341,46 +336,11 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
                 if self.domain_id != domain_obj.id:
                     updates['domain_id'] = domain_obj.id
 
-        updates.update(self._feed_communications())
         if updates:
             type(self).objects.filter(pk=self.pk).update(**updates)
             for field, value in updates.items():
                 setattr(self, field, value)
         self.rebuild_communication_cache()
-
-    def _feed_communications(self) -> dict:
-        """The feeders the save popped from its payload (``_feed``): each non-empty value
-        becomes this contact's record of that kind — found if it already has one with that
-        value, else made — and the primary pointer moves to it. An empty value changes
-        nothing: the records are deleted in their own cards, never by blanking the door."""
-        feed = getattr(self, '_feed', None) or {}
-        self._feed = {}
-        updates = {}
-        kinds = self._communication_kinds()
-        for field, (kind, value_field) in self.FEEDER_FIELDS.items():
-            value = self._norm_comm_value(feed.get(field))
-            if not value:
-                continue
-            model_cls, pointer, _entry = kinds[kind]
-            create = {value_field: value}
-            if kind == 'domain':
-                create.update({'type': 'website', 'status': 'active'})
-            if kind == 'address':
-                # Address.save rebuilds full from the components: the typed line is
-                # parsed into them (usaddress, else the US regex), and what cannot be
-                # parsed stays whole in address1 so nothing typed is lost.
-                from apps.ai_assistant.services.data_parser import _parse_address_deterministic
-                from apps.core.services.format_address import format_address_full
-                parts = _parse_address_deterministic(value)
-                create = ({k: parts.get(k, '') for k in ('address1', 'address2', 'city', 'state', 'zip', 'country')}
-                          if parts.get('address1') else {'address1': value})
-                value = format_address_full(**create)
-            if value == self._primary_value(kind, value_field):
-                continue
-            record = self._find_or_create_comm_record(model_cls, {value_field: value}, create)
-            if getattr(self, pointer) != record.id:
-                updates[pointer] = record.id
-        return updates
 
     #: The cache: refs.links.<kind> rebuilt from the records, and the primary pointer kept
     #: on a record the contact owns. (model, pointer, entry builder)
