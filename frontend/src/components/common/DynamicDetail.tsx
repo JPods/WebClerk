@@ -22,6 +22,7 @@
  * Field configs can come from: Report config.fields (data-driven, preferred),
  * hardcoded FIELD_REGISTRIES (legacy), or auto-inferred from record data.
  */
+import { fieldBehaviorsOf } from '@/utils/fieldBehaviorsOf';
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { getRecord, saveRecord } from "../../api/wcapi";
 import { getWidget, WIDGETS } from "../widgets";
@@ -288,7 +289,7 @@ function DynamicDetail({
         const setting = arr[0];
 
         // Behaviors from Setting — always load, regardless of form layout
-        const behaviors: Record<string, any> = setting?.config?.behaviors || {};
+        const behaviors: Record<string, any> = fieldBehaviorsOf(setting?.config);
         if (Object.keys(behaviors).length > 0) {
           setSettingBehaviors(behaviors);
         }

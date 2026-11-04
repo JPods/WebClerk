@@ -17,6 +17,7 @@
  *   // or with report context:
  *   const fc = useListFieldConfig('panel:order:contacts', columns, { reportId: 42 });
  */
+import { fieldBehaviorsOf } from '@/utils/fieldBehaviorsOf';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { getRecord, getRecords } from '@/api/wcapi';
@@ -186,7 +187,7 @@ export function useListFieldConfig<T>(
         const setting = res?.results?.[0] ?? res?.records?.[0];
         if (setting) {
           setSettingId(setting.id);
-          if (setting.config?.behaviors) setFieldBehaviors(setting.config.behaviors);
+          if (setting.config?.behaviors || setting.config?.selectlists) setFieldBehaviors(fieldBehaviorsOf(setting.config));
           if (!resolved) {
             const layout = setting?.config?.layout?.list?.default as ListLayoutDefault | undefined;
             const parsed = parseLayout(layout);

@@ -5,6 +5,7 @@
  * Single source of truth: config.layout.form.default on the wc:model Setting.
  * No separate wc:detail_layout records.
  */
+import { fieldBehaviorsOf } from '@/utils/fieldBehaviorsOf';
 import { useState, useEffect, useCallback } from 'react';
 import { getRecords } from '@/api/wcapi';
 
@@ -109,7 +110,7 @@ export function useDetailLayout(modelName: string) {
         if (formLayout && typeof formLayout === 'object' && formLayout.sections) {
           const parsed = formLayout as DetailLayout;
           // Attach behaviors from Setting — drives label styles and select options
-          parsed.behaviors = setting?.config?.behaviors || {};
+          parsed.behaviors = fieldBehaviorsOf(setting?.config);
           layoutCache.set(modelName, parsed);
           setLayout(parsed);
         } else {

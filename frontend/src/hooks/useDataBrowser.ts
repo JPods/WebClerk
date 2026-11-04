@@ -6,6 +6,7 @@
  *
  * Reusable — any page that needs a model browser can call this hook.
  */
+import { fieldBehaviorsOf } from '@/utils/fieldBehaviorsOf';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import type { RootState } from '@/store';
@@ -711,21 +712,7 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
         const faRes = await getRecords('setting', { parent_model: selectedModel, purpose: 'wc:model' }) as any;
         if (modelChangeRef.current !== fetchId) return;
         const faRec = (faRes?.results || [])[0];
-        const behaviors = faRec?.config?.behaviors || {};
-
-        // Merge config.selectlists into behaviors — canonical source for dropdown options
-        const selectlists = faRec?.config?.selectlists;
-        if (selectlists && typeof selectlists === 'object') {
-          for (const [field, opts] of Object.entries(selectlists)) {
-            if (Array.isArray(opts) && opts.length > 0) {
-              behaviors[field] = {
-                ...(behaviors[field] || {}),
-                type: 'select',
-                options: opts,
-              };
-            }
-          }
-        }
+        const behaviors = fieldBehaviorsOf(faRec?.config);
 
         // Dynamic assigned_to select for action model — three-tier fallback
         if (selectedModel === 'action' && behaviors.assigned_to) {

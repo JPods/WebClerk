@@ -67,7 +67,9 @@ export function readable(val: unknown): string | null {
 /** The text a cell shows. Empty is blank: a missing value should not look like a value. */
 export function formatCell(value: unknown, field: string, t: CellType = {}): string {
   if (value == null || value === '') return '';
-  const type = t.type || t.format || guessType(field);
+  // A column saved as currency is money however the behavior typed it (cash.available was a
+  // 'number' and 115.50 showed as 116). Bill, 2026-11-03: money entered or applied shows .00.
+  const type = t.format === 'currency' ? 'currency' : (t.type || t.format || guessType(field));
   if (typeof value === 'boolean') return value ? '✅' : '';
   if (typeof value === 'object') {
     if (type === 'address') return formatAddress(value as AddressComponents);

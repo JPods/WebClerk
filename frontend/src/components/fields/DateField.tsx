@@ -15,7 +15,7 @@ export default function DateField(props: FieldWidgetProps) {
       const d = new Date(ms);
       inputValue = includeTime
         ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
-        : d.toISOString().slice(0, 10);
+        : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; // local (Bill: stored UTC, shown local)
     } else {
       inputValue = String(value).slice(0, includeTime ? 16 : 10);
     }

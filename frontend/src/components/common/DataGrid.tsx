@@ -963,7 +963,7 @@ export default function DataGrid(props: DataGridProps) {
                   const t_data = totals[f];
                   if (!t_data) return <td key={f} className="dg-tfoot-empty" />;
                   const shown = t_data.kind === 'count' ? String(t_data.value)
-                    : formatCell(t_data.value, f, { ...cellType(f), type: fieldBehaviors[f]?.type === 'currency' ? 'currency' : 'number',
+                    : formatCell(t_data.value, f, { ...cellType(f), type: (fieldBehaviors[f]?.type === 'currency' || fieldSpecs[f]?.format === 'currency') ? 'currency' : 'number',
                                                      precision: t_data.kind === 'average' ? 2 : cellType(f).precision });
                   return <td key={f} className="dg-tfoot-cell" style={{ textAlign: 'right' }}
                     title={t_data.kind === 'sum' ? 'Sum of the rows shown' : t_data.kind === 'average' ? 'Average of the rows shown' : 'Count of the rows shown'}>
