@@ -14,8 +14,9 @@ matches or contradicts the seeded select list baselines. This watchdog:
 3. Tracks COVERAGE — what % of defined options are actually used.
    Low coverage on a field with many records = the baseline was wrong.
 
-Creates AliceObservation records for user review. The user adds/removes options
-via Cmd+click on field labels. Alice learns from their choices.
+The lists are each model's own (definition config.selectlists, services/select_lists.py);
+nothing is computed from code. Creates AliceObservation records for user review. The user
+adds/removes options via Cmd+click on field labels. Alice learns from their choices.
 
 Called by: select_list_watchdog_task (Celery, weekly)
 """
@@ -25,7 +26,7 @@ import logging
 import time
 
 from apps.core.constants.model_registry import MODEL_REGISTRY, get_model_meta
-from apps.core.services.field_behaviors import get_field_behaviors, get_model_field_map
+from apps.core.services import select_lists
 
 logger = logging.getLogger('alice.select_lists')
 
@@ -72,10 +73,6 @@ def check_unlisted_values(limit: int = 500) -> dict:
     unlisted_details = []
 
     for model_key, meta in sorted(MODEL_REGISTRY.items()):
-        field_map = get_model_field_map(model_key)
-        if not field_map:
-            continue
-
         try:
             model_cls = meta.import_model()
         except Exception:
@@ -85,23 +82,15 @@ def check_unlisted_values(limit: int = 500) -> dict:
         if record_count < MIN_RECORDS_FOR_UNLISTED:
             continue
 
-        computed = get_field_behaviors(model_key, field_map)
-
-        for field_name, behavior in computed.items():
-            if behavior.get('type') != 'select' or '.' in field_name:
+        for field_name, defined_values in select_lists.lists(model_key).items():
+            if not defined_values or '.' in field_name:
                 continue
-            opts = behavior.get('options', [])
-            if not opts:
-                continue
-
             try:
                 model_cls._meta.get_field(field_name)
             except Exception:
                 continue
 
             fields_checked += 1
-            defined_values = {o['value'] for o in opts if o.get('value')}
-
             try:
                 actual = set(
                     model_cls.objects.filter(is_active=True)
@@ -173,10 +162,6 @@ def check_unused_options(limit: int = 500) -> dict:
     unused_details = []
 
     for model_key, meta in sorted(MODEL_REGISTRY.items()):
-        field_map = get_model_field_map(model_key)
-        if not field_map:
-            continue
-
         try:
             model_cls = meta.import_model()
         except Exception:
@@ -186,23 +171,15 @@ def check_unused_options(limit: int = 500) -> dict:
         if record_count < MIN_RECORDS_FOR_UNUSED:
             continue
 
-        computed = get_field_behaviors(model_key, field_map)
-
-        for field_name, behavior in computed.items():
-            if behavior.get('type') != 'select' or '.' in field_name:
+        for field_name, defined_values in select_lists.lists(model_key).items():
+            if not defined_values or '.' in field_name:
                 continue
-            opts = behavior.get('options', [])
-            if not opts:
-                continue
-
             try:
                 model_cls._meta.get_field(field_name)
             except Exception:
                 continue
 
             fields_checked += 1
-            defined_values = {o['value'] for o in opts if o.get('value')}
-
             try:
                 actual = set(
                     model_cls.objects.filter(is_active=True)
@@ -260,10 +237,6 @@ def check_coverage(limit: int = 500) -> dict:
     stats = []
 
     for model_key, meta in sorted(MODEL_REGISTRY.items()):
-        field_map = get_model_field_map(model_key)
-        if not field_map:
-            continue
-
         try:
             model_cls = meta.import_model()
         except Exception:
@@ -273,21 +246,14 @@ def check_coverage(limit: int = 500) -> dict:
         if record_count < MIN_RECORDS_FOR_UNLISTED:
             continue
 
-        computed = get_field_behaviors(model_key, field_map)
-
-        for field_name, behavior in computed.items():
-            if behavior.get('type') != 'select' or '.' in field_name:
+        for field_name, defined_values in select_lists.lists(model_key).items():
+            if not defined_values or '.' in field_name:
                 continue
-            opts = behavior.get('options', [])
-            if not opts:
-                continue
-
             try:
                 model_cls._meta.get_field(field_name)
             except Exception:
                 continue
 
-            defined_values = {o['value'] for o in opts if o.get('value')}
 
             try:
                 actual = set(

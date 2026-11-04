@@ -41,20 +41,6 @@ NEVER_EDIT = [
 
 # ── Select list options ─────────────────────────────────────────────────
 
-STATUS_OPTIONS = [
-    {'value': 'active', 'label': 'Active'},
-    {'value': 'prospect', 'label': 'Prospect'},
-    {'value': 'inactive', 'label': 'Inactive'},
-    {'value': 'retired', 'label': 'Retired'},
-]
-TX_STATUS_OPTIONS = [
-    {'value': 'planned', 'label': 'Planned'},
-    {'value': 'released', 'label': 'Released'},
-    {'value': 'in_progress', 'label': 'In Progress'},
-    {'value': 'hold', 'label': 'Hold'},
-    {'value': 'complete', 'label': 'Complete'},
-    {'value': 'canceled', 'label': 'Canceled'},
-]
 # The four price levels, the word is the label (price_resolver.PRICE_LEVELS).
 PRICE_LEVEL_OPTIONS = [{'value': w, 'label': w}
                        for w in ('retail', 'wholesale', 'distributor', 'sample')]
@@ -162,17 +148,6 @@ DIRECTION_OPTIONS = [
     {'value': 'in', 'label': 'Inbound'},
     {'value': 'out', 'label': 'Outbound'},
 ]
-SUPPORT_STATUS_OPTIONS = [
-    {'value': 'active', 'label': 'Active'},
-    {'value': 'inactive', 'label': 'Inactive'},
-    {'value': 'archived', 'label': 'Archived'},
-]
-ITEM_STATUS_OPTIONS = [
-    {'value': 'active', 'label': 'Active'},
-    {'value': 'inactive', 'label': 'Inactive'},
-    {'value': 'discontinued', 'label': 'Discontinued'},
-    {'value': 'pending', 'label': 'Pending'},
-]
 ITEM_KIND_OPTIONS = [
     {'value': 'product', 'label': 'Product'},
     {'value': 'service', 'label': 'Service'},
@@ -181,14 +156,6 @@ ITEM_KIND_OPTIONS = [
     {'value': 'shipping', 'label': 'Shipping'},
     {'value': 'discount', 'label': 'Discount'},
     {'value': 'tax', 'label': 'Tax'},
-]
-SERIAL_STATUS_OPTIONS = [
-    {'value': 'available', 'label': 'Available'},
-    {'value': 'sold', 'label': 'Sold'},
-    {'value': 'reserved', 'label': 'Reserved'},
-    {'value': 'in_repair', 'label': 'In Repair'},
-    {'value': 'returned', 'label': 'Returned'},
-    {'value': 'scrapped', 'label': 'Scrapped'},
 ]
 CONTACT_ROLE_OPTIONS = [
     {'value': 'user', 'label': 'User'},
@@ -476,12 +443,10 @@ def get_field_behaviors(model_key, field_map=None, overrides=None):
             behaviors[name] = {'type': 'lookup', 'model': lookup_model, 'display': display}
             continue
 
-        # Select lists by name convention
-        if name == 'status' and model_key in ('customer', 'vendor', 'manufacturer', 'employee', 'rep'):
-            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': STATUS_OPTIONS}
-            continue
-        if name == 'status' and model_key in ('invoice', 'order', 'quote', 'purchase', 'workorder', 'requisition'):
-            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': TX_STATUS_OPTIONS}
+        # Select lists by name convention. A status list is the model's own
+        # (definition config.selectlists, services/select_lists.py), never code's (readme 105).
+        if name == 'status':
+            behaviors[name] = {'type': 'select'}
             continue
         if name == 'price_level':
             behaviors[name] = {'type': 'select', 'source': 'inline', 'options': PRICE_LEVEL_OPTIONS}
@@ -580,12 +545,6 @@ def get_field_behaviors(model_key, field_map=None, overrides=None):
         if name == 'kind' and model_key == 'item':
             behaviors[name] = {'type': 'select', 'source': 'inline', 'options': ITEM_KIND_OPTIONS}
             continue
-        if name == 'status' and model_key == 'item':
-            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': ITEM_STATUS_OPTIONS}
-            continue
-        if name == 'status' and model_key == 'serial':
-            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': SERIAL_STATUS_OPTIONS}
-            continue
         if name == 'type' and model_key == 'gl_journal':
             behaviors[name] = {'type': 'select', 'source': 'inline', 'options': GL_JOURNAL_TYPE_OPTIONS}
             continue
@@ -601,13 +560,6 @@ def get_field_behaviors(model_key, field_map=None, overrides=None):
             continue
         if name == 'movement_type':
             behaviors[name] = {'type': 'select', 'source': 'inline', 'options': INVENTORY_MOVEMENT_OPTIONS}
-            continue
-        if name == 'status' and model_key not in (
-            'customer', 'vendor', 'manufacturer', 'employee', 'rep',
-            'invoice', 'order', 'quote', 'purchase', 'workorder', 'requisition',
-            'item', 'serial',
-        ):
-            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': SUPPORT_STATUS_OPTIONS}
             continue
         if ftype == 'TextField':
             behaviors[name] = {'type': 'textarea'}
