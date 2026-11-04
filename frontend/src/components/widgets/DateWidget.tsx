@@ -13,10 +13,11 @@ function toDateInputValue(val: unknown): string {
     const d = new Date(n > 1e12 ? n : n * 1000);
     if (!isNaN(d.getTime())) return formatDtInput(n);
   }
-  // ISO string
+  // ISO string — the LOCAL day (stored UTC, shown local; Bill 2026-11-03). toISOString gave
+  // the UTC day: 1041-cash, 2026-10-24 19:00 -05, showed 10/25 in the form and 10/24 in the list.
   if (typeof val === 'string') {
     const d = new Date(val);
-    if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+    if (!isNaN(d.getTime())) return formatDtInput(d.getTime());
   }
   return '';
 }
