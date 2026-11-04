@@ -19,3 +19,12 @@ export function fieldBehaviorsOf(config: any): Record<string, any> {
   }
   return behaviors;
 }
+
+/** The values a select field offers, from its behavior (the model's list folded in above);
+ *  undefined when the field is not a select. A layout field names no options of its own
+ *  for status (readme 105: the list is the model's, not the layout's). */
+export function selectOptionsOf(behavior: any): string[] | undefined {
+  return behavior?.type === 'select' && Array.isArray(behavior.options)
+    ? behavior.options.map((o: any) => (typeof o === 'string' ? o : o.value))
+    : undefined;
+}

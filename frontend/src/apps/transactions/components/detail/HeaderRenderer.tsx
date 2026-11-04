@@ -1,6 +1,7 @@
 /* LastChecked: 2026-08-16 | WhereUsed: UiDetail | WhoCreated: Claude */
 import React from 'react';
 import { communicationField } from '@/utils/communicationFields';
+import { selectOptionsOf } from '@/utils/fieldBehaviorsOf';
 import FieldRow, { lockedFieldsForRecord } from './FieldRow';
 import { getNestedValue } from './FieldRow';
 import CardRenderer from '@/components/cards/CardRenderer';
@@ -176,9 +177,7 @@ const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditin
               // Merge behavior into field def — behavior provides type/options when field def doesn't
               const beh = behaviors[f.field] || {};
               const fieldType = f.type || beh.type;
-              const options = f.options || (beh.type === 'select' && beh.options
-                ? beh.options.map((o: any) => typeof o === 'string' ? o : o.value)
-                : undefined);
+              const options = f.options || selectOptionsOf(beh);
               return (
                 <FieldRow
                   key={f.field}

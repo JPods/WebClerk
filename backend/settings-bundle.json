@@ -4380,12 +4380,12 @@
               "value": "staged"
             },
             {
-              "label": "Completed",
-              "value": "completed"
+              "label": "Complete",
+              "value": "complete"
             },
             {
-              "label": "Cancelled",
-              "value": "cancelled"
+              "label": "Canceled",
+              "value": "canceled"
             },
             {
               "label": "On Hold",
@@ -5523,12 +5523,12 @@
                 "value": "staged"
               },
               {
-                "label": "Completed",
-                "value": "completed"
+                "label": "Complete",
+                "value": "complete"
               },
               {
-                "label": "Cancelled",
-                "value": "cancelled"
+                "label": "Canceled",
+                "value": "canceled"
               },
               {
                 "label": "On Hold",
@@ -7345,7 +7345,7 @@
             "ida": "Action identifier — unique across all actions.",
             "action": "What needs to be done. The task description.",
             "impact": "Business impact assessment — Alice auto-fills, users correct.",
-            "status": "open = active. complete = done. cancelled = abandoned.",
+            "status": "open = active. complete = done. canceled = abandoned.",
             "linkage": "Related URL or record reference.",
             "burndown": "Remaining effort estimate. Decreases toward zero.",
             "dt_start": "When work began or should begin.",
@@ -8332,8 +8332,8 @@
                     "active",
                     "on_hold",
                     "review",
-                    "completed",
-                    "cancelled"
+                    "complete",
+                    "canceled"
                   ]
                 },
                 {
@@ -8378,15 +8378,7 @@
                         {
                           "type": "select",
                           "field": "status",
-                          "label": "status",
-                          "options": [
-                            "open",
-                            "active",
-                            "on_hold",
-                            "review",
-                            "completed",
-                            "cancelled"
-                          ]
+                          "label": "status"
                         },
                         {
                           "field": "kanban_column",
@@ -9042,12 +9034,12 @@
               "value": "review"
             },
             {
-              "label": "completed",
-              "value": "completed"
+              "label": "Complete",
+              "value": "complete"
             },
             {
-              "label": "cancelled",
-              "value": "cancelled"
+              "label": "Canceled",
+              "value": "canceled"
             }
           ],
           "purpose": [
@@ -10938,16 +10930,7 @@
                         {
                           "type": "select",
                           "field": "status",
-                          "label": "status",
-                          "options": [
-                            "pending",
-                            "read",
-                            "reviewed",
-                            "actioned",
-                            "forwarded",
-                            "resolved",
-                            "rejected"
-                          ]
+                          "label": "status"
                         },
                         {
                           "field": "purpose",
@@ -10956,17 +10939,7 @@
                         {
                           "type": "select",
                           "field": "kind",
-                          "label": "kind",
-                          "options": [
-                            "feedback",
-                            "help_lookup",
-                            "chat",
-                            "question",
-                            "answer",
-                            "observation",
-                            "directive",
-                            "forward"
-                          ]
+                          "label": "kind"
                         }
                       ]
                     },
@@ -10984,24 +10957,12 @@
                         {
                           "type": "select",
                           "field": "classification",
-                          "label": "classification",
-                          "options": [
-                            "technical",
-                            "operational",
-                            "commercial",
-                            "personal"
-                          ]
+                          "label": "classification"
                         },
                         {
                           "type": "select",
                           "field": "clearance",
-                          "label": "clearance",
-                          "options": [
-                            "local",
-                            "pending",
-                            "cleared",
-                            "blocked"
-                          ]
+                          "label": "clearance"
                         },
                         {
                           "field": "forward_of",
@@ -12107,21 +12068,7 @@
                         {
                           "type": "select",
                           "field": "category",
-                          "label": "category",
-                          "options": [
-                            "pattern",
-                            "anomaly",
-                            "coaching",
-                            "alert",
-                            "search",
-                            "layout",
-                            "performance",
-                            "schema",
-                            "console",
-                            "escalation",
-                            "pii_correction",
-                            "bill_question"
-                          ]
+                          "label": "category"
                         },
                         {
                           "field": "contact",
@@ -12146,12 +12093,7 @@
                         {
                           "type": "select",
                           "field": "priority",
-                          "label": "priority",
-                          "options": [
-                            0,
-                            1,
-                            2
-                          ]
+                          "label": "priority"
                         },
                         {
                           "field": "record_id",
@@ -12164,12 +12106,7 @@
                         {
                           "type": "select",
                           "field": "source",
-                          "label": "source",
-                          "options": [
-                            "alice",
-                            "wchq",
-                            "power_user"
-                          ]
+                          "label": "source"
                         },
                         {
                           "field": "target_model",
@@ -13255,24 +13192,12 @@
                         {
                           "type": "select",
                           "field": "preset_type",
-                          "label": "preset_type",
-                          "options": [
-                            "search",
-                            "layout",
-                            "dashboard",
-                            "workflow",
-                            "report"
-                          ]
+                          "label": "preset_type"
                         },
                         {
                           "type": "select",
                           "field": "source",
-                          "label": "source",
-                          "options": [
-                            "alice",
-                            "wchq",
-                            "power_user"
-                          ]
+                          "label": "source"
                         },
                         {
                           "field": "target_model",
@@ -17170,8 +17095,8 @@
               "value": "applied"
             },
             {
-              "label": "completed",
-              "value": "completed"
+              "label": "Complete",
+              "value": "complete"
             },
             {
               "label": "pending",
@@ -18864,13 +18789,7 @@
                         {
                           "type": "select",
                           "field": "adjustment_type",
-                          "label": "adjustment_type",
-                          "options": [
-                            "percent_off",
-                            "fixed_price",
-                            "amount_off",
-                            "price_level"
-                          ]
+                          "label": "adjustment_type"
                         },
                         {
                           "field": "adjustment_value",
@@ -22151,12 +22070,12 @@
               "value": "review"
             },
             {
-              "label": "completed",
-              "value": "completed"
+              "label": "Complete",
+              "value": "complete"
             },
             {
-              "label": "cancelled",
-              "value": "cancelled"
+              "label": "Canceled",
+              "value": "canceled"
             },
             {
               "label": "inactive",
@@ -24896,12 +24815,12 @@
               "value": "review"
             },
             {
-              "label": "completed",
-              "value": "completed"
+              "label": "Complete",
+              "value": "complete"
             },
             {
-              "label": "cancelled",
-              "value": "cancelled"
+              "label": "Canceled",
+              "value": "canceled"
             }
           ],
           "purpose": [
@@ -25513,13 +25432,7 @@
                         {
                           "type": "select",
                           "field": "scope",
-                          "label": "scope",
-                          "options": [
-                            "system",
-                            "org",
-                            "role",
-                            "user"
-                          ]
+                          "label": "scope"
                         }
                       ]
                     },
@@ -27661,15 +27574,7 @@
                         {
                           "type": "select",
                           "field": "type",
-                          "label": "type",
-                          "options": [
-                            "website",
-                            "linkedin",
-                            "facebook",
-                            "twitter",
-                            "github",
-                            "other"
-                          ]
+                          "label": "type"
                         }
                       ]
                     },
@@ -28616,25 +28521,12 @@
                         {
                           "type": "select",
                           "field": "opt_out",
-                          "label": "opt_out",
-                          "options": [
-                            "opted_out",
-                            "bounced",
-                            "invalid",
-                            "spam_complaint"
-                          ]
+                          "label": "opt_out"
                         },
                         {
                           "type": "select",
                           "field": "type",
-                          "label": "type",
-                          "options": [
-                            "work",
-                            "personal",
-                            "support",
-                            "billing",
-                            "other"
-                          ]
+                          "label": "type"
                         }
                       ]
                     },
@@ -31194,13 +31086,7 @@
                         {
                           "type": "select",
                           "field": "scope",
-                          "label": "scope",
-                          "options": [
-                            "system",
-                            "org",
-                            "role",
-                            "user"
-                          ]
+                          "label": "scope"
                         }
                       ]
                     },
@@ -32148,21 +32034,7 @@
                         {
                           "type": "select",
                           "field": "category",
-                          "label": "category",
-                          "options": [
-                            "cash",
-                            "receivables",
-                            "inventory",
-                            "other_current_assets",
-                            "fixed_assets",
-                            "current_liabilities",
-                            "long_term_liabilities",
-                            "equity",
-                            "revenue",
-                            "cost_of_sales",
-                            "operating_expenses",
-                            "other"
-                          ]
+                          "label": "category"
                         },
                         {
                           "field": "division",
@@ -32175,40 +32047,12 @@
                         {
                           "type": "select",
                           "field": "type",
-                          "label": "type",
-                          "options": [
-                            "asset",
-                            "contra_asset",
-                            "liability",
-                            "equity",
-                            "contra_equity",
-                            "revenue",
-                            "contra_revenue",
-                            "cost_of_sales",
-                            "expense",
-                            "other_income",
-                            "other_expense"
-                          ]
+                          "label": "type"
                         },
                         {
                           "type": "select",
                           "field": "used_for",
-                          "label": "used_for",
-                          "options": [
-                            "posting",
-                            "reporting",
-                            "cash",
-                            "receivables",
-                            "payables",
-                            "inventory",
-                            "sales",
-                            "discounts",
-                            "cogs",
-                            "expense",
-                            "tax",
-                            "consolidation",
-                            "other"
-                          ]
+                          "label": "used_for"
                         }
                       ]
                     },
@@ -33454,14 +33298,7 @@
                         {
                           "type": "select",
                           "field": "source",
-                          "label": "source",
-                          "options": [
-                            "manual",
-                            "import",
-                            "automation",
-                            "adjustment",
-                            "integration"
-                          ]
+                          "label": "source"
                         },
                         {
                           "field": "source_model",
@@ -33470,15 +33307,7 @@
                         {
                           "type": "select",
                           "field": "type",
-                          "label": "type",
-                          "options": [
-                            "general",
-                            "sales",
-                            "purchase",
-                            "payroll",
-                            "inventory",
-                            "other"
-                          ]
+                          "label": "type"
                         }
                       ]
                     },
@@ -34553,11 +34382,7 @@
                         {
                           "type": "select",
                           "field": "run_type",
-                          "label": "run_type",
-                          "options": [
-                            "global",
-                            "stack"
-                          ]
+                          "label": "run_type"
                         },
                         {
                           "field": "skipped_locked",
@@ -38544,43 +38369,17 @@
                         {
                           "type": "select",
                           "field": "price_level",
-                          "label": "price_level",
-                          "options": [
-                            "retail",
-                            "wholesale",
-                            "distributor",
-                            "contractor"
-                          ]
+                          "label": "price_level"
                         },
                         {
                           "type": "select",
                           "field": "terms",
-                          "label": "terms",
-                          "options": [
-                            "cod",
-                            "net10",
-                            "net15",
-                            "net30",
-                            "net45",
-                            "net60",
-                            "net90",
-                            "2/10net30"
-                          ]
+                          "label": "terms"
                         },
                         {
                           "type": "select",
                           "field": "status",
-                          "label": "status",
-                          "options": [
-                            "draft",
-                            "open",
-                            "sent",
-                            "partial",
-                            "paid",
-                            "overdue",
-                            "void",
-                            "cancelled"
-                          ]
+                          "label": "status"
                         },
                         {
                           "field": "dt_created",
@@ -38593,26 +38392,12 @@
                         {
                           "type": "select",
                           "field": "source_name",
-                          "label": "source_name",
-                          "options": [
-                            "web",
-                            "phone",
-                            "email",
-                            "direct",
-                            "referral",
-                            "repeat"
-                          ]
+                          "label": "source_name"
                         },
                         {
                           "type": "select",
                           "field": "priority",
-                          "label": "priority",
-                          "options": [
-                            "low",
-                            "medium",
-                            "high",
-                            "urgent"
-                          ]
+                          "label": "priority"
                         }
                       ],
                       "action_summary": true
@@ -38728,8 +38513,8 @@
                   "invoiced"
                 ],
                 "closed_statuses": [
-                  "completed",
-                  "cancelled",
+                  "complete",
+                  "canceled",
                   "void"
                 ]
               }
@@ -39024,8 +38809,8 @@
                 "value": "in_progress"
               },
               {
-                "label": "Hold",
-                "value": "hold"
+                "label": "On Hold",
+                "value": "on_hold"
               },
               {
                 "label": "Complete",
@@ -40528,20 +40313,7 @@
                         {
                           "type": "select",
                           "field": "line_type",
-                          "label": "line_type",
-                          "options": [
-                            "product",
-                            "commission",
-                            "tax",
-                            "shipping",
-                            "discount",
-                            "finance_charge",
-                            "count",
-                            "adjust",
-                            "build",
-                            "consume",
-                            "scrap"
-                          ]
+                          "label": "line_type"
                         },
                         {
                           "field": "parent_line_id",
@@ -41219,7 +40991,7 @@
           "quantity.is_complete": {
             "type": "boolean",
             "label": "Qty Complete",
-            "description": "When true, remaining is forced to 0 (backlog cancelled)"
+            "description": "When true, remaining is forced to 0 (backlog canceled)"
           },
           "cost.discount_percent": {
             "type": "number",
@@ -43142,7 +42914,7 @@
           "quantity.is_complete": {
             "type": "boolean",
             "label": "Qty Complete",
-            "description": "When true, remaining is forced to 0 (backlog cancelled)"
+            "description": "When true, remaining is forced to 0 (backlog canceled)"
           },
           "price.discount_amount": {
             "type": "currency",
@@ -43221,12 +42993,12 @@
               "value": "review"
             },
             {
-              "label": "completed",
-              "value": "completed"
+              "label": "Complete",
+              "value": "complete"
             },
             {
-              "label": "cancelled",
-              "value": "cancelled"
+              "label": "Canceled",
+              "value": "canceled"
             }
           ],
           "purpose": [
@@ -44637,12 +44409,7 @@
                         {
                           "type": "select",
                           "field": "source",
-                          "label": "source",
-                          "options": [
-                            "manufacturer",
-                            "wholesaler",
-                            "other"
-                          ]
+                          "label": "source"
                         },
                         {
                           "field": "source_model_name",
@@ -45580,13 +45347,7 @@
                         {
                           "type": "select",
                           "field": "batch_type",
-                          "label": "batch_type",
-                          "options": [
-                            "full",
-                            "invoice",
-                            "cash",
-                            "purchase"
-                          ]
+                          "label": "batch_type"
                         },
                         {
                           "field": "count_absorbed",
@@ -46301,7 +46062,7 @@
           "fields": {
             "type": "received = AR (customer pays us). disbursed = AP (we pay vendor/employee).",
             "amount": "Cash amount. Must be positive.",
-            "status": "pending = entered. completed = processed. failed = rejected.",
+            "status": "pending = entered. complete = processed. failed = rejected.",
             "gateway": "manual = entered by hand. stripe/paypal = processed by gateway.",
             "reference_number": "Check number, transaction ID, or other external reference."
           },
@@ -46690,15 +46451,7 @@
                         {
                           "type": "select",
                           "field": "model_name",
-                          "label": "model_name",
-                          "options": [
-                            "invoice",
-                            "credit_memo",
-                            "debit_memo",
-                            "purchase",
-                            "cash",
-                            "other"
-                          ]
+                          "label": "model_name"
                         },
                         {
                           "field": "org",
@@ -46711,15 +46464,7 @@
                         {
                           "type": "select",
                           "field": "source",
-                          "label": "source",
-                          "options": [
-                            "invoice",
-                            "cash",
-                            "journal",
-                            "adjustment",
-                            "import",
-                            "other"
-                          ]
+                          "label": "source"
                         },
                         {
                           "field": "terms",
@@ -49640,12 +49385,12 @@
               "value": "review"
             },
             {
-              "label": "completed",
-              "value": "completed"
+              "label": "Complete",
+              "value": "complete"
             },
             {
-              "label": "cancelled",
-              "value": "cancelled"
+              "label": "Canceled",
+              "value": "canceled"
             }
           ],
           "purpose": [
@@ -51880,42 +51625,17 @@
                         {
                           "type": "select",
                           "field": "price_level",
-                          "label": "price_level",
-                          "options": [
-                            "retail",
-                            "wholesale",
-                            "distributor",
-                            "contractor"
-                          ]
+                          "label": "price_level"
                         },
                         {
                           "type": "select",
                           "field": "terms",
-                          "label": "terms",
-                          "options": [
-                            "cod",
-                            "net10",
-                            "net15",
-                            "net30",
-                            "net45",
-                            "net60",
-                            "net90",
-                            "2/10net30"
-                          ]
+                          "label": "terms"
                         },
                         {
                           "type": "select",
                           "field": "status",
-                          "label": "status",
-                          "options": [
-                            "planned",
-                            "open",
-                            "active",
-                            "hold",
-                            "complete",
-                            "converted",
-                            "cancelled"
-                          ]
+                          "label": "status"
                         },
                         {
                           "field": "dt_created",
@@ -51928,26 +51648,12 @@
                         {
                           "type": "select",
                           "field": "source_name",
-                          "label": "source_name",
-                          "options": [
-                            "web",
-                            "phone",
-                            "email",
-                            "direct",
-                            "referral",
-                            "repeat"
-                          ]
+                          "label": "source_name"
                         },
                         {
                           "type": "select",
                           "field": "priority",
-                          "label": "priority",
-                          "options": [
-                            "low",
-                            "medium",
-                            "high",
-                            "urgent"
-                          ]
+                          "label": "priority"
                         }
                       ],
                       "action_summary": true
@@ -52062,8 +51768,8 @@
                   "invoiced"
                 ],
                 "closed_statuses": [
-                  "completed",
-                  "cancelled",
+                  "complete",
+                  "canceled",
                   "void"
                 ]
               }
@@ -52349,8 +52055,8 @@
                 "value": "in_progress"
               },
               {
-                "label": "Hold",
-                "value": "hold"
+                "label": "On Hold",
+                "value": "on_hold"
               },
               {
                 "label": "Complete",
@@ -53796,20 +53502,7 @@
                         {
                           "type": "select",
                           "field": "line_type",
-                          "label": "line_type",
-                          "options": [
-                            "product",
-                            "commission",
-                            "tax",
-                            "shipping",
-                            "discount",
-                            "finance_charge",
-                            "count",
-                            "adjust",
-                            "build",
-                            "consume",
-                            "scrap"
-                          ]
+                          "label": "line_type"
                         },
                         {
                           "field": "order",
@@ -54490,7 +54183,7 @@
           "quantity.is_complete": {
             "type": "boolean",
             "label": "Qty Complete",
-            "description": "When true, remaining is forced to 0 (backlog cancelled)"
+            "description": "When true, remaining is forced to 0 (backlog canceled)"
           },
           "cost.discount_percent": {
             "type": "number",
@@ -55496,15 +55189,7 @@
                         {
                           "type": "select",
                           "field": "org_type",
-                          "label": "org_type",
-                          "options": [
-                            "customer",
-                            "vendor",
-                            "rep",
-                            "employee",
-                            "manufacturer",
-                            "other"
-                          ]
+                          "label": "org_type"
                         }
                       ]
                     },
@@ -59193,12 +58878,12 @@
               "value": "review"
             },
             {
-              "label": "completed",
-              "value": "completed"
+              "label": "Complete",
+              "value": "complete"
             },
             {
-              "label": "cancelled",
-              "value": "cancelled"
+              "label": "Canceled",
+              "value": "canceled"
             },
             {
               "label": "blocked",
@@ -59221,8 +58906,8 @@
               "value": "draft"
             },
             {
-              "label": "onhold",
-              "value": "onhold"
+              "label": "On Hold",
+              "value": "on_hold"
             }
           ],
           "purpose": [
@@ -61239,42 +60924,17 @@
                         {
                           "type": "select",
                           "field": "price_level",
-                          "label": "price_level",
-                          "options": [
-                            "retail",
-                            "wholesale",
-                            "distributor",
-                            "contractor"
-                          ]
+                          "label": "price_level"
                         },
                         {
                           "type": "select",
                           "field": "terms",
-                          "label": "terms",
-                          "options": [
-                            "cod",
-                            "net10",
-                            "net15",
-                            "net30",
-                            "net45",
-                            "net60",
-                            "net90",
-                            "2/10net30"
-                          ]
+                          "label": "terms"
                         },
                         {
                           "type": "select",
                           "field": "status",
-                          "label": "status",
-                          "options": [
-                            "draft",
-                            "open",
-                            "sent",
-                            "accepted",
-                            "declined",
-                            "expired",
-                            "converted"
-                          ]
+                          "label": "status"
                         },
                         {
                           "field": "dt_created",
@@ -61287,26 +60947,12 @@
                         {
                           "type": "select",
                           "field": "source_name",
-                          "label": "source_name",
-                          "options": [
-                            "web",
-                            "phone",
-                            "email",
-                            "direct",
-                            "referral",
-                            "repeat"
-                          ]
+                          "label": "source_name"
                         },
                         {
                           "type": "select",
                           "field": "priority",
-                          "label": "priority",
-                          "options": [
-                            "low",
-                            "medium",
-                            "high",
-                            "urgent"
-                          ]
+                          "label": "priority"
                         }
                       ],
                       "action_summary": true
@@ -61421,8 +61067,8 @@
                   "invoiced"
                 ],
                 "closed_statuses": [
-                  "completed",
-                  "cancelled",
+                  "complete",
+                  "canceled",
                   "void",
                   "expired"
                 ]
@@ -61716,8 +61362,8 @@
                 "value": "in_progress"
               },
               {
-                "label": "Hold",
-                "value": "hold"
+                "label": "On Hold",
+                "value": "on_hold"
               },
               {
                 "label": "Complete",
@@ -63152,20 +62798,7 @@
                         {
                           "type": "select",
                           "field": "line_type",
-                          "label": "line_type",
-                          "options": [
-                            "product",
-                            "commission",
-                            "tax",
-                            "shipping",
-                            "discount",
-                            "finance_charge",
-                            "count",
-                            "adjust",
-                            "build",
-                            "consume",
-                            "scrap"
-                          ]
+                          "label": "line_type"
                         },
                         {
                           "field": "parent_line_id",
@@ -63846,7 +63479,7 @@
           "quantity.is_complete": {
             "type": "boolean",
             "label": "Qty Complete",
-            "description": "When true, remaining is forced to 0 (backlog cancelled)"
+            "description": "When true, remaining is forced to 0 (backlog canceled)"
           },
           "cost.discount_percent": {
             "type": "number",
@@ -65409,31 +65042,12 @@
                         {
                           "type": "select",
                           "field": "terms",
-                          "label": "terms",
-                          "options": [
-                            "cod",
-                            "net10",
-                            "net15",
-                            "net30",
-                            "net45",
-                            "net60",
-                            "net90",
-                            "2/10net30"
-                          ]
+                          "label": "terms"
                         },
                         {
                           "type": "select",
                           "field": "status",
-                          "label": "status",
-                          "options": [
-                            "draft",
-                            "open",
-                            "sent",
-                            "partial",
-                            "received",
-                            "complete",
-                            "cancelled"
-                          ]
+                          "label": "status"
                         },
                         {
                           "field": "dt_created",
@@ -65446,26 +65060,12 @@
                         {
                           "type": "select",
                           "field": "source_name",
-                          "label": "source_name",
-                          "options": [
-                            "web",
-                            "phone",
-                            "email",
-                            "direct",
-                            "referral",
-                            "repeat"
-                          ]
+                          "label": "source_name"
                         },
                         {
                           "type": "select",
                           "field": "priority",
-                          "label": "priority",
-                          "options": [
-                            "low",
-                            "medium",
-                            "high",
-                            "urgent"
-                          ]
+                          "label": "priority"
                         }
                       ],
                       "action_summary": true
@@ -65577,8 +65177,8 @@
                   "received"
                 ],
                 "closed_statuses": [
-                  "completed",
-                  "cancelled",
+                  "complete",
+                  "canceled",
                   "void"
                 ]
               }
@@ -65865,8 +65465,8 @@
                 "value": "in_progress"
               },
               {
-                "label": "Hold",
-                "value": "hold"
+                "label": "On Hold",
+                "value": "on_hold"
               },
               {
                 "label": "Complete",
@@ -67285,20 +66885,7 @@
                         {
                           "type": "select",
                           "field": "line_type",
-                          "label": "line_type",
-                          "options": [
-                            "product",
-                            "commission",
-                            "tax",
-                            "shipping",
-                            "discount",
-                            "finance_charge",
-                            "count",
-                            "adjust",
-                            "build",
-                            "consume",
-                            "scrap"
-                          ]
+                          "label": "line_type"
                         },
                         {
                           "field": "parent_line_id",
@@ -67923,7 +67510,7 @@
           "quantity.is_complete": {
             "type": "boolean",
             "label": "Qty Complete",
-            "description": "When true, remaining is forced to 0 (backlog cancelled)"
+            "description": "When true, remaining is forced to 0 (backlog canceled)"
           },
           "cost.discount_percent": {
             "type": "number",
@@ -68971,8 +68558,8 @@
               "value": "archived"
             },
             {
-              "label": "completed",
-              "value": "completed"
+              "label": "Complete",
+              "value": "complete"
             },
             {
               "label": "open",
@@ -70163,8 +69750,8 @@
                   "received"
                 ],
                 "closed_statuses": [
-                  "completed",
-                  "cancelled",
+                  "complete",
+                  "canceled",
                   "void"
                 ]
               }
@@ -71278,20 +70865,7 @@
                         {
                           "type": "select",
                           "field": "line_type",
-                          "label": "line_type",
-                          "options": [
-                            "product",
-                            "commission",
-                            "tax",
-                            "shipping",
-                            "discount",
-                            "finance_charge",
-                            "count",
-                            "adjust",
-                            "build",
-                            "consume",
-                            "scrap"
-                          ]
+                          "label": "line_type"
                         },
                         {
                           "field": "lot",
@@ -71934,7 +71508,7 @@
           "quantity.is_complete": {
             "type": "boolean",
             "label": "Qty Complete",
-            "description": "When true, remaining is forced to 0 (backlog cancelled)"
+            "description": "When true, remaining is forced to 0 (backlog canceled)"
           },
           "cost.discount_percent": {
             "type": "number",
@@ -74233,20 +73807,7 @@
                         {
                           "type": "select",
                           "field": "category",
-                          "label": "category",
-                          "options": [
-                            "form",
-                            "report",
-                            "statement",
-                            "list",
-                            "summary",
-                            "letter",
-                            "label",
-                            "export",
-                            "function",
-                            "utility",
-                            "dashboard"
-                          ]
+                          "label": "category"
                         },
                         {
                           "field": "content",
@@ -74255,12 +73816,7 @@
                         {
                           "type": "select",
                           "field": "editor_type",
-                          "label": "editor_type",
-                          "options": [
-                            "plain",
-                            "markdown",
-                            "html"
-                          ]
+                          "label": "editor_type"
                         },
                         {
                           "field": "explanation",
@@ -74273,17 +73829,7 @@
                         {
                           "type": "select",
                           "field": "output_type",
-                          "label": "output_type",
-                          "options": [
-                            "print",
-                            "screen",
-                            "email",
-                            "api",
-                            "json",
-                            "export",
-                            "label",
-                            "merge"
-                          ]
+                          "label": "output_type"
                         },
                         {
                           "field": "record_id",
@@ -75799,8 +75345,8 @@
                   "received"
                 ],
                 "closed_statuses": [
-                  "completed",
-                  "cancelled",
+                  "complete",
+                  "canceled",
                   "void"
                 ]
               }
@@ -76030,8 +75576,8 @@
                 "value": "in_progress"
               },
               {
-                "label": "Hold",
-                "value": "hold"
+                "label": "On Hold",
+                "value": "on_hold"
               },
               {
                 "label": "Complete",
@@ -76137,8 +75683,8 @@
               "value": "in_progress"
             },
             {
-              "label": "Hold",
-              "value": "hold"
+              "label": "On Hold",
+              "value": "on_hold"
             },
             {
               "label": "Complete",
@@ -76750,20 +76296,7 @@
                         {
                           "type": "select",
                           "field": "line_type",
-                          "label": "line_type",
-                          "options": [
-                            "product",
-                            "commission",
-                            "tax",
-                            "shipping",
-                            "discount",
-                            "finance_charge",
-                            "count",
-                            "adjust",
-                            "build",
-                            "consume",
-                            "scrap"
-                          ]
+                          "label": "line_type"
                         },
                         {
                           "field": "parent_line_id",
@@ -77356,7 +76889,7 @@
           "quantity.is_complete": {
             "type": "boolean",
             "label": "Qty Complete",
-            "description": "When true, remaining is forced to 0 (backlog cancelled)"
+            "description": "When true, remaining is forced to 0 (backlog canceled)"
           },
           "cost.discount_percent": {
             "type": "number",
@@ -79099,13 +78632,7 @@
                         {
                           "type": "select",
                           "field": "scope",
-                          "label": "scope",
-                          "options": [
-                            "system",
-                            "org",
-                            "role",
-                            "user"
-                          ]
+                          "label": "scope"
                         }
                       ]
                     },
@@ -80204,12 +79731,7 @@
                         {
                           "type": "select",
                           "field": "classification",
-                          "label": "classification",
-                          "options": [
-                            "unknown",
-                            "business",
-                            "personal"
-                          ]
+                          "label": "classification"
                         },
                         {
                           "field": "contact",
@@ -80222,12 +79744,7 @@
                         {
                           "type": "select",
                           "field": "ledger",
-                          "label": "ledger",
-                          "options": [
-                            "post",
-                            "skip",
-                            "review"
-                          ]
+                          "label": "ledger"
                         },
                         {
                           "field": "merchant",
@@ -81251,13 +80768,7 @@
                         {
                           "type": "select",
                           "field": "alert",
-                          "label": "alert",
-                          "options": [
-                            "none",
-                            "info",
-                            "warning",
-                            "critical"
-                          ]
+                          "label": "alert"
                         },
                         {
                           "field": "connection",
@@ -81266,12 +80777,7 @@
                         {
                           "type": "select",
                           "field": "direction",
-                          "label": "direction",
-                          "options": [
-                            "push",
-                            "pull",
-                            "sync"
-                          ]
+                          "label": "direction"
                         },
                         {
                           "field": "duration",
@@ -83129,13 +82635,7 @@
                         {
                           "type": "select",
                           "field": "service_provider",
-                          "label": "service_provider",
-                          "options": [
-                            "avalara",
-                            "taxjar",
-                            "vertex",
-                            "custom"
-                          ]
+                          "label": "service_provider"
                         },
                         {
                           "field": "tax_jurisdiction",
@@ -85093,14 +84593,7 @@
                         {
                           "type": "select",
                           "field": "channel",
-                          "label": "channel",
-                          "options": [
-                            "call",
-                            "email",
-                            "visit",
-                            "text",
-                            "meeting"
-                          ]
+                          "label": "channel"
                         },
                         {
                           "field": "contact_id",
@@ -85109,11 +84602,7 @@
                         {
                           "type": "select",
                           "field": "direction",
-                          "label": "direction",
-                          "options": [
-                            "out",
-                            "in"
-                          ]
+                          "label": "direction"
                         },
                         {
                           "field": "duration",
@@ -85150,14 +84639,7 @@
                         {
                           "type": "select",
                           "field": "outcome",
-                          "label": "outcome",
-                          "options": [
-                            "connected",
-                            "voicemail",
-                            "no_answer",
-                            "bounced",
-                            "rescheduled"
-                          ]
+                          "label": "outcome"
                         },
                         {
                           "field": "plan",
@@ -85673,8 +85155,8 @@
               "value": "complete"
             },
             {
-              "label": "completed",
-              "value": "completed"
+              "label": "Complete",
+              "value": "complete"
             },
             {
               "label": "received",
@@ -88391,12 +87873,12 @@
               "value": "review"
             },
             {
-              "label": "completed",
-              "value": "completed"
+              "label": "Complete",
+              "value": "complete"
             },
             {
-              "label": "cancelled",
-              "value": "cancelled"
+              "label": "Canceled",
+              "value": "canceled"
             }
           ],
           "purpose": [
@@ -89932,13 +89414,7 @@
                         {
                           "type": "select",
                           "field": "scope",
-                          "label": "scope",
-                          "options": [
-                            "system",
-                            "org",
-                            "role",
-                            "user"
-                          ]
+                          "label": "scope"
                         }
                       ]
                     },
@@ -91490,8 +90966,8 @@
                   "received"
                 ],
                 "closed_statuses": [
-                  "completed",
-                  "cancelled",
+                  "complete",
+                  "canceled",
                   "void"
                 ]
               }
@@ -91777,8 +91253,8 @@
                 "value": "in_progress"
               },
               {
-                "label": "Hold",
-                "value": "hold"
+                "label": "On Hold",
+                "value": "on_hold"
               },
               {
                 "label": "Complete",
@@ -92340,12 +91816,12 @@
               "value": "review"
             },
             {
-              "label": "completed",
-              "value": "completed"
+              "label": "Complete",
+              "value": "complete"
             },
             {
-              "label": "cancelled",
-              "value": "cancelled"
+              "label": "Canceled",
+              "value": "canceled"
             },
             {
               "label": "complete",
@@ -93235,20 +92711,7 @@
                         {
                           "type": "select",
                           "field": "line_type",
-                          "label": "line_type",
-                          "options": [
-                            "product",
-                            "commission",
-                            "tax",
-                            "shipping",
-                            "discount",
-                            "finance_charge",
-                            "count",
-                            "adjust",
-                            "build",
-                            "consume",
-                            "scrap"
-                          ]
+                          "label": "line_type"
                         },
                         {
                           "field": "parent_line_id",
@@ -93852,7 +93315,7 @@
           "quantity.is_complete": {
             "type": "boolean",
             "label": "Qty Complete",
-            "description": "When true, remaining is forced to 0 (backlog cancelled)"
+            "description": "When true, remaining is forced to 0 (backlog canceled)"
           },
           "cost.discount_percent": {
             "type": "number",
@@ -97853,17 +97316,7 @@
                         {
                           "type": "select",
                           "field": "subject_type",
-                          "label": "subject_type",
-                          "options": [
-                            "user",
-                            "model",
-                            "flow",
-                            "sync",
-                            "coaching",
-                            "security",
-                            "risk",
-                            "system"
-                          ]
+                          "label": "subject_type"
                         },
                         {
                           "field": "summary",

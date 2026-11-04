@@ -14,6 +14,7 @@ import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from
 import { changedFields } from '@/utils/changedFields';
 import { checkJsonLimits, describeJsonLimitProblems, jsonLimitsLoaded, loadJsonLimits } from '@/utils/jsonLimits';
 import { applyDerived } from '@/utils/derivedFields';
+import { selectOptionsOf } from '@/utils/fieldBehaviorsOf';
 import { useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState } from '@/store';
@@ -359,7 +360,7 @@ const ModelDetailPage: React.FC<ModelDetailPageProps> = ({
                     label={(f.label === f.field && communicationField(modelName, f.field)?.label) || f.label}
                     data={currentData}
                     isEditing={isEditing}
-                    options={f.options}
+                    options={f.options || selectOptionsOf((activeLayout as any)?.behaviors?.[f.field])}
                     fieldType={f.type}
                     help={f.help}
                     onChange={handleFieldChange}
