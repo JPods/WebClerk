@@ -138,8 +138,8 @@ export const DYNAMIC_LISTS: SelectListDef[] = [
     options: toOptions([
       ['active', 'Active'],
       ['staged', 'Staged'],
-      ['completed', 'Completed'],
-      ['cancelled', 'Cancelled'],
+      ['complete', 'Complete'],
+      ['canceled', 'Canceled'],
       ['on_hold', 'On Hold'],
     ]),
   },

@@ -99,7 +99,7 @@ def check_invoice_balances() -> dict:
     # Get all non-void invoices with a totals JSON envelope
     from common.json_lookups import totals_total
     invoices = Invoice.objects.exclude(
-        status__in=['void', 'cancelled', 'draft']
+        status__in=['void', 'canceled', 'draft']
     ).annotate(_total=totals_total()).filter(_total__isnull=False).only('id', 'ida', 'status', 'totals')
 
     for inv in invoices[:500]:  # batch limit
@@ -163,7 +163,7 @@ def check_unapplied_cash_entries() -> dict:
 
     # Cash with status=completed but no invoice link
     completed_cash_entries = Cash.objects.filter(
-        status='completed',
+        status='complete',
     ).only('id', 'ida', 'amount', 'status', 'invoice_id', 'refs')
 
     unapplied_count = 0

@@ -115,7 +115,7 @@ class TestPostStagedGlEntries:
         invoice = invoice_with_line(200.0)
         cash = Cash.objects.create(
             amount=200.0,
-            status='completed',
+            status='complete',
             contact_id=contact.pk,
             invoice=invoice,
             dt_cash=timezone.now(),

@@ -509,7 +509,7 @@ def track_cash_status_change(sender, instance: Cash, **kwargs):
 
 @receiver(post_save, sender=Cash)
 def send_cash_received_notification(sender, instance: Cash, created, **kwargs):
-    if not created and _moved_to(instance, kwargs, {'completed'}):
+    if not created and _moved_to(instance, kwargs, {'complete'}):
         _after_commit(lambda: TransactionEmailService.send_cash_received_notification(instance))
 
 

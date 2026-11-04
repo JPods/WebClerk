@@ -616,7 +616,7 @@ def journalize_cash(cash_id: int, ida_prefix: str = '') -> dict:
 
     # H11: Cash on Hold skip GL (WC2 GL_JrnlCash rule)
     pay_status = (getattr(cash, 'status', '') or '').lower()
-    if pay_status.startswith('hold'):
+    if pay_status == 'on_hold':
         return {'created': 0, 'status': 'skipped_hold', 'error': f'Cash on hold (status={cash.status})'}
 
     # A card payment in flight (connection-payservice) holds its amount in metadata.payservice

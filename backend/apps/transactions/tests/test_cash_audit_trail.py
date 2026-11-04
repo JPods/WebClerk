@@ -44,7 +44,7 @@ def _invoice(customer_id, total='50.00'):
 
 def _cash(amount='10.00', customer_id=None, vendor_id=None):
     return Cash.objects.create(
-        amount=Decimal(amount), available=Decimal(amount), status='completed',
+        amount=Decimal(amount), available=Decimal(amount), status='complete',
         method='check', customer_id=customer_id, vendor_id=vendor_id)
 
 

@@ -1233,7 +1233,7 @@ def get_cash_flight_scenario() -> Dict[str, Any]:
                 'available': 80.00,
                 'tendered': 100.00,
                 'change': 20.00,
-                'status': 'completed',
+                'status': 'complete',
             },
             'expected_gl': [
                 {'account': G['cash'], 'side': 'debit', 'amount': 80.00,

@@ -365,7 +365,7 @@ STAFF_LOG_ACCESS = {
 PORTAL_COMMANDS = frozenset({('cash', 'pay')})
 #: Open support actions one portal contact may hold at a time (Bill, 2026-09-28).
 PORTAL_OPEN_ACTIONS = 3
-PORTAL_CLOSED_ACTION_STATUSES = ('complete', 'completed', 'closed', 'canceled', 'cancelled', 'done')
+PORTAL_CLOSED_ACTION_STATUSES = ('complete', 'canceled')
 
 
 def portal_customer_block(key: str) -> Optional[dict]:

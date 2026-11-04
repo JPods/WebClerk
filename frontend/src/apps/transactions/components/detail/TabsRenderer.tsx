@@ -410,7 +410,7 @@ export const ActionsTabContent: React.FC<{ data: any; modelName: string }> = ({ 
             {typeof action.action === 'object' ? action.action?.en : action.action ?? action.what ?? '—'}
           </span>
           <span className={`px-2 py-0.5 db-font-xs rounded-full ${
-            action.status === 'done' || action.status === 'completed'
+            action.status === 'complete'
               ? 'bg-green-100 text-green-600'
               : 'bg-amber-100 text-amber-700 '
           }`}>

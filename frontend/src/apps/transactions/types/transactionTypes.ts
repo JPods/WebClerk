@@ -15,7 +15,7 @@ export type TransactionStatus =
   | "planned"
   | "released"
   | "in_progress"
-  | "hold"
+  | "on_hold"
   | "complete"
   | "canceled"
   | string;

@@ -331,7 +331,7 @@ def get_journal_exceptions(year: int = None, month: int = None) -> Dict[str, Any
         rec['amount'] = float(getattr(pay, 'amount', 0) or 0)
         status = (getattr(pay, 'status', '') or '').lower()
 
-        if status.startswith('hold'):
+        if status == 'on_hold':
             rec['reason'] = f'On hold (status={pay.status})'
             skipped.append(rec)
         elif rec['amount'] == 0:

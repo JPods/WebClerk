@@ -225,7 +225,7 @@ class TestLatePaymentErosion:
         cash = Cash.objects.create(
             invoice=invoice, amount=Decimal('500'),
             dt_cash=datetime.now(timezone.utc),
-            status='completed',
+            status='complete',
             contact_id=contact.id,
         )
 
@@ -255,7 +255,7 @@ class TestLatePaymentErosion:
         cash = Cash.objects.create(
             invoice=invoice, amount=Decimal('500'),
             dt_cash=datetime.now(timezone.utc),
-            status='completed',
+            status='complete',
             contact_id=contact.id,
         )
 

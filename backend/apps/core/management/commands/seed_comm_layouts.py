@@ -130,7 +130,7 @@ class Command(BaseCommand):
                     {'title': 'Action', 'fields': [
                         {'field': 'action.en', 'label': 'Action', 'type': 'search', 'help': 'Action title'},
                         {'field': 'description.en', 'label': 'Description'},
-                        {'field': 'status', 'label': 'Status', 'type': 'select', 'options': ['open', 'in_progress', 'review', 'completed', 'cancelled']},
+                        {'field': 'status', 'label': 'Status', 'type': 'select', 'options': ['open', 'in_progress', 'review', 'complete', 'canceled']},
                         {'field': 'kanban_column', 'label': 'Column', 'type': 'select', 'options': ['Backlog', 'Planning', 'InProcess', 'Review', 'Complete']},
                         {'field': 'priority', 'label': 'Priority', 'type': 'select', 'options': ['1', '2', '3', '4']},
                         {'field': 'difficulty', 'label': 'Difficulty'},
@@ -144,7 +144,7 @@ class Command(BaseCommand):
                         {'field': 'source_name', 'label': 'Source'},
                     ]},
                 ]}],
-                'edit_rules': {'locked_statuses': ['completed', 'cancelled'], 'status_field': 'status'},
+                'edit_rules': {'locked_statuses': ['complete', 'canceled'], 'status_field': 'status'},
             },
             'is_active': True,
         })

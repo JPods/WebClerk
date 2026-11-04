@@ -280,7 +280,7 @@ def _stage_cash_to_gl(start_ms, end_ms) -> Dict[str, Any]:
             count_completed += 1
         else:
             # No GL entry yet — skip holds (they are intentionally deferred)
-            if not status.startswith('hold'):
+            if status != 'on_hold':
                 stalled_ids.append(pid)
                 age_ms = now_ms - p_created
                 if age_ms > STALL_THRESHOLD_DAYS * MS_PER_DAY:

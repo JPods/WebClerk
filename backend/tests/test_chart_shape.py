@@ -53,7 +53,7 @@ def test_a_new_database_gets_the_chart_and_role_map_as_one_bundle(tmp_path, sett
 
     result = bundle_import.run('chart_standard', STANDARD, source='test', load='chart')
 
-    assert result['errors'] == [] and Bundle.objects.get(pk=result['bundle_id']).status == 'completed'
+    assert result['errors'] == [] and Bundle.objects.get(pk=result['bundle_id']).status == 'complete'
     assert GlAccount.objects.count() == len(STANDARD['accounts'])
     company.refresh_from_db()
     assert {k: v for k, v in company.config['gl_defaults'].items() if k != 'note'} == STANDARD['roles']

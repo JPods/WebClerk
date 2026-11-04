@@ -66,7 +66,7 @@ class TestGLPosting:
         contact = Contact.objects.create(email='payer@test.com', name_first='Test', name_last='Payer')
         invoice = InvoiceFactory()
         cash = Cash.objects.create(
-            amount=300.0, status='completed',
+            amount=300.0, status='complete',
             contact_id=contact.pk, invoice=invoice, dt_cash=timezone.now(),
         )
         cash.metadata = cash.metadata or {}

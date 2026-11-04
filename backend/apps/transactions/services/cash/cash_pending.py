@@ -53,7 +53,7 @@ def _create_adjustment_cash(
     adj_cash = Cash.objects.create(
         amount=amount,
         available=amount,
-        status='completed',
+        status='complete',
         method=method,
         reference_number=f'{method.upper()}-{invoice.pk}',
         customer_id=getattr(source_cash, 'customer_id', None) if source_cash else None,
@@ -664,7 +664,7 @@ def transfer_credit(credit_invoice_id: int, invoice_id: int, amount, reason: str
         raise ValueError("credit can only move between invoices of the same customer")
 
     transfer = Cash.objects.create(
-        amount=Decimal('0'), available=Decimal('0'), status='completed',
+        amount=Decimal('0'), available=Decimal('0'), status='complete',
         method='credit_transfer', customer_id=memo.customer_id,
         reference_number=f'CREDIT-{memo.pk}-{invoice.pk}',
         metadata={'type': 'credit_transfer', 'reason': reason,

@@ -1,5 +1,6 @@
 """Select lists support, they do not police (Bill, 2026-10-29): each model's lists live in its
-definition; a person is asked before a new value joins a list, code adds it, staff edit lists."""
+definition; a person is asked before a new value joins a list, staff edit lists. Code writing
+a value off the list is refused (Bill, 2026-11-04): a bug in the writer, not a new value."""
 import pytest
 from django.utils.crypto import get_random_string
 from rest_framework.test import APIClient
@@ -36,9 +37,17 @@ def _as(person, data):
     return save_record(Actor(user=person, kind='user', source='wcapi'), data, model_key='action')
 
 
-def test_code_adds_a_new_value_and_logs_it(action_lists):
-    save_record(Actor.system(), {'action': {'en': 'from code'}, 'kanban_column': 'Review'},
-                model_key='action')
+def test_code_writing_an_unlisted_value_is_refused(action_lists):
+    with pytest.raises(Refused) as refused:
+        save_record(Actor.system(), {'action': {'en': 'from code'}, 'kanban_column': 'Review'},
+                    model_key='action')
+    assert refused.value.code == 'value_not_listed' and 'fix the writer' in refused.value.message
+    assert 'Review' not in select_lists.lists('action')['kanban_column']
+    assert not Action.objects.filter(kanban_column='Review').exists()
+
+
+def test_code_adds_a_value_on_purpose_and_logs_it(action_lists):
+    select_lists.add_value('action', 'kanban_column', 'Review')
     assert 'Review' in select_lists.lists('action')['kanban_column']
     assert Log.objects.filter(purpose='audit', action='list_changed',
                               config__name='action.kanban_column').exists()

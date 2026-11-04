@@ -262,7 +262,7 @@ def approve_field_change(action_id: int, contact_id: int) -> dict:
     meta['approved_by'] = contact_id
     meta['dt_approved'] = _now_ms()
     action.metadata = meta
-    action.status = 'completed'
+    action.status = 'complete'
     action.kanban_column = 'Complete'
     action.percent_complete = 100
     action.save()

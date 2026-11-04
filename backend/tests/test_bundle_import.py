@@ -93,7 +93,7 @@ def test_a_definition_matches_on_its_model_not_its_uuid(tmp_path, settings):
     mine.refresh_from_db()
     assert mine.config == {'zz_mine': 1, 'zz_theirs': 1}          # baseline merge: the company's value stands
     record = Bundle.objects.get(pk=result['bundle_id'])
-    assert record.status == 'completed' and '/completed/' in record.config['payload_path']
+    assert record.status == 'complete' and '/complete/' in record.config['payload_path']
     assert (tmp_path / record.config['payload_path']).exists()
     assert not Action.objects.filter(purpose=bundle_import.DEFECTS_PURPOSE).exists()
 

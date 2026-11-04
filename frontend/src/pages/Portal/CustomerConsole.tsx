@@ -21,7 +21,7 @@ type Tab = 'home' | 'order' | 'invoices' | 'support' | 'account';
 
 /** Mirrors access.PORTAL_OPEN_ACTIONS; the server's 409 is the authority. */
 const OPEN_REQUEST_LIMIT = 3;
-const CLOSED = ['complete', 'completed', 'closed', 'canceled', 'cancelled', 'done'];
+const CLOSED = ['complete', 'canceled'];
 const CONTACT_FIELDS: Array<[string, string]> = [
   ['name_first', 'First name'], ['name_last', 'Last name'], ['title', 'Title'],
   ['company', 'Company'], ['department', 'Department'],

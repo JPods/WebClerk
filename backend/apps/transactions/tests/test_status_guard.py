@@ -64,8 +64,8 @@ class TestTransitionMatrix(TestCase):
         self.assertTrue(result.can_proceed)
 
     def test_hold_can_resume(self):
-        self.assertIn('released', TRANSITIONS['order']['hold'])
-        self.assertIn('in_progress', TRANSITIONS['order']['hold'])
+        self.assertIn('released', TRANSITIONS['order']['on_hold'])
+        self.assertIn('in_progress', TRANSITIONS['order']['on_hold'])
 
     def test_all_models_have_transitions(self):
         for model in ('quote', 'order', 'invoice', 'purchase',

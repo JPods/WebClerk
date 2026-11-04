@@ -2,10 +2,11 @@
 
 config.selectlists.<field> on a model's wc:model Setting lists the values that field offers:
 the dropdown, and what the door expects. They support, they do not police (Bill, 2026-10-29):
-a person who saves a value not on its list is asked first, and one click adds it (add_value);
-code that writes a new value adds it as it saves, logged, because no one is there to ask and
-operations must not stop. A login flagged is_staff may change any list (Bill, 2026-10-29). A
-field with no list, and an empty value, are never checked.
+a person who saves a value not on its list is asked first, and one click adds it (add_value).
+Code that writes a value not on the list is refused (Bill, 2026-11-04): that is a bug in the
+writer, and letting it add the value as it saved put two spellings on the lists. Code adds a
+value on purpose with add_value (a purpose it introduces), logged. A login flagged is_staff may
+change any list (Bill, 2026-10-29). A field with no list, and an empty value, are never checked.
 """
 from __future__ import annotations
 

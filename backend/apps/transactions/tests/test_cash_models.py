@@ -56,7 +56,7 @@ class CashModelTest(TestCase):
             invoice=self.invoice,
             contact_id=self.contact.pk,
             amount=75.50,
-            status="completed"
+            status="complete"
         )
 
         expected_str = f"Cash #{cash.id} - +75.50 (completed) for Invoice #{self.invoice.id}"
@@ -161,7 +161,7 @@ class CashModelTest(TestCase):
         cash.mark_as_completed()
         cash.refresh_from_db()
 
-        self.assertEqual(cash.status, "completed")
+        self.assertEqual(cash.status, "complete")
         self.assertIsNotNone(cash.dt_processed)
 
     def test_cash_mark_as_failed(self):
@@ -185,7 +185,7 @@ class CashModelTest(TestCase):
             invoice=self.invoice,
             contact_id=self.contact.pk,
             amount=25.00,
-            status="completed",
+            status="complete",
             reconciled=False
         )
 

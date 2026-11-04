@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from django.db.models.signals import pre_delete
 
-CANCELLED = ('cancelled', 'canceled')
+CANCELLED = ('canceled',)
 
 
 class OrgHasOpenBusiness(ValueError):

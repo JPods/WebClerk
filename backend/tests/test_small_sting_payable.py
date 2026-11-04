@@ -181,7 +181,7 @@ def test_a_payment_to_someone_else_does_not_pay_the_sting(filer):
     from apps.transactions.services.cash.cash_pending_receipt import apply_cash_to_receipt
     out = _file(filer)
     stranger = Contact.objects.create(email='stranger@sting.test')
-    cash = Cash.objects.create(contact_id=stranger.pk, amount=Decimal('-1.72'), status='completed')
+    cash = Cash.objects.create(contact_id=stranger.pk, amount=Decimal('-1.72'), status='complete')
     with pytest.raises(ValueError, match='owed to contact'):
         apply_cash_to_receipt(cash.pk, out['receipt_id'], Decimal('1.72'))
 
@@ -294,7 +294,7 @@ def test_paying_a_vendor_receipt_debits_accounts_payable_not_an_expense(filer_cl
 def test_a_payment_that_pays_no_payable_is_still_a_direct_expense():
     from apps.accounts.services.journalize import journalize_cash
     from apps.transactions.models import Cash
-    cash = Cash.objects.create(amount=Decimal('-12.00'), status='completed', category='')
+    cash = Cash.objects.create(amount=Decimal('-12.00'), status='complete', category='')
     journalize_cash(cash.pk)
     assert _net('cash', cash.pk, '6950-general_admin') == Decimal('12.00')
 
@@ -399,7 +399,7 @@ def test_a_sting_under_review_is_not_paid(filer, filer_client, classes):
     assert r.status_code == 409, r.content
     assert 'under review' in r.json()['message']
     assert not Cash.objects.exists(), 'refused before any cash is saved'
-    cash = Cash.objects.create(contact_id=filer.pk, amount=Decimal('-100.00'), status='completed')
+    cash = Cash.objects.create(contact_id=filer.pk, amount=Decimal('-100.00'), status='complete')
     with pytest.raises(ValueError, match='under review'):
         apply_cash_to_receipt(cash.pk, out['receipt_id'], Decimal('100.00'))
 

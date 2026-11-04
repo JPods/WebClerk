@@ -494,19 +494,22 @@ def _price_level_is_named(obj, snapshot: Dict[str, Any]) -> None:
 def _values_are_listed(actor: Actor, obj, snapshot: Dict[str, Any], model_key: str) -> None:
     """A field with a list in its model's definition holds a listed value (select_lists.py).
     Checked when a value is set or changed, after the hooks, which may set it; a stored value is
-    left alone until it is rewritten. Support, not police (Bill, 2026-10-29): a person is asked
-    first (value_not_listed carries what to add and whether they may), code adds the value."""
+    left alone until it is rewritten. A person is asked first (value_not_listed carries what to
+    add and whether they may; Bill, 2026-10-29). Code is refused (Bill, 2026-11-04): a value code
+    writes that is not on the list is a bug in the writer, not a new value; adding it as it saved
+    is how 'cancelled' and 'completed' joined lists beside 'canceled' and 'complete'."""
     from apps.core.services import definition, select_lists
     changed = {f.name: getattr(obj, f.attname, None) for f in obj._meta.concrete_fields
                if getattr(obj, f.attname, None) != snapshot.get(f.name)}
     off = select_lists.unlisted(model_key, changed)
     if not off:
         return
-    if actor.kind not in ('user', 'staff'):
-        for field, value in off.items():
-            select_lists.add_value(model_key, field, value)
-        return
     names = ', '.join(f"{field} '{value}'" for field, value in off.items())
+    if actor.kind not in ('user', 'staff'):
+        raise Refused(400, 'value_not_listed',
+                      f"Not on the {model_key} list: {names}. Code wrote it: fix the writer, or a "
+                      f"staff member adds the value to the list first.",
+                      {'model_name': model_key, 'unlisted': off, 'may_add': {}})
     may_add = {f: definition.may_change(actor) for f in off}
     ask = ('Add it to the list and save again?' if all(may_add.values())
            else 'Choose a listed value, or ask a staff member to add it.')

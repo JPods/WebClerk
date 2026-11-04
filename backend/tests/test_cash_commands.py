@@ -97,7 +97,7 @@ def test_a_completed_charge_applies_itself_to_its_invoice_once(
     _pay(cash, django_capture_on_commit_callbacks)
 
     cash.refresh_from_db()
-    assert cash.status == 'completed' and cash.purpose == cash_commands.PAYMENT
+    assert cash.status == 'complete' and cash.purpose == cash_commands.PAYMENT
     assert gateway.purchases == [('pm-1', 10000, f'wc3-{cash.pk}')]
     applied = _applications(cash).get()
     assert applied.changes['gateway_event_id'] == 'txn-1'
@@ -151,7 +151,7 @@ def test_the_payment_values_wait_in_payservice_until_the_gateway_says_yes(invoic
     cash_commands.charge_card(cash.pk, 'pm-1')
     cash.refresh_from_db()
     assert (cash.status, cash.amount, cash.available, cash.purpose) == (
-        'completed', Decimal('100.00'), Decimal('0.00'), 'payment')
+        'complete', Decimal('100.00'), Decimal('0.00'), 'payment')
     assert _balance(invoice) == Decimal('0')
 
 def test_a_refused_pay_never_reaches_the_gateway(invoice, gateway,
@@ -166,7 +166,7 @@ def test_a_payservice_cash_cannot_be_saved_as_paid(invoice):
     with pytest.raises(Refused) as refused:
         save_record(Actor.system(), {'model_name': 'cash', 'invoice_id': invoice.pk,
                                      'amount': '100.00', 'purpose': 'connection-payservice',
-                                     'status': 'completed'})
+                                     'status': 'complete'})
     assert refused.value.code == 'payservice_cash'
 
 
@@ -259,7 +259,7 @@ def test_the_routes(client, django_user_model, invoice, gateway,
     assert paid.json()['data']['result']['status'] == 'processing'
     # In a request the charge runs as the command commits, before the response; under the
     # test's outer transaction it runs as the capture closes, so the record is read here.
-    assert Cash.objects.get(pk=cash_id).status == 'completed'
+    assert Cash.objects.get(pk=cash_id).status == 'complete'
     unknown = client.post(f'/wcapi/cash/{cash_id}/frobnicate/', {},
                           content_type='application/json')
     assert unknown.status_code == 404
@@ -311,7 +311,7 @@ def test_a_webhook_before_the_charges_own_answer_settles_it_once(
     verbs.run_command(Actor.anonymous(), 'receive', 'cash', None,
                       {'_provider': 'spreedly', '_body': {'transaction': {'token': 'txn-1'}}})
     cash.refresh_from_db()
-    assert cash.status == 'completed' and cash.gateway_transaction_id == 'txn-1'
+    assert cash.status == 'complete' and cash.gateway_transaction_id == 'txn-1'
     cash_commands.record_outcome(cash.pk, state='succeeded', txn=answer)
     assert _applications(cash).count() == 1 and _balance(invoice) == Decimal('0')
 
@@ -337,7 +337,7 @@ def test_a_charge_that_fails_to_settle_is_kept_and_the_webhook_settles_it(
     verbs.run_command(Actor.anonymous(), 'receive', 'cash', None,
                       {'_provider': 'spreedly', '_body': {'transaction': {'token': 'txn-1'}}})
     cash.refresh_from_db()
-    assert cash.status == 'completed' and _applications(cash).count() == 1
+    assert cash.status == 'complete' and _applications(cash).count() == 1
 
 
 def test_a_refund_takes_unapplied_money_before_touching_a_document(
@@ -488,5 +488,5 @@ def test_a_card_claimed_before_payservice_settles_at_its_own_amount(invoice, dja
                                            metadata={}, gateway='spreedly')
     cash_commands.record_outcome(cash.pk, state='succeeded', txn={'token': 'txn-old'})
     cash.refresh_from_db()
-    assert (cash.status, cash.amount) == ('completed', Decimal('100.00'))
+    assert (cash.status, cash.amount) == ('complete', Decimal('100.00'))
     assert _balance(invoice) == Decimal('0')

@@ -54,7 +54,7 @@ CYCLES = [
         ],
         'cash_entries': [
             # (ida, fraction_of_total, method, status)
-            ('PAY-01', Decimal('1.0'), 'check-1234', 'completed'),
+            ('PAY-01', Decimal('1.0'), 'check-1234', 'complete'),
         ],
     },
     {
@@ -73,8 +73,8 @@ CYCLES = [
             ('GLOVE-02', 3, 'pair'),
         ],
         'cash_entries': [
-            ('PAY-02', Decimal('0.6'), 'visa-8821', 'completed'),
-            ('PAY-03', Decimal('0.4'), 'visa-8821', 'completed'),
+            ('PAY-02', Decimal('0.6'), 'visa-8821', 'complete'),
+            ('PAY-03', Decimal('0.4'), 'visa-8821', 'complete'),
         ],
     },
     {
@@ -92,7 +92,7 @@ CYCLES = [
             ('BALL-02', 6, 'dozen'),
         ],
         'cash_entries': [
-            ('PAY-04', Decimal('1.0'), 'check-5678', 'completed'),
+            ('PAY-04', Decimal('1.0'), 'check-5678', 'complete'),
         ],
     },
 ]

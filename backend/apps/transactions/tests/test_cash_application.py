@@ -43,7 +43,7 @@ def _cash(customer, amount, method='check'):
     from apps.transactions.models import Cash
     return Cash.objects.create(
         amount=Decimal(str(amount)), available=Decimal(str(amount)),
-        status='completed', method=method, customer_id=customer.id,
+        status='complete', method=method, customer_id=customer.id,
     )
 
 

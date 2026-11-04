@@ -50,7 +50,7 @@ interface ProjectKanbanPanelProps {
 const COLUMNS = [
   { key: 'draft', label: 'Draft', color: '#6b7280' },
   { key: 'active', label: 'Active', color: '#2563eb' },
-  { key: 'onhold', label: 'On Hold', color: '#d97706' },
+  { key: 'on_hold', label: 'On Hold', color: '#d97706' },
   { key: 'blocked', label: 'Blocked', color: '#dc2626' },
   { key: 'done', label: 'Done', color: '#16a34a' },
   { key: 'canceled', label: 'Canceled', color: '#9ca3af' },

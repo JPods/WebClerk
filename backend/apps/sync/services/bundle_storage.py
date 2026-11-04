@@ -42,8 +42,8 @@ BUNDLE_MODELS = frozenset({
 
 
 # Where a bundle file sits is its state (Bill, 2026-10-29): pending/ until it is handled, then
-# completed/, or defects/ while something in it still has to be resolved.
-STATUSES = ("pending", "defects", "completed")
+# complete/, or defects/ while something in it still has to be resolved.
+STATUSES = ("pending", "defects", "complete")
 
 
 def _bundle_dir(model_name: str, direction: str, status: str = "pending") -> Path:

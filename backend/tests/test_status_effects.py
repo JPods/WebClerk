@@ -49,7 +49,7 @@ def test_a_rolled_back_release_sends_nothing(sent, django_capture_on_commit_call
 def test_a_completed_cash_sends_one_received_email(sent, django_capture_on_commit_callbacks):
     cash = Cash.objects.create(amount=10, status='processing', method='card')
     with django_capture_on_commit_callbacks(execute=True):
-        cash.status = 'completed'
+        cash.status = 'complete'
         cash.add_audit_entry('gateway_completed', {})
         cash.save()
         cash.save(update_fields=['metadata'])

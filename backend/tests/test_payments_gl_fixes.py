@@ -388,7 +388,7 @@ def test_a_cash_application_records_itself_on_the_invoice():
                                price={'unit': 100.00, 'precision': 2})
     invoice.refresh_from_db()
     cash = Cash.objects.create(customer_id=customer.pk, amount=Decimal('40.00'),
-                               available=Decimal('40.00'), status='completed')
+                               available=Decimal('40.00'), status='complete')
 
     out = apply_cash_to_invoice(cash.pk, invoice.pk, Decimal('40.00'), reason='check 1021')
 
@@ -428,7 +428,7 @@ def test_ap_paid_is_derived_so_a_double_apply_cannot_double_count():
                                cost={'unit': 100.00, 'precision': 2})
     receipt.refresh_from_db()
     cash = Cash.objects.create(vendor_id=vendor.pk, amount=Decimal('-60.00'),
-                               available=Decimal('-60.00'), status='completed')
+                               available=Decimal('-60.00'), status='complete')
 
     out = apply_cash_to_receipt(cash.pk, receipt.pk, Decimal('60.00'))
 

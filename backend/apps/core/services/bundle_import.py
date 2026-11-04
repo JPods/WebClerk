@@ -91,7 +91,7 @@ def _load(record, bundle) -> dict[str, Any]:
 def _close(record, config, result, started, name) -> None:
     from apps.sync.services import bundle_storage
     defects = list(result.get('errors') or [])
-    record.status = 'defects' if defects else 'completed'
+    record.status = 'defects' if defects else 'complete'
     path = bundle_storage.move(record.pk, record.model_name, record.direction, record.status)
     if path:
         config['payload_path'] = path

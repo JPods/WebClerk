@@ -298,7 +298,7 @@ class SubscriptionView(View):
                         contact_id=config.get('contact_id', 0),
                         amount=donation_amount,
                         gateway='donation',
-                        status='completed',
+                        status='complete',
                         config={
                             'type': 'donation',
                             'installation_id': config.get('installation_id', ''),

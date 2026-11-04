@@ -213,7 +213,7 @@ class TransactionBaseModel(HardDeleteOnly, BaseModel):
     STATUS_SIGNOFF_REQUEST = "signoff_request"
     STATUS_RELEASED = "released"
     STATUS_IN_PROGRESS = "in_progress"
-    STATUS_HOLD = "hold"
+    STATUS_HOLD = "on_hold"
     STATUS_COMPLETE = "complete"
     STATUS_CANCELED = "canceled"
     STATUS_CHOICES = TRANSACTION_STATUS_CHOICES

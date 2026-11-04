@@ -9,9 +9,9 @@
 export type CashStatus =
   | 'pending'
   | 'processing'
-  | 'completed'
+  | 'complete'
   | 'failed'
-  | 'cancelled'
+  | 'canceled'
   | 'refunded'
   | 'partially_refunded';
 

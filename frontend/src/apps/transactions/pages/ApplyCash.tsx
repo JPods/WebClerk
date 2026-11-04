@@ -106,7 +106,7 @@ const ApplyCash: React.FC = () => {
     setLoadingCashEntries(true);
     try {
       const params: Record<string, unknown> = {
-        status: 'completed',
+        status: 'complete',
         limit: 200,
         ordering: '-dt_created',
       };

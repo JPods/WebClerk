@@ -196,7 +196,7 @@ def add_cash(ctx) -> Dict[str, Any]:
                  'amount': str(amount * side['cash_sign']),
                  'method': ctx.data.get('method') or 'manual',
                  'reference_number': ctx.data.get('reference') or '',
-                 'status': 'completed'}
+                 'status': 'complete'}
     if ctx.data.get('date'):
         cash_data['dt_cash'] = ctx.data['date']       # when the money was received (ISO)
     if getattr(doc, 'contact_id', None):

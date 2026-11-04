@@ -198,7 +198,7 @@ MODELS = {
         'header_cards': ['bill_to', 'ship_to', 'info'],
         'line_toolbar': ['L', 'S', 'XR', 'M', 'C'],
         'tabs': SELL_TABS,
-        'locked_statuses': ['completed', 'cancelled', 'void'],
+        'locked_statuses': ['complete', 'canceled', 'void'],
     },
     'invoice': {
         'family': 'sell',
@@ -222,7 +222,7 @@ MODELS = {
         'header_cards': ['bill_to', 'ship_to', 'info'],
         'line_toolbar': ['L', 'S'],
         'tabs': SELL_TABS,
-        'locked_statuses': ['accepted', 'expired', 'cancelled'],
+        'locked_statuses': ['accepted', 'expired', 'canceled'],
     },
     'purchase': {
         'family': 'exec',
@@ -234,7 +234,7 @@ MODELS = {
         'header_cards': ['vendor', 'ship_to', 'info'],
         'line_toolbar': ['L', 'S'],
         'tabs': EXEC_TABS,
-        'locked_statuses': ['completed', 'cancelled', 'void'],
+        'locked_statuses': ['complete', 'canceled', 'void'],
     },
     'workorder': {
         'family': 'exec',
@@ -245,7 +245,7 @@ MODELS = {
         'header_cards': ['bill_to', 'info'],
         'line_toolbar': ['L'],
         'tabs': EXEC_TABS,
-        'locked_statuses': ['completed', 'cancelled'],
+        'locked_statuses': ['complete', 'canceled'],
     },
     'requisition': {
         'family': 'exec',
@@ -256,7 +256,7 @@ MODELS = {
         'header_cards': ['vendor', 'info'],
         'line_toolbar': ['L'],
         'tabs': EXEC_TABS,
-        'locked_statuses': ['completed', 'cancelled'],
+        'locked_statuses': ['complete', 'canceled'],
     },
     'receipt': {
         'family': 'exec',
@@ -267,7 +267,7 @@ MODELS = {
         'header_cards': ['vendor', 'info'],
         'line_toolbar': [],
         'tabs': RECEIPT_TABS,
-        'locked_statuses': ['completed'],
+        'locked_statuses': ['complete'],
     },
     'cash': {
         'family': 'sell',

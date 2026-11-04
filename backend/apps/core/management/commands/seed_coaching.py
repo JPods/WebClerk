@@ -262,7 +262,7 @@ COACHING = {
         },
         'warnings': ['Cash-out cash should link to a receipt via the receipt field.'],
         'code_examples': [
-            {'title': 'Record cash-in cash', 'language': 'javascript', 'code': "await saveRecord('cash', {\n  type: 'cash_in', amount: 500,\n  invoice_id: X, contact_id: Y,\n  gateway: 'manual', status: 'completed'\n});"},
+            {'title': 'Record cash-in cash', 'language': 'javascript', 'code': "await saveRecord('cash', {\n  type: 'cash_in', amount: 500,\n  invoice_id: X, contact_id: Y,\n  gateway: 'manual', status: 'complete'\n});"},
         ],
         'api_reference': {
             'list': "GET /wcapi/get/?model_name=cash&type=cash_in&ordering=-dt_cash",

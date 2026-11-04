@@ -105,7 +105,7 @@ const ACTION_FIELDS: Record<string, FieldConfig> = {
       { value: "in_progress", label: "In Progress" },
       { value: "complete", label: "Complete" },
       { value: "on_hold", label: "On Hold" },
-      { value: "cancelled", label: "Cancelled" },
+      { value: "canceled", label: "Canceled" },
     ],
   },
   priority: {

@@ -104,7 +104,7 @@ def fulfill_backorder(action_id: int, qty_fulfilled: int) -> Dict:
     action.dt_modified = _now_ms()
 
     if qty_remaining <= 0:
-        action.status = 'completed'
+        action.status = 'complete'
         action.kanban_column = 'Complete'
 
     action.save(update_fields=['metadata', 'status', 'kanban_column', 'dt_modified'])

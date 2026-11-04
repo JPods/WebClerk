@@ -55,7 +55,7 @@ def test_cash_gl_accounts_are_staged_as_cash_to_ar(chart_of_accounts):
         amount=120.0,
         dt_cash=timezone.now() - timedelta(minutes=1),
         method="Cash",
-        status="completed",
+        status="complete",
         metadata={},
     )
     cash.refresh_from_db()

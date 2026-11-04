@@ -158,7 +158,7 @@ def compute_purchasing_dashboard(
                 dashboard.wo_open += c
             elif s in ('in_progress', 'active'):
                 dashboard.wo_in_progress += c
-            elif s in ('completed', 'complete', 'closed'):
+            elif s in ('complete', 'closed'):
                 dashboard.wo_completed += c
             dashboard.wo_total += c
     except Exception:

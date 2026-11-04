@@ -126,7 +126,7 @@ class WorkOrderPhase1Tests(TestCase):
     def test_status_transitions_basic(self):
         """Validate allowed transitions via status_guard.validate_transition."""
         wo = self.wo
-        for st in ['released', 'in_progress', 'hold', 'released', 'in_progress']:
+        for st in ['released', 'in_progress', 'on_hold', 'released', 'in_progress']:
             result = validate_transition(wo, 'workorder', st)
             self.assertTrue(result.can_proceed, f"Transition to {st} should be allowed: {result.errors}")
             wo.status = st

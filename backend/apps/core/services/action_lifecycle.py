@@ -106,5 +106,5 @@ def _state_to_status(state: str) -> str:
         "built": "in_progress",
         "tested": "in_progress",
         "reworked": "in_progress",
-        "approved": "completed",
+        "approved": "complete",
     }.get(state, "in_progress")

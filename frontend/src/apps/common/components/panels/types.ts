@@ -231,8 +231,8 @@ export interface RawEntityComments {
 export type ActionStatus =
   | "pending"
   | "in_progress"
-  | "completed"
-  | "cancelled"
+  | "complete"
+  | "canceled"
   | "on_hold";
 
 /** Action/task priority */

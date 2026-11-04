@@ -225,7 +225,7 @@ def record_outcome(cash_id: int, *, state: str, txn: Dict[str, Any]) -> Optional
 
     cash = Cash.objects.select_for_update().get(pk=cash_id)
     event_id = txn.get('token') or cash.gateway_transaction_id or f'cash-{cash.pk}'
-    if cash.status == 'completed':
+    if cash.status == 'complete':
         return None                                  # already settled: a retry changes nothing
     seen = Pending.objects.filter(changes__gateway_event_id=event_id).first()
     if seen is not None:
@@ -252,7 +252,7 @@ def record_outcome(cash_id: int, *, state: str, txn: Dict[str, Any]) -> Optional
     cash.amount = _d(held.get('charge'))
     cash.fee_amount = _d(held.get('fee'))
     cash.purpose = PAYMENT
-    cash.status = 'completed'
+    cash.status = 'complete'
     cash.dt_processed = timezone.now()
     # The money arrived: nothing could apply while it was processing (holds_money was
     # false), so all of it is available. Left at 0, every card payment read as drift (Fable).
@@ -268,7 +268,7 @@ def record_outcome(cash_id: int, *, state: str, txn: Dict[str, Any]) -> Optional
     if cash.invoice_id and applied > 0:
         apply_cash_to_invoice(cash.pk, cash.invoice_id, applied, reason='card payment',
                               contact_id=cash.contact_id, gateway_event_id=event_id)
-    return 'completed'
+    return 'complete'
 
 
 # ── refund ────────────────────────────────────────────────────────────
@@ -283,7 +283,7 @@ def refund(ctx) -> Dict[str, Any]:
     for owed in [r for r in _refunds(cash) if not r.get('reversed')]:
         reverse_refund(cash.pk, owed['event_id'], acted_by=ctx.user_id)   # finish what failed
     cash.refresh_from_db()
-    if cash.status not in ('completed', 'partially_refunded') or not cash.gateway_transaction_id:
+    if cash.status not in ('complete', 'partially_refunded') or not cash.gateway_transaction_id:
         raise Refused(409, 'cash_not_refundable',
                       f'Cash {cash.pk} is {cash.status or "not charged"}; only a completed card '
                       f'payment can be refunded.', {'id': cash.pk, 'status': cash.status})

@@ -95,7 +95,7 @@ export function useCashApplication() {
       // Get all cash for this org
       const result = await getRecords('cash', { 
         org_id: orgId,
-        status: 'completed',
+        status: 'complete',
         limit: 100 
       });
       

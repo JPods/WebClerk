@@ -38,7 +38,7 @@ def test_a_customer_with_an_open_order_is_refused_and_told_what_to_clean_up(acto
 @pytest.mark.django_db
 def test_a_cancelled_or_filled_order_does_not_hold_the_customer(actor):
     c = Customer.objects.create(company='Closed Co')
-    cancelled = Order.objects.create(customer=c, status='cancelled')
+    cancelled = Order.objects.create(customer=c, status='canceled')
     OrderLine.objects.create(order=cancelled, quantity={'active': 3, 'remaining': 3})
     filled = Order.objects.create(customer=c)
     OrderLine.objects.create(order=filled, quantity={'active': 3, 'remaining': 0})
