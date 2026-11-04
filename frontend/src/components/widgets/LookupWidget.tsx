@@ -13,7 +13,7 @@ export const asText = (v: any): string =>
   : v && typeof v === "object" && !Array.isArray(v) ? String(Object.values(v).find(x => typeof x === "string") ?? "")
   : v == null ? "" : String(v);
 export const nameOf = (rec: any): string =>
-  asText(rec?.display_name) || asText(rec?.name) || asText(rec?.company) || asText(rec?.ida) || (rec?.id ? `#${rec.id}` : "");
+  asText(rec?.display_name) || asText(rec?.name) || asText(rec?.ida) || asText(rec?.company) || (rec?.id ? `#${rec.id}` : "");   // a document is its ida; its company snapshot comes after
 
 export const LookupWidget: React.FC<WidgetProps> = ({ name, value: v, onChange, disabled, model = "", className, mode }) => {
   const [query, setQuery] = useState("");
