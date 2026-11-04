@@ -1,9 +1,9 @@
 /**
- * Widget type definitions — shared contract for all widgets.
+ * Widget type definitions — the one contract every field widget implements.
  *
- * Every widget receives the same props. The renderer doesn't need to
- * know which widget it's rendering. This is the contract that makes
- * DynamicDetail, DataBrowser, and print renderers interchangeable.
+ * A widget is the bare input (or its print/read text). The transaction form (FieldRow) draws
+ * its own label beside it; the DataBrowser form wraps it in BaseField (components/fields),
+ * which draws the label, help, error and admin override. One widget per type, two frames.
  */
 
 export interface WidgetOption {
@@ -24,24 +24,35 @@ export interface WidgetProps {
   placeholder?: string;
   /** Select/radio options */
   options?: WidgetOption[];
+  /** Select: a typed value beside the list */
+  allowCustom?: boolean;
   /** Min value (number/date) */
   min?: number | string;
   /** Max value (number/date) */
   max?: number | string;
   /** Step (number) */
   step?: number;
-  /** Number of rows (textarea) */
+  /** Number of rows (textarea, json) */
   rows?: number;
   /** Full record data — for widgets that need context */
   record?: Record<string, any>;
-  /** Model name — for lookup widgets */
+  /** Model name — for lookup widgets; the field's model for Shift-for-Help */
   model?: string;
   /** Display field — for lookup widgets */
   displayField?: string;
-  /** CSS class override */
+  /** Geo: the paired latitude/longitude field */
+  pair?: string;
+  /** json-tree: no editing */
+  readOnly?: boolean;
+  /** CSS class for the input (the DataBrowser form passes db-input) */
   className?: string;
   /** Render mode: screen (interactive) or print (static) */
   mode?: "screen" | "print";
+  /** Frame props read by BaseField, not the widget */
+  label?: string;
+  error?: string;
+  span2?: boolean;
+  behavior?: Record<string, unknown>;
 }
 
 /** Widget registration entry */

@@ -77,37 +77,6 @@ export function formatDate(val: unknown): string {
 /** Fields that should be formatted as dates */
 export const DATE_FIELDS = new Set(['dt_created', 'dt_modified', 'dt_needed', 'Date Ord', 'Need By']);
 
-/** Convert any date value to YYYY-MM-DD for <input type="date"> */
-function toISODate(val: unknown): string {
-  if (val == null) return '';
-  let d: Date;
-  if (typeof val === 'number') {
-    d = new Date(val > 1e12 ? val : val * 1000);
-  } else if (typeof val === 'string') {
-    if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
-    // Numeric string (epoch ms) — convert to number first
-    if (/^\d{10,}$/.test(val)) {
-      const n = parseInt(val, 10);
-      d = new Date(n > 1e12 ? n : n * 1000);
-    } else {
-      d = new Date(val);
-    }
-  } else {
-    return '';
-  }
-  if (isNaN(d.getTime())) return '';
-  // The local date (Bill: dt_ fields show the local date) — toISOString gave the UTC one.
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
-
-/** A date typed in a form is 23:59 local that day, saved UTC (Bill: date-only entry = 23:59
- *  local, save UTC). Sent as a UTC timestamp: an epoch-ms column converts it, a date-time column
- *  reads it; the server refuses a bare date, which only the browser could place in a day. */
-function fromISODate(typed: string): string | null {
-  return typed ? new Date(`${typed}T23:59:59.999`).toISOString() : null;
-}
-
 /** Fields that should be formatted as phone numbers */
 const PHONE_FIELDS = new Set(['phone', 'phone_cell', 'fax', 'number']);
 
@@ -302,6 +271,8 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
   };
   const isDate = field.startsWith('dt_') || DATE_FIELDS.has(field) || DATE_FIELDS.has(label)
     || fieldType === 'date' || fieldType === 'timestamp';
+  // A dt_ nobody typed a behavior for is a plan date; the registry draws every typed field.
+  const widgetType = fieldType || (isDate ? 'date' : undefined);
   const fmtType = detectFormatType(field, label);
   const displayVal = val == null ? '—'
     : isDate ? formatDate(val)
@@ -470,23 +441,23 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
         if (isAffiliation && !val && isEditing) return searchInput(false);
         return null;
       })() ||
-      /* Custom widget — registered in widget registry (time-clock, billable, etc.) */
-      (fieldType && WIDGETS[fieldType] ? (() => {
-        const Widget = WIDGETS[fieldType];
+      /* The registry's widget for the type; a dt_ with no declared type is a plan date (DtWidget) */
+      (widgetType && WIDGETS[widgetType] ? (() => {
+        const Widget = WIDGETS[widgetType];
         // Convert string[] options to WidgetOption[] for SelectWidget
         const widgetOptions = options?.map((o: string) => {
           const [v, lbl] = o.split('|');
           return { value: v, label: lbl || v };
         });
         // For readonly widgets, pass formatted display value (dates, phones, etc.)
-        const widgetValue = fieldType === 'readonly' ? displayVal : val;
+        const widgetValue = widgetType === 'readonly' ? displayVal : val;
         return (
           <div className="flex-1 min-w-0">
             <Widget
               name={field}
               value={widgetValue}
               onChange={(v: unknown) => onChange(field, v)}
-              disabled={!isEditing}
+              disabled={!isEditing || isLocked}
               record={data}
               options={widgetOptions}
             />
@@ -506,9 +477,9 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
         </select>
       ) : isEditing && !isLocked ? (
         <input
-          type={isDate ? 'date' : 'text'}
-          value={isDate ? toISODate(val) : (displayVal === '—' ? '' : displayVal)}
-          onChange={(e) => onChange(field, isDate && field.startsWith('dt_') ? fromISODate(e.target.value) : e.target.value)}
+          type="text"
+          value={displayVal === '—' ? '' : displayVal}
+          onChange={(e) => onChange(field, e.target.value)}
           className="flex-1 db-font-sm px-2 py-0.5 rounded min-w-0"
           style={{ border: '1px solid var(--db-border, #cbd5e1)', background: 'var(--db-surface-alt, #fff)', color: 'var(--db-text, #1e293b)', maxWidth: 240 }}
           title={pathDisplay}

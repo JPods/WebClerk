@@ -4,12 +4,12 @@
  * Shift-for-Help on all labels, Cmd+Shift+click for behavior override (admin).
  */
 import React, { useState } from 'react';
-import type { FieldWidgetProps } from './types';
+import type { WidgetProps } from '@/components/widgets/types';
 import { openFieldHelp } from '../common/HelpMenu';
 import BehaviorOverrideDialog from './BehaviorOverrideDialog';
 
 interface BaseFieldRenderProps {
-  props: FieldWidgetProps;
+  props: WidgetProps;
   labelColor?: string;      // CSS class suffix: actionable, select, lookup, readonly, default
   labelSuffix?: React.ReactNode;
   labelHref?: string;

@@ -19,17 +19,19 @@ export const CurrencyWidget: React.FC<WidgetProps> = ({
   const n = typeof value === "number" ? value : parseFloat(value);
   const shown = draft ?? (isNaN(n) ? "" : n.toFixed(2));
   return (
-    <input
-      type="number"
-      name={name}
-      value={shown}
-      onFocus={() => setDraft(value == null || value === "" ? "" : String(value))}
-      onChange={e => { setDraft(e.target.value); onChange(Number(e.target.value)); }}
-      onBlur={() => setDraft(null)}
-      disabled={disabled}
-      step={0.01}
-      min={0}
-      className={className || s}
-    />
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, width: '100%' }}>
+      <span style={{ color: 'var(--db-text-muted, #6c757d)' }}>$</span>
+      <input
+        type="number"
+        name={name}
+        value={shown}
+        onFocus={() => setDraft(value == null || value === "" ? "" : String(value))}
+        onChange={e => { setDraft(e.target.value); onChange(parseFloat(e.target.value) || 0); }}
+        onBlur={() => setDraft(null)}
+        disabled={disabled}
+        step={0.01}
+        className={className || s}
+      />
+    </span>
   );
 };

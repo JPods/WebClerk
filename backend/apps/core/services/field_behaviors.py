@@ -20,6 +20,7 @@ Usage:
     behaviors = get_field_behaviors('order', field_map, overrides=setting.config.get('behaviors'))
 """
 from apps.core.constants.model_registry import get_model_meta
+from apps.core.services.dt_fields import SYSTEM_DT_FIELDS
 
 
 # ── System constants ────────────────────────────────────────────────────
@@ -432,11 +433,11 @@ def get_field_behaviors(model_key, field_map=None, overrides=None):
         if ftype == 'BooleanField':
             behaviors[name] = {'type': 'boolean'}
             continue
-        if ftype in ('DateTimeField', 'DateField'):
-            behaviors[name] = {'type': 'date'}
-            continue
-        if name.startswith('dt_') and ftype in ('BigIntegerField', 'IntegerField'):
-            behaviors[name] = {'type': 'timestamp'}
+        # A dt_ is a system stamp (shown, never typed) or a plan date a person enters with the
+        # one date-and-time tool (Bill, 2026-11-03). dt_fields names each; the column type does
+        # not decide: 167 plan dates read 'timestamp' (view only) because they are epoch columns.
+        if name.startswith('dt_') or ftype in ('DateTimeField', 'DateField'):
+            behaviors[name] = {'type': 'timestamp' if name in SYSTEM_DT_FIELDS else 'date'}
             continue
         if ftype == 'DecimalField' and name in (
             'amount', 'total', 'balance', 'value_original', 'value_available',

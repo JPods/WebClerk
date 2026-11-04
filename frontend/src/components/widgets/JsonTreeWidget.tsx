@@ -12,6 +12,7 @@
  */
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import type { WidgetProps } from './types';
+import { JsonEditor } from './JsonEditor';
 
 // ═══════════════════════════════════════════════════════════════════════
 // Helpers
@@ -385,23 +386,31 @@ export function JsonTree({
 // ═══════════════════════════════════════════════════════════════════════
 
 export const JsonTreeWidgetAdapter: React.FC<WidgetProps> = ({
-  name, value, onChange, disabled, mode,
+  name, value, onChange, disabled, readOnly, mode,
 }) => {
+  const [editorOpen, setEditorOpen] = useState(false);
   if (mode === 'print') {
     const js = JSON.stringify(value, null, 2);
     return <pre style={{ fontSize: 9, fontFamily: 'monospace', whiteSpace: 'pre-wrap', margin: 0 }}>{js}</pre>;
   }
 
   const parsed = typeof value === 'string' ? (() => { try { return JSON.parse(value); } catch { return value; } })() : value;
+  const locked = !!disabled || !!readOnly;
 
   if (!isContainer(parsed)) {
     return <span style={{ fontSize: 11, fontFamily: 'monospace', color: '#6c757d' }}>{String(parsed ?? '—')}</span>;
   }
 
-  return <JsonTree
-    data={parsed}
-    onChange={disabled ? undefined : onChange}
-    readOnly={!!disabled}
-    label={name}
-  />;
+  return (
+    <>
+      <JsonTree
+        data={parsed}
+        onChange={locked ? undefined : onChange}
+        readOnly={locked}
+        label={name}
+        onLabelClick={locked ? undefined : () => setEditorOpen(true)}
+      />
+      {editorOpen && <JsonEditor name={name} data={parsed} onChange={onChange} onClose={() => setEditorOpen(false)} />}
+    </>
+  );
 };

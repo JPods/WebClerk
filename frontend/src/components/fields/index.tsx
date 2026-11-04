@@ -1,104 +1,86 @@
 /**
- * Field widgets — reusable, self-contained, pointable at any field or task.
+ * Fields — the DataBrowser form's labeled frame around the one widget registry.
  *
- * Usage:
- *   Direct:   <CurrencyField name="total" value={invoice.total} onChange={setTotal} />
- *   Dynamic:  const Widget = getWidget('currency'); <Widget name="total" ... />
- *
- * The Setting record for each model (field_behaviors) contains the instructions
- * for which widget to use per field. Alice links these Settings so the object
- * for each field carries its own display/widget instructions.
+ * BaseField draws the label (color by type, Shift-for-Help, Cmd+click action, Cmd+Shift+click
+ * behavior override), the error and the grid span; the widget inside comes from
+ * components/widgets — the same component the transaction form draws beside its own label.
+ * One widget per type (Bill, 2026-11-03); this file holds only the frame and the dispatch.
  */
 
 import './fields.css';
+import BaseField from './BaseField';
+import { WIDGETS, TextWidget, urlHref, addressHref, geoHref, type WidgetProps } from '@/components/widgets';
 
-// Individual widgets — import directly for custom pages
-export { default as TextField } from './TextField';
-export { default as NumberField } from './NumberField';
-export { default as CurrencyField } from './CurrencyField';
-export { default as EmailField } from './EmailField';
-export { default as PhoneField } from './PhoneField';
-export { default as UrlField } from './UrlField';
-export { default as AddressField } from './AddressField';
-export { default as ZipField } from './ZipField';
-export { default as SelectField } from './SelectField';
-export { default as LookupField } from './LookupField';
-export { default as BooleanField } from './BooleanField';
-export { default as DateField } from './DateField';
-export { default as TimestampField } from './TimestampField';
-export { default as JsonField, JsonTreeField } from './JsonField';
-export { default as TextareaField } from './TextareaField';
-export { default as ReadonlyField } from './ReadonlyField';
-export { default as GeoField } from './GeoField';
 export { default as BaseField } from './BaseField';
 
-// Types
-export type { FieldWidgetProps, SelectFieldProps, LookupFieldProps, NumberFieldProps, GeoFieldProps } from './types';
-
-// ---------------------------------------------------------------------------
-// Registry — maps type name to component for dynamic rendering
-// ---------------------------------------------------------------------------
-
-import TextField from './TextField';
-import NumberField from './NumberField';
-import CurrencyField from './CurrencyField';
-import EmailField from './EmailField';
-import PhoneField from './PhoneField';
-import UrlField from './UrlField';
-import AddressField from './AddressField';
-import SelectField from './SelectField';
-import LookupField from './LookupField';
-import BooleanField from './BooleanField';
-import DateField from './DateField';
-import TimestampField from './TimestampField';
-import JsonField, { JsonTreeField } from './JsonField';
-import TextareaField from './TextareaField';
-import ReadonlyField from './ReadonlyField';
-import GeoField from './GeoField';
-import ZipField from './ZipField';
-
-// Hidden type renders nothing
-function HiddenField() { return null; }
-
-const WIDGET_REGISTRY: Record<string, React.ComponentType<any>> = {
-  text: TextField,
-  number: NumberField,
-  currency: CurrencyField,
-  email: EmailField,
-  phone: PhoneField,
-  url: UrlField,
-  address: AddressField,
-  select: SelectField,
-  lookup: LookupField,
-  boolean: BooleanField,
-  date: DateField,
-  timestamp: TimestampField,
-  json: JsonField,
-  'json-tree': JsonTreeField,
-  textarea: TextareaField,
-  readonly: ReadonlyField,
-  geo: GeoField,
-  zip: ZipField,
-  masked: ReadonlyField,  // masked fields display as readonly
-  hidden: HiddenField,
+/** Label color by behavior type (fields.css .db-label--*). */
+const LABEL_COLOR: Record<string, string> = {
+  select: 'select', lookup: 'lookup',
+  readonly: 'readonly', timestamp: 'readonly', masked: 'readonly',
+  email: 'actionable', phone: 'actionable', url: 'actionable', address: 'actionable', geo: 'actionable',
 };
 
-/**
- * Get the widget component for a given type name.
- * Returns TextField as fallback for unknown types.
- */
-export function getWidget(typeName: string): React.ComponentType<any> {
-  return WIDGET_REGISTRY[typeName] || TextField;
+/** The input class the DataBrowser form gives each widget. */
+const INPUT_CLASS: Record<string, string> = {
+  currency: 'db-input db-input--mono db-input--right',
+  number: 'db-input db-input--mono',
+  geo: 'db-input db-input--mono',
+  select: 'db-input db-input--select',
+  textarea: 'db-input db-input--textarea',
+  json: 'db-input db-input--mono db-input--textarea',
+  readonly: 'db-input db-input--readonly',
+  masked: 'db-input db-input--readonly',
+};
+
+const SPAN2 = new Set(['textarea', 'json', 'json-tree']);
+
+/** What a click on the label opens, by type. */
+function labelHrefFor(type: string, props: WidgetProps): string | undefined {
+  const v = props.value;
+  switch (type) {
+    case 'email': return v ? `mailto:${v}` : undefined;
+    case 'phone': return v ? `tel:${v}` : undefined;
+    case 'url': return urlHref(v);
+    case 'address': return addressHref(v);
+    case 'geo': return geoHref(props.name, v, props.pair, props.record);
+    default: return undefined;
+  }
+}
+
+/** The widget component for a behavior type; text when unknown. */
+export function getWidget(typeName: string): React.ComponentType<WidgetProps> {
+  return WIDGETS[typeName] || TextWidget;
+}
+
+export interface FieldProps extends WidgetProps {
+  type: string;
+  labelHref?: string;
+}
+
+/** A labeled field: BaseField around the registry's widget. */
+export function Field({ type, labelHref, ...props }: FieldProps) {
+  if (type === 'hidden') return null;
+  const Widget = getWidget(type);
+  const href = labelHref || labelHrefFor(type, props);
+  const suffix = type === 'lookup' && props.model
+    ? <span className="db-label-hint">{`→ ${props.model}`}</span> : undefined;
+  // The lookup's model is the related model; the frame's model (Shift-for-Help) is the record's.
+  const frameProps = { ...props, span2: props.span2 ?? SPAN2.has(type) };
+  return (
+    <BaseField props={frameProps} labelColor={LABEL_COLOR[type] || 'default'} labelHref={href} labelSuffix={suffix}
+      model={type === 'lookup' ? (props.record as any)?._model : undefined}>
+      <Widget {...props} className={INPUT_CLASS[type] || 'db-input'} />
+    </BaseField>
+  );
 }
 
 /**
- * Render a field dynamically from a behavior config object.
- * This is what DataBrowser calls — the Setting record for each model
- * provides the behavior object per field, which drives widget selection.
+ * Render a field from a behavior config object. The Setting record for each model provides
+ * the behavior per field, which drives widget selection.
  *
  * @param name - field name
  * @param value - current value
- * @param behavior - from Setting.config.field_behaviors[name]
+ * @param behavior - from Setting.config.behaviors[name] (selectlists folded in)
  * @param onChange - value change handler
  * @param opts - additional props (error, disabled, record, etc.)
  */
@@ -133,7 +115,8 @@ export function renderField(
     || (typeof effectiveValue === 'boolean' ? 'boolean' : '')
     || (isJson && !isI18n ? 'json' : '')
     || (isLong ? 'textarea' : '')
-    || ((typeof effectiveValue === 'number' && !name.startsWith('dt_')) ? 'number' : '');
+    || (name.startsWith('dt_') ? 'date' : '')
+    || (typeof effectiveValue === 'number' ? 'number' : '');
   const typeName = autoType || 'text';
 
   // PJPV: log undeclared fields in development — they need schema declarations
@@ -141,15 +124,14 @@ export function renderField(
     && process.env.NODE_ENV === 'development') {
     console.warn(`[PJPV] Undeclared field behavior: ${name} — rendering as text. Add to Pydantic schema.`);
   }
-  const Widget = getWidget(typeName);
 
   // For i18n objects, wrap onChange to preserve the key
   const effectiveOnChange = isI18n && objKey
     ? (v: unknown) => onChange({ ...(value as object), [objKey]: v })
     : onChange;
 
-  // Build props from behavior config
-  const props: any = {
+  const props: FieldProps = {
+    type: typeName,
     name: isI18n && objKey ? `${name}.${objKey}` : name,
     value: effectiveValue,
     onChange: effectiveOnChange,
@@ -157,18 +139,16 @@ export function renderField(
     disabled: opts?.disabled,
     span2: opts?.span2,
     model: opts?.model,
+    record: opts?.record,
+    behavior,
   };
 
   // Type-specific props from behavior
-  if (typeName === 'select' && behavior.options) {
-    props.options = behavior.options;
-    if (behavior.allow_custom) props.allowCustom = true;
-  }
+  if (typeName === 'select') { props.options = behavior.options || []; if (behavior.allow_custom) props.allowCustom = true; }
   if (typeName === 'lookup') { props.model = behavior.model || ''; props.displayField = behavior.display; }
-  if (typeName === 'geo') { props.pair = behavior.pair; props.record = opts?.record; }
+  if (typeName === 'geo') { props.pair = behavior.pair; }
   if (typeName === 'json' || typeName === 'json-tree') { props.rows = opts?.rowSize; }
   if (typeName === 'json-tree') { props.readOnly = behavior.readOnly; }
-  if (typeName === 'date') { props.behavior = behavior; }
 
   // label_href behavior: resolve a dot-path from the record to make the label a link
   if (behavior.label_href && opts?.record) {
@@ -176,5 +156,5 @@ export function renderField(
     if (typeof href === 'string' && href) props.labelHref = href;
   }
 
-  return <Widget key={name} {...props} />;
+  return <Field key={name} {...props} />;
 }

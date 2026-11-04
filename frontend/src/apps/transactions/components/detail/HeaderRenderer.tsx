@@ -82,7 +82,6 @@ const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditin
         {section.columns.map((col: any, colIdx: number) => {
           // Detect single-widget columns — render widget directly, no FieldRow
           const isSingleWidget = col.fields?.length === 1 && col.fields[0].type && WIDGETS[col.fields[0].type];
-          if (col.fields?.length === 1) console.log('[HeaderRenderer] single-field col:', col.title, col.fields[0].type, 'inWIDGETS:', !!WIDGETS[col.fields[0].type], 'isSingleWidget:', isSingleWidget);
           const widgetField = isSingleWidget ? col.fields[0] : null;
           const widgetType = widgetField?.type;
           const Widget = widgetType ? WIDGETS[widgetType] : null;

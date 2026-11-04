@@ -1,4 +1,5 @@
 /* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
+import { DtWidget } from "@/components/widgets";
 import { ChangeEvent, FormEvent, ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import type { KanbanTask, TaskPriority } from "./type/kanban";
@@ -748,29 +749,13 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                   <label className="block db-font-sm font-medium" style={{ color: 'var(--db-text)' }}>
                     dt_start
                   </label>
-                  <input
-                    type="datetime-local"
-                    step={60}
-                    value={formState.dt_start}
-                    onChange={(e) => onFieldChange("dt_start", e.target.value)}
-                    disabled={isSaving}
-                    className={controlClass}
-                  />
+                  <DtWidget name="dt_start" value={formState.dt_start} onChange={(v) => onFieldChange("dt_start", v ?? "")} disabled={isSaving} className={controlClass} />
                 </div>
                 <div>
                   <label className="block db-font-sm font-medium" style={{ color: 'var(--db-text)' }}>
                     dt_deadline
                   </label>
-                  <input
-                    type="datetime-local"
-                    step={60}
-                    value={formState.dt_deadline}
-                    onChange={(e) =>
-                      onFieldChange("dt_deadline", e.target.value)
-                    }
-                    disabled={isSaving}
-                    className={controlClass}
-                  />
+                  <DtWidget name="dt_deadline" value={formState.dt_deadline} onChange={(v) => onFieldChange("dt_deadline", v ?? "")} disabled={isSaving} className={controlClass} />
                 </div>
               </div>
               <div className="space-y-2">
@@ -778,16 +763,7 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                   <label className="block db-font-sm font-medium" style={{ color: 'var(--db-text)' }}>
                     dt_completed
                   </label>
-                  <input
-                    type="datetime-local"
-                    step={60}
-                    value={formState.dt_completed}
-                    onChange={(e) =>
-                      onFieldChange("dt_completed", e.target.value)
-                    }
-                    disabled={isSaving}
-                    className={controlClass}
-                  />
+                  <DtWidget name="dt_completed" value={formState.dt_completed} onChange={(v) => onFieldChange("dt_completed", v ?? "")} disabled={isSaving} className={controlClass} />
                 </div>
                 <div>
                   <select
