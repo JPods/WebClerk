@@ -78,6 +78,9 @@ interface SimulationDef {
  *  longer exists, so every panel sat empty with nothing saying why. */
 /** Models whose header carries ship_via and finance (base_transaction_model). */
 const TRANSACTION_HEADER_MODELS = new Set(["quote", "order", "invoice", "purchase", "workorder", "receipt"]);
+/** Models whose status list has "planned" (select_lists). Contact, item and workorder do not;
+ *  they start "active". A status off the model's list is refused (value_not_listed). */
+const PLANNED_MODELS = new Set(["quote", "order", "invoice", "purchase", "receipt"]);
 const SIM_ITEM_KEY = "wc:flightsim:item_ida";
 const DEFAULT_SIM_ITEM_IDA = "";
 
@@ -509,7 +512,7 @@ const FlightSimConsole: React.FC = () => {
         };
       }
       const result = await createRecord(model, {
-        status: "planned",
+        status: PLANNED_MODELS.has(model) ? "planned" : "active",
         ...header,
         metadata: { training: true, flight_sim: true },
       }) as any;
@@ -519,7 +522,8 @@ const FlightSimConsole: React.FC = () => {
     } catch (e) {
       // Say so on the screen. "Ready" with nothing behind it reads as "waiting
       // for you", not "the first record was refused".
-      setSimError(`Could not create ${model}: ${(e as Error)?.message ?? String(e)}`);
+      const msg = (e as Error)?.message ?? String(e);
+      setSimError(`Could not create ${model}: ${msg.split(/[?.](?=: )/)[0]}`);
       return null;
     }
   };

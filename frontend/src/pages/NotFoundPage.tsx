@@ -11,7 +11,7 @@ export default function NotFoundPage() {
         <p className="text-xs font-semibold uppercase tracking-[0.12em] text-rose-500">404</p>
         <h1 className="mt-2 text-2xl font-semibold text-gray-900 dark:text-white">Page not found</h1>
         <p className="mt-2 max-w-xl text-sm text-gray-600 dark:text-gray-300">
-          We couldn7t find the page you7re looking for. You can go back to the previous page or head to the dashboard.
+          We couldn’t find the page you’re looking for. You can go back to the previous page or head to the dashboard.
         </p>
         <p className="mt-2 text-xs text-gray-400">Path: {location.pathname}</p>
         <div className="mt-4 flex flex-wrap justify-center gap-3">
