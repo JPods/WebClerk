@@ -1,4 +1,4 @@
-/* LastChecked: 2026-08-21 | WhereUsed: ModelDetailPage | WhoCreated: Bill+Claude */
+/* LastChecked: 2026-11-05 | WhereUsed: DbForm, PanelSectionRenderer | WhoCreated: Bill+Claude */
 /**
  * panelRegistry — Maps tab content names to panel components.
  *
@@ -20,12 +20,15 @@ export interface PanelContext {
   ensureWindow: (path: string, title: string) => void;
   /** Section config from the layout Setting JSON */
   sectionConfig?: { channels?: ChannelDef[]; [key: string]: unknown };
+  /** The form adds a tab for a model just linked ("+ link"). */
+  addTab?: (model: string) => void;
 }
 
 type PanelRenderer = (ctx: PanelContext) => ReactElement;
 
 // ── Lazy imports — panels load on first tab click ──
-import { lazy, Suspense, createElement } from 'react';
+import { lazy, Suspense, createElement, useEffect, useState } from 'react';
+import type React from 'react';
 import { getInventoryLayers } from '@/api/workorderApi';
 import { formatCurrency } from '@/utils/stringUtils';
 
@@ -299,18 +302,44 @@ const registry: Record<string, PanelRenderer> = {
     currency: ctx.data.currency,
   })),
 
-  summary: () => placeholder('Summary'),
-  history: () => placeholder('Transaction history'),
-  qa: () => placeholder('QA panel'),
-  link: () => placeholder('Link picker — select a model to link'),
+  // "+ link": every model as a button; one click lists it in refs.links and opens its tab.
+  link: (ctx) => createElement(LinkPicker, { data: ctx.data, modelName: ctx.modelName,
+    onLinked: ctx.addTab ?? (() => ctx.onRefresh()) }),
+};
+
+/** + link — shows all available models as clickable buttons (was TabsRenderer's). */
+const LinkPicker: React.FC<{ data: any; modelName: string; onLinked: (model: string) => void }> = ({ data, modelName, onLinked }) => {
+  const [models, setModels] = useState<string[]>([]);
+  useEffect(() => {
+    import('@/api/wcapi').then(({ getModelNames }) => getModelNames()).then((res: any) => {
+      setModels(Array.isArray(res?.model_names) ? res.model_names.sort() : []);
+    }).catch(() => {});
+  }, []);
+  const linked = new Set(Object.keys(data?.refs?.links || {}));
+  return createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 4 } },
+    models.filter((m) => m !== modelName && !linked.has(m)).map((m) => createElement('button', {
+      key: m,
+      className: 'px-2 py-0.5 rounded db-font-xs transition-colors',
+      style: { border: '1px solid var(--db-border)', color: 'var(--db-text-dim)', background: 'var(--db-surface-alt)' },
+      onClick: () => {
+        import('@/api/wcapi').then(({ saveRecord }) => saveRecord(modelName, { id: data.id, [`refs.links.${m}`]: [] }))
+          .then(() => onLinked(m)).catch(() => {});
+      },
+    }, m)));
 };
 
 // ── Public API ──
 
 export function renderPanel(content: string, ctx: PanelContext): ReactElement {
   const renderer = registry[content];
-  if (!renderer) return placeholder(`Unknown panel: ${content}`);
-  return renderer(ctx);
+  if (renderer) return renderer(ctx);
+  // A tab named for a model the record links (one "+ link" added) lists those records.
+  if (ctx.data?.id) {
+    return wrap(createElement(LinkedRecordsPanel, {
+      linkedModel: content, parentModel: ctx.modelName, parentId: ctx.data.id, defaultCollapsed: false,
+    }));
+  }
+  return placeholder(`Unknown panel: ${content}`);
 }
 
 /** Register a custom panel at runtime (e.g., from a plugin) */

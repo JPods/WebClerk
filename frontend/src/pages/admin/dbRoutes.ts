@@ -26,32 +26,31 @@ export const APP_DETAIL_ROUTES: Record<string, string> = {
  *  Models NOT mapped fall through to Admin mode (BehaviorField grid). */
 export const APP_DETAIL_COMPONENTS: Record<string, React.LazyExoticComponent<React.ComponentType<any>>> = {
   // Core
-  contact: React.lazy(() => import('@/components/common/ModelDetailPage')),
-  action: React.lazy(() => import('@/components/common/ModelDetailPage')),
-  touch: React.lazy(() => import('@/components/common/ModelDetailPage')),
+  contact: React.lazy(() => import('@/components/common/DbForm')),
+  action: React.lazy(() => import('@/components/common/DbForm')),
+  touch: React.lazy(() => import('@/components/common/DbForm')),
   report: React.lazy(() => import('@/apps/core/models/report/pages/ReportDisplay')),
   // Orgs
-  customer: React.lazy(() => import('@/components/common/ModelDetailPage')),
-  vendor: React.lazy(() => import('@/components/common/ModelDetailPage')),
-  manufacturer: React.lazy(() => import('@/components/common/ModelDetailPage')),
-  employee: React.lazy(() => import('@/components/common/ModelDetailPage')),
-  rep: React.lazy(() => import('@/components/common/ModelDetailPage')),
+  customer: React.lazy(() => import('@/components/common/DbForm')),
+  vendor: React.lazy(() => import('@/components/common/DbForm')),
+  manufacturer: React.lazy(() => import('@/components/common/DbForm')),
+  employee: React.lazy(() => import('@/components/common/DbForm')),
+  rep: React.lazy(() => import('@/components/common/DbForm')),
   // Products
-  item: React.lazy(() => import('@/components/common/ModelDetailPage')),
+  item: React.lazy(() => import('@/components/common/DbForm')),
   // Transactions
-  quote: React.lazy(() => import('@/apps/transactions/components/TransactionDetail')),
-  order: React.lazy(() => import('@/apps/transactions/components/TransactionDetail')),
-  invoice: React.lazy(() => import('@/apps/transactions/components/TransactionDetail')),
-  purchase: React.lazy(() => import('@/apps/transactions/components/TransactionDetail')),
+  quote: React.lazy(() => import('@/components/common/DbForm')),
+  order: React.lazy(() => import('@/components/common/DbForm')),
+  invoice: React.lazy(() => import('@/components/common/DbForm')),
+  purchase: React.lazy(() => import('@/components/common/DbForm')),
   // Hand-built, not the layout form (Bill, 2026-09-26: no JSON forms in workorder).
   workorder: React.lazy(() => import('@/apps/transactions/pages/WorkOrderWindow')),
-  receipt: React.lazy(() => import('@/apps/transactions/components/TransactionDetail')),
-  requisition: React.lazy(() => import('@/apps/transactions/components/TransactionDetail')),
-  cash: React.lazy(() => import('@/apps/transactions/components/TransactionDetail')),
+  receipt: React.lazy(() => import('@/components/common/DbForm')),
+  requisition: React.lazy(() => import('@/components/common/DbForm')),
+  cash: React.lazy(() => import('@/components/common/DbForm')),
 };
 
-/** A non-staff login's form for a model with no form component of its own: the layout form
- *  (config.layout.form) — never the field grid, which only staff see (Bill, 2026-11-01, an always
- *  rule). Until one form (readmes/101-one-form.md) gives every model the same form. */
-export const FORM_FOR_ANY_MODEL = React.lazy(() => import('@/components/common/ModelDetailPage'));
+/** A non-staff login's form for a model not listed above: db.form, the one layout form — never
+ *  the field grid, which only staff see (Bill, 2026-11-01, an always rule). */
+export const FORM_FOR_ANY_MODEL = React.lazy(() => import('@/components/common/DbForm'));
 

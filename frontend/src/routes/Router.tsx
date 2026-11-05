@@ -14,7 +14,7 @@ import DataBrowser from "../pages/admin/DataBrowser";
 import NotFoundPage from "../pages/NotFoundPage";
 import DDCardDashboard from "../pages/Dashboard/DDCardDashboard";
 
-const UiDetail = React.lazy(() => import("../apps/transactions/components/TransactionDetail"));
+const DbForm = React.lazy(() => import("../components/common/DbForm"));
 const ShoppingCart = React.lazy(() => import("../apps/transactions/components/ShoppingCart"));
 const AliceDashboard = React.lazy(() => import("../pages/admin/AliceDashboard"));
 const AdminTools = React.lazy(() => import("../pages/admin/AdminTools"));
@@ -136,7 +136,7 @@ const Router: React.FC = () => {
           {/* /:model/:id — universal flat record route (one list: recordRoutes.tsx) */}
           {recordRoutes.map(r => <Route key={r.path} path={r.path.slice(1)} element={r.element} />)}
           {/* /td/:model/:id — alternate record route */}
-          <Route path="td/:model/:id" element={<S><UiDetail /></S>} />
+          <Route path="td/:model/:id" element={<S><DbForm /></S>} />
 
           {/* Legacy nested paths → redirect to flat /{model}/{id} */}
           <Route path="transactions/:model/detail/:id" element={<AliasRedirect />} />

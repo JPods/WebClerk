@@ -1,4 +1,4 @@
-/* LastChecked: 2026-08-16 | WhereUsed: UiDetail | WhoCreated: Claude */
+/* LastChecked: 2026-11-05 | WhereUsed: DbForm | WhoCreated: Claude */
 import React from 'react';
 import { communicationField } from '@/utils/communicationFields';
 import { selectOptionsOf } from '@/utils/fieldBehaviorsOf';
@@ -36,9 +36,13 @@ export interface HeaderRendererProps {
   cardSpecs?: Record<string, CardSpec>;
   /** Field behaviors from Setting config.behaviors — drives label styles and select options */
   behaviors?: Record<string, any>;
-  /** A field kept in another record (a contact's phone, address, domain, email) opens that
-   *  record's card instead of an input (Bill, 2026-11-03). */
+  /** A field kept in another record (a contact's phone, address, domain, email; an org's from
+   *  its primary contact) opens that record's card instead of an input (Bill, 2026-11-03). */
   onOpenField?: (field: string, el: HTMLElement) => void;
+  /** Which fields open a card; the model's communication fields when not given. */
+  opensField?: (field: string) => boolean;
+  /** A contact whose org search finds nothing makes the org (Bill, 2026-10-16). */
+  onCreateOrg?: (field: string, typed: string) => void | Promise<void>;
 }
 
 // ---------------------------------------------------------------------------
@@ -46,7 +50,8 @@ export interface HeaderRendererProps {
 // ---------------------------------------------------------------------------
 
 /** Render header — supports card-based layout, three-column layout, and rows layout */
-const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditing, modelName, onChange, custSearch, cardSpecs, behaviors = {}, onOpenField }) => {
+const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditing, modelName, onChange, custSearch, cardSpecs, behaviors = {}, onOpenField, opensField, onCreateOrg }) => {
+  const opens = opensField ?? ((field: string) => !!communicationField(modelName, field));
 
   // ── Card-based layout (new: header.cards references named card specs) ──
   if (section.header?.cards && cardSpecs) {
@@ -164,8 +169,17 @@ const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditin
                 </div>
               )}
             </div>
-            {/* Single-widget column: render widget directly, no FieldRow label */}
-            {isSingleWidget && Widget ? (
+            {/* An item's picture (layout column type item_image) */}
+            {col.type === 'item_image' && data?.ida ? (
+              <div className="flex justify-center items-center h-full">
+                <img
+                  src={`/wcapi/_image/item/${encodeURIComponent(data.ida)}/md.jpg`}
+                  alt={data.ida}
+                  style={{ maxWidth: '100%', maxHeight: 240, objectFit: 'contain', borderRadius: 4 }}
+                  onError={(e: any) => { e.target.onerror = null; e.target.src = '/images/no-image.svg'; }}
+                />
+              </div>
+            ) : isSingleWidget && Widget ? (
               <Widget
                 name={widgetField!.field}
                 value={widgetVal}
@@ -182,7 +196,7 @@ const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditin
                 <FieldRow
                   key={f.field}
                   field={f.field}
-                  label={f.label || beh.label || f.field}
+                  label={(f.label === f.field && communicationField(modelName, f.field)?.label) || f.label || beh.label || f.field}
                   data={data}
                   isEditing={isEditing}
                   options={options}
@@ -190,8 +204,8 @@ const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditin
                   lockedFields={lockedFieldsForRecord(data)}
                   help={f.help}
                   onChange={onChange}
-                  onOpen={onOpenField && communicationField(modelName, f.field)
-                    ? (el: HTMLElement) => onOpenField(f.field, el) : undefined}
+                  onOpen={onOpenField && opens(f.field) ? (el: HTMLElement) => onOpenField(f.field, el) : undefined}
+                  onCreateOrg={onCreateOrg}
                 />
               );
             })}

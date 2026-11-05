@@ -15,8 +15,7 @@ import DDCardDashboard from "../pages/Dashboard/DDCardDashboard";
 import Placeholder from "../pages/Placeholder";
 
 // Lazy imports — match Router.tsx to preserve code splitting
-const UiDetail = React.lazy(() => import("../apps/transactions/components/TransactionDetail"));
-const ModelDetailPage = React.lazy(() => import("../components/common/ModelDetailPage"));
+const DbForm = React.lazy(() => import("../components/common/DbForm"));
 const AliceDashboard = React.lazy(() => import("../pages/admin/AliceDashboard"));
 const AdminTools = React.lazy(() => import("../pages/admin/AdminTools"));
 const SelectListEditor = React.lazy(() => import("../pages/admin/SelectListEditor"));
@@ -66,7 +65,7 @@ export const protectedRoutesConfig = [
 
   // User-facing: Contact
   { path: PageRoutes.coreContactList, element: <Navigate to="/contact" replace /> },
-  { path: PageRoutes.coreContactDetail, element: <S><ModelDetailPage modelName="contact" /></S> },
+  { path: PageRoutes.coreContactDetail, element: <S><DbForm modelName="contact" /></S> },
 
   // User-facing: Customer
   { path: "/org/customer", element: <Navigate to="/customer" replace /> },
@@ -75,9 +74,9 @@ export const protectedRoutesConfig = [
   { path: "/org/rep", element: <Navigate to="/rep" replace /> },
   { path: "/org/manufacturer", element: <Navigate to="/manufacturer" replace /> },
   { path: PageRoutes.customerList, element: <Navigate to="/customer" replace /> },
-  { path: `${PageRoutes.customerDetail}/:id`, element: <S><ModelDetailPage modelName="customer" /></S> },
-  { path: PageRoutes.customerAdd, element: <S><ModelDetailPage modelName="customer" /></S> },
-  { path: `${PageRoutes.customerEdit}/:id`, element: <S><ModelDetailPage modelName="customer" /></S> },
+  { path: `${PageRoutes.customerDetail}/:id`, element: <S><DbForm modelName="customer" /></S> },
+  { path: PageRoutes.customerAdd, element: <S><DbForm modelName="customer" /></S> },
+  { path: `${PageRoutes.customerEdit}/:id`, element: <S><DbForm modelName="customer" /></S> },
 
   // User-facing: Actions
   { path: PageRoutes.actionList, element: <Navigate to="/action" replace /> },
@@ -90,7 +89,7 @@ export const protectedRoutesConfig = [
   { path: "/products", element: <DDCardDashboard dashboardName="products" /> },
   { path: PageRoutes.products, element: <Navigate to="/products" replace /> },
   { path: PageRoutes.productsItemList, element: <Navigate to="/item" replace /> },
-  { path: PageRoutes.productsItemDetail, element: <S><ModelDetailPage modelName="item" /></S> },
+  { path: PageRoutes.productsItemDetail, element: <S><DbForm modelName="item" /></S> },
 
   // User-facing: Transactions — app dashboard
   { path: "/transactions", element: <DDCardDashboard dashboardName="transactions" /> },
@@ -107,20 +106,20 @@ export const protectedRoutesConfig = [
 
   // User-facing: Transactions — lists via DataBrowser, details via custom pages
   { path: PageRoutes.transactionsQuoteList, element: <Navigate to="/quote" replace /> },
-  { path: PageRoutes.transactionsQuoteDetail, element: <S><UiDetail modelName="quote" /></S> },
+  { path: PageRoutes.transactionsQuoteDetail, element: <S><DbForm modelName="quote" /></S> },
   { path: PageRoutes.transactionsOrderList, element: <Navigate to="/order" replace /> },
-  { path: PageRoutes.transactionsOrderDetail, element: <S><UiDetail modelName="order" /></S> },
+  { path: PageRoutes.transactionsOrderDetail, element: <S><DbForm modelName="order" /></S> },
   { path: PageRoutes.transactionsInvoiceList, element: <Navigate to="/invoice" replace /> },
-  { path: PageRoutes.transactionsInvoiceDetail, element: <S><UiDetail modelName="invoice" /></S> },
+  { path: PageRoutes.transactionsInvoiceDetail, element: <S><DbForm modelName="invoice" /></S> },
   { path: PageRoutes.transactionsApplyCash, element: <ApplyCash /> },
   { path: PageRoutes.transactionsCashList, element: <Navigate to="/cash" replace /> },
-  { path: PageRoutes.transactionsCashDetail, element: <S><UiDetail modelName="cash" /></S> },
+  { path: PageRoutes.transactionsCashDetail, element: <S><DbForm modelName="cash" /></S> },
   { path: PageRoutes.transactionsPurchaseList, element: <Navigate to="/purchase" replace /> },
-  { path: PageRoutes.transactionsPurchaseDetail, element: <S><UiDetail modelName="purchase" /></S> },
+  { path: PageRoutes.transactionsPurchaseDetail, element: <S><DbForm modelName="purchase" /></S> },
   { path: PageRoutes.transactionsWorkOrderList, element: <Navigate to="/workorder" replace /> },
   { path: PageRoutes.transactionsWorkOrderDetail, element: <S><WorkOrderWindowLazy /></S> },
   { path: PageRoutes.transactionsReceiptList, element: <Navigate to="/receipt" replace /> },
-  { path: PageRoutes.transactionsReceiptDetail, element: <S><UiDetail modelName="receipt" /></S> },
+  { path: PageRoutes.transactionsReceiptDetail, element: <S><DbForm modelName="receipt" /></S> },
   { path: PageRoutes.transactionsAdjustmentList, element: <Navigate to="/inventory-dashboard" replace /> },
 
   // Tools
@@ -149,7 +148,7 @@ export const protectedRoutesConfig = [
   // /:model/:id = record detail pages (one list: recordRoutes.tsx)
   ...recordRoutes,
   // /td/:model/:id — alternate record route
-  { path: "/td/:model/:id", element: <S><UiDetail /></S> },
+  { path: "/td/:model/:id", element: <S><DbForm /></S> },
 
   // Report Parade — onboarding tool, walks through reports with sample data
   { path: "/parade", element: <ParadeOfReportsPage /> },

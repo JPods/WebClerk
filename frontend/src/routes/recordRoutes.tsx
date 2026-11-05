@@ -9,20 +9,19 @@
  */
 import React from "react";
 
-const UiDetail = React.lazy(() => import("../apps/transactions/components/TransactionDetail"));
-const ModelDetailPage = React.lazy(() => import("../components/common/ModelDetailPage"));
+const DbForm = React.lazy(() => import("../components/common/DbForm"));
 
 const S: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <React.Suspense fallback={<div style={{padding:40}}>Loading...</div>}>{children}</React.Suspense>
 );
 
-// Transaction models — use UiDetail
+// Transaction models — carry lines (FlightSimConsole and the touch bar read this list too)
 export const TRANSACTION_MODELS = [
   'order', 'invoice', 'quote', 'purchase', 'workorder',
   'receipt', 'requisition', 'cash',
 ];
 
-// Every other model with a record page — use ModelDetailPage
+// Every other model with a record page
 export const DETAIL_MODELS = [
   'contact', 'item', 'customer', 'vendor', 'manufacturer', 'employee', 'rep', 'action', 'touch',
   'document', 'setting', 'report', 'serial', 'project', 'email', 'phone', 'address', 'domain',
@@ -30,7 +29,6 @@ export const DETAIL_MODELS = [
   'pending',
 ];
 
-export const recordRoutes: { path: string; element: React.ReactElement }[] = [
-  ...TRANSACTION_MODELS.map(m => ({ path: `/${m}/:id`, element: <S><UiDetail modelName={m} /></S> })),
-  ...DETAIL_MODELS.map(m => ({ path: `/${m}/:id`, element: <S><ModelDetailPage modelName={m} /></S> })),
-];
+// One form for every model with a layout: db.form (plan 101, step 2).
+export const recordRoutes: { path: string; element: React.ReactElement }[] =
+  [...TRANSACTION_MODELS, ...DETAIL_MODELS].map(m => ({ path: `/${m}/:id`, element: <S><DbForm modelName={m} /></S> }));

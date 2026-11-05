@@ -6,7 +6,7 @@
  * opens when they leave it or their hold runs out. The server refuses their save anyway (423);
  * this is the notice. Service: backend/apps/core/services/edit_hold.py.
  *
- * LastChecked: 2026-11-02 | WhereUsed: TransactionDetail, ModelDetailPage | WhoCreated: Bill+Claude
+ * LastChecked: 2026-11-02 | WhereUsed: DbForm | WhoCreated: Bill+Claude
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import apiClient from "@/api/axios";

@@ -1,4 +1,4 @@
-/* LastChecked: 2026-08-01 | WhereUsed: UiDetail | WhoCreated: Claude */
+/* LastChecked: 2026-08-01 | WhereUsed: DbForm | WhoCreated: Claude */
 /**
  * useLineCard — returns DataGrid props for rendering transaction lines.
  *

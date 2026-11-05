@@ -373,7 +373,12 @@ export function useRecordForm(opts: RecordFormOptions) {
   }, [isEditing, data, editData, preview, modelName]);
 
   // ── Host contract (DataBrowser's inline pane owns the toolbar) ───
-  useEffect(() => { onRegisterActions?.({ save, cancel, addNew }); }, [onRegisterActions, save, cancel, addNew]);
+  // Registered while mounted, forgotten on unmount: an earlier record's save must not stay in
+  // the host's ref after the pane moves on (the inventory of 2026-11-05 found it could).
+  useEffect(() => {
+    onRegisterActions?.({ save, cancel, addNew });
+    return () => { onRegisterActions?.({}); };
+  }, [onRegisterActions, save, cancel, addNew]);
   useEffect(() => { onEditStateChange?.(isEditing); }, [isEditing, onEditStateChange]);
 
   return {

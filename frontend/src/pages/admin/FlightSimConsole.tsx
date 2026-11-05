@@ -5,7 +5,7 @@
  *
  * Initial state: simulation select list — user picks which sim to run.
  * After selection: left panel shows transaction array (db.column via DbColumns),
- * right panel shows transaction form (db.form via UiDetail).
+ * right panel shows the record's form (db.form).
  *
  * Data-driven: transaction array from manage action (get_flight_transactions).
  * Form from existing TransactionDetail (form layout Settings).
@@ -19,7 +19,7 @@ import { FaSync } from "react-icons/fa";
 import "./FlightSimConsole.css";
 import { formatCurrency } from "@/utils/stringUtils";
 
-const UiDetail = React.lazy(() => import("../../apps/transactions/components/TransactionDetail"));
+const DbForm = React.lazy(() => import("../../components/common/DbForm"));
 import JournalEntriesPanel, { type JournalDoc } from "./JournalEntriesPanel";
 
 /* ------------------------------------------------------------------ */
@@ -1028,7 +1028,7 @@ const FlightSimConsole: React.FC = () => {
         <div className="fs-right">
           {rightModel ? (
             <Suspense fallback={<div className="fs-empty">Loading {rightModel}...</div>}>
-              <UiDetail
+              <DbForm
                 modelName={rightModel}
                 recordId={rightRecordId}
                 onNavigate={(model: string, id: number) => { setRightModel(model); setRightRecordId(id); refreshArray(); }}

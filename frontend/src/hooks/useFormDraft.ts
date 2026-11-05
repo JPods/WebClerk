@@ -5,7 +5,7 @@
  * are dropped. The list asks the form for them first (onRegisterDraft) and offers Undo; Undo
  * reopens the record with the edits (`draft`), put back once the record has loaded.
  *
- * LastChecked: 2026-10-31 | WhereUsed: ModelDetailPage, TransactionDetail | WhoCreated: Bill+Claude
+ * LastChecked: 2026-10-31 | WhereUsed: DbForm | WhoCreated: Bill+Claude
  */
 import { useEffect, useRef } from 'react';
 
