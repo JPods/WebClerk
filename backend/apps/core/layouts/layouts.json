@@ -16795,19 +16795,9 @@
           "label": "record_id"
          },
          {
-          "type": "readonly",
-          "field": "changes.doc_id",
-          "label": "changes.doc_id"
-         },
-         {
-          "type": "readonly",
-          "field": "changes.line_id",
-          "label": "changes.line_id"
-         },
-         {
-          "type": "readonly",
-          "field": "changes.reason",
-          "label": "changes.reason"
+          "type": "json_tree",
+          "field": "changes",
+          "label": "changes"
          }
         ]
        },
