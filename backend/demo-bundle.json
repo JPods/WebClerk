@@ -24260,8 +24260,8 @@
                   "label": "ida"
                 },
                 {
-                  "field": "display_name",
-                  "label": "display_name"
+                  "field": "company",
+                  "label": "company"
                 },
                 {
                   "field": "status",
@@ -24325,8 +24325,8 @@
                           "label": "ida"
                         },
                         {
-                          "field": "display_name",
-                          "label": "display_name"
+                          "field": "company",
+                          "label": "company"
                         },
                         {
                           "field": "status",
@@ -24490,8 +24490,8 @@
                   "visible": true
                 },
                 {
-                  "field": "display_name",
-                  "label": "display_name",
+                  "field": "company",
+                  "label": "company",
                   "width": 180,
                   "visible": true
                 },
@@ -24579,8 +24579,9 @@
               "width": 70
             },
             {
-              "field": "display_name",
-              "width": 180
+              "field": "company",
+              "width": 180,
+              "label": "company"
             },
             {
               "field": "email",
@@ -29880,8 +29881,8 @@
                   "label": "ida"
                 },
                 {
-                  "field": "display_name",
-                  "label": "display_name"
+                  "field": "company",
+                  "label": "company"
                 },
                 {
                   "field": "status",
@@ -29945,8 +29946,8 @@
                           "label": "ida"
                         },
                         {
-                          "field": "display_name",
-                          "label": "display_name"
+                          "field": "company",
+                          "label": "company"
                         },
                         {
                           "field": "status",
@@ -30102,8 +30103,8 @@
                   "visible": true
                 },
                 {
-                  "field": "display_name",
-                  "label": "display_name",
+                  "field": "company",
+                  "label": "company",
                   "width": 180,
                   "visible": true
                 },
@@ -30191,8 +30192,9 @@
               "width": 70
             },
             {
-              "field": "display_name",
-              "width": 180
+              "field": "company",
+              "width": 180,
+              "label": "company"
             },
             {
               "field": "email",
@@ -48813,8 +48815,8 @@
                   "label": "ida"
                 },
                 {
-                  "field": "display_name",
-                  "label": "display_name"
+                  "field": "company",
+                  "label": "company"
                 },
                 {
                   "field": "status",
@@ -48878,8 +48880,8 @@
                           "label": "ida"
                         },
                         {
-                          "field": "display_name",
-                          "label": "display_name"
+                          "field": "company",
+                          "label": "company"
                         },
                         {
                           "field": "status",
@@ -49042,8 +49044,8 @@
                   "visible": true
                 },
                 {
-                  "field": "display_name",
-                  "label": "display_name",
+                  "field": "company",
+                  "label": "company",
                   "width": 180,
                   "visible": true
                 },
@@ -49131,8 +49133,9 @@
               "width": 70
             },
             {
-              "field": "display_name",
-              "width": 180
+              "field": "company",
+              "width": 180,
+              "label": "company"
             },
             {
               "field": "email",
@@ -70097,8 +70100,8 @@
                   "label": "ida"
                 },
                 {
-                  "field": "display_name",
-                  "label": "display_name"
+                  "field": "company",
+                  "label": "company"
                 },
                 {
                   "field": "status",
@@ -70162,8 +70165,8 @@
                           "label": "ida"
                         },
                         {
-                          "field": "display_name",
-                          "label": "display_name"
+                          "field": "company",
+                          "label": "company"
                         },
                         {
                           "field": "status",
@@ -70323,8 +70326,8 @@
                   "visible": true
                 },
                 {
-                  "field": "display_name",
-                  "label": "display_name",
+                  "field": "company",
+                  "label": "company",
                   "width": 180,
                   "visible": true
                 },
@@ -70412,8 +70415,9 @@
               "width": 70
             },
             {
-              "field": "display_name",
-              "width": 180
+              "field": "company",
+              "width": 180,
+              "label": "company"
             },
             {
               "field": "email",
@@ -84577,8 +84581,8 @@
                   "label": "ida"
                 },
                 {
-                  "field": "display_name",
-                  "label": "display_name"
+                  "field": "company",
+                  "label": "company"
                 },
                 {
                   "field": "status",
@@ -84642,8 +84646,8 @@
                           "label": "ida"
                         },
                         {
-                          "field": "display_name",
-                          "label": "display_name"
+                          "field": "company",
+                          "label": "company"
                         },
                         {
                           "field": "status",
@@ -84807,8 +84811,8 @@
                   "visible": true
                 },
                 {
-                  "field": "display_name",
-                  "label": "display_name",
+                  "field": "company",
+                  "label": "company",
                   "width": 180,
                   "visible": true
                 },
@@ -84896,8 +84900,9 @@
               "width": 70
             },
             {
-              "field": "display_name",
-              "width": 180
+              "field": "company",
+              "width": 180,
+              "label": "company"
             },
             {
               "field": "email",

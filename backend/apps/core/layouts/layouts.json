@@ -5832,8 +5832,8 @@
           "label": "ida"
          },
          {
-          "field": "display_name",
-          "label": "display_name"
+          "field": "company",
+          "label": "company"
          },
          {
           "field": "status",
@@ -7839,8 +7839,8 @@
           "label": "ida"
          },
          {
-          "field": "display_name",
-          "label": "display_name"
+          "field": "company",
+          "label": "company"
          },
          {
           "field": "status",
@@ -14797,8 +14797,8 @@
           "label": "ida"
          },
          {
-          "field": "display_name",
-          "label": "display_name"
+          "field": "company",
+          "label": "company"
          },
          {
           "field": "status",
@@ -21524,8 +21524,8 @@
           "label": "ida"
          },
          {
-          "field": "display_name",
-          "label": "display_name"
+          "field": "company",
+          "label": "company"
          },
          {
           "field": "status",
@@ -26757,8 +26757,8 @@
           "label": "ida"
          },
          {
-          "field": "display_name",
-          "label": "display_name"
+          "field": "company",
+          "label": "company"
          },
          {
           "field": "status",
