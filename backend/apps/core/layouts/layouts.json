@@ -10653,7 +10653,6 @@
           "label": "price_level"
          },
          {
-          "type": "select",
           "field": "terms",
           "label": "terms"
          },
@@ -15363,7 +15362,6 @@
           "label": "price_level"
          },
          {
-          "type": "select",
           "field": "terms",
           "label": "terms"
          },
@@ -18117,7 +18115,6 @@
         "title": "purchase",
         "fields": [
          {
-          "type": "select",
           "field": "terms",
           "label": "terms"
          },
@@ -19487,7 +19484,6 @@
           "label": "price_level"
          },
          {
-          "type": "select",
           "field": "terms",
           "label": "terms"
          },

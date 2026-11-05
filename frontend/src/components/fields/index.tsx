@@ -145,7 +145,7 @@ export function renderField(
 
   // Type-specific props from behavior
   if (typeName === 'select') { props.options = behavior.options || []; if (behavior.allow_custom) props.allowCustom = true; }
-  if (typeName === 'lookup') { props.model = behavior.model || ''; props.displayField = behavior.display; }
+  if (typeName === 'lookup') { props.model = behavior.model || ''; props.displayField = behavior.display; props.valueField = behavior.value; }
   if (typeName === 'geo') { props.pair = behavior.pair; }
   if (typeName === 'json' || typeName === 'json-tree') { props.rows = opts?.rowSize; }
   if (typeName === 'json-tree') { props.readOnly = behavior.readOnly; }

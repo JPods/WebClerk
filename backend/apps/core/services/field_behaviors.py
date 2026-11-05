@@ -292,7 +292,9 @@ def get_field_behaviors(model_key, field_map=None, overrides=None):
             behaviors[name] = {'type': 'select'}
             continue
         if name == 'terms':
-            behaviors[name] = {'type': 'select'}
+            # Terms point at Term records and store the ida (Bill, 2026-10-22): a lookup on the
+            # model, never a copied list that drifts when a Term is added (readme 105 step d).
+            behaviors[name] = {'type': 'lookup', 'model': 'term', 'display': 'ida', 'value': 'ida'}
             continue
         if name == 'method' and model_key == 'cash':
             behaviors[name] = {'type': 'select'}

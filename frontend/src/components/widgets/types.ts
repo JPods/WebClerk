@@ -38,6 +38,8 @@ export interface WidgetProps {
   record?: Record<string, any>;
   /** Model name — for lookup widgets; the field's model for Shift-for-Help */
   model?: string;
+  /** Lookup: the field of the found record the value stores — its id (default) or its ida (terms). */
+  valueField?: 'id' | 'ida';
   /** Display field — for lookup widgets */
   displayField?: string;
   /** Geo: the paired latitude/longitude field */

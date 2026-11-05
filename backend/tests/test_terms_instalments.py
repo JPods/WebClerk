@@ -103,11 +103,14 @@ def test_a_payable_splits_into_parts_like_a_receivable():
 
 # ── terms are text (Bill, 2026-10-22) ────────────────────────────────
 
-def test_the_terms_dropdown_offers_idas():
-    """It offered the description as the value, so a pick never resolved to a Term."""
-    from apps.core.services.field_behaviors import _get_terms_options
+def test_terms_is_a_lookup_on_the_term_record_by_ida():
+    """Terms point at Term records and store the ida; the form finds them by lookup, never from
+    a copied list that drifts when a Term is added (readme 105 step d). A pick resolves to a Term."""
+    from apps.core.services.field_behaviors import get_field_behaviors
     _term()
-    assert {'value': '3Pay30Days', 'label': '3Pay30Days'} in _get_terms_options()
+    for model in ('order', 'customer', 'cash'):
+        terms = get_field_behaviors(model)['terms']
+        assert {k: terms.get(k) for k in ('type', 'model', 'display', 'value')} == {'type': 'lookup', 'model': 'term', 'display': 'ida', 'value': 'ida'}
 
 
 def test_the_save_door_stores_the_terms_own_spelling_and_refuses_an_unknown_one():

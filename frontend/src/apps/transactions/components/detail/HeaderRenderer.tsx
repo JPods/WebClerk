@@ -201,6 +201,7 @@ const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditin
                   isEditing={isEditing}
                   options={options}
                   fieldType={fieldType}
+                  lookup={beh.type === 'lookup' && beh.model ? { model: beh.model, valueField: beh.value } : undefined}
                   lockedFields={lockedFieldsForRecord(data)}
                   help={f.help}
                   onChange={onChange}

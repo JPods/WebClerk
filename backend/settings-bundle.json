@@ -22091,6 +22091,48 @@
               "label": "sale",
               "value": "sale"
             }
+          ],
+          "source_name": [
+            {
+              "value": "direct",
+              "label": "Direct"
+            },
+            {
+              "value": "referral",
+              "label": "Referral"
+            },
+            {
+              "value": "social_media",
+              "label": "Social Media"
+            },
+            {
+              "value": "website",
+              "label": "Website"
+            },
+            {
+              "value": "trade_show",
+              "label": "Trade Show"
+            },
+            {
+              "value": "cold_call",
+              "label": "Cold Call"
+            },
+            {
+              "value": "email_campaign",
+              "label": "Email Campaign"
+            },
+            {
+              "value": "repeat",
+              "label": "Repeat Customer"
+            },
+            {
+              "value": "partner",
+              "label": "Partner"
+            },
+            {
+              "value": "other",
+              "label": "Other"
+            }
           ]
         },
         "field_groups": [
@@ -38372,7 +38414,6 @@
                           "label": "price_level"
                         },
                         {
-                          "type": "select",
                           "field": "terms",
                           "label": "terms"
                         },
@@ -39644,6 +39685,36 @@
             {
               "label": "g",
               "value": "g"
+            }
+          ],
+          "ship_via": [
+            {
+              "value": "fedex",
+              "label": "FedEx"
+            },
+            {
+              "value": "ups",
+              "label": "UPS"
+            },
+            {
+              "value": "usps",
+              "label": "USPS"
+            },
+            {
+              "value": "dhl",
+              "label": "DHL"
+            },
+            {
+              "value": "freight",
+              "label": "Freight"
+            },
+            {
+              "value": "local",
+              "label": "Local Delivery"
+            },
+            {
+              "value": "will_call",
+              "label": "Will Call"
             }
           ]
         },
@@ -44819,6 +44890,48 @@
             {
               "label": "User defined",
               "value": "user_defined"
+            }
+          ],
+          "source_name": [
+            {
+              "value": "direct",
+              "label": "Direct"
+            },
+            {
+              "value": "referral",
+              "label": "Referral"
+            },
+            {
+              "value": "social_media",
+              "label": "Social Media"
+            },
+            {
+              "value": "website",
+              "label": "Website"
+            },
+            {
+              "value": "trade_show",
+              "label": "Trade Show"
+            },
+            {
+              "value": "cold_call",
+              "label": "Cold Call"
+            },
+            {
+              "value": "email_campaign",
+              "label": "Email Campaign"
+            },
+            {
+              "value": "repeat",
+              "label": "Repeat Customer"
+            },
+            {
+              "value": "partner",
+              "label": "Partner"
+            },
+            {
+              "value": "other",
+              "label": "Other"
             }
           ]
         },
@@ -51628,7 +51741,6 @@
                           "label": "price_level"
                         },
                         {
-                          "type": "select",
                           "field": "terms",
                           "label": "terms"
                         },
@@ -52864,6 +52976,36 @@
             {
               "label": "g",
               "value": "g"
+            }
+          ],
+          "ship_via": [
+            {
+              "value": "fedex",
+              "label": "FedEx"
+            },
+            {
+              "value": "ups",
+              "label": "UPS"
+            },
+            {
+              "value": "usps",
+              "label": "USPS"
+            },
+            {
+              "value": "dhl",
+              "label": "DHL"
+            },
+            {
+              "value": "freight",
+              "label": "Freight"
+            },
+            {
+              "value": "local",
+              "label": "Local Delivery"
+            },
+            {
+              "value": "will_call",
+              "label": "Will Call"
             }
           ]
         },
@@ -60927,7 +61069,6 @@
                           "label": "price_level"
                         },
                         {
-                          "type": "select",
                           "field": "terms",
                           "label": "terms"
                         },
@@ -62159,6 +62300,36 @@
             {
               "label": "g",
               "value": "g"
+            }
+          ],
+          "ship_via": [
+            {
+              "value": "fedex",
+              "label": "FedEx"
+            },
+            {
+              "value": "ups",
+              "label": "UPS"
+            },
+            {
+              "value": "usps",
+              "label": "USPS"
+            },
+            {
+              "value": "dhl",
+              "label": "DHL"
+            },
+            {
+              "value": "freight",
+              "label": "Freight"
+            },
+            {
+              "value": "local",
+              "label": "Local Delivery"
+            },
+            {
+              "value": "will_call",
+              "label": "Will Call"
             }
           ]
         },
@@ -65040,7 +65211,6 @@
                       "title": "purchase",
                       "fields": [
                         {
-                          "type": "select",
                           "field": "terms",
                           "label": "terms"
                         },
@@ -66258,6 +66428,36 @@
             {
               "label": "g",
               "value": "g"
+            }
+          ],
+          "ship_via": [
+            {
+              "value": "fedex",
+              "label": "FedEx"
+            },
+            {
+              "value": "ups",
+              "label": "UPS"
+            },
+            {
+              "value": "usps",
+              "label": "USPS"
+            },
+            {
+              "value": "dhl",
+              "label": "DHL"
+            },
+            {
+              "value": "freight",
+              "label": "Freight"
+            },
+            {
+              "value": "local",
+              "label": "Local Delivery"
+            },
+            {
+              "value": "will_call",
+              "label": "Will Call"
             }
           ]
         },
@@ -70192,6 +70392,114 @@
             {
               "label": "Requisition",
               "value": "requisition"
+            }
+          ],
+          "ship_via": [
+            {
+              "value": "fedex",
+              "label": "FedEx"
+            },
+            {
+              "value": "ups",
+              "label": "UPS"
+            },
+            {
+              "value": "usps",
+              "label": "USPS"
+            },
+            {
+              "value": "dhl",
+              "label": "DHL"
+            },
+            {
+              "value": "freight",
+              "label": "Freight"
+            },
+            {
+              "value": "local",
+              "label": "Local Delivery"
+            },
+            {
+              "value": "will_call",
+              "label": "Will Call"
+            }
+          ],
+          "source_name": [
+            {
+              "value": "direct",
+              "label": "Direct"
+            },
+            {
+              "value": "referral",
+              "label": "Referral"
+            },
+            {
+              "value": "social_media",
+              "label": "Social Media"
+            },
+            {
+              "value": "website",
+              "label": "Website"
+            },
+            {
+              "value": "trade_show",
+              "label": "Trade Show"
+            },
+            {
+              "value": "cold_call",
+              "label": "Cold Call"
+            },
+            {
+              "value": "email_campaign",
+              "label": "Email Campaign"
+            },
+            {
+              "value": "repeat",
+              "label": "Repeat Customer"
+            },
+            {
+              "value": "partner",
+              "label": "Partner"
+            },
+            {
+              "value": "other",
+              "label": "Other"
+            }
+          ],
+          "price_level": [
+            {
+              "value": "retail",
+              "label": "retail"
+            },
+            {
+              "value": "wholesale",
+              "label": "wholesale"
+            },
+            {
+              "value": "distributor",
+              "label": "distributor"
+            },
+            {
+              "value": "sample",
+              "label": "sample"
+            }
+          ],
+          "priority": [
+            {
+              "value": "low",
+              "label": "Low"
+            },
+            {
+              "value": "normal",
+              "label": "Normal"
+            },
+            {
+              "value": "high",
+              "label": "High"
+            },
+            {
+              "value": "urgent",
+              "label": "Urgent"
             }
           ]
         },
@@ -92044,6 +92352,36 @@
             {
               "label": "g",
               "value": "g"
+            }
+          ],
+          "ship_via": [
+            {
+              "value": "fedex",
+              "label": "FedEx"
+            },
+            {
+              "value": "ups",
+              "label": "UPS"
+            },
+            {
+              "value": "usps",
+              "label": "USPS"
+            },
+            {
+              "value": "dhl",
+              "label": "DHL"
+            },
+            {
+              "value": "freight",
+              "label": "Freight"
+            },
+            {
+              "value": "local",
+              "label": "Local Delivery"
+            },
+            {
+              "value": "will_call",
+              "label": "Will Call"
             }
           ]
         },
