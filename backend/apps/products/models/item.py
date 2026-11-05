@@ -335,8 +335,9 @@ class Item(StatsMixin, BaseModel):
     # Updated nightly by Alice via update_item_margin_velocity()
     margin_velocity = models.DecimalField(max_digits=12, decimal_places=4, default=0, db_index=True,
         help_text="(margin% × turns/year) — higher = better use of capital. Alice computes nightly.")
-    margin_pct = models.DecimalField(max_digits=8, decimal_places=2, default=0,
-        help_text="(sale_price - cost_avg) / cost_avg × 100")
+    margin_pct = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True,
+        help_text="Margin on list price at the company's cost basis (price_resolver.resolve_cost), "
+                  "set on save; unknown (null) without a price or a cost — never 0 for 'not computed'.")
     annual_turns = models.DecimalField(max_digits=10, decimal_places=2, default=0,
         help_text="Units issued / avg on-hand, annualized")
     velocity_category = models.CharField(max_length=20, blank=True, default='',
@@ -422,6 +423,10 @@ class Item(StatsMixin, BaseModel):
         self._normalize_quantity()
         self._normalize_breaks_all()
         self._track_price_cost_history(orig_price, orig_cost)
+        # The item's own margin: the one formula a line uses (price_resolver), so the
+        # figure beside price and cost is the figure a quote will show (readme 104 item 7).
+        from apps.products.services.price_resolver import resolve_cost
+        self.margin_pct = resolve_cost(self).margin_pct
         super().save(*args, **kwargs)
 
     # -------- Helper methods ---------------------------------------------

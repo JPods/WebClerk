@@ -496,7 +496,8 @@ def compute_margin_velocity(
 ) -> dict[int, dict]:
     """Compute margin velocity per item.
 
-    margin_velocity = ((sale_price - cost_avg) / cost_avg) × annual_turns
+    margin_velocity = (margin_pct / 100) × annual_turns; margin_pct is the item's own
+    (margin on list price at the company's cost basis, Item.margin_pct)
 
     Categories:
       Dead capital: >50% margin, <2 turns/year
@@ -520,17 +521,18 @@ def compute_margin_velocity(
         ).values_list('item_id', 'total_issued')
     )
 
-    from apps.products.services.price_resolver import list_price
+    from apps.products.services.price_resolver import resolve_cost
     results = {}
     for item in qs:
-        cost = item.cost if isinstance(item.cost, dict) else {}
-        cost_avg = Decimal(str(cost.get('avg', 0) or 0))
-        sale_price = list_price(item)
+        # The company's cost basis and the one margin formula (readme 105: not a second one here).
+        resolved = resolve_cost(item)
+        cost_avg = resolved.unit
+        sale_price = resolved.list_price
 
-        if cost_avg <= 0 or sale_price <= 0:
+        if resolved.margin_pct is None:
             continue
 
-        margin_pct = float((sale_price - cost_avg) / cost_avg * 100)
+        margin_pct = float(resolved.margin_pct)
 
         # Annual turns = total issued qty / average on-hand qty
         total_issued = abs(float(issue_counts.get(item.id, 0) or 0))
