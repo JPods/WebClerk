@@ -12,10 +12,15 @@ export const asText = (v: any): string =>
   typeof v === "string" ? v
   : v && typeof v === "object" && !Array.isArray(v) ? String(Object.values(v).find(x => typeof x === "string") ?? "")
   : v == null ? "" : String(v);
-export const nameOf = (rec: any): string =>
-  asText(rec?.display_name) || asText(rec?.name) || asText(rec?.ida) || asText(rec?.company) || (rec?.id ? `#${rec.id}` : "");   // a document is its ida; its company snapshot comes after
+/** The found record's name: what the behavior names (display), else the first of display_name,
+ *  attention (a contact), name, company, email, ida — never a bare id while a word exists. */
+export const nameOf = (rec: any, display?: string): string =>
+  (display ? asText(rec?.[display]) : "")
+  || asText(rec?.display_name) || asText(rec?.attention) || asText(rec?.name) || asText(rec?.company)
+  || asText(rec?.email) || asText(rec?.ida) || (rec?.id ? `#${rec.id}` : "");   // a document is its ida; its company snapshot comes after
 
-export const LookupWidget: React.FC<WidgetProps> = ({ name, value: v, onChange, disabled, model = "", valueField = "id", className, mode }) => {
+export const LookupWidget: React.FC<WidgetProps> = ({ name, value: v, onChange, disabled, model = "", valueField = "id", displayField, className, mode }) => {
+  const shown = (rec: any) => nameOf(rec, displayField);
   const [query, setQuery] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [results, setResults] = useState<any[]>([]);
@@ -27,12 +32,12 @@ export const LookupWidget: React.FC<WidgetProps> = ({ name, value: v, onChange, 
   // The name behind the value, on mount or when it changes: by id, or by ida (a term)
   useEffect(() => {
     if (!v) { setDisplayName(""); return; }
-    if (typeof v === "object") { setDisplayName(nameOf(v)); return; }
+    if (typeof v === "object") { setDisplayName(shown(v)); return; }
     if (valueField === "ida") {
-      getRecords(model, { ida: String(v), limit: 1 }).then((res: any) => { const rec = res?.results?.[0]; setDisplayName(rec ? nameOf(rec) : String(v)); }).catch(() => setDisplayName(String(v)));
+      getRecords(model, { ida: String(v), limit: 1 }).then((res: any) => { const rec = res?.results?.[0]; setDisplayName(rec ? shown(rec) : String(v)); }).catch(() => setDisplayName(String(v)));
       return;
     }
-    getRecord(model, Number(v)).then((res: any) => { if (res?.record) setDisplayName(nameOf(res.record)); }).catch(() => {});
+    getRecord(model, Number(v)).then((res: any) => { if (res?.record) setDisplayName(shown(res.record)); }).catch(() => {});
   }, [v, model, valueField]);
 
   const doSearch = useCallback((q: string) => {
@@ -48,7 +53,7 @@ export const LookupWidget: React.FC<WidgetProps> = ({ name, value: v, onChange, 
     clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => doSearch(q), 250);
   };
-  const handleSelect = (rec: any) => { onChange(valueField === "ida" ? rec.ida : rec.id); setDisplayName(nameOf(rec)); setQuery(""); setOpen(false); };
+  const handleSelect = (rec: any) => { onChange(valueField === "ida" ? rec.ida : rec.id); setDisplayName(shown(rec)); setQuery(""); setOpen(false); };
   const handleAddNew = async () => {
     try {
       const { createRecord } = await import("@/api/wcapi");
@@ -79,7 +84,7 @@ export const LookupWidget: React.FC<WidgetProps> = ({ name, value: v, onChange, 
         <div className="db-lookup-dropdown">
           {results.map(r => (
             <div key={r.id} className="db-lookup-option" onClick={() => handleSelect(r)}>
-              <span className="db-lookup-name">{nameOf(r)}</span>
+              <span className="db-lookup-name">{shown(r)}</span>
               {r.email && <span className="db-lookup-hint">{r.email}</span>}
             </div>
           ))}

@@ -191,7 +191,7 @@ export interface FieldRowProps {
   options?: string[];
   fieldType?: string;  // select | action | search | readonly | editable
   /** A lookup field: the model searched and which field of the found record is stored. */
-  lookup?: { model: string; valueField?: 'id' | 'ida' };
+  lookup?: { model: string; valueField?: 'id' | 'ida'; display?: string };
   /** Envelopes this record's own state locks (a journalized document locks its totals
    *  and the values that make them up). A viewable-but-not-editable field reads italic. */
   lockedFields?: string[];
@@ -464,6 +464,7 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
               options={widgetOptions}
               model={lookup?.model}
               valueField={lookup?.valueField}
+              displayField={lookup?.display}
             />
           </div>
         );
