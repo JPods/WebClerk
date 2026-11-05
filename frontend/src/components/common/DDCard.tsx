@@ -2,13 +2,16 @@
  * DDCard — Data-Driven Card
  *
  * Compact, information-dense summary card driven by dd_card Setting config.
- * Fetches model data via wcapi, computes metrics, renders 2-column layout.
+ * The server computes every figure over every row the viewer may see (manage action
+ * dd_card_metrics, or the card's own server_action); this component only formats and draws.
+ * It never adds records up itself: summing r['total'] over 500 fetched rows said $0.00 on every
+ * card, because a transaction carries totals.total (FAULT 20261103T221823; readme 105).
  * Uses --db-* CSS variables for theme consistency.
  */
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { getRecords } from "@/api/wcapi";
 import apiClient from "@/api/axios";
+import { refusedFrom } from "@/api/wcapi";
 
 // ---------------------------------------------------------------------------
 // Types — match the dd_card:base Setting config shape
@@ -46,49 +49,8 @@ interface DDCardProps {
 }
 
 // ---------------------------------------------------------------------------
-// Metric computation
+// Formatting — the number comes from the server
 // ---------------------------------------------------------------------------
-
-// Config-driven widget aggregations — server_action path preferred; client fallback
-// for dd_card configs without a server_action endpoint
-function computeMetrics(records: any[], metrics: MetricDef[]): { label: string; value: string }[] {
-  return metrics.map((m) => {
-    let raw: number;
-
-    switch (m.agg) {
-      case "count":
-        raw = records.length;
-        break;
-      case "sum":
-        raw = records.reduce((s, r) => s + (Number(r[m.field!]) || 0), 0);
-        break;
-      case "avg": {
-        const vals = records.map((r) => Number(r[m.field!]) || 0);
-        raw = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
-        break;
-      }
-      case "margin_pct": {
-        const [revField, costField] = m.fields || [];
-        const totalRev = records.reduce((s, r) => s + (Number(r[revField]) || 0), 0);
-        const totalCost = records.reduce((s, r) => s + (Number(r[costField]) || 0), 0);
-        raw = totalRev > 0 ? ((totalRev - totalCost) / totalRev) * 100 : 0;
-        break;
-      }
-      case "pct": {
-        const [numField, denField] = m.fields || [];
-        const num = records.reduce((s, r) => s + (Number(r[numField]) || 0), 0);
-        const den = records.reduce((s, r) => s + (Number(r[denField]) || 0), 0);
-        raw = den > 0 ? (num / den) * 100 : 0;
-        if (m.invert) raw = 100 - raw;
-        break;
-      }
-      default:
-        raw = 0;
-    }
-
-    return { label: m.label, value: formatValue(raw, m.format) };
-  });
-}
 
 function formatValue(val: number, fmt?: string): string {
   switch (fmt) {
@@ -103,29 +65,9 @@ function formatValue(val: number, fmt?: string): string {
   }
 }
 
-function computeDistribution(records: any[], dist: DistributionDef): { label: string; count: number }[] {
-  if (dist.type === "category") {
-    return dist.labels.map((label) => ({
-      label,
-      count: records.filter((r) => r[dist.field] === label).length,
-    }));
-  }
-  // Numeric buckets
-  const buckets = dist.buckets || [];
-  const results: { label: string; count: number }[] = [];
-
-  // Compute the field value (margin_pct needs to be derived per record)
-  const vals = records.map((r) => Number(r[dist.field]) || 0);
-
-  for (let i = 0; i <= buckets.length; i++) {
-    const lo = i === 0 ? -Infinity : buckets[i - 1];
-    const hi = i < buckets.length ? buckets[i] : Infinity;
-    results.push({
-      label: dist.labels[i] || `${lo}-${hi}`,
-      count: vals.filter((v) => v >= lo && v < hi).length,
-    });
-  }
-  return results;
+/** A server metric is {label, value: number, format?}; an older server_action may send the text ready. */
+function shown(m: { label: string; value: number | string; format?: string }): { label: string; value: string } {
+  return { label: m.label, value: typeof m.value === "number" ? formatValue(m.value, m.format) : String(m.value ?? "") };
 }
 
 // ---------------------------------------------------------------------------
@@ -136,6 +78,7 @@ export default function DDCard({ model, config }: DDCardProps) {
   const [metrics, setMetrics] = useState<{ label: string; value: string }[]>([]);
   const [distribution, setDistribution] = useState<{ label: string; count: number }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [dateRange, setDateRange] = useState<{ dateFrom: string; dateTo: string; staffId: number | null }>({ dateFrom: '', dateTo: '', staffId: null });
 
   // Listen for date range changes from DataBrowser header
@@ -158,27 +101,19 @@ export default function DDCard({ model, config }: DDCardProps) {
         if (dateRange.dateTo) dateFilters.dt_created__lte = new Date(dateRange.dateTo + 'T23:59:59').getTime();
         if (dateRange.staffId) dateFilters.contact_id = dateRange.staffId;
 
-        if (config.server_action) {
-          // Server-computed metrics via manage endpoint
-          const res = await apiClient.post("/wcapi/_manage/", {
-            action: config.server_action,
-            params: { ...config.filters, ...dateFilters },
-          });
-          const data = res.data?.data ?? res.data;
-          if (!mounted) return;
-          if (data?.metrics) setMetrics(data.metrics);
-        } else {
-          // Client-computed metrics from fetched records
-          const res = await getRecords(model, { ...config.filters, ...dateFilters, limit: 500 });
-          const records = res?.results ?? [];
-          if (!mounted) return;
-          setMetrics(computeMetrics(records, config.metrics));
-          if (config.distribution) {
-            setDistribution(computeDistribution(records, config.distribution));
-          }
-        }
-      } catch {
-        // silent — card shows empty
+        const res = await apiClient.post("/wcapi/_manage/", config.server_action
+          ? { action: config.server_action, params: { ...config.filters, ...dateFilters } }
+          : { action: "dd_card_metrics", params: {
+              model, filters: { ...config.filters, ...dateFilters },
+              metrics: config.metrics, distribution: config.distribution } });
+        const data = res.data?.data ?? res.data;
+        if (!mounted) return;
+        setMetrics((data?.metrics ?? []).map(shown));
+        setDistribution(data?.distribution ?? []);
+        setError("");
+      } catch (e) {
+        if (!mounted) return;
+        setError(refusedFrom(e)?.message || (e as Error)?.message || "Could not compute this card.");
       } finally {
         if (mounted) setLoading(false);
       }
@@ -216,6 +151,8 @@ export default function DDCard({ model, config }: DDCardProps) {
       >
         {loading
           ? <span style={{ fontSize: 10, color: "var(--db-text-dim)" }}>…</span>
+          : error
+          ? <span style={{ fontSize: 10, color: "var(--db-danger, #b91c1c)", gridColumn: "1 / -1" }}>{error}</span>
           : metrics.map((m) => (
               <div key={m.label} style={{ display: "flex", justifyContent: "space-between", gap: 4 }}>
                 <span style={{ fontSize: 10, color: "var(--db-text-muted)" }}>{m.label}</span>

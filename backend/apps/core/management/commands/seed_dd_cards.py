@@ -22,12 +22,12 @@ DD_CARD_CONFIG = {
             "filters": {"is_active": True},
             "metrics": [
                 {"field": "id", "agg": "count", "label": "Count"},
-                {"field": "total", "agg": "sum", "label": "Value", "format": "currency"},
-                {"field": "cost", "agg": "sum", "label": "Cost", "format": "currency"},
-                {"agg": "margin_pct", "fields": ["total", "cost"], "label": "Margin", "format": "percent"},
+                {"field": "totals.total", "agg": "sum", "label": "Value", "format": "currency"},
+                {"field": "totals.cost", "agg": "sum", "label": "Cost", "format": "currency"},
+                {"agg": "margin_pct", "fields": ["totals.total", "totals.cost"], "label": "Margin", "format": "percent"},
             ],
             "distribution": {
-                "field": "margin_pct",
+                "field": "totals.margin_pc",
                 "buckets": [10, 25, 40],
                 "labels": ["<10%", "10-25%", "25-40%", ">40%"],
             },
@@ -38,9 +38,9 @@ DD_CARD_CONFIG = {
             "filters": {"is_active": True},
             "metrics": [
                 {"field": "id", "agg": "count", "label": "Count"},
-                {"field": "total", "agg": "sum", "label": "Total", "format": "currency"},
-                {"field": "balance", "agg": "sum", "label": "Balance", "format": "currency"},
-                {"agg": "pct", "fields": ["balance", "total"], "label": "Collected", "format": "percent", "invert": True},
+                {"field": "totals.total", "agg": "sum", "label": "Total", "format": "currency"},
+                {"field": "totals.balance", "agg": "sum", "label": "Balance", "format": "currency"},
+                {"agg": "pct", "fields": ["totals.balance", "totals.total"], "label": "Collected", "format": "percent", "invert": True},
             ],
         },
         "quote": {
@@ -49,7 +49,7 @@ DD_CARD_CONFIG = {
             "filters": {"is_active": True},
             "metrics": [
                 {"field": "id", "agg": "count", "label": "Count"},
-                {"field": "total", "agg": "sum", "label": "Value", "format": "currency"},
+                {"field": "totals.total", "agg": "sum", "label": "Value", "format": "currency"},
             ],
         },
         "purchase": {
@@ -58,7 +58,7 @@ DD_CARD_CONFIG = {
             "filters": {"is_active": True},
             "metrics": [
                 {"field": "id", "agg": "count", "label": "Count"},
-                {"field": "total", "agg": "sum", "label": "Total", "format": "currency"},
+                {"field": "totals.total", "agg": "sum", "label": "Total", "format": "currency"},
             ],
         },
         "cash": {
