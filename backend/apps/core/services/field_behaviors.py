@@ -41,186 +41,9 @@ NEVER_EDIT = [
 
 # ── Select list options ─────────────────────────────────────────────────
 
-# The four price levels, the word is the label (price_resolver.PRICE_LEVELS).
-PRICE_LEVEL_OPTIONS = [{'value': w, 'label': w}
-                       for w in ('retail', 'wholesale', 'distributor', 'sample')]
-KANBAN_OPTIONS = [
-    {'value': 'backlog', 'label': 'Backlog'},
-    {'value': 'todo', 'label': 'To Do'},
-    {'value': 'in_progress', 'label': 'In Progress'},
-    {'value': 'review', 'label': 'Review'},
-    {'value': 'done', 'label': 'Done'},
-]
-CASH_TYPE_OPTIONS = [
-    {'value': 'cash_in', 'label': 'Cash In (AR)'},
-    {'value': 'cash_out', 'label': 'Cash Out (AP)'},
-]
-LINE_TYPE_OPTIONS = [
-    {'value': 'product', 'label': 'Product'},
-    {'value': 'tax', 'label': 'Tax'},
-    {'value': 'shipping', 'label': 'Shipping'},
-    {'value': 'discount', 'label': 'Discount'},
-]
-SHIPPING_STATUS_OPTIONS = [
-    {'value': 'pending', 'label': 'Pending'},
-    {'value': 'partial', 'label': 'Partial'},
-    {'value': 'shipped', 'label': 'Shipped'},
-    {'value': 'in_transit', 'label': 'In Transit'},
-    {'value': 'delivered', 'label': 'Delivered'},
-    {'value': 'returned', 'label': 'Returned'},
-]
-SHIPPING_CARRIER_OPTIONS = [
-    {'value': 'fedex', 'label': 'FedEx'},
-    {'value': 'ups', 'label': 'UPS'},
-    {'value': 'usps', 'label': 'USPS'},
-    {'value': 'dhl', 'label': 'DHL'},
-    {'value': 'freight', 'label': 'Freight'},
-    {'value': 'local', 'label': 'Local Delivery'},
-    {'value': 'will_call', 'label': 'Will Call'},
-]
-SHIPPING_SERVICE_OPTIONS = [
-    {'value': 'ground', 'label': 'Ground'},
-    {'value': '2day', 'label': '2-Day'},
-    {'value': 'next_day', 'label': 'Next Day'},
-    {'value': 'priority', 'label': 'Priority'},
-    {'value': 'economy', 'label': 'Economy'},
-    {'value': 'freight', 'label': 'Freight/LTL'},
-]
-WEIGHT_UNIT_OPTIONS = [
-    {'value': 'lbs', 'label': 'lbs'},
-    {'value': 'kg', 'label': 'kg'},
-    {'value': 'oz', 'label': 'oz'},
-    {'value': 'g', 'label': 'g'},
-]
 
 # ── Best-guess baselines for common fields ─────────────────────────────
 # Users add/delete from these. Better to start with a menu than a blank page.
-
-PRIORITY_OPTIONS = [
-    {'value': 'low', 'label': 'Low'},
-    {'value': 'normal', 'label': 'Normal'},
-    {'value': 'high', 'label': 'High'},
-    {'value': 'urgent', 'label': 'Urgent'},
-]
-def _get_terms_options():
-    """Terms options from the active Term records. The value is the ida — what a
-    record's ``terms`` stores and resolve_term reads (Bill, 2026-10-22: terms as text)."""
-    from apps.accounts.models.term import Term
-    return [{'value': t.ida, 'label': f"{t.ida} — {t.description}" if t.description else t.ida}
-            for t in Term.objects.filter(is_active=True).order_by('days_due', 'ida')]
-SOURCE_NAME_OPTIONS = [
-    {'value': 'direct', 'label': 'Direct'},
-    {'value': 'referral', 'label': 'Referral'},
-    {'value': 'social_media', 'label': 'Social Media'},
-    {'value': 'website', 'label': 'Website'},
-    {'value': 'trade_show', 'label': 'Trade Show'},
-    {'value': 'cold_call', 'label': 'Cold Call'},
-    {'value': 'email_campaign', 'label': 'Email Campaign'},
-    {'value': 'repeat', 'label': 'Repeat Customer'},
-    {'value': 'partner', 'label': 'Partner'},
-    {'value': 'other', 'label': 'Other'},
-]
-CASH_METHOD_OPTIONS = [
-    {'value': 'check', 'label': 'Check'},
-    {'value': 'ach', 'label': 'ACH'},
-    {'value': 'wire', 'label': 'Wire'},
-    {'value': 'credit_card', 'label': 'Credit Card'},
-    {'value': 'cash', 'label': 'Cash'},
-    {'value': 'other', 'label': 'Other'},
-]
-CASH_CATEGORY_OPTIONS = [
-    {'value': 'standard', 'label': 'Standard'},
-    {'value': 'deposit', 'label': 'Deposit'},
-    {'value': 'refund', 'label': 'Refund'},
-    {'value': 'credit_memo', 'label': 'Credit Memo'},
-    {'value': 'write_off', 'label': 'Write-off'},
-]
-CHANNEL_OPTIONS = [
-    {'value': 'call', 'label': 'Phone Call'},
-    {'value': 'email', 'label': 'Email'},
-    {'value': 'visit', 'label': 'Visit'},
-    {'value': 'text', 'label': 'Text/SMS'},
-    {'value': 'meeting', 'label': 'Meeting'},
-    {'value': 'web', 'label': 'Web'},
-    {'value': 'mail', 'label': 'Mail'},
-]
-DIRECTION_OPTIONS = [
-    {'value': 'in', 'label': 'Inbound'},
-    {'value': 'out', 'label': 'Outbound'},
-]
-ITEM_KIND_OPTIONS = [
-    {'value': 'product', 'label': 'Product'},
-    {'value': 'service', 'label': 'Service'},
-    {'value': 'assembly', 'label': 'Assembly'},
-    {'value': 'non_inventory', 'label': 'Non-Inventory'},
-    {'value': 'shipping', 'label': 'Shipping'},
-    {'value': 'discount', 'label': 'Discount'},
-    {'value': 'tax', 'label': 'Tax'},
-]
-CONTACT_ROLE_OPTIONS = [
-    {'value': 'user', 'label': 'User'},
-    {'value': 'admin', 'label': 'Admin'},
-    {'value': 'buyer', 'label': 'Buyer'},
-    {'value': 'manager', 'label': 'Manager'},
-    {'value': 'viewer', 'label': 'Viewer'},
-]
-GL_JOURNAL_TYPE_OPTIONS = [
-    {'value': 'general', 'label': 'General'},
-    {'value': 'sales', 'label': 'Sales'},
-    {'value': 'purchase', 'label': 'Purchase'},
-    {'value': 'cash', 'label': 'Cash'},
-    {'value': 'adjustment', 'label': 'Adjustment'},
-    {'value': 'closing', 'label': 'Closing'},
-]
-PROJECT_CATEGORY_OPTIONS = [
-    {'value': 'sprint', 'label': 'Sprint'},
-    {'value': 'maintenance', 'label': 'Maintenance'},
-    {'value': 'implementation', 'label': 'Implementation'},
-    {'value': 'support', 'label': 'Support'},
-    {'value': 'internal', 'label': 'Internal'},
-]
-REPORT_CATEGORY_OPTIONS = [
-    {'value': 'transaction', 'label': 'Transaction'},
-    {'value': 'financial', 'label': 'Financial'},
-    {'value': 'inventory', 'label': 'Inventory'},
-    {'value': 'contact', 'label': 'Contact'},
-    {'value': 'admin_tool', 'label': 'Admin Tool'},
-    {'value': 'dashboard', 'label': 'Dashboard'},
-]
-EMAIL_TYPE_OPTIONS = [
-    {'value': 'work', 'label': 'Work'},
-    {'value': 'personal', 'label': 'Personal'},
-    {'value': 'billing', 'label': 'Billing'},
-    {'value': 'support', 'label': 'Support'},
-    {'value': 'other', 'label': 'Other'},
-]
-DOMAIN_TYPE_OPTIONS = [
-    {'value': 'website', 'label': 'Website'},
-    {'value': 'social', 'label': 'Social Media'},
-    {'value': 'marketplace', 'label': 'Marketplace'},
-    {'value': 'other', 'label': 'Other'},
-]
-INVENTORY_MOVEMENT_OPTIONS = [
-    {'value': 'receipt', 'label': 'Receipt'},
-    {'value': 'shipment', 'label': 'Shipment'},
-    {'value': 'adjustment', 'label': 'Adjustment'},
-    {'value': 'transfer', 'label': 'Transfer'},
-    {'value': 'return', 'label': 'Return'},
-    {'value': 'scrap', 'label': 'Scrap'},
-]
-BUNDLE_DIRECTION_OPTIONS = [
-    {'value': 'import', 'label': 'Import'},
-    {'value': 'export', 'label': 'Export'},
-    {'value': 'sync', 'label': 'Sync'},
-]
-CONNECTION_TYPE_OPTIONS = [
-    {'value': 'api', 'label': 'API'},
-    {'value': 'sftp', 'label': 'SFTP'},
-    {'value': 'webhook', 'label': 'Webhook'},
-    {'value': 'manual', 'label': 'Manual'},
-    {'value': 'internal', 'label': 'Internal'},
-]
-
 
 # ── JSON leaf behaviors ─────────────────────────────────────────────────
 # PJPV: derived from Pydantic schemas in common/schemas/transaction_envelopes.py.
@@ -263,13 +86,6 @@ def _build_leaf_behaviors():
 
 LEAF_BEHAVIORS = _build_leaf_behaviors()
 
-# Map selectlist_key → options for JSON leaf select fields
-SELECTLIST_KEY_OPTIONS = {
-    'shipping_status': SHIPPING_STATUS_OPTIONS,
-    'shipping_carrier': SHIPPING_CARRIER_OPTIONS,
-    'shipping_service': SHIPPING_SERVICE_OPTIONS,
-    'weight_unit': WEIGHT_UNIT_OPTIONS,
-}
 
 LEAF_MAP = {
     'order': ['totals', 'shipping'],
@@ -330,13 +146,6 @@ def _inject_leaf_behaviors(model_key, field_map, behaviors):
         for leaf_key, leaf_spec in leaves.items():
             dot_path = f'{json_field}.{leaf_key}'
             entry = dict(leaf_spec)
-            # Resolve selectlist_key → options for select-type leaf fields
-            sl_key = entry.get('selectlist_key')
-            if sl_key and entry.get('type') == 'select' and 'options' not in entry:
-                opts = SELECTLIST_KEY_OPTIONS.get(sl_key)
-                if opts:
-                    entry['options'] = opts
-            behaviors[dot_path] = entry
 
 
 # ── Core: field behavior detection ───────────────────────────────────────
@@ -449,80 +258,59 @@ def get_field_behaviors(model_key, field_map=None, overrides=None):
             behaviors[name] = {'type': 'select'}
             continue
         if name == 'price_level':
-            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': PRICE_LEVEL_OPTIONS}
+            behaviors[name] = {'type': 'select'}
             continue
         if name == 'kanban_column':
-            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': KANBAN_OPTIONS}
+            behaviors[name] = {'type': 'select'}
             continue
         if name == 'type' and model_key == 'cash':
-            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': CASH_TYPE_OPTIONS}
+            behaviors[name] = {'type': 'select'}
             continue
         if name == 'line_type' and model_key.endswith('_line'):
-            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': LINE_TYPE_OPTIONS}
+            behaviors[name] = {'type': 'select'}
             continue
         if name == 'org_type':
-            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': [
-                {'value': 'customer', 'label': 'Customer'}, {'value': 'vendor', 'label': 'Vendor'},
-                {'value': 'manufacturer', 'label': 'Manufacturer'}, {'value': 'employee', 'label': 'Employee'},
-                {'value': 'rep', 'label': 'Rep'},
-            ]}
+            behaviors[name] = {'type': 'select'}
             continue
         if name == 'output_type' and model_key == 'report':
-            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': [
-                {'value': 'print', 'label': 'Print/PDF'}, {'value': 'email', 'label': 'Email'},
-                {'value': 'export', 'label': 'CSV/Excel'}, {'value': 'label', 'label': 'Label'},
-                {'value': 'json', 'label': 'JSON'}, {'value': 'api', 'label': 'API POST'},
-            ]}
+            behaviors[name] = {'type': 'select'}
             continue
         if name == 'editor_type' and model_key == 'report':
-            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': [
-                {'value': 'plain', 'label': 'Plain text'},
-                {'value': 'markdown', 'label': 'Markdown'},
-                {'value': 'html', 'label': 'HTML (rich text)'},
-            ]}
+            behaviors[name] = {'type': 'select'}
             continue
         if name == 'content' and model_key == 'report':
             behaviors[name] = {'type': 'editor'}
             continue
         if name == 'category' and model_key == 'gl_account':
-            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': [
-                {'value': 'cash', 'label': 'Cash'}, {'value': 'receivables', 'label': 'Receivables'},
-                {'value': 'inventory', 'label': 'Inventory'}, {'value': 'payables', 'label': 'Payables'},
-                {'value': 'sales', 'label': 'Sales'}, {'value': 'cogs', 'label': 'COGS'},
-                {'value': 'expense', 'label': 'Expense'}, {'value': 'equity', 'label': 'Equity'},
-            ]}
+            behaviors[name] = {'type': 'select'}
             continue
         if name == 'type' and model_key == 'gl_account':
-            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': [
-                {'value': 'asset', 'label': 'Asset'}, {'value': 'liability', 'label': 'Liability'},
-                {'value': 'equity', 'label': 'Equity'}, {'value': 'revenue', 'label': 'Revenue'},
-                {'value': 'expense', 'label': 'Expense'},
-            ]}
+            behaviors[name] = {'type': 'select'}
             continue
         # ── Best-guess baselines — users add/delete from these ──
         if name == 'priority':
-            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': PRIORITY_OPTIONS}
+            behaviors[name] = {'type': 'select'}
             continue
         if name == 'terms':
-            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': _get_terms_options()}
+            behaviors[name] = {'type': 'select'}
             continue
         if name == 'method' and model_key == 'cash':
-            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': CASH_METHOD_OPTIONS}
+            behaviors[name] = {'type': 'select'}
             continue
         if name == 'category' and model_key == 'cash':
-            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': CASH_CATEGORY_OPTIONS}
+            behaviors[name] = {'type': 'select'}
             continue
         if name == 'category' and model_key == 'project':
-            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': PROJECT_CATEGORY_OPTIONS}
+            behaviors[name] = {'type': 'select'}
             continue
         if name == 'category' and model_key == 'report':
-            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': REPORT_CATEGORY_OPTIONS}
+            behaviors[name] = {'type': 'select'}
             continue
         if name == 'ship_via':
-            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': SHIPPING_CARRIER_OPTIONS}
+            behaviors[name] = {'type': 'select'}
             continue
         if name == 'source_name':
-            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': SOURCE_NAME_OPTIONS}
+            behaviors[name] = {'type': 'select'}
             continue
         if name == 'purpose':
             # A model's purposes are its definition's list (config.selectlists.purpose): the
@@ -531,35 +319,35 @@ def get_field_behaviors(model_key, field_map=None, overrides=None):
             behaviors[name] = {'type': 'text'}
             continue
         if name == 'channel':
-            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': CHANNEL_OPTIONS}
+            behaviors[name] = {'type': 'select'}
             continue
         if name == 'direction' and model_key == 'bundle':
-            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': BUNDLE_DIRECTION_OPTIONS}
+            behaviors[name] = {'type': 'select'}
             continue
         if name == 'direction':
-            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': DIRECTION_OPTIONS}
+            behaviors[name] = {'type': 'select'}
             continue
         if name == 'role' and model_key == 'contact':
-            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': CONTACT_ROLE_OPTIONS}
+            behaviors[name] = {'type': 'select'}
             continue
         if name == 'kind' and model_key == 'item':
-            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': ITEM_KIND_OPTIONS}
+            behaviors[name] = {'type': 'select'}
             continue
         if name == 'type' and model_key == 'gl_journal':
-            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': GL_JOURNAL_TYPE_OPTIONS}
+            behaviors[name] = {'type': 'select'}
             continue
         if name == 'type' and model_key == 'email':
-            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': EMAIL_TYPE_OPTIONS}
+            behaviors[name] = {'type': 'select'}
             continue
         if name == 'type' and model_key == 'domain':
-            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': DOMAIN_TYPE_OPTIONS}
+            behaviors[name] = {'type': 'select'}
             continue
         if name == 'type' and model_key == 'connection':
-            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': CONNECTION_TYPE_OPTIONS}
+            behaviors[name] = {'type': 'select'}
             continue
             continue
         if name == 'movement_type':
-            behaviors[name] = {'type': 'select', 'source': 'inline', 'options': INVENTORY_MOVEMENT_OPTIONS}
+            behaviors[name] = {'type': 'select'}
             continue
         if ftype == 'TextField':
             behaviors[name] = {'type': 'textarea'}

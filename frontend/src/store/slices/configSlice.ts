@@ -14,7 +14,7 @@
  */
 
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import type { SelectOption } from '@/config/selectLists';
+export interface SelectOption { value: string; label: string }
 
 // ---------------------------------------------------------------------------
 // State shape

@@ -140,8 +140,6 @@ def _schema_to_fields(schema_cls):
             entry['precision'] = extra['precision']
         if extra.get('readonly'):
             entry['readonly'] = True
-        if 'selectlist_key' in extra:
-            entry['selectlist_key'] = extra['selectlist_key']
 
         for constraint in (field_info.metadata or []):
             if hasattr(constraint, 'ge') and constraint.ge is not None:

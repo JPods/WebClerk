@@ -23,11 +23,9 @@ import {
   saveRecord,
   deleteRecord,
   getAllWorkbenchFieldsSettings,
-  getResolvedSelectlists,
 } from '@/api/wcapi';
 import type { PjpvFieldMeta } from '@/api/wcapi';
 import { useSchemaFormats, type SchemaFormatMap } from '@/hooks/useSchemaFormats';
-import { getSelectOptions } from '@/config/selectLists';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -100,7 +98,6 @@ function schemaFormat(field: string, schemaMap?: SchemaFormatMap): Partial<Field
   if (format === 'currency') result.width = 100;
   if (format === 'percent') result.width = 80;
   if (format === 'number') result.width = 70;
-  if (meta.selectlist_key) (result as any).selectlist_key = meta.selectlist_key;
   return Object.keys(result).length ? result : null;
 }
 
@@ -797,27 +794,6 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
             allow_custom: true,
           };
         }
-
-        // PJPV selectlist_key auto-lookup: for select fields where PJPV declares
-        // a selectlist_key but no Setting/behavior has provided options yet,
-        // pull options from the frontend SELECT_LIST_MAP.
-        if (schemaFormats && Object.keys(schemaFormats).length) {
-          for (const [field, meta] of Object.entries(schemaFormats)) {
-            const m = meta as PjpvFieldMeta;
-            if (m.selectlist_key && (!behaviors[field]?.options || !(behaviors[field] as any).options?.length)) {
-              const opts = getSelectOptions(m.selectlist_key);
-              if (opts.length) {
-                behaviors[field] = {
-                  ...(behaviors[field] || {}),
-                  type: 'select',
-                  options: opts,
-                  selectlist_key: m.selectlist_key,
-                };
-              }
-            }
-          }
-        }
-
         setFieldBehaviors(behaviors);
         setFieldGroups(faRec?.config?.field_groups || []);
         setDefaultCollapsed(faRec?.config?.default_collapsed || []);
@@ -909,62 +885,6 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
       }).catch(() => {});
     })();
   }, [selectedModel, selectedId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ---------------------------------------------------------------------------
-  // Record-level selectlist override (three-tier inheritance)
-  // When a record has config.selectlist_profile or config.selectlists,
-  // merge those into fieldBehaviors (profile overrides model, record overrides profile).
-  // ---------------------------------------------------------------------------
-  useEffect(() => {
-    if (!selectedRecord || !selectedModel) return;
-    const config = (selectedRecord as any).config;
-    if (!config || typeof config !== 'object') return;
-
-    const hasProfile = config.selectlist_profile && typeof config.selectlist_profile === 'object' && config.selectlist_profile.id;
-    const hasInline = config.selectlists && typeof config.selectlists === 'object';
-
-    if (!hasProfile && !hasInline) return;
-
-    // If there's a profile, fetch resolved lists from backend (all three tiers merged).
-    // If only inline, apply directly without a network call.
-    if (hasProfile) {
-      const recordId = (selectedRecord as any).id;
-      if (!recordId) return;
-      getResolvedSelectlists(selectedModel, recordId).then((resolved) => {
-        if (!resolved || !Object.keys(resolved).length) return;
-        setFieldBehaviors((prev) => {
-          const next = { ...prev };
-          for (const [field, info] of Object.entries(resolved)) {
-            next[field] = {
-              ...(next[field] || {} as any),
-              type: 'select',
-              options: info.options,
-              _selectlist_source: info.source,
-              _selectlist_detail: info.source_detail,
-            };
-          }
-          return next;
-        });
-      });
-    } else if (hasInline) {
-      // Record-level inline selectlists only (no profile to fetch)
-      setFieldBehaviors((prev) => {
-        const next = { ...prev };
-        for (const [field, opts] of Object.entries(config.selectlists)) {
-          if (Array.isArray(opts) && opts.length > 0) {
-            next[field] = {
-              ...(next[field] || {} as any),
-              type: 'select',
-              options: opts,
-              _selectlist_source: 'record',
-              _selectlist_detail: `record.config.selectlists.${field}`,
-            };
-          }
-        }
-        return next;
-      });
-    }
-  }, [selectedRecord, selectedModel]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---------------------------------------------------------------------------
   // Field operations

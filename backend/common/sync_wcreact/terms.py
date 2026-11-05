@@ -1,15 +1,11 @@
 """
 common.sync_wcreact.terms — Canonical cash term definitions and sync logic.
 
-Defines the master list of cash terms (mirroring r25 TERM_RECORDS in
-selectLists.ts) and provides functions to create/update wc3 Term model
-records to match.
+Defines the master list of cash terms and provides functions to create/update wc3 Term
+model records to match. The browser reads terms from the Term records, not from a copy.
 
 Used by:
     python manage.py sync_terms
-
-r25 counterpart:
-    src/config/selectLists.ts  → TERM_RECORDS, getTermByName(), getTermById()
 """
 
 import logging
@@ -17,7 +13,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# Canonical term definitions — mirrors r25 selectLists.ts TERM_RECORDS
+# Canonical term definitions
 # ---------------------------------------------------------------------------
 
 TERM_DEFS = [

@@ -26,10 +26,3 @@ RELATION_KIND_CHOICES: Final[ChoiceList] = (
     ("affiliate", "Affiliate"),
     ("other", "Other"),
 )
-
-DEFAULT_SELECT_LISTS: Final[dict[str, dict[str, ChoiceList]]] = {
-    "OrgBase": {
-        "org_type": ORG_TYPE_CHOICES,
-        "status": ORG_STATUS_CHOICES,
-    },
-}

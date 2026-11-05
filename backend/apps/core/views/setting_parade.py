@@ -230,9 +230,8 @@ class SettingParadePreviewView(APIView):
                     'label': spec.get('label', field_name),
                     'readonly': spec.get('readonly', False),
                     'precision': spec.get('precision'),
-                    'selectlist_key': spec.get('selectlist_key', ''),
                     'options': {k: v for k, v in spec.items()
-                                if k not in ('type', 'label', 'readonly', 'precision', 'selectlist_key')},
+                                if k not in ('type', 'label', 'readonly', 'precision')},
                 })
             preview['behaviors'] = rows
 

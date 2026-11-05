@@ -22,10 +22,3 @@ DOCUMENT_CONFIDENTIALITY_CHOICES: Final[ChoiceList] = (
     ("confidential", "Confidential"),
     ("secret", "Secret"),
 )
-
-DEFAULT_SELECT_LISTS: Final[dict[str, dict[str, ChoiceList]]] = {
-    "Document": {
-        "status": DOCUMENT_STATUS_CHOICES,
-        "confidential": DOCUMENT_CONFIDENTIALITY_CHOICES,
-    },
-}

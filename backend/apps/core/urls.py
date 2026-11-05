@@ -20,7 +20,6 @@ from apps.core.views.manage_view import ManageWcapiView
 from apps.core.views.report_view import ReportDownloadView
 from apps.core.views.report_fields_view import ReportFieldsView
 from apps.core.views.burndown_view import BurndownView
-from apps.core.views.choices import ChoiceCatalogView
 from apps.core.views.selectlist_view import SelectListCatalogView
 from apps.core.views.view_query import ViewQueryView
 from apps.core.views.system_info import SystemInfoView
@@ -74,7 +73,6 @@ urlpatterns = [
     path("wcapi/_save_search/", SaveSearchView.as_view(), name="wcapi-save-search"),
     path("wcapi/_selectlist/", SelectListView.as_view(), name="wcapi-selectlist"),
     path("wcapi/_layout_reset/", LayoutResetView.as_view(), name="wcapi-layout-reset"),
-    path("wcapi/_choices/", ChoiceCatalogView.as_view(), name="wcapi-choice-catalog"),
     path("wcapi/_selectlists/", SelectListCatalogView.as_view(), name="wcapi-selectlist-catalog"),
     path("wcapi/_view/", ViewQueryView.as_view(), name="wcapi-view-query"),
     path("wcapi/_bootstrap/", BootstrapView.as_view(), name="wcapi-bootstrap"),

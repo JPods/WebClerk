@@ -51,17 +51,3 @@ ADDRESS_TYPE_CHOICES: Final[ChoiceList] = (
     ("branch", "Branch"),
     ("other", "Other"),
 )
-
-DEFAULT_SELECT_LISTS: Final[dict[str, dict[str, ChoiceList]]] = {
-    "Email": {
-        "type": EMAIL_TYPE_CHOICES,
-        "opt_out": EMAIL_OPT_OUT_CHOICES,
-    },
-    "Domain": {
-        "type": DOMAIN_TYPE_CHOICES,
-        "status": DOMAIN_STATUS_CHOICES,
-    },
-    "Address": {
-        "address_type": ADDRESS_TYPE_CHOICES,
-    },
-}

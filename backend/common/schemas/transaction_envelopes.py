@@ -408,12 +408,12 @@ class TransactionCommission(BaseModel):
     basis: str = Field(
         "revenue", title="Basis",
         description="Commission basis: revenue, margin, or cost",
-        json_schema_extra={'widget': 'select', 'selectlist_key': 'commission_basis'},
+        json_schema_extra={'widget': 'select'},
     )
     method: str = Field(
         "percentage", title="Method",
         description="Calculation method: flat, percentage, or tiered",
-        json_schema_extra={'widget': 'select', 'selectlist_key': 'commission_method'},
+        json_schema_extra={'widget': 'select'},
     )
     custom: dict = Field(default_factory=dict, title="Custom", description="User-defined extensions — Alice tracks and documents")
 
@@ -1271,7 +1271,7 @@ class OrgAddress(BaseModel):
     type: Optional[str] = Field(
         None, title="Type",
         description="billing, shipping, office, warehouse, other",
-        json_schema_extra={'widget': 'select', 'selectlist_key': 'address_type'},
+        json_schema_extra={'widget': 'select'},
     )
     address1: Optional[str] = Field(None, title="Address 1", json_schema_extra={'widget': 'text'})
     address2: Optional[str] = Field(None, title="Address 2", json_schema_extra={'widget': 'text'})
@@ -1388,7 +1388,7 @@ class ShippingPackage(BaseModel):
 class ShippingWeight(BaseModel):
     """Weight summary for a shipment."""
     gross: float = Field(0.0, ge=0, title="Gross Weight", json_schema_extra={'widget': 'number', 'precision': 1})
-    unit: str = Field('lbs', title="Weight Unit", json_schema_extra={'widget': 'select', 'selectlist_key': 'weight_unit'})
+    unit: str = Field('lbs', title="Weight Unit", json_schema_extra={'widget': 'select'})
     dimensional: float = Field(0.0, ge=0, title="Dimensional Weight", json_schema_extra={'widget': 'number', 'precision': 1})
     billable: float = Field(0.0, ge=0, title="Billable Weight", json_schema_extra={'widget': 'number', 'precision': 1})
 
@@ -1416,10 +1416,10 @@ class TransactionShipping(BaseModel):
 
     packages[] is the operational array (LoadTag/LoadItem from WC2).
     """
-    status: str = Field('', title="Status", description="Fulfillment status: partial, shipped, delivered", json_schema_extra={'widget': 'select', 'selectlist_key': 'shipping_status'})
-    carrier: str = Field('', title="Carrier", description="UPS, FedEx, USPS, freight, etc.", json_schema_extra={'widget': 'select', 'selectlist_key': 'shipping_carrier'})
+    status: str = Field('', title="Status", description="Fulfillment status: partial, shipped, delivered", json_schema_extra={'widget': 'select'})
+    carrier: str = Field('', title="Carrier", description="UPS, FedEx, USPS, freight, etc.", json_schema_extra={'widget': 'select'})
     carrier_account: str = Field('', title="Carrier Account", description="Carrier account number for third-party billing", json_schema_extra={'widget': 'text'})
-    service: str = Field('', title="Service", description="Ground, 2Day, NextDay, etc.", json_schema_extra={'widget': 'select', 'selectlist_key': 'shipping_service'})
+    service: str = Field('', title="Service", description="Ground, 2Day, NextDay, etc.", json_schema_extra={'widget': 'select'})
     package_count: int = Field(0, ge=0, title="Package Count", json_schema_extra={'widget': 'number'})
     warehouse_id: Optional[int] = Field(None, title="Warehouse", description="Where this document's goods leave from or return to; a line's physical.warehouse_id overrides it", json_schema_extra={'widget': 'number'})
     ship_to: ShipToSnapshot = Field(default_factory=ShipToSnapshot)
@@ -1540,8 +1540,8 @@ class FinancialCollection(BaseModel):
     cost_alltime: float = Field(0.0, title="Collection Cost All Time", json_schema_extra={'widget': 'currency', 'precision': 2})
     dt_last_statement: Optional[str] = Field(None, title="Last Statement", json_schema_extra={'widget': 'date'})
     dt_last_contact: Optional[str] = Field(None, title="Last Collection Contact", json_schema_extra={'widget': 'date'})
-    health_score: str = Field("green", title="Health Score", json_schema_extra={'widget': 'select', 'selectlist_key': 'health_score'})
-    velocity_trend: str = Field("stable", title="Velocity Trend", json_schema_extra={'widget': 'select', 'selectlist_key': 'velocity_trend'})
+    health_score: str = Field("green", title="Health Score", json_schema_extra={'widget': 'select'})
+    velocity_trend: str = Field("stable", title="Velocity Trend", json_schema_extra={'widget': 'select'})
 
     class Config:
         extra = "forbid"
@@ -1615,8 +1615,6 @@ def schema_to_leaf_behaviors(schema_cls: type[BaseModel], _prefix: str = '') -> 
             entry['readonly'] = True
         if field_info.description:
             entry['description'] = field_info.description
-        if 'selectlist_key' in extra:
-            entry['selectlist_key'] = extra['selectlist_key']
         behaviors[f'{_prefix}{name}'] = entry
     return behaviors
 

@@ -210,7 +210,6 @@ const BehaviorRow: React.FC<{ field: string; beh: any; leaf?: boolean }> = ({ fi
   const details: string[] = [];
   if (beh.precision != null) details.push(`precision: ${beh.precision}`);
   if (beh.readonly) details.push('readonly');
-  if (beh.selectlist_key) details.push(`key: ${beh.selectlist_key}`);
   if (beh.options?.length) details.push(`${beh.options.length} options`);
   return (
     <tr className={leaf ? 'sp-envelope-leaf' : ''}>
@@ -356,7 +355,6 @@ const PjpvEnvelopesSection: React.FC<{ catalog: Record<string, Record<string, Pj
                       const details: string[] = [];
                       if (m.precision != null) details.push(`precision: ${m.precision}`);
                       if (m.readonly) details.push('readonly');
-                      if (m.selectlist_key) details.push(`key: ${m.selectlist_key}`);
                       if (m.min != null) details.push(`min: ${m.min}`);
                       if (m.max != null) details.push(`max: ${m.max}`);
                       if (m.description) details.push(m.description);

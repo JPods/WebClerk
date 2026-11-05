@@ -43,7 +43,6 @@ KNOWN_VIOLATIONS = frozenset({
     'wcapi/_<str:action>/',
     'wcapi/_bootstrap/',
     'wcapi/_burndown/<int:project_id>/',
-    'wcapi/_choices/',
     'wcapi/_component_parade/',
     'wcapi/_component_parade_preview/',
     'wcapi/_image/<str:model_name>/<str:ida>/<str:size>',

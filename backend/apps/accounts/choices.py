@@ -131,27 +131,3 @@ TAX_SERVICE_PROVIDER_CHOICES: Final[ChoiceList] = (
     ("vertex", "Vertex"),
     ("custom", "Custom"),
 )
-
-DEFAULT_SELECT_LISTS: Final[dict[str, dict[str, ChoiceList]]] = {
-    "GlAccount": {
-        "type": GL_ACCOUNT_TYPE_CHOICES,
-        "category": GL_ACCOUNT_CATEGORY_CHOICES,
-        "used_for": GL_ACCOUNT_USAGE_CHOICES,
-    },
-    "GlJournal": {
-        "source": GL_JOURNAL_SOURCE_CHOICES,
-        "type": GL_JOURNAL_TYPE_CHOICES,
-    },
-    "Erosion": {
-        "category": EROSION_CATEGORY_CHOICES,
-        "source_model": EROSION_SOURCE_MODEL_CHOICES,
-        "parent_model": EROSION_SOURCE_MODEL_CHOICES,
-    },
-    "Ledger": {
-        "source": LEDGER_SOURCE_CHOICES,
-        "model_name": LEDGER_MODEL_CHOICES,
-    },
-    "TaxJurisdiction": {
-        "service_provider": TAX_SERVICE_PROVIDER_CHOICES,
-    },
-}

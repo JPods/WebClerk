@@ -67,34 +67,3 @@ SETTING_SCOPE_CHOICES: Final[ChoiceList] = (
     ("role", "Role — one role within an org"),
     ("user", "User — one person"),
 )
-
-DEFAULT_SELECT_LISTS: Final[dict[str, dict[str, ChoiceList]]] = {
-    "Contact": {
-        "role": CONTACT_ROLE_CHOICES,
-    },
-    "Action": {
-        "kanban_column": ACTION_KANBAN_COLUMNS,
-        "difficulty": ACTION_DIFFICULTY_LEVELS,
-    },
-    "Report": {
-        "output_type": (
-            ("print", "Print / PDF"),
-            ("email", "Email (SMTP)"),
-            ("api", "POST to external endpoint"),
-            ("json", "Return structured JSON"),
-            ("export", "CSV / Excel download"),
-            ("label", "Label / barcode print"),
-            ("merge", "Word / spreadsheet merge"),
-        ),
-        "category": (
-            ("report", "Report"),
-            ("statement", "Statement"),
-            ("list", "List"),
-            ("summary", "Summary"),
-            ("letter", "Letter / Email"),
-            ("label", "Label"),
-            ("export", "Export"),
-            ("utility", "Utility"),
-        ),
-    },
-}

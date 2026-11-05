@@ -33,18 +33,3 @@ ITEM_XREF_SOURCE_CHOICES: Final[ChoiceList] = (
     ("wholesaler", "Wholesaler"),
     ("other", "Other"),
 )
-
-DEFAULT_SELECT_LISTS: Final[dict[str, dict[str, ChoiceList]]] = {
-    "Item": {
-        "kind": ITEM_KIND_CHOICES,
-    },
-    "InventoryMovement": {
-        "movement_type": INVENTORY_MOVEMENT_TYPE_CHOICES,
-    },
-    "InventoryAdjustmentProcessorRun": {
-        "run_type": PROCESSOR_RUN_TYPE_CHOICES,
-    },
-    "ItemXRef": {
-        "source": ITEM_XREF_SOURCE_CHOICES,
-    },
-}

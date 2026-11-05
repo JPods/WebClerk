@@ -61,16 +61,3 @@ BUNDLE_ALERT_CHOICES: Final[ChoiceList] = (
     ("warning", "Warning"),
     ("critical", "Critical"),
 )
-
-DEFAULT_SELECT_LISTS: Final[dict[str, dict[str, ChoiceList]]] = {
-    "Connection": {
-        "type": CONNECTION_TYPE_CHOICES,
-        "status": CONNECTION_STATUS_CHOICES,
-        "purpose": CONNECTION_PURPOSE_CHOICES,
-    },
-    "Bundle": {
-        "direction": BUNDLE_DIRECTION_CHOICES,
-        "status": BUNDLE_STATUS_CHOICES,
-        "alert": BUNDLE_ALERT_CHOICES,
-    },
-}

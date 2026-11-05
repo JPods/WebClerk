@@ -235,7 +235,6 @@ export type PjpvFieldMeta = {
   description?: string;
   min?: number;
   max?: number;
-  selectlist_key?: string;  // key into SELECT_LIST_MAP for select widgets
 };
 
 export type PjpvCatalog = Record<string, Record<string, PjpvFieldMeta>>;
@@ -1006,36 +1005,6 @@ export async function logRefsMismatch(payload: {
     await apiClient.post("/wcapi/_refs_mismatch/", payload);
   } catch (err) {
     console.warn("[wcapi.logRefsMismatch] Failed to log mismatch:", err);
-  }
-}
-
-/**
- * Resolve three-tier selectlists for a specific record.
- * Returns: {selectlists: {field: {options, source, source_detail}}, ...}
- *
- * Three-tier inheritance (most specific wins):
- *   1. Model-level Setting selectlists
- *   2. record.config.selectlist_profile → Setting selectlists
- *   3. record.config.selectlists (inline on the record)
- */
-export interface ResolvedSelectList {
-  options: { value: string; label: string }[];
-  source: 'model' | 'profile' | 'record';
-  source_detail: string;
-}
-
-export async function getResolvedSelectlists(
-  modelName: string,
-  recordId: number,
-): Promise<Record<string, ResolvedSelectList>> {
-  try {
-    const res = await apiClient.get('/wcapi/_selectlists/', {
-      params: { model_name: modelName, record_id: recordId },
-    });
-    const data = res.data;
-    return data?.selectlists ?? {};
-  } catch {
-    return {};
   }
 }
 

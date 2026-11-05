@@ -61,18 +61,3 @@ CASH_STATUS_CHOICES: Final[ChoiceList] = (
     ("refunded", "Refunded"),
     ("partially_refunded", "Partially Refunded"),
 )
-
-DEFAULT_SELECT_LISTS: Final[dict[str, dict[str, ChoiceList]]] = {
-    "TransactionBaseModel": {
-        "status": TRANSACTION_STATUS_CHOICES,
-        "parent_model": TRANSACTION_PARENT_MODEL_CHOICES,
-    },
-    "Project": {
-        "status": PROJECT_STATUS_CHOICES,
-        "attention": PROJECT_ATTENTION_CHOICES,
-    },
-    "Cash": {
-        "gateway": CASH_GATEWAY_CHOICES,
-        "status": CASH_STATUS_CHOICES,
-    },
-}

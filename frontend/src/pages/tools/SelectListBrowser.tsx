@@ -214,15 +214,9 @@ const SelectListBrowser: React.FC = () => {
     let cancelled = false;
     const doFetch = async () => {
       try {
-        // Get auth token from apiClient defaults
-        const token = apiClient.defaults.headers?.common?.['Authorization'] ||
-          (apiClient as any).defaults?.headers?.Authorization || '';
-        const headers: Record<string, string> = { 'Accept': 'application/json' };
-        if (token) headers['Authorization'] = String(token);
-        const res = await window.fetch('/wcapi/_selectlists/', { headers, credentials: 'include' });
+        const res = await apiClient.get('/wcapi/_selectlists/');
         if (cancelled) return;
-        const json = await res.json();
-        const r = json?.data?.rows || json?.rows || [];
+        const r = res.data?.data?.rows || res.data?.rows || [];
         setRows(r);
       } catch (err: any) {
         console.error('[SLB] fetch failed:', err);

@@ -1,15 +1,14 @@
 """
 audit_select_lists — export and review all select lists organized by use.
 
-Shows every select-type field across all models: where the options come from
-(hardcoded in service, Setting override, or config.selectlists), how many
-options, and the actual values. Flags inconsistencies.
+Shows every select list across all models — each model's own, in its definition
+(config.selectlists, services/select_lists.py; the one source since readme 105) — how many
+options, and the values. Flags inconsistencies.
 
 Flags:
-  EMPTY       — select field with no options
-  DUPLICATE   — identical options defined in multiple places for same field
+  EMPTY       — a list with no options
   DRIFT       — same field name on different models has different option sets
-  ORPHAN      — selectlists entry for a field that isn't typed as select
+  ORPHAN      — a list for a name the model does not have
 
 Usage:
     python manage.py audit_select_lists                # summary
@@ -26,16 +25,16 @@ from django.core.management.base import BaseCommand
 
 from apps.core.constants.model_registry import MODEL_REGISTRY, get_model_meta
 from apps.core.models.setting import Setting
-from apps.core.services.field_behaviors import (
-    get_field_behaviors, get_model_field_map,
-)
 
 
 def _options_key(options):
     """Canonical string for comparing option sets."""
     if not options:
         return ''
-    return '|'.join(f'{o.get("value", "")}={o.get("label", "")}' for o in sorted(options, key=lambda o: o.get('value', '')))
+    def pair(o):
+        v, l = (o.get('value', ''), o.get('label', '')) if isinstance(o, dict) else (o, o)
+        return (str(v), str(l))   # values may be numbers (difficulty 1, 4, 8) beside words
+    return '|'.join(f'{v}={l}' for v, l in sorted(pair(o) for o in options))
 
 
 # Fields where different option sets per model are by design, not accident.
@@ -166,56 +165,31 @@ class Command(BaseCommand):
         # Track options by field name across models for drift detection
         field_options_map = {}  # field_name -> {options_key: [model, ...]}
 
+        from apps.core.services import field_leaves as fl
         for model_key in sorted(models.keys()):
             meta = get_model_meta(model_key)
             if not meta:
                 continue
-
-            field_map = get_model_field_map(model_key)
-            if not field_map:
-                continue
-
-            # Compute behaviors (without overrides — raw detection)
-            computed = get_field_behaviors(model_key, field_map)
-
-            # Load stored overrides
-            stored_behaviors = {}
-            stored_select_lists = {}
+            # One source: the model definition's own lists (services/select_lists.py).
             model_setting = Setting.objects.filter(
-                purpose='wc:model', parent_model=meta.key,
-                is_active=True, scope='system',
+                purpose='wc:model', parent_model=meta.key, is_active=True, scope='system',
             ).first()
+            stored_select_lists = {}
             if model_setting and isinstance(model_setting.config, dict):
-                stored_behaviors = model_setting.config.get('behaviors', {})
-                stored_select_lists = model_setting.config.get('selectlists', {})
+                stored_select_lists = model_setting.config.get('selectlists') or {}
+            leaves = fl.model_leaves(model_key)['leaves']
+            try:
+                names = {f.name for f in meta.import_model()._meta.get_fields()}
+            except Exception:
+                names = set()
 
-            # Find all select-type fields
-            for field_name, behavior in computed.items():
-                if behavior.get('type') != 'select':
-                    continue
-
-                opts = behavior.get('options', [])
-                source = 'service'
-
-                # Check if override exists
-                stored_beh = stored_behaviors.get(field_name, {})
-                if stored_beh.get('type') == 'select' and stored_beh.get('options'):
-                    stored_opts = stored_beh['options']
-                    if _options_key(stored_opts) != _options_key(opts):
-                        source = 'override'
-                        opts = stored_opts
-
-                # Check config.selectlists (the definition's own list wins)
-                sl_entry = stored_select_lists.get(field_name)
-                if isinstance(sl_entry, list) and sl_entry:
-                    source = 'selectlists'
-                    opts = sl_entry
-
+            for field_name, opts in sorted(stored_select_lists.items()):
+                opts = opts if isinstance(opts, list) else []
                 ok = _options_key(opts)
                 entry = {
                     'model': model_key,
                     'field': field_name,
-                    'source': source,
+                    'source': 'selectlists',
                     'count': len(opts),
                     'options': opts,
                     'options_key': ok,
@@ -237,14 +211,13 @@ class Command(BaseCommand):
                         'detail': 'Select field with no options',
                     })
 
-            # ORPHAN flag — selectlists entry for non-select field
-            for sl_field in stored_select_lists:
-                computed_beh = computed.get(sl_field, {})
-                if computed_beh.get('type') != 'select':
+                # ORPHAN flag — a list for a name the model does not have
+                if (field_name not in names and field_name not in leaves
+                        and not any(l.startswith(field_name + '.') for l in leaves)):
                     all_flags.append({
-                        'model': model_key, 'field': sl_field,
+                        'model': model_key, 'field': field_name,
                         'flag': 'ORPHAN',
-                        'detail': f'select_lists entry exists but field type is {computed_beh.get("type", "unknown")}',
+                        'detail': 'selectlists names a field the model does not have',
                     })
 
         # DRIFT detection — same field name, different options across models

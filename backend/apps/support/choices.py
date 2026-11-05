@@ -27,11 +27,3 @@ MARKET_EFFORT_CHOICES: Final[ChoiceList] = (
     ("social", "Social"),
     ("other", "Other"),
 )
-
-DEFAULT_SELECT_LISTS: Final[dict[str, dict[str, ChoiceList]]] = {
-    "Campaign": {
-        "pace": CAMPAIGN_PACE_CHOICES,
-        "size": CAMPAIGN_SIZE_CHOICES,
-        "market_effort": MARKET_EFFORT_CHOICES,
-    },
-}
