@@ -15,14 +15,7 @@
      {
       "type": "select",
       "field": "difficulty",
-      "label": "difficulty",
-      "options": [
-       1,
-       4,
-       8,
-       13,
-       21
-      ]
+      "label": "difficulty"
      },
      {
       "field": "duration",
@@ -92,32 +85,12 @@
      {
       "type": "select",
       "field": "action_type",
-      "label": "action_type",
-      "options": [
-       "call",
-       "email",
-       "visit",
-       "meeting",
-       "demo",
-       "marketing",
-       "referral",
-       "social",
-       "event",
-       "follow_up",
-       "other"
-      ]
+      "label": "action_type"
      },
      {
       "type": "select",
       "field": "kanban_column",
-      "label": "kanban_column",
-      "options": [
-       "Backlog",
-       "Planning",
-       "InProcess",
-       "Review",
-       "Complete"
-      ]
+      "label": "kanban_column"
      }
     ]
    },
@@ -1047,24 +1020,12 @@
      {
       "type": "select",
       "field": "classification",
-      "label": "classification",
-      "options": [
-       "technical",
-       "operational",
-       "commercial",
-       "personal"
-      ]
+      "label": "classification"
      },
      {
       "type": "select",
       "field": "clearance",
-      "label": "clearance",
-      "options": [
-       "local",
-       "pending",
-       "cleared",
-       "blocked"
-      ]
+      "label": "clearance"
      },
      {
       "field": "context",
@@ -1127,17 +1088,7 @@
      {
       "type": "select",
       "field": "kind",
-      "label": "kind",
-      "options": [
-       "feedback",
-       "help_lookup",
-       "chat",
-       "question",
-       "answer",
-       "observation",
-       "directive",
-       "forward"
-      ]
+      "label": "kind"
      }
     ]
    },
@@ -1472,21 +1423,7 @@
      {
       "type": "select",
       "field": "category",
-      "label": "category",
-      "options": [
-       "pattern",
-       "anomaly",
-       "coaching",
-       "alert",
-       "search",
-       "layout",
-       "performance",
-       "schema",
-       "console",
-       "escalation",
-       "pii_correction",
-       "bill_question"
-      ]
+      "label": "category"
      },
      {
       "field": "contact",
@@ -1515,12 +1452,7 @@
      {
       "type": "select",
       "field": "priority",
-      "label": "priority",
-      "options": [
-       0,
-       1,
-       2
-      ]
+      "label": "priority"
      },
      {
       "field": "record_id",
@@ -1533,12 +1465,7 @@
      {
       "type": "select",
       "field": "source",
-      "label": "source",
-      "options": [
-       "alice",
-       "wchq",
-       "power_user"
-      ]
+      "label": "source"
      }
     ]
    },
@@ -1912,24 +1839,12 @@
      {
       "type": "select",
       "field": "preset_type",
-      "label": "preset_type",
-      "options": [
-       "search",
-       "layout",
-       "dashboard",
-       "workflow",
-       "report"
-      ]
+      "label": "preset_type"
      },
      {
       "type": "select",
       "field": "source",
-      "label": "source",
-      "options": [
-       "alice",
-       "wchq",
-       "power_user"
-      ]
+      "label": "source"
      },
      {
       "field": "use_count",
@@ -3108,11 +3023,7 @@
      {
       "type": "select",
       "field": "gateway",
-      "label": "gateway",
-      "options": [
-       "manual",
-       "spreedly"
-      ]
+      "label": "gateway"
      },
      {
       "field": "gateway_payment_intent_id",
@@ -3169,11 +3080,7 @@
      {
       "type": "select",
       "field": "type",
-      "label": "type",
-      "options": [
-       "received",
-       "expense"
-      ]
+      "label": "type"
      },
      {
       "field": "vendor",
@@ -4038,13 +3945,7 @@
      {
       "type": "select",
       "field": "adjustment_type",
-      "label": "adjustment_type",
-      "options": [
-       "percent_off",
-       "fixed_price",
-       "amount_off",
-       "price_level"
-      ]
+      "label": "adjustment_type"
      },
      {
       "field": "adjustment_value",
@@ -4136,12 +4037,7 @@
      {
       "field": "adjustment_type",
       "label": "adjustment",
-      "type": "select",
-      "options": [
-       "percent_off",
-       "amount_off",
-       "fixed_price"
-      ]
+      "type": "select"
      },
      {
       "field": "adjustment_value",
@@ -4492,15 +4388,7 @@
      {
       "type": "select",
       "field": "type",
-      "label": "type",
-      "options": [
-       "api",
-       "sftp",
-       "database",
-       "webhook",
-       "manual",
-       "internal"
-      ]
+      "label": "type"
      }
     ]
    },
@@ -4920,12 +4808,7 @@
      {
       "type": "select",
       "field": "role",
-      "label": "role",
-      "options": [
-       "user",
-       "employee",
-       "admin"
-      ]
+      "label": "role"
      }
     ]
    },
@@ -5781,15 +5664,7 @@
      {
       "type": "select",
       "field": "org_type",
-      "label": "org_type",
-      "options": [
-       "customer",
-       "vendor",
-       "rep",
-       "employee",
-       "manufacturer",
-       "other"
-      ]
+      "label": "org_type"
      }
     ]
    },
@@ -6545,14 +6420,7 @@
      {
       "type": "select",
       "field": "confidential",
-      "label": "confidential",
-      "options": [
-       "public",
-       "internal",
-       "restricted",
-       "confidential",
-       "secret"
-      ]
+      "label": "confidential"
      },
      {
       "field": "copyright",
@@ -6989,15 +6857,7 @@
      {
       "type": "select",
       "field": "type",
-      "label": "type",
-      "options": [
-       "website",
-       "linkedin",
-       "facebook",
-       "twitter",
-       "github",
-       "other"
-      ]
+      "label": "type"
      }
     ]
    },
@@ -7322,25 +7182,12 @@
      {
       "type": "select",
       "field": "opt_out",
-      "label": "opt_out",
-      "options": [
-       "opted_out",
-       "bounced",
-       "invalid",
-       "spam_complaint"
-      ]
+      "label": "opt_out"
      },
      {
       "type": "select",
       "field": "type",
-      "label": "type",
-      "options": [
-       "work",
-       "personal",
-       "support",
-       "billing",
-       "other"
-      ]
+      "label": "type"
      }
     ]
    },
@@ -7788,15 +7635,7 @@
      {
       "type": "select",
       "field": "org_type",
-      "label": "org_type",
-      "options": [
-       "customer",
-       "vendor",
-       "rep",
-       "employee",
-       "manufacturer",
-       "other"
-      ]
+      "label": "org_type"
      }
     ]
    },
@@ -8544,17 +8383,7 @@
      {
       "type": "select",
       "field": "category",
-      "label": "category",
-      "options": [
-       "cash",
-       "receivables",
-       "payables",
-       "inventory",
-       "sales",
-       "cogs",
-       "expense",
-       "other"
-      ]
+      "label": "category"
      },
      {
       "field": "division",
@@ -8567,27 +8396,12 @@
      {
       "type": "select",
       "field": "type",
-      "label": "type",
-      "options": [
-       "asset",
-       "liability",
-       "equity",
-       "revenue",
-       "expense",
-       "contra"
-      ]
+      "label": "type"
      },
      {
       "type": "select",
       "field": "used_for",
-      "label": "used_for",
-      "options": [
-       "posting",
-       "reporting",
-       "tax",
-       "consolidation",
-       "other"
-      ]
+      "label": "used_for"
      }
     ]
    },
@@ -8964,14 +8778,7 @@
      {
       "type": "select",
       "field": "source",
-      "label": "source",
-      "options": [
-       "manual",
-       "import",
-       "automation",
-       "adjustment",
-       "integration"
-      ]
+      "label": "source"
      },
      {
       "field": "source_model",
@@ -8980,15 +8787,7 @@
      {
       "type": "select",
       "field": "type",
-      "label": "type",
-      "options": [
-       "general",
-       "sales",
-       "purchase",
-       "payroll",
-       "inventory",
-       "other"
-      ]
+      "label": "type"
      }
     ]
    },
@@ -9403,11 +9202,7 @@
      {
       "type": "select",
       "field": "run_type",
-      "label": "run_type",
-      "options": [
-       "global",
-       "stack"
-      ]
+      "label": "run_type"
      },
      {
       "field": "skipped_locked",
@@ -10444,13 +10239,7 @@
      {
       "type": "select",
       "field": "invoice_type",
-      "label": "invoice_type",
-      "options": [
-       "invoice",
-       "proforma",
-       "credit_note",
-       "deposit"
-      ]
+      "label": "invoice_type"
      },
      {
       "field": "manufacturer",
@@ -10463,15 +10252,7 @@
      {
       "type": "select",
       "field": "parent_model",
-      "label": "parent_model",
-      "options": [
-       "quote",
-       "order",
-       "invoice",
-       "purchase",
-       "workorder",
-       "requisition"
-      ]
+      "label": "parent_model"
      },
      {
       "field": "price_level",
@@ -11052,14 +10833,7 @@
      {
       "type": "select",
       "field": "line_type",
-      "label": "line_type",
-      "options": [
-       "product",
-       "commission",
-       "tax",
-       "shipping",
-       "discount"
-      ]
+      "label": "line_type"
      },
      {
       "field": "physical",
@@ -11550,12 +11324,7 @@
      {
       "type": "select",
       "field": "kind",
-      "label": "kind",
-      "options": [
-       "physical",
-       "service",
-       "bundle"
-      ]
+      "label": "kind"
      },
      {
       "field": "sku",
@@ -12361,12 +12130,7 @@
      {
       "type": "select",
       "field": "source",
-      "label": "source",
-      "options": [
-       "manufacturer",
-       "wholesaler",
-       "other"
-      ]
+      "label": "source"
      },
      {
       "field": "source_model_name",
@@ -12689,13 +12453,7 @@
      {
       "type": "select",
       "field": "batch_type",
-      "label": "batch_type",
-      "options": [
-       "full",
-       "invoice",
-       "cash",
-       "purchase"
-      ]
+      "label": "batch_type"
      },
      {
       "field": "count_absorbed",
@@ -13118,15 +12876,7 @@
      {
       "type": "select",
       "field": "model_name",
-      "label": "model_name",
-      "options": [
-       "invoice",
-       "credit_memo",
-       "debit_memo",
-       "purchase",
-       "cash",
-       "other"
-      ]
+      "label": "model_name"
      },
      {
       "field": "org",
@@ -13139,15 +12889,7 @@
      {
       "type": "select",
       "field": "source",
-      "label": "source",
-      "options": [
-       "invoice",
-       "cash",
-       "journal",
-       "adjustment",
-       "import",
-       "other"
-      ]
+      "label": "source"
      },
      {
       "field": "terms",
@@ -13594,17 +13336,7 @@
      {
       "type": "select",
       "field": "subject_type",
-      "label": "subject_type",
-      "options": [
-       "user",
-       "model",
-       "flow",
-       "sync",
-       "coaching",
-       "security",
-       "risk",
-       "system"
-      ]
+      "label": "subject_type"
      },
      {
       "field": "summary",
@@ -14746,15 +14478,7 @@
      {
       "type": "select",
       "field": "org_type",
-      "label": "org_type",
-      "options": [
-       "customer",
-       "vendor",
-       "rep",
-       "employee",
-       "manufacturer",
-       "other"
-      ]
+      "label": "org_type"
      }
     ]
    },
@@ -15172,15 +14896,7 @@
      {
       "type": "select",
       "field": "parent_model",
-      "label": "parent_model",
-      "options": [
-       "quote",
-       "order",
-       "invoice",
-       "purchase",
-       "workorder",
-       "requisition"
-      ]
+      "label": "parent_model"
      },
      {
       "field": "price_level",
@@ -15747,14 +15463,7 @@
      {
       "type": "select",
       "field": "line_type",
-      "label": "line_type",
-      "options": [
-       "product",
-       "commission",
-       "tax",
-       "shipping",
-       "discount"
-      ]
+      "label": "line_type"
      },
      {
       "field": "order",
@@ -16280,15 +15989,7 @@
      {
       "type": "select",
       "field": "org_type",
-      "label": "org_type",
-      "options": [
-       "customer",
-       "vendor",
-       "rep",
-       "employee",
-       "manufacturer",
-       "other"
-      ]
+      "label": "org_type"
      }
     ]
    },
@@ -17433,13 +17134,7 @@
      {
       "type": "select",
       "field": "attention",
-      "label": "attention",
-      "options": [
-       "low",
-       "normal",
-       "high",
-       "critical"
-      ]
+      "label": "attention"
      },
      {
       "field": "burndown",
@@ -17930,15 +17625,7 @@
      {
       "type": "select",
       "field": "parent_model",
-      "label": "parent_model",
-      "options": [
-       "quote",
-       "order",
-       "invoice",
-       "purchase",
-       "workorder",
-       "requisition"
-      ]
+      "label": "parent_model"
      },
      {
       "field": "price_level",
@@ -18498,14 +18185,7 @@
      {
       "type": "select",
       "field": "line_type",
-      "label": "line_type",
-      "options": [
-       "product",
-       "commission",
-       "tax",
-       "shipping",
-       "discount"
-      ]
+      "label": "line_type"
      },
      {
       "field": "physical",
@@ -19290,15 +18970,7 @@
      {
       "type": "select",
       "field": "parent_model",
-      "label": "parent_model",
-      "options": [
-       "quote",
-       "order",
-       "invoice",
-       "purchase",
-       "workorder",
-       "requisition"
-      ]
+      "label": "parent_model"
      },
      {
       "field": "price_level",
@@ -19873,14 +19545,7 @@
      {
       "type": "select",
       "field": "line_type",
-      "label": "line_type",
-      "options": [
-       "product",
-       "commission",
-       "tax",
-       "shipping",
-       "discount"
-      ]
+      "label": "line_type"
      },
      {
       "field": "physical",
@@ -20335,12 +20000,7 @@
      {
       "type": "select",
       "field": "source_type",
-      "label": "source_type",
-      "options": [
-       "purchase_receipt",
-       "workorder_completion",
-       "inventory_adjustment"
-      ]
+      "label": "source_type"
      },
      {
       "field": "allocations.vat",
@@ -20947,14 +20607,7 @@
      {
       "type": "select",
       "field": "line_type",
-      "label": "line_type",
-      "options": [
-       "product",
-       "commission",
-       "tax",
-       "shipping",
-       "discount"
-      ]
+      "label": "line_type"
      },
      {
       "field": "lot",
@@ -21480,15 +21133,7 @@
      {
       "type": "select",
       "field": "org_type",
-      "label": "org_type",
-      "options": [
-       "customer",
-       "vendor",
-       "rep",
-       "employee",
-       "manufacturer",
-       "other"
-      ]
+      "label": "org_type"
      }
     ]
    },
@@ -21871,21 +21516,7 @@
      {
       "type": "select",
       "field": "category",
-      "label": "category",
-      "options": [
-       "form",
-       "report",
-       "statement",
-       "list",
-       "summary",
-       "letter",
-       "label",
-       "export",
-       "function",
-       "utility",
-       "tally",
-       "dashboard"
-      ]
+      "label": "category"
      },
      {
       "field": "content",
@@ -21894,12 +21525,7 @@
      {
       "type": "select",
       "field": "editor_type",
-      "label": "editor_type",
-      "options": [
-       "plain",
-       "markdown",
-       "html"
-      ]
+      "label": "editor_type"
      },
      {
       "field": "explanation",
@@ -21916,17 +21542,7 @@
      {
       "type": "select",
       "field": "output_type",
-      "label": "output_type",
-      "options": [
-       "print",
-       "screen",
-       "email",
-       "api",
-       "json",
-       "export",
-       "label",
-       "merge"
-      ]
+      "label": "output_type"
      },
      {
       "field": "paths",
@@ -22681,14 +22297,7 @@
      {
       "type": "select",
       "field": "line_type",
-      "label": "line_type",
-      "options": [
-       "product",
-       "commission",
-       "tax",
-       "shipping",
-       "discount"
-      ]
+      "label": "line_type"
      },
      {
       "field": "physical",
@@ -23458,13 +23067,7 @@
      {
       "type": "select",
       "field": "scope",
-      "label": "scope",
-      "options": [
-       "system",
-       "org",
-       "role",
-       "user"
-      ]
+      "label": "scope"
      }
     ]
    },
@@ -23794,12 +23397,7 @@
      {
       "type": "select",
       "field": "classification",
-      "label": "classification",
-      "options": [
-       "unknown",
-       "business",
-       "personal"
-      ]
+      "label": "classification"
      },
      {
       "field": "contact",
@@ -23812,12 +23410,7 @@
      {
       "type": "select",
       "field": "ledger",
-      "label": "ledger",
-      "options": [
-       "post",
-       "skip",
-       "review"
-      ]
+      "label": "ledger"
      },
      {
       "field": "merchant",
@@ -24219,13 +23812,7 @@
      {
       "type": "select",
       "field": "alert",
-      "label": "alert",
-      "options": [
-       "none",
-       "info",
-       "warning",
-       "critical"
-      ]
+      "label": "alert"
      },
      {
       "field": "conflicts",
@@ -24238,12 +23825,7 @@
      {
       "type": "select",
       "field": "direction",
-      "label": "direction",
-      "options": [
-       "push",
-       "pull",
-       "sync"
-      ]
+      "label": "direction"
      },
      {
       "field": "duration",
@@ -24957,13 +24539,7 @@
      {
       "type": "select",
       "field": "service_provider",
-      "label": "service_provider",
-      "options": [
-       "avalara",
-       "taxjar",
-       "vertex",
-       "custom"
-      ]
+      "label": "service_provider"
      },
      {
       "field": "tax_jurisdiction",
@@ -25694,14 +25270,7 @@
      {
       "type": "select",
       "field": "channel",
-      "label": "channel",
-      "options": [
-       "call",
-       "email",
-       "visit",
-       "text",
-       "meeting"
-      ]
+      "label": "channel"
      },
      {
       "field": "contact_id",
@@ -25710,11 +25279,7 @@
      {
       "type": "select",
       "field": "direction",
-      "label": "direction",
-      "options": [
-       "out",
-       "in"
-      ]
+      "label": "direction"
      },
      {
       "field": "duration",
@@ -25751,14 +25316,7 @@
      {
       "type": "select",
       "field": "outcome",
-      "label": "outcome",
-      "options": [
-       "connected",
-       "voicemail",
-       "no_answer",
-       "bounced",
-       "rescheduled"
-      ]
+      "label": "outcome"
      },
      {
       "field": "plan",
@@ -26625,15 +26183,7 @@
      {
       "type": "select",
       "field": "org_type",
-      "label": "org_type",
-      "options": [
-       "customer",
-       "vendor",
-       "rep",
-       "employee",
-       "manufacturer",
-       "other"
-      ]
+      "label": "org_type"
      }
     ]
    },
@@ -27732,15 +27282,7 @@
      {
       "type": "select",
       "field": "parent_model",
-      "label": "parent_model",
-      "options": [
-       "quote",
-       "order",
-       "invoice",
-       "purchase",
-       "workorder",
-       "requisition"
-      ]
+      "label": "parent_model"
      },
      {
       "field": "price_level",
@@ -28295,14 +27837,7 @@
      {
       "type": "select",
       "field": "line_type",
-      "label": "line_type",
-      "options": [
-       "product",
-       "commission",
-       "tax",
-       "shipping",
-       "discount"
-      ]
+      "label": "line_type"
      },
      {
       "field": "physical",

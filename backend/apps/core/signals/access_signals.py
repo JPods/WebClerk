@@ -58,7 +58,7 @@ def _clear(sender, instance, **kwargs):
         clear_cache(instance.parent_model)
     if instance.purpose == 'wc:company_profile':
         from apps.core.services.cache import cache_service
-        from apps.products.services.price_resolver import COMPANY_CACHE
+        from apps.core.services.company_profile import COMPANY_CACHE
         cache_service.invalidate_namespace(COMPANY_CACHE)
 
 

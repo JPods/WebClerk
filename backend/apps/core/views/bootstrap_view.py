@@ -128,7 +128,6 @@ class BootstrapView(APIView):
         # Candidate tree — everything that COULD be sent. The allowlist decides what is.
         candidates = {
             'currency': prefs.get('currency', {}),
-            'order_defaults': prefs.get('order_defaults', {}),
             'price_levels': prefs.get('price_levels', {}),
             'inventory': prefs.get('inventory', {}),
             # System costing defaults live in config.inventory, shown in settings. A new

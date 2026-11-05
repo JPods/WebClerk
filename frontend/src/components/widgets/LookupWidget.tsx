@@ -1,6 +1,9 @@
 /**
  * LookupWidget — a foreign key found by search. Shows the record's name; typing searches
  * the model; a miss offers to add the typed name through the door.
+ *
+ * A lookup stored by ida (terms) is a code list: a dozen records a person picks from a
+ * select, never searches (Bill, 2026-11-05). The list is the model's active records.
  */
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import type { WidgetProps } from "./types";
@@ -28,6 +31,15 @@ export const LookupWidget: React.FC<WidgetProps> = ({ name, value: v, onChange, 
   const [loading, setLoading] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const isList = valueField === "ida";
+  const [list, setList] = useState<any[]>([]);
+
+  // A code list: every active record of the model, once
+  useEffect(() => {
+    if (!isList || !model) return;
+    getRecords(model, { limit: 200 }).then((res: any) => setList((res?.results || []).filter((r: any) => r.is_active !== false)))
+      .catch(() => setList([]));
+  }, [isList, model]);
 
   // The name behind the value, on mount or when it changes: by id, or by ida (a term)
   useEffect(() => {
@@ -74,6 +86,17 @@ export const LookupWidget: React.FC<WidgetProps> = ({ name, value: v, onChange, 
   }, []);
 
   if (mode === "print") return <span className="text-[inherit]">{displayName || (v ? (valueField === "ida" ? String(v) : `#${v}`) : "—")}</span>;
+  if (isList) {
+    const current = v == null ? "" : String(v);
+    return (
+      <select name={name} className={className || s} value={current} disabled={disabled}
+        onChange={e => onChange(e.target.value || null)}>
+        <option value="">--</option>
+        {list.map(r => <option key={r.ida} value={r.ida}>{shown(r)}</option>)}
+        {current && !list.some(r => r.ida === current) && <option value={current}>{current}</option>}
+      </select>
+    );
+  }
   return (
     <div ref={wrapRef} style={{ position: "relative", width: "100%" }}>
       <input name={name} className={className || s} value={displayName || query}

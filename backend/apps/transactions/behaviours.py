@@ -15,6 +15,7 @@ What moved, and where:
 from __future__ import annotations
 
 import logging
+import time
 from typing import Any, Dict, List
 
 from apps.core.services.behaviours import HookContext, ModelBehaviour, register
@@ -126,7 +127,46 @@ class DocumentBehaviour(ModelBehaviour):
 
 
 class OrderBehaviour(DocumentBehaviour):
-    """An order records the discount it gave away."""
+    """An order is born with the company's defaults and takes its customer's (Bill, 2026-11-05).
+
+    Born (the `new` verb): dt_needed = now + ``default.order_new.days``, priority =
+    ``default.order_new.priority`` — the company profile's. When its customer is set or
+    changed: terms = the customer's, else the company's ``default.terms``; price_level = the
+    customer's, else retail. A value the same payload carries is the person's and stays. The
+    server computes; the form shows what the save returns. It records the discount it gave away.
+    """
+
+    def before_save(self, ctx: HookContext) -> None:
+        super().before_save(ctx)
+        from apps.core.services.company_profile import company_config
+        obj = ctx.obj
+        default = company_config('default')
+        order_new = default.get('order_new') if isinstance(default.get('order_new'), dict) else {}
+        if not ctx.is_update:
+            days = order_new.get('days')
+            if not obj.dt_needed and 'dt_needed' not in ctx.data and days not in (None, ''):
+                obj.dt_needed = int(time.time() * 1000) + int(float(days) * 86_400_000)
+            if not obj.priority and order_new.get('priority'):
+                obj.priority = order_new['priority']
+        if obj.customer_id and (not ctx.is_update or 'customer' in ctx.changed):   # the FK's field name
+            customer = obj.customer
+            if 'terms' not in ctx.data:            # the payload's keys: what the person typed
+                obj.terms = customer.terms or self._company_terms(default) or obj.terms
+            if 'price_level' not in ctx.data:
+                obj.price_level = customer.price_level or obj.price_level
+        if not obj.price_level:
+            obj.price_level = 'retail'
+
+    @staticmethod
+    def _company_terms(default: dict) -> str:
+        """``default.terms`` as the Term's own ida; a profile naming no term is a configuration
+        fault, refused where it bites with the valid idas (fail fast, never silent)."""
+        from apps.accounts.services.terms_ledger import named_term_ida
+        try:
+            return named_term_ida(default.get('terms'))
+        except ValueError as e:
+            raise Refused(400, 'invalid_terms',
+                          f'The company profile default.terms is wrong: {e}', [f'terms: {e}'])
 
     def after_save(self, ctx: HookContext) -> None:
         from apps.accounts.services.value_erosion import detect_discount_erosion

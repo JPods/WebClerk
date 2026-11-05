@@ -22,7 +22,6 @@ export interface CompanyState {
   loaded: boolean;
   version: string;
   currency: CompanyCurrency;
-  order_defaults: Record<string, any>;
   price_levels: Record<string, any>;
   inventory: Record<string, any>;
   /** config.inventory costing defaults: costing_method, unit_cost_default, unit_cost_precision */
@@ -51,7 +50,6 @@ const initialState: CompanyState = {
   loaded: false,
   version: '',
   currency: DEFAULT_CURRENCY,
-  order_defaults: {},
   price_levels: {},
   inventory: {},
   costing: {},
@@ -127,7 +125,6 @@ const companySlice = createSlice({
       if (action.payload) {
         const d = action.payload;
         state.currency = { ...DEFAULT_CURRENCY, ...d.currency };
-        state.order_defaults = d.order_defaults || {};
         state.price_levels = d.price_levels || {};
         state.inventory = d.inventory || {};
         state.costing = d.costing || {};
@@ -154,7 +151,6 @@ export default companySlice.reducer;
 
 // Selectors
 export const selectCurrency = (state: any): CompanyCurrency => state.company?.currency || DEFAULT_CURRENCY;
-export const selectOrderDefaults = (state: any) => state.company?.order_defaults || {};
 export const selectPriceLevels = (state: any) => state.company?.price_levels || {};
 export const selectCompanyInfo = (state: any) => state.company?.company || {};
 export const selectLogos = (state: any) => state.company?.logos || {};

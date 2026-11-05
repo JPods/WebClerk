@@ -39,6 +39,8 @@ from typing import Optional
 from django.db.models import Q
 from django.utils import timezone
 
+from apps.core.services.company_profile import company_config
+
 logger = logging.getLogger(__name__)
 
 CENT = Decimal('0.01')
@@ -153,30 +155,11 @@ def list_price(item) -> Decimal:
 # Buy side
 # ---------------------------------------------------------------------------
 
-COMPANY_CACHE = 'company_profile'   # cleared when a Setting is saved (signals/access_signals.py)
-
-
-def _company_config(section: str) -> dict:
-    """One section of the company profile, cached: Item.save reads the cost basis through
-    here, and an operational save must not pay a query for admin configuration."""
-    from apps.core.models import Setting
-    from apps.core.services.cache import cache_service
-    key = cache_service.make_key(COMPANY_CACHE, section)
-    cached = cache_service.get(key)
-    if cached is not None:
-        return cached
-    company = Setting.objects.filter(purpose='wc:company_profile', is_active=True).first()
-    out = company.config.get(section, {}) if company and isinstance(company.config, dict) else {}
-    out = out if isinstance(out, dict) else {}
-    cache_service.set(key, out, ttl=0)
-    return out
-
-
 def cost_basis_default() -> str:
     """The company's unit_cost_default; a missing or unknown value is 'last' — what the
     company actually paid most recently."""
     try:
-        basis = _company_config('inventory').get('unit_cost_default')
+        basis = company_config('inventory').get('unit_cost_default')
     except Exception:
         logger.exception('unit_cost_default: company profile unreadable')
         return DEFAULT_COST_BASIS
@@ -319,7 +302,7 @@ def _level_price(item, level: str, qty: Decimal) -> tuple[Decimal, str, Optional
 
 def _minimum_margin_pct() -> Decimal:
     """The company floor: company profile config.pricing.minimum_margin (15 when unset)."""
-    value = _dec(_company_config('pricing').get('minimum_margin'))
+    value = _dec(company_config('pricing').get('minimum_margin'))
     return DEFAULT_MINIMUM_MARGIN_PCT if value is None else value
 
 
