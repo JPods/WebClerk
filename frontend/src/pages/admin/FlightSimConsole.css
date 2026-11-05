@@ -849,3 +849,15 @@
   background: color-mix(in srgb, var(--db-accent-red, #f14c4c) 18%, transparent);
   color: var(--db-accent-red, #f14c4c);
 }
+
+/* The simulation's steps (wc:console Setting) */
+.fs-steps { border-bottom: 1px solid var(--db-border, #334155); background: var(--db-surface, #1e293b); }
+.fs-steps-bar { display: flex; align-items: center; gap: 8px; padding: 4px 10px; font-size: 12px; }
+.fs-steps-title { font-weight: 600; color: var(--db-text, #e2e8f0); }
+.fs-steps-model { font-family: ui-monospace, monospace; font-size: 10px; color: var(--db-text-dim, #94a3b8); border: 1px solid var(--db-border, #334155); border-radius: 3px; padding: 0 4px; }
+.fs-steps-spacer { flex: 1; }
+.fs-steps-body { padding: 4px 10px 8px; }
+.fs-steps-instruction, .fs-steps-why pre { white-space: pre-wrap; font-family: inherit; font-size: 12px; margin: 0; color: var(--db-text, #e2e8f0); }
+.fs-steps-why { margin-top: 6px; font-size: 11px; color: var(--db-text-muted, #94a3b8); }
+.fs-steps-why summary { cursor: pointer; }
+.fs-error { color: #fca5a5; font-size: 12px; margin: 8px 0; }

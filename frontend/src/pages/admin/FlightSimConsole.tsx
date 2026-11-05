@@ -20,6 +20,7 @@ import "./FlightSimConsole.css";
 import { formatCurrency } from "@/utils/stringUtils";
 
 const DbForm = React.lazy(() => import("../../components/common/DbForm"));
+import { getRecords } from "@/api/wcapi";
 import JournalEntriesPanel, { type JournalDoc } from "./JournalEntriesPanel";
 
 /* ------------------------------------------------------------------ */
@@ -62,6 +63,18 @@ interface CashRow {
   processed?: boolean;
 }
 
+/** One step of a scripted simulation (a wc:console Setting's config.steps). */
+interface ConsoleStep {
+  step: number;
+  title: string;
+  instruction: string;
+  model?: string;
+  action?: string;
+  explanation?: string;
+}
+
+/** A simulation as its wc:console Setting describes it (apps/core/consoles.py seeds them;
+ *  readme 100: a console is configuration, not code). */
 interface SimulationDef {
   id: string;
   label: string;
@@ -70,7 +83,15 @@ interface SimulationDef {
    *  item (simItemIda), not a per-simulation literal. Phase 1 sims are false. */
   needsItem: boolean;
   firstModel: string;    // first transaction model to open on right
+  sequence: number;
+  steps: ConsoleStep[];
 }
+
+const consoleToSim = (rec: any): SimulationDef => ({
+  id: rec.ida, label: rec.name, description: rec.config?.description || rec.explanation || '',
+  needsItem: !!rec.config?.needs_item, firstModel: rec.config?.first_model || '',
+  sequence: Number(rec.config?.sequence) || 0, steps: Array.isArray(rec.config?.steps) ? rec.config.steps : [],
+});
 
 /** The simulator tracks one item at a time and the user picks it.
  *  There is deliberately NO default item. A literal here is a guess about
@@ -92,112 +113,6 @@ const TRAINING_IDA_PREFIX = "qq";
 const isTrainingItem = (ida: string) =>
   ida.trim().toLowerCase().startsWith(TRAINING_IDA_PREFIX);
 
-/* ------------------------------------------------------------------ */
-/*  Available simulations                                              */
-/* ------------------------------------------------------------------ */
-
-const SIMULATIONS: SimulationDef[] = [
-  // ── Phase 1: Foundation ──
-  {
-    id: "first-customer",
-    label: "1. Your First Customer",
-    description: "Create a Contact, Customer Org, and set credit limit — the foundation for all transactions",
-    needsItem: false,
-    firstModel: "contact",
-  },
-  {
-    id: "first-item",
-    label: "2. Your First Item",
-    description: "Create an Item with price ($10), cost ($6), GL accounts, and 100 units opening inventory",
-    needsItem: true,
-    firstModel: "item",
-  },
-  {
-    id: "first-sale",
-    label: "3. Your First Sale",
-    description: "Create a Quote for 15 units, convert 9 to an Order — watch on_qt and on_so change",
-    needsItem: true,
-    firstModel: "quote",
-  },
-  // ── Phase 2: Sell Side ──
-  {
-    id: "inventory",
-    label: "4. Inventory Quantity Tracking",
-    description: "Quote → Order → Invoice → Purchase → Receive — watch on_hand, on_so, on_po, pending, and GL change at each step",
-    needsItem: true,
-    firstModel: "quote",
-  },
-  {
-    id: "cash",
-    label: "Cash Flow Tracking",
-    description: "Invoice → Cash → Discount → Write-off — watch cash, AR, and bank reconciliation",
-    needsItem: true,
-    firstModel: "invoice",
-  },
-  {
-    id: "cash-lifecycle",
-    label: "Cash Lifecycle",
-    description: "Order → partial Invoice → accept Cash → apply part to invoice → journal — watch amount, available, tendered, change, ledger, and GL",
-    needsItem: true,
-    firstModel: "order",
-  },
-  {
-    id: "gl-audit",
-    label: "GL Audit Trail",
-    description: "Every business event creates balanced journal entries — trace any balance to its source",
-    needsItem: true,
-    firstModel: "invoice",
-  },
-  {
-    id: "bom",
-    label: "Bill of Materials",
-    description: "BOM explosion, component availability, buildable quantity, cost rollup",
-    needsItem: true,
-    firstModel: "workorder",
-  },
-  {
-    id: "p2p",
-    label: "Purchase-to-Pay",
-    description: "Requisition → PO → Receive → Three-way match → Pay vendor",
-    needsItem: true,
-    firstModel: "purchase",
-  },
-  {
-    id: "commissions",
-    label: "Commission Tracking",
-    description: "Accrual at sale, split commissions, adjustments at cash, period-end reconciliation",
-    needsItem: true,
-    firstModel: "invoice",
-  },
-  {
-    id: "currency",
-    label: "Currency Variations",
-    description: "Multi-currency transactions, exchange rate gains/losses, period-end revaluation",
-    needsItem: true,
-    firstModel: "invoice",
-  },
-  {
-    id: "costing",
-    label: "Costing Methods",
-    description: "Same transactions, three different profit numbers — FIFO vs LIFO vs weighted average",
-    needsItem: true,
-    firstModel: "purchase",
-  },
-  {
-    id: "company-profile",
-    label: "Company Profile Setup",
-    description: "Configure your company name, address, ship-to, logos, print defaults, receivables, and accounting — the foundation every document and report reads from",
-    needsItem: false,
-    firstModel: "setting",
-  },
-  {
-    id: "admin-tools",
-    label: "Admin Tools & Field Behaviors",
-    description: "Run audit tools, review field behavior detection, Cmd+Shift+click to override — the incremental correction loop",
-    needsItem: false,
-    firstModel: "",
-  },
-];
 
 interface SimDoc {
   model: string;
@@ -396,6 +311,18 @@ const FlightSimConsole: React.FC = () => {
 
   // Right panel
   const [rightModel, setRightModel] = useState<string | null>(null);
+  // The simulations and their steps: the wc:console Settings, in sequence.
+  const [sims, setSims] = useState<SimulationDef[]>([]);
+  const [simsError, setSimsError] = useState<string | null>(null);
+  useEffect(() => {
+    getRecords('setting', { purpose: 'wc:console', is_active: true, limit: 100 }).then((res: any) => {
+      const list = (res?.results || []).map(consoleToSim).sort((a: SimulationDef, b: SimulationDef) => a.sequence - b.sequence);
+      setSims(list);
+      if (!list.length) setSimsError('No consoles in this installation — a staff member runs: manage.py seed_consoles');
+    }).catch((e: any) => setSimsError(`Could not read the consoles: ${e?.message || e}`));
+  }, []);
+  const [stepIndex, setStepIndex] = useState(0);
+  const [stepOpen, setStepOpen] = useState(true);
   const [rightRecordId, setRightRecordId] = useState<number>(0);
 
   const splitRef = useRef<HTMLDivElement>(null);
@@ -408,12 +335,12 @@ const FlightSimConsole: React.FC = () => {
     if (autoStarted.current) return;
     const pathParts = location.pathname.split('/');
     const simId = pathParts[pathParts.length - 1]; // last segment
-    const sim = SIMULATIONS.find(s => s.id === simId);
+    const sim = sims.find(s => s.id === simId);
     if (sim) {
       autoStarted.current = true;
       startSimulation(sim, false);
     }
-  }, [location.pathname]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [location.pathname, sims]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!dragging) return;
@@ -537,6 +464,7 @@ const FlightSimConsole: React.FC = () => {
   // the new one "not found".
   const startSimulation = async (sim: SimulationDef, resume = false, itemIda?: string) => {
     setActiveSim(sim);
+    setStepIndex(0);
     setLoading(true);
     // Small margin so browser/server clock skew cannot hide the first new line.
     setSimSince(resume ? null : Date.now() - 5000);
@@ -701,7 +629,7 @@ const FlightSimConsole: React.FC = () => {
     if (!invoiceIda.trim()) return;
     setLoading(true);
     // The audit loads the invoice's item, so its panels show (counts, money, journal entries).
-    setActiveSim({ id: "audit", label: `Audit: Invoice ${invoiceIda}`, description: "Transaction audit view", needsItem: true, firstModel: "invoice" });
+    setActiveSim({ id: "audit", label: `Audit: Invoice ${invoiceIda}`, description: "Transaction audit view", needsItem: true, firstModel: "invoice", sequence: 0, steps: [] });
     try {
       const res = await manageAction("get_flight_by_invoice", { invoice_ida: invoiceIda.trim() });
       const data = res?.data?.data ?? res?.data ?? res;
@@ -763,8 +691,9 @@ const FlightSimConsole: React.FC = () => {
           </button>
         </div>
 
+        {simsError && <div className="fs-error">{simsError}</div>}
         <div className="fs-select-grid">
-          {SIMULATIONS.map((sim) => (
+          {sims.map((sim) => (
             <button
               key={sim.id}
               className="fs-sim-card"
@@ -838,6 +767,31 @@ const FlightSimConsole: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* The simulation's steps (its wc:console Setting): what to do, then why */}
+      {activeSim.steps.length > 0 && (() => {
+        const step = activeSim.steps[Math.min(stepIndex, activeSim.steps.length - 1)];
+        return (
+          <div className="fs-steps" data-wc="fs-steps">
+            <div className="fs-steps-bar">
+              <button className="fs-btn" onClick={() => setStepOpen((o) => !o)} title={stepOpen ? 'Hide the step' : 'Show the step'}>
+                {stepOpen ? '▾' : '▸'} Step {step.step} of {activeSim.steps.length}
+              </button>
+              <span className="fs-steps-title">{step.title}</span>
+              {step.model && <span className="fs-steps-model">{step.model}</span>}
+              <span className="fs-steps-spacer" />
+              <button className="fs-btn" disabled={stepIndex === 0} onClick={() => setStepIndex((i) => Math.max(0, i - 1))}>← Prev</button>
+              <button className="fs-btn" disabled={stepIndex >= activeSim.steps.length - 1} onClick={() => setStepIndex((i) => Math.min(activeSim.steps.length - 1, i + 1))}>Next →</button>
+            </div>
+            {stepOpen && (
+              <div className="fs-steps-body">
+                <pre className="fs-steps-instruction">{step.instruction}</pre>
+                {step.explanation && <details className="fs-steps-why"><summary>Why</summary><pre>{step.explanation}</pre></details>}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {showItemPicker && (
         <SimItemPicker

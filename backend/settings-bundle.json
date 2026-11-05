@@ -98249,6 +98249,1180 @@
         "depends_on": {},
         "related_ids": []
       }
+    },
+    {
+      "uuid": "7df64e03-e3cf-4de2-8cbb-584c16d6324c",
+      "ida": "first-customer",
+      "name": "1. Your First Customer",
+      "scope": "system",
+      "purpose": "wc:console",
+      "parent_model": "",
+      "explanation": "Create a Contact, Customer Org, and set credit limit — the foundation for all transactions",
+      "config": {
+        "kind": "sim",
+        "steps": [
+          {
+            "step": 1,
+            "model": "contact",
+            "title": "Create a Contact",
+            "action": "create_contact",
+            "explanation": "A Contact is a person. Every user, customer rep, vendor rep, and employee is a Contact record. The Contact IS the login — email is the username.\n\nContacts are independent of orgs. One person can be a rep for multiple companies. The org relationship is separate (assigned_to on projects, contact FK on cash and invoices).\n\nWC2: This was the Customer table. WC3 separates people (Contact) from companies (OrgBase). A customer is a company, not a person.",
+            "instruction": "Open the right panel form (Contact). Fill in:\n• First name: Training\n• Last name: User\n• Email: training@example.com\n\nSave the record.",
+            "expected_fields": {
+              "email": "training@example.com",
+              "name_last": "User",
+              "name_first": "Training"
+            }
+          },
+          {
+            "step": 2,
+            "model": "customer",
+            "title": "Create a Customer Org",
+            "action": "create_customer",
+            "explanation": "An Org is a company. Customer, Vendor, Manufacturer, Rep, Employee — all are the same OrgBase model with different org_type values. This means:\n\n• A company can be both your customer AND your vendor\n• Financial data is stored per org_type in the financial JSON\n• The DataBrowser shows each type as a separate view\n\nThe org_type determines which financial fields matter:\n• Customer → AR aging, credit limit, days_avg_paid\n• Vendor → AP aging, cash terms, lead time\n\nWC2 had separate Customer, Vendor, Manufacturer, Rep tables. WC3 unified them into OrgBase with typed proxies.",
+            "instruction": "Open the right panel form (Customer). Fill in:\n• Display name: Training Corp\n• Type: end_user\n\nSave the record.",
+            "expected_fields": {
+              "type": "end_user",
+              "company": "Training Corp",
+              "org_type": "customer"
+            }
+          },
+          {
+            "step": 3,
+            "model": "customer",
+            "title": "Set Credit Limit",
+            "action": "set_credit",
+            "explanation": "Credit limit controls whether new orders are accepted. The formula:\n\n  credit_available = credit_limit - balance_due\n\nWhen a customer places an order, WC3 checks:\n  total_exposure = balance_due + open_orders - available_cash_entries\n\nIf total_exposure > credit_limit, the order can be held for review.\n\nThe financial JSON stores all of this per org_type. A company that is both customer and vendor has separate financial sections:\n  org.financial.customer.credit.limit = 5000\n  org.financial.vendor.balances.due = 1200\n\nThese are independent — vendor debt doesn't affect customer credit.\n\nWC2: [Customer]creditLimit, [Customer]balanceDue, [Customer]highCredit",
+            "instruction": "On the Customer record, find the financial section. Set:\n• Credit limit: $5,000\n• Terms: Net 30\n\nSave the record.\n\nAfter saving, check the financial data:\n• balance_due should be $0\n• available credit should be $5,000\n• high_credit should be $0",
+            "expected_financial": {
+              "customer": {
+                "credit": {
+                  "used": 0.0,
+                  "limit": 5000.0,
+                  "available": 5000.0
+                },
+                "balances": {
+                  "due": 0.0,
+                  "current": 0.0
+                },
+                "high_credit": 0.0,
+                "days_avg_paid": 0,
+                "total_exposure": 0.0,
+                "available_cash_entries": 0.0
+              }
+            }
+          },
+          {
+            "step": 4,
+            "model": "customer",
+            "title": "Link Contact to Customer",
+            "action": "link_contact",
+            "exit_point": {
+              "name": "Foundation: Customer Ready",
+              "summary": "You have a Contact (person), a Customer Org (company), credit limit set, and the person linked to the company. This customer is ready for transactions."
+            },
+            "explanation": "Contacts and Orgs are many-to-many. One person can represent multiple companies. One company can have multiple contacts.\n\nThe link carries a role (buyer, AP clerk, owner, etc.) which feeds into RBAC — a buyer can place orders but not approve cash_entries.\n\nWhen you create a transaction (order, invoice, cash), the contact field determines who to notify. The customer field determines who to bill.\n\nVerify in DataBrowser: open the Contact record. The orgs section should show Training Corp. Open the Customer record. The contacts section should show Training User.",
+            "instruction": "On the Customer record, find the contacts section.\nAdd the Training User contact as a contact for Training Corp.\n\nThis means Training User is a representative of Training Corp. When you create an invoice for Training Corp, Training User will appear as a contact option."
+          }
+        ],
+        "next_sim": "first-item",
+        "sequence": 1,
+        "needs_item": false,
+        "description": "Create a Contact, Customer Org, and set credit limit — the foundation for all transactions",
+        "first_model": "contact",
+        "models_used": [
+          "contact",
+          "customer"
+        ],
+        "prerequisite": null
+      }
+    },
+    {
+      "uuid": "97a6ba69-3034-4a20-9d6c-bdcd4902fca4",
+      "ida": "first-item",
+      "name": "2. Your First Item",
+      "scope": "system",
+      "purpose": "wc:console",
+      "parent_model": "",
+      "explanation": "Create an Item with price ($10), cost ($6), GL accounts, and 100 units opening inventory",
+      "config": {
+        "kind": "sim",
+        "steps": [
+          {
+            "step": 1,
+            "model": "item",
+            "title": "Create an Item",
+            "action": "create_item",
+            "explanation": "An Item is anything you sell or buy. It has:\n• ida — your internal SKU/part number (must be unique)\n• name — human-readable description\n• quantity — JSON with on_hand, on_so, on_po, available, etc.\n• price — JSON with base price, price levels, breaks\n• cost — JSON with standard, last, average cost\n• gls — JSON mapping to GL accounts (revenue, cogs, inventory)\n\nThe ida \"qqBB200\" starts with \"qq\" — this is the training prefix. All flight sim items use qq so they're easy to find and clean up.\n\nWC2: [Item]ida_item, [Item]descpt",
+            "instruction": "Open the right panel form (Item). Fill in:\n• IDA: qqBB200 (the training item ID)\n• Name: Training Widget\n• Description: Standard training item for flight simulator exercises\n\nSave the record.",
+            "expected_fields": {
+              "ida": "qqBB200",
+              "name": "Training Widget"
+            }
+          },
+          {
+            "step": 2,
+            "model": "item",
+            "title": "Set Price and Cost",
+            "action": "set_pricing",
+            "explanation": "Price and cost are separate concerns:\n\n• Price is what you charge the customer (revenue side)\n• Cost is what you paid the vendor (expense side)\n• Margin = Price - Cost = $10 - $6 = $4 (40%)\n\nBoth are JSON fields because they hold more than one number:\n• price.base — the starting price\n• price.levels — volume breaks, customer-specific pricing\n• cost.standard — what you expect to pay\n• cost.last — what you actually paid last time\n• cost.average — weighted average of all purchases\n\nThe flight sims use $10 price and $6 cost because the math is easy:\n40% gross margin, 5% tax = $0.50 per unit, 5% commission = $0.50 per unit.\n\nWC2: [Item]unitPrice, [Item]unitCost",
+            "instruction": "On the Item record, set:\n• Base price: $10.00\n• Standard cost: $6.00\n\nThese go in the price and cost JSON fields:\n  price.base = 10.00\n  cost.standard = 6.00\n\nSave the record.",
+            "expected_fields": {
+              "cost": {
+                "standard": 6.0
+              },
+              "price": {
+                "base": 10.0
+              }
+            }
+          },
+          {
+            "step": 3,
+            "model": "item",
+            "title": "Set GL Accounts",
+            "action": "set_gl_accounts",
+            "explanation": "Every item maps to three GL accounts:\n\n• Revenue — where sale dollars go (credit on invoice)\n• COGS — cost of goods sold (debit on invoice)\n• Inventory — asset account (credit on sale, debit on receipt)\n\nWhen you invoice 4 units of this item at $10, the GL entries are:\n  DR  AR              $42  (customer owes — includes tax)\n  CR  4000-sales_revenue   $40  (revenue)\n  CR  TAX-PAYABLE     $2   (tax)\n  DR  COGS-PRODUCTS   $24  (4 × $6 cost)\n  CR  INVENTORY       $24  (asset leaves shelf)\n\nThe GL accounts on the item override the system defaults. If an item has no GL accounts set, the system defaults apply.\n\nWC2: [Item]glaccount, mapped via Category → GL in the settings.",
+            "instruction": "On the Item record, set the GL account mappings:\n• Revenue: 4000-sales_revenue\n• COGS: 5000-cost_of_goods_sold\n• Inventory: 1200-inventory\n\nThese go in the gls JSON field.\nSave the record.",
+            "expected_fields": {
+              "gls": {
+                "cogs": "5000-cost_of_goods_sold",
+                "revenue": "4000-sales_revenue",
+                "inventory": "1200-inventory"
+              }
+            }
+          },
+          {
+            "step": 4,
+            "model": "item",
+            "title": "Set Opening Inventory",
+            "action": "set_inventory",
+            "exit_point": {
+              "name": "Foundation: Item Ready",
+              "summary": "You have an item with price ($10), cost ($6), GL accounts, and 100 units on hand. This item is ready for the transaction flight simulators."
+            },
+            "explanation": "The quantity JSON tracks inventory across all transaction types:\n\n| Field     | What it means | Changes when |\n|-----------|--------------|---------------|\n| on_hand   | Physically in warehouse | Invoice (down), Receipt (up) |\n| on_so     | Committed to sales orders | Order (up), Invoice (down) |\n| on_po     | On order from vendors | PO (up), Receipt (down) |\n| on_qt      | On quotes (quotes) | Quote (up), Convert (down) |\n| on_wo     | On work orders | WO (up), Complete (down) |\n| available | on_hand - allocated | Computed |\n\nQuotes DON'T reduce available (they're just quotes). Orders DO reduce available (they're commitments). This is the most important distinction in inventory management.\n\nStarting at 100 gives us room to run all the flight sim scenarios without going negative.\n\nWC2: [Item]QtyOnHand, [Item]QtyOrdered, [Item]QtyOnPO",
+            "instruction": "On the Item record, set the quantity:\n• on_hand: 100\n• available: 100\n• All others: 0\n\nThis goes in the quantity JSON field.\nSave the record.",
+            "expected_fields": {
+              "quantity": {
+                "on_po": 0,
+                "on_qt": 0,
+                "on_so": 0,
+                "on_wo": 0,
+                "on_hand": 100,
+                "available": 100
+              }
+            }
+          }
+        ],
+        "next_sim": "first-sale",
+        "sequence": 2,
+        "needs_item": true,
+        "description": "Create an Item with price ($10), cost ($6), GL accounts, and 100 units opening inventory",
+        "first_model": "item",
+        "models_used": [
+          "item"
+        ],
+        "prerequisite": null
+      }
+    },
+    {
+      "uuid": "7bdbb5d5-5667-4f83-8b83-ca2c3697c407",
+      "ida": "first-sale",
+      "name": "3. Your First Sale",
+      "scope": "system",
+      "purpose": "wc:console",
+      "parent_model": "",
+      "explanation": "Create a Quote for 15 units, convert 9 to an Order — watch on_qt and on_so change",
+      "config": {
+        "kind": "sim",
+        "steps": [
+          {
+            "qty": 15,
+            "step": 1,
+            "model": "quote",
+            "title": "Create a Quote",
+            "action": "create_quote",
+            "explanation": "A Quote is a quote — a conversation with the customer about what they might buy. It is NOT a commitment.\n\nWhat happens when you save the quote line:\n• on_qt increases by 15 (we're quoting 15 units)\n• on_hand stays at 100 (nothing moved)\n• available stays at 100 (quotes don't allocate)\n• NO GL entries (a quote has no financial weight)\n• A Pending record is created (tracks the quantity delta)\n\nWhy quotes don't allocate: imagine quoting 50 units to 10 customers. If quotes allocated, you'd need 500 units for $5,000 in quotes — but most quotes don't convert. Quotes are visibility, not commitment.\n\nWC2: This was the Quote window → [QT_Lines] table.",
+            "instruction": "Open the right panel form (Quote). Fill in:\n• Customer: Training Corp (from exercise 1)\n• Contact: Training User\n\nSave the header first, then add a line:\n• Item: qqBB200 (Training Widget)\n• Quantity: 15\n• Price: $10.00 (should auto-fill from item)\n\nSave.",
+            "expected_quantity_change": {
+              "on_qt": "+15",
+              "on_hand": "100 (unchanged)",
+              "available": "100 (unchanged)"
+            }
+          },
+          {
+            "qty": 9,
+            "step": 2,
+            "model": "order",
+            "title": "Convert to Order — partial (9 of 15)",
+            "action": "convert_to_order",
+            "explanation": "NOW it's a commitment. The conversion:\n\n1. Creates a new Order header (linked to the quote via refs)\n2. Copies the line to the order with quantity = 9\n3. Reduces the quote line to 6 remaining\n4. Creates Pending records for the quantity changes\n\nQuantity changes:\n• on_qt: 15 → 6 (9 units moved from quote to order)\n• on_so: 0 → 9 (9 units committed to this sales order)\n• available: 100 → 91 (orders ALLOCATE — these 9 are spoken for)\n• on_hand: still 100 (nothing has physically moved)\n\nStill NO GL entries. An order is a promise to deliver, not a delivery. The financial event happens at invoicing.\n\nWhy partial? Real commerce rarely converts 100% of a quote. The customer negotiates, reduces quantities, drops items. The 6 remaining on the quote can convert later, expire, or be cancelled.\n\nWC2: Convert button in the Quote window → creates [SalesOrder].",
+            "instruction": "On the Quote, click the Convert to Order button.\nChange the quantity to 9 (the customer only wants 9 of the 15 quoted).\n\nThe conversion creates a new Order record and copies the line.\nThe quote line quantity drops to 6 remaining.\n\nWatch the left panel — quantities will change.",
+            "expected_quantity_change": {
+              "on_qt": "15 → 6 (−9)",
+              "on_so": "0 → 9 (+9)",
+              "on_hand": "100 (unchanged)",
+              "available": "100 → 91 (−9)"
+            }
+          },
+          {
+            "step": 3,
+            "model": "order",
+            "title": "Review the Order",
+            "action": "review_order",
+            "exit_point": {
+              "name": "Your First Sale Complete",
+              "summary": "You created a quote for 15 units, converted 9 to an order. The customer has 9 units committed (on_so=9), 6 still quoted (on_qt=6), and 91 units available for other customers.\n\nNext: run the \"Inventory Quantity Tracking\" flight sim to continue this order through invoicing, purchasing, and receiving."
+            },
+            "explanation": "Summary of what you've built across the three foundation exercises:\n\n| Record | What it is | Key insight |\n|--------|-----------|-------------|\n| Contact | Training User | People are separate from companies |\n| Customer | Training Corp | Companies have financial data (credit, aging) |\n| Item | qqBB200 | Products have price, cost, GL accounts, quantity buckets |\n| Quote | 15 × $10 | Quotes don't allocate inventory |\n| Order | 9 × $10 | Orders DO allocate inventory |\n\nThe data you created here is the foundation for every flight sim in Phase 2, 3, and 4. The training item qqBB200 with 100 units on hand at $10 price / $6 cost is the standard starting point.\n\nThe progression: Contact → Customer → Item → Quote → Order → Invoice → Cash → GL. Each step adds financial weight. The first three have none. The quote has visibility only. The order commits. The invoice is the financial event.",
+            "instruction": "The right panel should now show the new Order.\n\nVerify:\n• Customer: Training Corp\n• 1 line: qqBB200 × 9 at $10.00 = $90.00\n• Status: planned or released\n\nCheck the left panel quantities:\n• on_hand = 100, on_so = 9, on_qt = 6, available = 91\n\nThis order is ready to invoice (ship)."
+          }
+        ],
+        "next_sim": "inventory",
+        "sequence": 3,
+        "needs_item": true,
+        "description": "Create a Quote for 15 units, convert 9 to an Order — watch on_qt and on_so change",
+        "first_model": "quote",
+        "models_used": [
+          "quote",
+          "order"
+        ],
+        "prerequisite": "first-item"
+      }
+    },
+    {
+      "uuid": "d089d3f2-e302-4c04-8de5-5e0c52e66661",
+      "ida": "inventory",
+      "name": "4. Inventory Quantity Tracking",
+      "scope": "system",
+      "purpose": "wc:console",
+      "parent_model": "",
+      "explanation": "Quote → Order → Invoice → Purchase → Receive — watch on_hand, on_so, on_po, pending, and GL change at each step",
+      "config": {
+        "kind": "sim",
+        "steps": [
+          {
+            "step": 1,
+            "title": "Starting Inventory",
+            "action": null,
+            "expected_gl": [],
+            "explanation": "No transactions yet. All 100 units are available.",
+            "instruction": "Select an item with on_hand = 100, price = $10.00, cost = $6.00",
+            "expected_quantity": {
+              "on_po": 0,
+              "on_qt": 0,
+              "on_so": 0,
+              "on_hand": 100,
+              "allocated": 0,
+              "available": 100
+            }
+          },
+          {
+            "qty": 15,
+            "step": 2,
+            "title": "Create Quote for 15 units",
+            "action": "create_quote_line",
+            "expected_gl": [],
+            "explanation": "Quote reserves 15 units (on_qt=15). No GL impact — a quote is just a quote. Available stays 100 because quotes don't allocate.",
+            "instruction": "Create a Quote with 1 line: 15 units of this item at $10.00",
+            "expected_quantity": {
+              "on_po": 0,
+              "on_qt": 15,
+              "on_so": 0,
+              "on_hand": 100,
+              "allocated": 0,
+              "available": 100
+            }
+          },
+          {
+            "qty": 9,
+            "step": 3,
+            "title": "Convert 9 units to Order",
+            "action": "create_order_from_quote",
+            "expected_gl": [],
+            "explanation": "Order commits 9 units (on_so=9). Quote drops to 6 remaining. Pending records track the movement. Still NO GL impact — an order is a commitment, not a financial event.\n\nAvailable stays 100. An order does NOT allocate: allocation is a salesperson's deliberate act, made by reading on_hand, available and on_so and deciding which goods are set aside for whom. available = on_hand − allocated, and nothing but a person moves allocated.",
+            "instruction": "Create an Order from the Quote for 9 of the 15 units",
+            "expected_pending": [
+              {
+                "delta": "+9",
+                "purpose": "on_so"
+              },
+              {
+                "delta": "-9",
+                "purpose": "on_qt"
+              }
+            ],
+            "expected_quantity": {
+              "on_po": 0,
+              "on_qt": 6,
+              "on_so": 9,
+              "on_hand": 100,
+              "allocated": 0,
+              "available": 100
+            }
+          },
+          {
+            "qty": 4,
+            "step": 4,
+            "title": "Create Invoice for 4 units",
+            "action": "create_invoice_from_order",
+            "expected_gl": [
+              {
+                "side": "debit",
+                "amount": 44.8,
+                "account": "1100-accounts_receivable",
+                "purpose": "Accounts Receivable (goods $40.00 + shipping $1.60 + tax $3.20 = $44.80)"
+              },
+              {
+                "side": "credit",
+                "amount": 40.0,
+                "account": "4000-sales_revenue",
+                "purpose": "Revenue (4 × $10.00)"
+              },
+              {
+                "side": "credit",
+                "amount": 1.6,
+                "account": "4100-shipping_revenue",
+                "purpose": "Shipping revenue (4% × $40.00, test_4%)"
+              },
+              {
+                "side": "credit",
+                "amount": 3.2,
+                "account": "2100-sales_tax_payable",
+                "purpose": "Sales Tax Payable (8% × $40.00, test_8%)"
+              },
+              {
+                "side": "debit",
+                "amount": 24.0,
+                "account": "5000-cost_of_goods_sold",
+                "purpose": "Cost of Goods Sold (4 × $6.00)"
+              },
+              {
+                "side": "credit",
+                "amount": 24.0,
+                "account": "1200-inventory",
+                "purpose": "Inventory reduction (4 units leave the shelf)"
+              },
+              {
+                "side": "debit",
+                "amount": 2.0,
+                "account": "6100-commission_expense",
+                "purpose": "Commission Expense (5% × $40.00 revenue)"
+              },
+              {
+                "side": "credit",
+                "amount": 2.0,
+                "account": "2210-commissions_payable",
+                "purpose": "Commission Payable (owed to rep)"
+              }
+            ],
+            "explanation": "THIS is the financial event. Inventory leaves the shelf (on_hand 100→96). Order backlog drops (on_so 9→5). GL records the sale:\n• AR debit $44.80 (what the customer owes: goods + shipping + tax)\n• Revenue credit $40.00 (what we earned on the goods)\n• Shipping revenue credit $1.60 (4% of goods, carrier test_4%)\n• Tax payable credit $3.20 (8%, owed to the jurisdiction — 2 × shipping)\n• COGS debit $24.00 (cost of what we sold)\n• Inventory credit $24.00 (asset leaves the books)\n• Commission expense $2.00 / payable $2.00 (owed to rep)",
+            "instruction": "Create an Invoice from the Order for 4 of the 9 units, with tax jurisdiction test_8% (8%) and ship via test_4% (4% of goods)",
+            "expected_pending": [
+              {
+                "delta": "-4",
+                "purpose": "on_hand"
+              },
+              {
+                "delta": "-4",
+                "purpose": "on_so"
+              }
+            ],
+            "expected_quantity": {
+              "on_po": 0,
+              "on_qt": 6,
+              "on_so": 5,
+              "on_hand": 96,
+              "allocated": 0,
+              "available": 96
+            }
+          },
+          {
+            "qty": 14,
+            "step": 5,
+            "title": "Create Purchase for 14 units",
+            "action": "create_purchase",
+            "expected_gl": [],
+            "explanation": "PO commits to buy 14 units (on_po=14). No GL impact — a PO is a commitment to a vendor, not a financial event. The money hasn't moved yet.",
+            "instruction": "Create a Purchase Order for 14 units at $6.00 cost",
+            "expected_pending": [
+              {
+                "delta": "+14",
+                "purpose": "on_po"
+              }
+            ],
+            "expected_quantity": {
+              "on_po": 14,
+              "on_qt": 6,
+              "on_so": 5,
+              "on_hand": 96,
+              "allocated": 0,
+              "available": 96
+            }
+          },
+          {
+            "qty": 11,
+            "step": 6,
+            "title": "Receive 11 of 14 from Purchase",
+            "action": "receive_purchase",
+            "expected_gl": [
+              {
+                "side": "debit",
+                "amount": 66.0,
+                "account": "1200-inventory",
+                "purpose": "Inventory increase (11 × $6.00 — goods on the shelf)"
+              },
+              {
+                "side": "credit",
+                "amount": 66.0,
+                "account": "2000-accounts_payable",
+                "purpose": "Accounts Payable (we owe the vendor)"
+              }
+            ],
+            "explanation": "Goods arrive. Inventory increases (on_hand 96→107). PO backlog drops (on_po 14→3). GL records the receipt:\n• Inventory debit $66.00 (asset on the shelf)\n• AP credit $66.00 (we owe the vendor)\nNote: 3 units still on order (on_po=3).",
+            "instruction": "Receive 11 units against the PO (partial receipt)",
+            "expected_pending": [
+              {
+                "delta": "+11",
+                "purpose": "on_hand"
+              },
+              {
+                "delta": "-11",
+                "purpose": "on_po"
+              }
+            ],
+            "expected_quantity": {
+              "on_po": 3,
+              "on_qt": 6,
+              "on_so": 5,
+              "on_hand": 107,
+              "allocated": 0,
+              "available": 107
+            }
+          },
+          {
+            "step": 7,
+            "title": "Partial Payment — $30.00 of $44.80 invoice",
+            "action": "partial_payment",
+            "amount": 30.0,
+            "expected_gl": [
+              {
+                "side": "debit",
+                "amount": 30.0,
+                "account": "1000-cash",
+                "purpose": "Cash received"
+              },
+              {
+                "side": "credit",
+                "amount": 30.0,
+                "account": "1100-accounts_receivable",
+                "purpose": "AR reduced (customer owes $14.80 remaining)"
+              }
+            ],
+            "explanation": "Customer pays $30.00 of the $44.80 owed. No inventory change — this is purely financial.\n• Cash debit $30.00 (money in the bank)\n• AR credit $30.00 (reduce what they owe)\nRemaining balance: $44.80 - $30.00 = $14.80",
+            "instruction": "Record a $30.00 cash against the $44.80 invoice"
+          },
+          {
+            "step": 8,
+            "title": "Discount — $10.00 off remaining balance",
+            "action": "discount",
+            "amount": 10.0,
+            "expected_gl": [
+              {
+                "side": "debit",
+                "amount": 10.0,
+                "account": "4920-sales_discounts",
+                "purpose": "Discount given (expense — reduces margin)"
+              },
+              {
+                "side": "credit",
+                "amount": 10.0,
+                "account": "1100-accounts_receivable",
+                "purpose": "AR reduced (customer now owes $4.80)"
+              }
+            ],
+            "explanation": "We give the customer a $10.00 discount. No inventory change.\n• Discount expense debit $10.00 (cost of the discount)\n• AR credit $10.00 (reduce what they owe)\nRemaining balance: $14.80 - $10.00 = $4.80\nNote: This hits the Discount Expense account, NOT Revenue. Revenue stays at $40.00 — the discount is tracked separately so you can see margin erosion.",
+            "instruction": "Apply a $10.00 discount to the remaining $14.80 balance (a user's decision, recorded as theirs)"
+          },
+          {
+            "step": 9,
+            "title": "Write-off — dismiss $4.80 remaining balance",
+            "action": "write_off",
+            "amount": 4.8,
+            "exit_point": {
+              "name": "Invoice Settled",
+              "summary": "The invoice is fully settled: $30.00 cash + $10.00 discount + $4.80 write-off = $44.80. You can stop here or continue to see returns, aging, and orphan cleanup."
+            },
+            "expected_gl": [
+              {
+                "side": "debit",
+                "amount": 4.8,
+                "account": "6500-bad_debt",
+                "purpose": "Bad Debt expense (cost of uncollectable)"
+              },
+              {
+                "side": "credit",
+                "amount": 4.8,
+                "account": "1100-accounts_receivable",
+                "purpose": "AR zeroed out (invoice fully settled)"
+              }
+            ],
+            "explanation": "The $4.80 remaining isn't worth chasing. Write it off.\n• Bad Debt debit $4.80 (expense — money we'll never collect)\n• AR credit $4.80 (balance now $0)\nThe invoice is now fully settled: $30.00 cash + $10.00 discount + $4.80 write-off = $44.80.",
+            "instruction": "Write off the remaining $4.80 as uncollectable (a user's decision, recorded as theirs)"
+          },
+          {
+            "qty": 1,
+            "step": 10,
+            "title": "Return 1 unit",
+            "action": "create_return",
+            "section": "Reverse Flow",
+            "expected_gl": [
+              {
+                "side": "debit",
+                "amount": 10.0,
+                "account": "4000-sales_revenue",
+                "purpose": "Revenue reversal (1 × $10.00)"
+              },
+              {
+                "side": "debit",
+                "amount": 0.8,
+                "account": "2100-sales_tax_payable",
+                "purpose": "Sales tax reversal (8% × $10.00)"
+              },
+              {
+                "side": "credit",
+                "amount": 10.8,
+                "account": "1100-accounts_receivable",
+                "purpose": "Credit memo — customer is owed $10.80 (shipping is not refunded)"
+              },
+              {
+                "side": "debit",
+                "amount": 6.0,
+                "account": "1200-inventory",
+                "purpose": "Inventory restored (1 × $6.00 — item back on shelf)"
+              },
+              {
+                "side": "credit",
+                "amount": 6.0,
+                "account": "5000-cost_of_goods_sold",
+                "purpose": "COGS reversal (cost of returned unit)"
+              }
+            ],
+            "explanation": "Customer sends 1 unit back. The goods and their tax reverse; shipping already done does not:\n• Revenue debit $10.00 (we un-earn the sale)\n• Tax debit $0.80 (we un-collect the tax)\n• AR credit $10.80 (we now owe the customer a credit)\n• Inventory debit $6.00 (unit back on the shelf)\n• COGS credit $6.00 (cost reversal)\nOn_hand goes from 107→108. The unit is physically back.",
+            "instruction": "Customer returns 1 of the 4 invoiced units. Create a Credit Memo.",
+            "expected_pending": [
+              {
+                "delta": "+1",
+                "purpose": "on_hand"
+              }
+            ],
+            "expected_quantity": {
+              "on_po": 3,
+              "on_qt": 6,
+              "on_so": 5,
+              "on_hand": 108,
+              "allocated": 0,
+              "available": 108
+            }
+          },
+          {
+            "qty": 1,
+            "step": 11,
+            "title": "Scrap returned item",
+            "action": "scrap_adjustment",
+            "section": "Reverse Flow",
+            "expected_gl": [
+              {
+                "side": "debit",
+                "amount": 6.0,
+                "account": "5300-scrap_shrinkage",
+                "purpose": "Scrap/loss expense (damaged goods — cost of 1 unit)"
+              },
+              {
+                "side": "credit",
+                "amount": 6.0,
+                "account": "1200-inventory",
+                "purpose": "Inventory reduction (scrapped unit leaves the books)"
+              }
+            ],
+            "explanation": "The returned item is damaged beyond resale. Scrap it.\n• Scrap expense debit $6.00 (loss on the damaged unit)\n• Inventory credit $6.00 (remove from asset)\nOn_hand goes from 108→107. The unit is gone.\nThis is a real cost — we got the item back but can't sell it. Alice tracks scrap rates by vendor and category.",
+            "instruction": "The returned unit is damaged. Create an inventory adjustment to scrap it.",
+            "expected_pending": [
+              {
+                "delta": "-1",
+                "purpose": "on_hand"
+              }
+            ],
+            "expected_quantity": {
+              "on_po": 3,
+              "on_qt": 6,
+              "on_so": 5,
+              "on_hand": 107,
+              "allocated": 0,
+              "available": 107
+            }
+          },
+          {
+            "step": 12,
+            "title": "Refund customer",
+            "action": "refund_cash",
+            "amount": 10.8,
+            "section": "Reverse Flow",
+            "exit_point": {
+              "name": "Returns Complete",
+              "summary": "Return processed, item scrapped, customer refunded. You can stop here or continue to see aging and orphan cleanup."
+            },
+            "expected_gl": [
+              {
+                "side": "debit",
+                "amount": 10.8,
+                "account": "1100-accounts_receivable",
+                "purpose": "Clear credit memo balance"
+              },
+              {
+                "side": "credit",
+                "amount": 10.8,
+                "account": "1000-cash",
+                "purpose": "Cash outflow — refund to customer"
+              }
+            ],
+            "explanation": "Pay the customer what we owe from the credit memo.\n• AR debit $10.80 (clear the credit balance)\n• Cash credit $10.80 (money leaves the bank)\nThe return cycle is now complete: item returned, scrapped, customer refunded.",
+            "instruction": "Issue a refund cash of $10.80 against the credit memo."
+          },
+          {
+            "step": 13,
+            "title": "Pay vendor — $66.00 AP",
+            "action": "vendor_cash",
+            "amount": 66.0,
+            "section": "Settlement",
+            "expected_gl": [
+              {
+                "side": "debit",
+                "amount": 66.0,
+                "account": "2000-accounts_payable",
+                "purpose": "AP cleared — vendor paid"
+              },
+              {
+                "side": "credit",
+                "amount": 66.0,
+                "account": "1000-cash",
+                "purpose": "Cash outflow to vendor"
+              }
+            ],
+            "explanation": "We owe the vendor $66 from step 6 (11 units × $6.00). Pay it.\n• AP debit $66.00 (we no longer owe the vendor)\n• Cash credit $66.00 (money leaves the bank)\nAP is now zero. All vendor obligations settled.",
+            "instruction": "Pay the $66.00 owed to the vendor for the 11 received units."
+          },
+          {
+            "qty": 6,
+            "step": 14,
+            "title": "Cancel remaining quote (6 units)",
+            "action": "cancel_quote_remainder",
+            "section": "Cleanup",
+            "expected_gl": [],
+            "explanation": "The remaining 6 quote units are stale — cancel them.\nOn_p drops from 6→0. No GL impact (quotes never had financial weight).\nThis is housekeeping — orphan quotes clutter reports and confuse users.",
+            "instruction": "Cancel the 6 units still sitting on the original quote.",
+            "expected_pending": [
+              {
+                "delta": "-6",
+                "purpose": "on_qt"
+              }
+            ],
+            "expected_quantity": {
+              "on_po": 3,
+              "on_qt": 0,
+              "on_so": 5,
+              "on_hand": 107,
+              "allocated": 0,
+              "available": 107
+            }
+          },
+          {
+            "step": 15,
+            "title": "Close remaining SO (5) and PO (3)",
+            "action": "close_orphans",
+            "section": "Cleanup",
+            "exit_point": {
+              "name": "Clean Books",
+              "summary": "All orphans cleared through close_transaction. Books are clean: on_hand=107, available=107, no open commitments."
+            },
+            "expected_gl": [],
+            "explanation": "Close the remaining open commitments:\n• SO: 5 units cancelled (on_so 5→0)\n• PO: 3 units cancelled (on_po 3→0)\nNo GL — these were commitments, not financial events.\nAvailable stays 107 — commitments never touched it. Allocation is the only\nthing that reduces available, and only a person allocates.\n\nThe books are clean. Every transaction from quote to cleanup is accounted for. No orphans, no dangling commitments.",
+            "instruction": "Close the 5 remaining order units and 3 remaining PO units.",
+            "expected_pending": [
+              {
+                "delta": "-5",
+                "purpose": "on_so"
+              },
+              {
+                "delta": "-3",
+                "purpose": "on_po"
+              }
+            ],
+            "expected_quantity": {
+              "on_po": 0,
+              "on_qt": 0,
+              "on_so": 0,
+              "on_hand": 107,
+              "allocated": 0,
+              "available": 107
+            }
+          }
+        ],
+        "config": {
+          "ship_via": "test_4%",
+          "tax_rate": 0.08,
+          "unit_cost": 6.0,
+          "unit_price": 10.0,
+          "shipping_rate": 0.04,
+          "commission_rate": 0.05,
+          "starting_on_hand": 100,
+          "tax_jurisdiction": "test_8%"
+        },
+        "sequence": 4,
+        "needs_item": true,
+        "description": "Quote → Order → Invoice → Purchase → Receive — watch on_hand, on_so, on_po, pending, and GL change at each step",
+        "first_model": "quote",
+        "gl_accounts": {
+          "ap": "2000-accounts_payable",
+          "ar": "1100-accounts_receivable",
+          "cash": "1000-cash",
+          "cogs": "5000-cost_of_goods_sold",
+          "scrap": "5300-scrap_shrinkage",
+          "revenue": "4000-sales_revenue",
+          "bad_debt": "6500-bad_debt",
+          "discount": "4920-sales_discounts",
+          "shipping": "4100-shipping_revenue",
+          "inventory": "1200-inventory",
+          "tax_payable": "2100-sales_tax_payable",
+          "commission_exp": "6100-commission_expense",
+          "commission_pay": "2210-commissions_payable"
+        },
+        "invoice_summary": {
+          "breakdown": [
+            {
+              "amount": 40.0,
+              "source": "Revenue"
+            },
+            {
+              "amount": 1.6,
+              "source": "Shipping"
+            },
+            {
+              "amount": 3.2,
+              "source": "Sales Tax"
+            }
+          ],
+          "settlement": [
+            {
+              "amount": 30.0,
+              "method": "Cash received"
+            },
+            {
+              "amount": 10.0,
+              "method": "Discount given"
+            },
+            {
+              "amount": 4.8,
+              "method": "Written off"
+            }
+          ],
+          "cash_position": {
+            "note": "We collected $30.00 and paid out $76.80 (vendor $66.00 + refund $10.80).",
+            "cash_in": 30.0,
+            "cash_out": 76.8,
+            "net_cash": -46.8
+          },
+          "invoice_total": 44.8,
+          "margin_analysis": {
+            "cogs": 18.0,
+            "note": "Net margin = gross margin $12.00 + shipping $1.60 − commission $2.00 − discount $10.00 − write-off $4.80 − scrap $6.00 = $-9.20. The return + scrap turned a thin profit into a loss. This is why Alice tracks erosion at every stage.",
+            "scrap": 6.0,
+            "revenue": 30.0,
+            "bad_debt": 4.8,
+            "discount": 10.0,
+            "commission": 2.0,
+            "margin_pct": -30.7,
+            "net_margin": -9.2,
+            "refund_cash": 10.8,
+            "gross_margin": 12.0,
+            "shipping_revenue": 1.6
+          },
+          "settlement_total": 44.8
+        }
+      }
+    },
+    {
+      "uuid": "b9bf9683-408c-4bef-82a9-d490d87fda0f",
+      "ida": "cash",
+      "name": "Cash Flow Tracking",
+      "scope": "system",
+      "purpose": "wc:console",
+      "parent_model": "",
+      "explanation": "Invoice → Cash → Discount → Write-off — watch cash, AR, and bank reconciliation",
+      "config": {
+        "kind": "sim",
+        "steps": [],
+        "sequence": 5,
+        "needs_item": true,
+        "description": "Invoice → Cash → Discount → Write-off — watch cash, AR, and bank reconciliation",
+        "first_model": "invoice"
+      }
+    },
+    {
+      "uuid": "b83f22ea-73f6-4525-8cd8-85a75fd8b46d",
+      "ida": "cash-lifecycle",
+      "name": "Cash Lifecycle",
+      "scope": "system",
+      "purpose": "wc:console",
+      "parent_model": "",
+      "explanation": "Order → partial Invoice → accept Cash → apply part to invoice → journal — watch amount, available, tendered, change, ledger, and GL",
+      "config": {
+        "kind": "sim",
+        "steps": [
+          {
+            "qty": 10,
+            "step": 1,
+            "title": "Create Order — 10 units × $10.00",
+            "action": "create_order",
+            "expected_gl": [],
+            "explanation": "No financial event yet. The order is a commitment — 10 units reserved (on_so=10). No cash fields involved. No GL impact.",
+            "instruction": "Create an Order with 10 units of the training item at $10.00 each. Total = $100.00.",
+            "expected_cash": null
+          },
+          {
+            "qty": 6,
+            "step": 2,
+            "title": "Invoice 6 of 10 — partial shipment",
+            "action": "create_invoice_from_order",
+            "expected_gl": [
+              {
+                "side": "debit",
+                "amount": 67.2,
+                "account": "1100-accounts_receivable",
+                "purpose": "AR — customer owes $67.20"
+              },
+              {
+                "side": "credit",
+                "amount": 60.0,
+                "account": "4000-sales_revenue",
+                "purpose": "Revenue — 6 × $10.00"
+              },
+              {
+                "side": "credit",
+                "amount": 2.4,
+                "account": "4100-shipping_revenue",
+                "purpose": "Shipping — 4% × $60.00"
+              },
+              {
+                "side": "credit",
+                "amount": 4.8,
+                "account": "2100-sales_tax_payable",
+                "purpose": "Sales Tax — 8% × $60.00"
+              },
+              {
+                "side": "debit",
+                "amount": 36.0,
+                "account": "5000-cost_of_goods_sold",
+                "purpose": "COGS — 6 × $6.00"
+              },
+              {
+                "side": "credit",
+                "amount": 36.0,
+                "account": "1200-inventory",
+                "purpose": "Inventory reduction"
+              }
+            ],
+            "explanation": "THIS is the financial event. 6 units ship. Invoice created for $67.20.\nGL records the sale. AR = $67.20. Revenue = $60.00. Shipping = $2.40. Tax = $4.80 (2 × shipping).\nThe remaining 4 units stay on the order (on_so=4).",
+            "instruction": "Create an Invoice from the Order for 6 of the 10 units, tax jurisdiction test_8%, ship via test_4%. Invoice total = $67.20 ($60.00 goods + $2.40 shipping (4%) + $4.80 tax (8%)).",
+            "expected_invoice": {
+              "tax": 4.8,
+              "total": 67.2,
+              "amount": 60.0,
+              "shipping": 2.4,
+              "balance_due": 67.2
+            }
+          },
+          {
+            "step": 3,
+            "title": "Accept Cash — $80 (tendered $100 cash)",
+            "action": "create_cash",
+            "amount": 80.0,
+            "tendered": 100.0,
+            "expected_gl": [
+              {
+                "side": "debit",
+                "amount": 80.0,
+                "account": "1000-cash",
+                "purpose": "Cash received (amount, not tendered)"
+              },
+              {
+                "side": "credit",
+                "amount": 80.0,
+                "account": "1100-accounts_receivable",
+                "purpose": "AR reduced by cash amount"
+              }
+            ],
+            "explanation": "Customer hands over $100 cash for an $80 cash. Change = $20.\n\nKey fields on Cash record:\n• amount = $80 — the real cash amount\n• tendered = $100 — what the customer physically gave\n• change = $20 — computed: tendered - amount\n• available = $80 — starts equal to amount, decrements as applied\n\nWC2 equivalent: [Cash]amount, [Cash]amountAvailable, [Cash]tendered, [Cash]change\n\nThe cash exists but is NOT yet applied to the invoice. The customer has $80 on account.",
+            "instruction": "Create a Cash record:\n• amount = $80.00 (what they're paying)\n• tendered = $100.00 (what they handed over)\n• change = $20.00 (auto-computed)\n• available = $80.00 (auto-set = amount on creation)\n\nDo NOT apply it to the invoice yet. This is just accepting the money.",
+            "expected_cash": {
+              "amount": 80.0,
+              "change": 20.0,
+              "status": "complete",
+              "tendered": 100.0,
+              "available": 80.0
+            }
+          },
+          {
+            "step": 4,
+            "title": "Apply $50 to Invoice",
+            "action": "apply_cash_to_invoice",
+            "amount": 50.0,
+            "expected_gl": [],
+            "explanation": "Partial application. We take $50 of the $80 and apply it to the $67.20 invoice.\n\nWhat changes:\n• Cash.available: $80 → $30 (decremented by apply amount)\n• Invoice.totals.received: $0 → $50\n• Invoice.totals.balance: $67.20 → $17.20\n• Invoice status: \"sent\" → \"partially_paid\"\n• Ledger value_available: -$80 → -$30 (on next cash save)\n\nWhat does NOT change:\n• Cash.amount stays $80 (immutable — the original cash)\n• Cash.tendered stays $100\n• Cash.change stays $20\n\nWC2: This is the ApplyCash dialog. The user picks invoices and allocates cash dollars across them. amountAvailable tracked how much was left to allocate.",
+            "instruction": "Apply $50 of the $80 cash to the $67.20 invoice.\n\nAfter this step:\n• Cash.available drops from $80 → $30\n• Invoice balance drops from $67.20 → $17.20\n• Ledger value_available updates to -$30 (tracks unapplied)\n• Pending application record created (purpose cash_application)",
+            "expected_cash": {
+              "amount": 80.0,
+              "change": 20.0,
+              "tendered": 100.0,
+              "available": 30.0
+            },
+            "expected_invoice": {
+              "total": 67.2,
+              "status": "partially_paid",
+              "received": 50.0,
+              "balance_due": 17.2
+            }
+          },
+          {
+            "step": 5,
+            "title": "Journal the Cash",
+            "action": "post_gl",
+            "expected_gl": [
+              {
+                "side": "debit",
+                "amount": 80.0,
+                "account": "1000-cash",
+                "purpose": "Cash receipt — full cash amount"
+              },
+              {
+                "side": "credit",
+                "amount": 80.0,
+                "account": "1100-accounts_receivable",
+                "purpose": "AR reduction — full cash amount"
+              }
+            ],
+            "explanation": "GL journals are created. The cash is now part of the permanent record.\n\nNote: GL posts the FULL cash amount ($80), not the applied amount ($50). The journal captures the cash event. The application captures the allocation. These are two different things:\n• Cash event: \"Customer gave us $80\" → GL\n• Allocation: \"We applied $50 to Invoice #X\" → Pending application record\n\nThe ledger tracks available ($30) for aging and credit calculations. The GL tracks the full amount for financial statements.",
+            "instruction": "Post the cash to the GL (user-initiated action).\n\nThis creates GlJournal records from the staged metadata.gl_accounts.\nThe cash is now locked — can only be reversed, not edited."
+          },
+          {
+            "step": 6,
+            "title": "Check the Ledger",
+            "action": "check_ledger",
+            "explanation": "The ledger is the single source of truth for AR aging.\n\nWC2 equivalent: Ledger_TallyBal computed:\n• balanceDue from SUM(unAppliedValue) across all ledger records\n• balanceAvailableCashEntries from SUM(amountAvailable) on Cash\n• totalExposure = balanceDue + openOrders\n\nWC3 does the same in update_org_balances():\n• Reads all Ledger records for org → aging buckets\n• Reads Cash.available WHERE > 0 → available_cash_entries\n• total_exposure = balance_due + open_orders - available_cash_entries",
+            "instruction": "Verify the ledger state for this customer. Ledger rows echo their primary records:\n\n• Invoice ledger: value_original = +$67.20, value_available = +$17.20 (echoes the invoice)\n• Cash ledger: value_original = -$80, value_available = -$30 (echoes the cash)\n\nOrg financial.summary should show:\n• receivable = $17.20 (open invoice balances) = receivable_ledger\n• unapplied_cash = $30 = unapplied_cash_ledger\n• net = $17.20 − $30 = $-12.80; in_step = true\n• customer balances.due = $17.20 (invoices only; unapplied cash is shown apart)",
+            "expected_ledger": {
+              "net": -12.8,
+              "cash_value_original": -80.0,
+              "cash_value_available": -30.0,
+              "invoice_value_original": 67.2,
+              "invoice_value_available": 17.2
+            }
+          },
+          {
+            "step": 7,
+            "title": "Apply remaining $17.20 — close the invoice",
+            "action": "apply_cash_to_invoice",
+            "amount": 17.2,
+            "explanation": "Invoice is fully paid. The $12.80 remaining on the cash is unapplied.\n\nThis is common in commerce: customer overpays, or pays a round number. The excess stays on account as available_cash_entries. It can be:\n• Applied to the next invoice\n• Refunded\n• Left on account as a credit\n\nWC2 tracked this with balanceAvailableCashEntries on Customer. WC3 tracks it with Cash.available and org.financial.available_cash_entries.",
+            "instruction": "Apply $17.20 more of the cash to the invoice.\n\nAfter this step:\n• Cash.available: $30 → $12.80\n• Invoice balance: $17.20 → $0\n• Invoice status: \"partially_paid\" → \"paid\"\n• $12.80 remains unapplied on account",
+            "expected_cash": {
+              "amount": 80.0,
+              "available": 12.8
+            },
+            "expected_invoice": {
+              "total": 67.2,
+              "status": "paid",
+              "received": 67.2,
+              "balance_due": 0.0
+            }
+          },
+          {
+            "step": 8,
+            "title": "Summary — the cash lifecycle",
+            "action": null,
+            "exit_point": {
+              "name": "Cash Lifecycle Complete",
+              "summary": "Order $100 → Invoice $67.20 (partial) → Cash $80 (tendered $100, change $20) → Apply $50 → Journal → Apply $17.20 → Invoice paid, $12.80 on account."
+            },
+            "explanation": "The four cash fields and their roles:\n\n| Field     | Created | After apply $50 | After apply $13 |\n|-----------|---------|-----------------|------------------|\n| amount    | $80     | $80             | $80              |\n| available | $80     | $30             | $12.80           |\n| tendered  | $100    | $100            | $100             |\n| change    | $20     | $20             | $20              |\n\namount and tendered are immutable (what happened). available is the working field (what's left to allocate). change is computed (tendered - amount).\n\nThe ledger tracks available, not amount. This is how WC2 worked (aLdgValue = -amountAvailable) and now WC3 matches.",
+            "instruction": "Review what happened across all 7 steps."
+          }
+        ],
+        "config": {
+          "ship_via": "test_4%",
+          "tax_rate": 0.08,
+          "unit_cost": 6.0,
+          "unit_price": 10.0,
+          "shipping_rate": 0.04,
+          "starting_on_hand": 100,
+          "tax_jurisdiction": "test_8%"
+        },
+        "sequence": 6,
+        "needs_item": true,
+        "description": "Order → partial Invoice → accept Cash → apply part to invoice → journal — watch amount, available, tendered, change, ledger, and GL",
+        "first_model": "order",
+        "gl_accounts": {
+          "ap": "2000-accounts_payable",
+          "ar": "1100-accounts_receivable",
+          "cash": "1000-cash",
+          "cogs": "5000-cost_of_goods_sold",
+          "scrap": "5300-scrap_shrinkage",
+          "revenue": "4000-sales_revenue",
+          "bad_debt": "6500-bad_debt",
+          "discount": "4920-sales_discounts",
+          "shipping": "4100-shipping_revenue",
+          "inventory": "1200-inventory",
+          "tax_payable": "2100-sales_tax_payable",
+          "commission_exp": "6100-commission_expense",
+          "commission_pay": "2210-commissions_payable"
+        }
+      }
+    },
+    {
+      "uuid": "852e2277-c954-461f-855a-b44d62c2d8c9",
+      "ida": "gl-audit",
+      "name": "GL Audit Trail",
+      "scope": "system",
+      "purpose": "wc:console",
+      "parent_model": "",
+      "explanation": "Every business event creates balanced journal entries — trace any balance to its source",
+      "config": {
+        "kind": "sim",
+        "steps": [],
+        "sequence": 7,
+        "needs_item": true,
+        "description": "Every business event creates balanced journal entries — trace any balance to its source",
+        "first_model": "invoice"
+      }
+    },
+    {
+      "uuid": "feb13338-6202-4726-b128-3a361caac767",
+      "ida": "bom",
+      "name": "Bill of Materials",
+      "scope": "system",
+      "purpose": "wc:console",
+      "parent_model": "",
+      "explanation": "BOM explosion, component availability, buildable quantity, cost rollup",
+      "config": {
+        "kind": "sim",
+        "steps": [],
+        "sequence": 8,
+        "needs_item": true,
+        "description": "BOM explosion, component availability, buildable quantity, cost rollup",
+        "first_model": "workorder"
+      }
+    },
+    {
+      "uuid": "891123d5-778a-4d00-9af6-3766cd505643",
+      "ida": "p2p",
+      "name": "Purchase-to-Pay",
+      "scope": "system",
+      "purpose": "wc:console",
+      "parent_model": "",
+      "explanation": "Requisition → PO → Receive → Three-way match → Pay vendor",
+      "config": {
+        "kind": "sim",
+        "steps": [],
+        "sequence": 9,
+        "needs_item": true,
+        "description": "Requisition → PO → Receive → Three-way match → Pay vendor",
+        "first_model": "purchase"
+      }
+    },
+    {
+      "uuid": "f3df2f69-82fe-4ae4-a870-03ac231c1802",
+      "ida": "commissions",
+      "name": "Commission Tracking",
+      "scope": "system",
+      "purpose": "wc:console",
+      "parent_model": "",
+      "explanation": "Accrual at sale, split commissions, adjustments at cash, period-end reconciliation",
+      "config": {
+        "kind": "sim",
+        "steps": [],
+        "sequence": 10,
+        "needs_item": true,
+        "description": "Accrual at sale, split commissions, adjustments at cash, period-end reconciliation",
+        "first_model": "invoice"
+      }
+    },
+    {
+      "uuid": "e610c3be-c13b-4cfd-9bc6-fea8360162c1",
+      "ida": "currency",
+      "name": "Currency Variations",
+      "scope": "system",
+      "purpose": "wc:console",
+      "parent_model": "",
+      "explanation": "Multi-currency transactions, exchange rate gains/losses, period-end revaluation",
+      "config": {
+        "kind": "sim",
+        "steps": [],
+        "sequence": 11,
+        "needs_item": true,
+        "description": "Multi-currency transactions, exchange rate gains/losses, period-end revaluation",
+        "first_model": "invoice"
+      }
+    },
+    {
+      "uuid": "7841b613-1f14-42a0-878e-6a43f3e09bdd",
+      "ida": "costing",
+      "name": "Costing Methods",
+      "scope": "system",
+      "purpose": "wc:console",
+      "parent_model": "",
+      "explanation": "Same transactions, three different profit numbers — FIFO vs LIFO vs weighted average",
+      "config": {
+        "kind": "sim",
+        "steps": [],
+        "sequence": 12,
+        "needs_item": true,
+        "description": "Same transactions, three different profit numbers — FIFO vs LIFO vs weighted average",
+        "first_model": "purchase"
+      }
+    },
+    {
+      "uuid": "62adcc92-f416-4d70-b527-fa74e9a18744",
+      "ida": "company-profile",
+      "name": "Company Profile Setup",
+      "scope": "system",
+      "purpose": "wc:console",
+      "parent_model": "",
+      "explanation": "Configure your company name, address, ship-to, logos, print defaults, receivables, and accounting — the foundation every document and report reads from",
+      "config": {
+        "kind": "sim",
+        "steps": [],
+        "sequence": 13,
+        "needs_item": false,
+        "description": "Configure your company name, address, ship-to, logos, print defaults, receivables, and accounting — the foundation every document and report reads from",
+        "first_model": "setting"
+      }
+    },
+    {
+      "uuid": "4b27976d-7427-4179-85e0-b95351b336bc",
+      "ida": "admin-tools",
+      "name": "Admin Tools & Field Behaviors",
+      "scope": "system",
+      "purpose": "wc:console",
+      "parent_model": "",
+      "explanation": "Run audit tools, review field behavior detection, Cmd+Shift+click to override — the incremental correction loop",
+      "config": {
+        "kind": "sim",
+        "steps": [],
+        "sequence": 14,
+        "needs_item": false,
+        "description": "Run audit tools, review field behavior detection, Cmd+Shift+click to override — the incremental correction loop",
+        "first_model": ""
+      }
     }
   ]
 }

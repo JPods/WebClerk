@@ -906,26 +906,6 @@ _ACTION_DISPATCH = {
         'apps.products.services.inventory.inventory_flight_sim',
         fromlist=['sim_header_defaults']
     ).sim_header_defaults(),
-    "get_flight_scenario": lambda params: __import__(
-        'apps.products.services.inventory.inventory_flight_sim',
-        fromlist=['get_flight_scenario']
-    ).get_flight_scenario(),
-    "get_cash_flight_scenario": lambda params: __import__(
-        'apps.products.services.inventory.inventory_flight_sim',
-        fromlist=['get_cash_flight_scenario']
-    ).get_cash_flight_scenario(),
-    "get_first_customer_scenario": lambda params: __import__(
-        'apps.products.services.onboarding_flight_sim',
-        fromlist=['get_first_customer_scenario']
-    ).get_first_customer_scenario(),
-    "get_first_item_scenario": lambda params: __import__(
-        'apps.products.services.onboarding_flight_sim',
-        fromlist=['get_first_item_scenario']
-    ).get_first_item_scenario(),
-    "get_first_sale_scenario": lambda params: __import__(
-        'apps.products.services.onboarding_flight_sim',
-        fromlist=['get_first_sale_scenario']
-    ).get_first_sale_scenario(),
     "get_flight_transactions": lambda params: __import__(
         'apps.products.services.inventory.inventory_flight_sim',
         fromlist=['get_flight_transactions']

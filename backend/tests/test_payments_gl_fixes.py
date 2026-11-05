@@ -306,8 +306,8 @@ def test_tax_on_shipping_and_on_costs_are_off_until_the_company_turns_them_on(ch
 def test_flight_simulator_reads_its_rates_from_the_records(chart_of_accounts):
     """Bill: no hard-coded rates in the flight simulator — apply a tax jurisdiction and a carrier."""
     from django.core.management import call_command
-    from apps.products.services.inventory.inventory_flight_sim import (
-        get_cash_flight_scenario, get_flight_scenario, sim_header_defaults)
+    from apps.core.consoles import get_cash_flight_scenario, get_flight_scenario
+    from apps.products.services.inventory.inventory_flight_sim import sim_header_defaults
     call_command('seed_shipping_service', verbosity=0)
     call_command('seed_tax_jurisdictions', verbosity=0)
     scenario = get_flight_scenario()
