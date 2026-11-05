@@ -83,7 +83,8 @@ const PrimaryContactCard: React.FC<Props> = ({ model, org, anchor, onOpenContact
   const take = async (id: number, what: { bill_to?: boolean; ship_to?: boolean; fill?: boolean }) => {
     setBusy(true);
     try {
-      const res = await apiClient.post(`/wcapi/${model}/${org.id}/from_contact/`, { contact_id: id, ...what });
+      // The version the card loaded: a stale one is refused (412), like any save.
+      const res = await apiClient.post(`/wcapi/${model}/${org.id}/from_contact/`, { contact_id: id, version: org.version, ...what });
       const out = res.data?.data ?? res.data ?? {};
       const said = [...(out.set || []).map((r: string) => `${PARTY_LABEL[r] || r} set`),
                     ...(out.filled?.length ? [`filled ${out.filled.join(', ')}`] : what.fill ? ['nothing was missing'] : [])];

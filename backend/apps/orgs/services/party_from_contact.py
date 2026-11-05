@@ -7,11 +7,21 @@ them when its customer is chosen (applyCustomerDefaults). The values come from t
 own records: its address record's full text, its phone record's number, its login email.
 One formula, on the server; the card only asks.
 
-POST /wcapi/<org model>/<id>/from_contact/  {contact_id, bill_to?: true, ship_to?: true, fill?: true}
+The write goes through the save door (services/save.py), so every gate a save has applies:
+the record must be visible and the role may edit it (the command runner, verbs.py), someone
+else's edit hold refuses with 423, a stale version with 412, and the role's edit enumeration
+is checked here first — the door would drop a field the role may not write (Bill, 2026-09-20),
+and a command that quietly did nothing is worse than a refusal.
+
+POST /wcapi/<org model>/<id>/from_contact/
+     {contact_id, version, bill_to?: true, ship_to?: true, fill?: true}
   bill_to / ship_to  set that party from the contact (overwrites: it is an explicit choice)
-  fill               what the org lacks — attention, email, and the pointers to the contact's
-                     email, phone, address and domain records — it takes from the contact;
-                     what it has, it keeps
+  fill               an org with no primary contact takes this one as its primary, and with it
+                     its name, email and the pointers to its email, phone, address and domain
+                     records (the org hook follows a primary contact; Bill, 2026-10-31). An org
+                     that has a primary keeps its name and email and takes only the pointers it
+                     lacks — the address, phone, domain or email record this contact has and
+                     the org does not.
 """
 from __future__ import annotations
 
@@ -19,9 +29,10 @@ from typing import Any, Dict
 
 from apps.core.services.door import Refused
 from apps.orgs.behaviours import ORG_MODELS
-from apps.orgs.services.contact_linking import FOLLOWED, contacts_of
+from apps.orgs.services.contact_linking import contacts_of
 
 PARTIES = ('bill_to', 'ship_to')
+POINTERS = ('email_id', 'phone_id', 'address_id', 'domain_id')
 
 
 def party_values(contact, org) -> Dict[str, Dict[str, Any]]:
@@ -39,7 +50,19 @@ def party_values(contact, org) -> Dict[str, Dict[str, Any]]:
     }
 
 
+def _writable(actor, model_key: str, fields) -> None:
+    """The fields this role's edit enumeration names, else a refusal that says which are not."""
+    from apps.core.services.role_filter import get_allowed_fields
+    allowed = get_allowed_fields(actor, model_key, mode='edit')
+    denied = sorted(f for f in fields if f not in allowed and not any(a.startswith(f + '.') for a in allowed))
+    if denied:
+        raise Refused(403, 'field_not_permitted',
+                      f"Your role may not write {', '.join(denied)} on a {model_key}.",
+                      {'model_name': model_key, 'fields': denied})
+
+
 def from_contact(ctx) -> Dict[str, Any]:
+    from apps.core.services.save import save_record
     org, data = ctx.obj, ctx.data
     contact_id = data.get('contact_id')
     contact = contacts_of(org).filter(pk=contact_id).first() if contact_id else None
@@ -52,27 +75,35 @@ def from_contact(ctx) -> Dict[str, Any]:
     if not roles and not fill:
         raise Refused(400, 'nothing_asked', 'Say what to take: bill_to, ship_to, or fill.', {})
 
+    changes: Dict[str, Any] = {}
     values = party_values(contact, org)
-    changed = set()
     for role in roles:
         for aspect, entry in values.items():
-            current = dict(getattr(org, aspect) or {})
+            current = changes.get(aspect) or dict(getattr(org, aspect) or {})
             current[role] = {**(current.get(role) or {}), **entry}
-            setattr(org, aspect, current)
-            changed.add(aspect)
+            changes[aspect] = current
     filled = []
     if fill:
-        for field in FOLLOWED:
-            if not getattr(org, field) and getattr(contact, field):
-                setattr(org, field, getattr(contact, field))
-                filled.append(field)
-                changed.add(field)
-    if changed:
-        org.save(update_fields=sorted(changed) + ['dt_modified', 'version'])
+        if not org.contact_id:
+            changes['contact_id'] = contact.pk        # the hook takes its name, email and pointers
+            filled = ['contact_id', 'attention', 'email', *POINTERS]
+        else:
+            for field in POINTERS:
+                if not getattr(org, field) and getattr(contact, field):
+                    changes[field] = getattr(contact, field)
+                    filled.append(field)
+
+    if changes:
+        _writable(ctx.actor, ctx.model_key, changes.keys())
+        saved = save_record(ctx.actor, {'id': org.pk, 'version': data.get('version'), **changes},
+                            model_key=ctx.model_key)
+        version = saved.version
+    else:
+        version = org.version
     ctx.messages.append(
         f"{ctx.model_key} #{org.pk} takes contact #{contact.pk}: "
-        + ', '.join([*roles, *(['fill ' + ', '.join(filled)] if filled else [])]))
-    return {'contact_id': contact.pk, 'set': roles, 'filled': filled, 'version': org.version}
+        + ', '.join([*roles, *(['fill ' + ', '.join(filled)] if filled else ['nothing lacking'] if fill else [])]))
+    return {'contact_id': contact.pk, 'set': roles, 'filled': filled, 'version': version}
 
 
 def register() -> None:
