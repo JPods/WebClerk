@@ -56,6 +56,10 @@ def _clear(sender, instance, **kwargs):
     if instance.purpose == 'wc:model':
         from apps.core.services.access import clear_cache
         clear_cache(instance.parent_model)
+    if instance.purpose == 'wc:company_profile':
+        from apps.core.services.cache import cache_service
+        from apps.products.services.price_resolver import COMPANY_CACHE
+        cache_service.invalidate_namespace(COMPANY_CACHE)
 
 
 def register_access_signals():

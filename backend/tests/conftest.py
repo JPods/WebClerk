@@ -331,3 +331,13 @@ def make_saved_search(*, name, model_name, role="", config=None, is_active=True,
         is_active=is_active,
         **kwargs,
     )
+
+
+@pytest.fixture(autouse=True)
+def _company_profile_cache_per_test():
+    """price_resolver caches the company profile (an item save pays no query for the cost
+    basis); one test's profile must not be the next test's."""
+    from apps.core.services.cache import cache_service
+    cache_service.invalidate_namespace('company_profile')
+    yield
+    cache_service.invalidate_namespace('company_profile')

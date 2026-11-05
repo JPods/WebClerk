@@ -57,6 +57,30 @@ def test_a_path_the_model_lacks_is_refused(admin):
     assert refused.value.code == 'unknown_field' and 'totals.total' in refused.value.message
 
 
+def test_a_row_above_the_viewers_level_is_left_out(django_user_model):
+    """The card's rows are the list's rows: an agent's ceiling is 4, so a level-8 order is
+    neither listed nor totalled (the lead's review of 431dc55)."""
+    _order(100.0, 60.0, 40.0, security_level=2)
+    _order(1000.0, 60.0, 40.0, security_level=8)
+    agent = django_user_model.objects.create_user(
+        email='agent@example.com', password=None, name_first='An', name_last='Agent', role='agent')
+    out = card_metrics({'model': 'order', 'metrics': [
+        {'field': 'id', 'agg': 'count', 'label': 'Count'},
+        {'field': 'totals.total', 'agg': 'sum', 'label': 'Value'}]}, Actor(user=agent, kind='user'))
+    assert [(m['label'], m['value']) for m in out['metrics']] == [('Count', 1), ('Value', 100.0)]
+
+
+def test_training_rows_never_tally(admin):
+    """zz and qq records are training or disposable and count in no figure (Bill's standing rule)."""
+    _order(100.0, 60.0, 40.0, ida='ORD-1')
+    _order(500.0, 60.0, 40.0, ida='zz-training')
+    _order(700.0, 60.0, 40.0, ida='QQ-sim')
+    out = card_metrics({'model': 'order', 'metrics': [
+        {'field': 'id', 'agg': 'count', 'label': 'Count'},
+        {'field': 'totals.total', 'agg': 'sum', 'label': 'Value'}]}, Actor(user=admin, kind='user'))
+    assert [(m['label'], m['value']) for m in out['metrics']] == [('Count', 1), ('Value', 100.0)]
+
+
 def test_rows_the_asker_may_not_see_do_not_count(django_user_model):
     _order(100.0, 60.0, 40.0)
     nobody = django_user_model.objects.create_user(

@@ -6,7 +6,9 @@ record that carries totals.total, so every card said $0.00 (FAULT 20261103T22182
 the source of truth (Bill, 2026-11-04); the browser only formats what comes back.
 
 A metric field is a concrete field ('amount') or a path into a JSON field ('totals.total').
-A name the model lacks is refused with the path it probably meant.
+A name the model lacks is refused with the path it probably meant. The rows are the ones the
+list would show this person (record_serialize.visible_queryset) less the training rows
+(tally.tallied): a card never totals what its viewer cannot open.
 """
 from __future__ import annotations
 
@@ -20,7 +22,8 @@ from django.db.models.functions import Cast
 from apps.core.constants.model_registry import get_model_meta
 from apps.core.services import access
 from apps.core.services.door import Refused, as_actor
-from apps.core.services.role_filter import inject_role_filters
+from apps.core.services.record_serialize import visible_queryset
+from apps.core.services.tally import tallied
 
 
 def _number(value) -> float | int:
@@ -118,9 +121,10 @@ def card_metrics(params: dict, actor) -> dict[str, Any]:
     if meta is None:
         raise Refused(404, 'unknown_model', f"No model '{params.get('model')}' for a card.",
                       {'model_name': params.get('model')})
-    model = meta.import_model()
-    filters = dict(params.get('filters') or {})
-    qs = model.objects.filter(inject_role_filters(actor, model_key, Q(**filters)))
+    # The rows the list shows this person (one read gate: level, role block, id scope), and
+    # none of the training rows (zz/qq never tally).
+    model, qs = visible_queryset(model_key, actor=actor)
+    qs = tallied(qs).filter(**(params.get('filters') or {}))
     metrics = [_metric(qs, model, model_key, m) for m in (params.get('metrics') or [])]
     distribution = _distribution(qs, model, model_key, params['distribution']) if params.get('distribution') else []
     return {'metrics': metrics, 'distribution': distribution}

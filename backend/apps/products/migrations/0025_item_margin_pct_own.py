@@ -2,16 +2,11 @@
 
 Margin on list price at the company's cost basis, the formula price_resolver uses on a line,
 set on save and unknown (null) without a price or a cost. It was 0.00 on every item: a nightly
-velocity job that never ran, and a default of 0 that read as a figure.
+velocity job that never ran, and a default of 0 that read as a figure. Existing items are
+recomputed by `manage.py recompute_item_margin` (one formula, no live model in a migration);
+a new install has no items, and from here on save sets it.
 """
 from django.db import migrations, models
-
-
-def forward(apps, schema_editor):
-    from apps.products.models import Item
-    from apps.products.services.price_resolver import resolve_cost
-    for item in Item.objects.all().iterator():
-        Item.objects.filter(pk=item.pk).update(margin_pct=resolve_cost(item).margin_pct)
 
 
 class Migration(migrations.Migration):
@@ -24,5 +19,4 @@ class Migration(migrations.Migration):
                 help_text="Margin on list price at the company's cost basis (price_resolver.resolve_cost), "
                           "set on save; unknown (null) without a price or a cost — never 0 for 'not computed'."),
         ),
-        migrations.RunPython(forward, migrations.RunPython.noop),
     ]

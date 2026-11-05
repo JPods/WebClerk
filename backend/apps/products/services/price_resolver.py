@@ -153,11 +153,23 @@ def list_price(item) -> Decimal:
 # Buy side
 # ---------------------------------------------------------------------------
 
+COMPANY_CACHE = 'company_profile'   # cleared when a Setting is saved (signals/access_signals.py)
+
+
 def _company_config(section: str) -> dict:
+    """One section of the company profile, cached: Item.save reads the cost basis through
+    here, and an operational save must not pay a query for admin configuration."""
     from apps.core.models import Setting
+    from apps.core.services.cache import cache_service
+    key = cache_service.make_key(COMPANY_CACHE, section)
+    cached = cache_service.get(key)
+    if cached is not None:
+        return cached
     company = Setting.objects.filter(purpose='wc:company_profile', is_active=True).first()
     out = company.config.get(section, {}) if company and isinstance(company.config, dict) else {}
-    return out if isinstance(out, dict) else {}
+    out = out if isinstance(out, dict) else {}
+    cache_service.set(key, out, ttl=0)
+    return out
 
 
 def cost_basis_default() -> str:
