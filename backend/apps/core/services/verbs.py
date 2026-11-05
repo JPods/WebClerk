@@ -95,6 +95,7 @@ VERBS: Dict[str, Callable[[Actor, str, dict], Any]] = {
     'hold': _command('hold'),          # edit hold (services/edit_hold.py): writes nothing to the record
     'release': _command('release'),
     'parade_feedback': _command('parade_feedback'),     # a parade's Keep/Modify/Don't Need on a model (services/parade.py)
+    'from_contact': _command('from_contact'),           # an org takes a contact's party values (orgs/services/party_from_contact.py)
 }
 
 #: Which model answers which command, and the base service that does it. A command is
