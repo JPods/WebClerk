@@ -16804,6 +16804,12 @@
           "gateway_payment_intent_id": {
             "type": "text",
             "label": "gateway cash intent id"
+          },
+          "terms": {
+            "type": "lookup",
+            "model": "term",
+            "display": "ida",
+            "value": "ida"
           }
         },
         "enrichment": {},
@@ -24607,6 +24613,12 @@
           "relationship_stats": {
             "type": "json",
             "label": "relationship stats"
+          },
+          "terms": {
+            "type": "lookup",
+            "model": "term",
+            "display": "ida",
+            "value": "ida"
           }
         },
         "enrichment": {},
@@ -30234,6 +30246,12 @@
           "relationship_stats": {
             "type": "json",
             "label": "relationship stats"
+          },
+          "terms": {
+            "type": "lookup",
+            "model": "term",
+            "display": "ida",
+            "value": "ida"
           }
         },
         "enrichment": {},
@@ -39064,6 +39082,12 @@
             "type": "currency",
             "label": "Fuel Surcharge",
             "precision": 2
+          },
+          "terms": {
+            "type": "lookup",
+            "model": "term",
+            "display": "ida",
+            "value": "ida"
           }
         },
         "enrichment": {},
@@ -46658,6 +46682,12 @@
           "discount_potential": {
             "type": "currency",
             "label": "discount potential"
+          },
+          "terms": {
+            "type": "lookup",
+            "model": "term",
+            "display": "ida",
+            "value": "ida"
           }
         },
         "enrichment": {},
@@ -49097,6 +49127,12 @@
           "relationship_stats": {
             "type": "json",
             "label": "relationship stats"
+          },
+          "terms": {
+            "type": "lookup",
+            "model": "term",
+            "display": "ida",
+            "value": "ida"
           }
         },
         "enrichment": {},
@@ -52311,6 +52347,12 @@
             "type": "currency",
             "label": "Fuel Surcharge",
             "precision": 2
+          },
+          "terms": {
+            "type": "lookup",
+            "model": "term",
+            "display": "ida",
+            "value": "ida"
           }
         },
         "enrichment": {},
@@ -55511,6 +55553,12 @@
           "relationship_stats": {
             "type": "json",
             "label": "relationship stats"
+          },
+          "terms": {
+            "type": "lookup",
+            "model": "term",
+            "display": "ida",
+            "value": "ida"
           }
         },
         "enrichment": {},
@@ -61606,6 +61654,12 @@
             "type": "currency",
             "label": "Fuel Surcharge",
             "precision": 2
+          },
+          "terms": {
+            "type": "lookup",
+            "model": "term",
+            "display": "ida",
+            "value": "ida"
           }
         },
         "enrichment": {},
@@ -65711,6 +65765,12 @@
             "type": "currency",
             "label": "Fuel Surcharge",
             "precision": 2
+          },
+          "terms": {
+            "type": "lookup",
+            "model": "term",
+            "display": "ida",
+            "value": "ida"
           }
         },
         "enrichment": {},
@@ -69838,6 +69898,12 @@
           "vendor_invoice_amount": {
             "type": "number",
             "label": "vendor invoice amount"
+          },
+          "terms": {
+            "type": "lookup",
+            "model": "term",
+            "display": "ida",
+            "value": "ida"
           }
         },
         "enrichment": {},
@@ -72914,6 +72980,12 @@
           "relationship_stats": {
             "type": "json",
             "label": "relationship stats"
+          },
+          "terms": {
+            "type": "lookup",
+            "model": "term",
+            "display": "ida",
+            "value": "ida"
           }
         },
         "enrichment": {},
@@ -87491,6 +87563,12 @@
           "relationship_stats": {
             "type": "json",
             "label": "relationship stats"
+          },
+          "terms": {
+            "type": "lookup",
+            "model": "term",
+            "display": "ida",
+            "value": "ida"
           }
         },
         "enrichment": {},
@@ -91416,6 +91494,12 @@
             "type": "currency",
             "label": "Fuel Surcharge",
             "precision": 2
+          },
+          "terms": {
+            "type": "lookup",
+            "model": "term",
+            "display": "ida",
+            "value": "ida"
           }
         },
         "enrichment": {},
