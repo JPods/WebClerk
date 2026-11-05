@@ -157,6 +157,11 @@ class CashBehaviour(ModelBehaviour):
     SETTLED_FIELDS = frozenset({'purpose', 'status', 'gateway_transaction_id',
                                 'gateway_payment_intent_id', 'amount', 'fee_amount',
                                 'invoice', 'receipt', 'purchase'})
+    #: A journalized Cash is locked (Bill, 2026-11-05): the journal holds its money. Only what
+    #: the bank reconciliation and the comments add may change; everything else moves through its
+    #: commands (unjournalize, refund). The form reads dt_journaled the same way (useRecordForm).
+    AFTER_JOURNAL = frozenset({'reconciled', 'dt_reconciliation', 'comments', 'metadata',
+                               'config', 'refs', 'keywords'})
 
     @staticmethod
     def _settled(obj) -> bool:
@@ -189,6 +194,12 @@ class CashBehaviour(ModelBehaviour):
                             .filter(pk=target).exists():
                         raise Refused(404, 'not_found', f'{model_key} {target} not found',
                                       {'field': field, 'id': target})
+        if ctx.is_update and ctx.obj.dt_journaled and (ctx.changed - self.AFTER_JOURNAL):
+            locked = sorted(ctx.changed - self.AFTER_JOURNAL)
+            raise Refused(409, 'journalized',
+                          f'Cash {ctx.obj.pk} is journalized: {", ".join(locked)} cannot change. '
+                          f'Reconciliation and comments can; anything else needs unjournalize first (an admin).',
+                          {'fields': locked, 'dt_journaled': ctx.obj.dt_journaled})
         if ctx.is_update and ctx.changed & self.SETTLED_FIELDS and self._settled(ctx.obj):
             raise Refused(409, 'cash_settled',
                           f'Cash {ctx.obj.pk} has been charged or applied; '
