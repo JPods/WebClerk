@@ -252,6 +252,11 @@ def get_field_behaviors(model_key, field_map=None, overrides=None):
             behaviors[name] = {'type': 'lookup', 'model': lookup_model, 'display': display}
             continue
 
+        # A contact pointer held as a plain integer (Cash.contact_id) is still a contact:
+        # found by name, shown as a name — never a bare number (lead's review, 2026-11-05).
+        if name == 'contact_id' and ftype in ('IntegerField', 'BigIntegerField', 'PositiveIntegerField'):
+            behaviors[name] = {'type': 'lookup', 'model': 'contact', 'display': 'attention'}
+            continue
         # Select lists by name convention. A status list is the model's own
         # (definition config.selectlists, services/select_lists.py), never code's (readme 105).
         if name == 'status':
