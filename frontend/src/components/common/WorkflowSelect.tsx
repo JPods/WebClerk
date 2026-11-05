@@ -93,7 +93,8 @@ const ACTION_CONFIGS: Record<string, ActionDef[]> = {
       params: () => ({}) },
   ],
   item: [
-    { key: 'get_inventory_summary', label: 'Inventory Summary',
+    // One name, one meaning: the commerce dashboard's get_inventory_summary is the company's; this is the item's.
+    { key: 'get_item_inventory_summary', label: 'Inventory Summary',
       params: (r) => ({ item_id: r.id }) },
   ],
 };

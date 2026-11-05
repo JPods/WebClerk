@@ -302,6 +302,11 @@ const registry: Record<string, PanelRenderer> = {
     currency: ctx.data.currency,
   })),
 
+  // The record's questions and answers (docs.question_answer; the layouts' tab is named qa — Bill, 2026-11-05).
+  qa: (ctx) => wrap(createElement(LinkedRecordsPanel, {
+    linkedModel: 'question_answer', parentModel: ctx.modelName, parentId: ctx.data?.id, defaultCollapsed: false,
+  })),
+
   // "+ link": every model as a button; one click lists it in refs.links and opens its tab.
   link: (ctx) => createElement(LinkPicker, { data: ctx.data, modelName: ctx.modelName,
     onLinked: ctx.addTab ?? (() => ctx.onRefresh()) }),

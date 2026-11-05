@@ -188,10 +188,14 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
         verbose_name_plural = 'Contacts'
         ordering = ['name_last', 'name_first']
     
+    @staticmethod
+    def names_joined(name_first, name_last) -> str:
+        """First and last name as one, the one way (attention derives from it; readme 105)."""
+        return f"{name_first or ''} {name_last or ''}".strip()
+
     def __str__(self):
-        if self.name_first or self.name_last:
-            return f"{self.name_first or ''} {self.name_last or ''}".strip()
-        return self.email or self.ida or f"Contact #{self.pk}"
+        return (self.names_joined(self.name_first, self.name_last)
+                or self.email or self.ida or f"Contact #{self.pk}")
     
     def get_full_name(self):
         """Return full name with proper formatting"""
@@ -246,7 +250,7 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
         # Attention fills from the names only when empty; a typed attention is the user's
         # (Bill, 2026-10-16). The form applies the same rule (frontend utils/derivedFields.ts).
         # An attention still equal to the stored names is derived, not typed, and follows them.
-        names = f"{self.name_first or ''} {self.name_last or ''}".strip()
+        names = self.names_joined(self.name_first, self.name_last)
         attention = (self.attention or '').strip()
         if not attention:
             self.attention = names
@@ -254,7 +258,7 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
             old = type(self).objects.filter(pk=self.pk).values(
                 'name_first', 'name_last', 'attention').first()
             if old and attention == (old['attention'] or '').strip() == \
-                    f"{old['name_first'] or ''} {old['name_last'] or ''}".strip():
+                    self.names_joined(old['name_first'], old['name_last']):
                 self.attention = names
         # Sync company from primary affiliation (customer > vendor > manufacturer > rep)
         for fk_field in ('customer', 'vendor', 'manufacturer', 'rep'):

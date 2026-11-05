@@ -843,10 +843,6 @@ _ACTION_DISPATCH = {
     "reject_small_sting": _reject_small_sting,
     "get_orphan_counts": _get_orphan_counts,
     "get_orphan_detail": _get_orphan_detail,
-    "get_accounting_dashboard": lambda params: __import__(
-        'apps.accounts.services.accounting_dashboard',
-        fromlist=['get_accounting_dashboard']
-    ).get_accounting_dashboard(),
     "get_journal_exceptions": lambda params: __import__(
         'apps.accounts.services.accounting_dashboard',
         fromlist=['get_journal_exceptions']
@@ -979,7 +975,8 @@ _ACTION_DISPATCH = {
     "fulfill_backorder": lambda p: __import__('apps.transactions.services.fulfillment.fulfillment_backorder', fromlist=['fulfill_backorder']).fulfill_backorder(p['action_id'], p['qty_fulfilled']),
     "get_backorder_summary": lambda p: __import__('apps.transactions.services.fulfillment.fulfillment_backorder', fromlist=['get_backorder_summary_by_item']).get_backorder_summary_by_item(),
     # ── Inventory Stacks FIFO/LIFO (GAP-02) ──
-    "get_inventory_summary": lambda p: __import__('apps.products.services.inventory.inventory_stacks', fromlist=['get_item_inventory_summary']).get_item_inventory_summary(p['item_id'], p.get('warehouse_id')),
+    # One name, one meaning: get_inventory_summary is the commerce dashboard's (above); this is one item's.
+    "get_item_inventory_summary": lambda p: __import__('apps.products.services.inventory.inventory_stacks', fromlist=['get_item_inventory_summary']).get_item_inventory_summary(p['item_id'], p.get('warehouse_id')),
     # ── Serial Lifecycle (GAP-03) ──
     "create_serial_on_receive": lambda p: __import__('apps.products.services.serial.serial_lifecycle', fromlist=['create_serial_on_receive']).create_serial_on_receive(p['item_id'], p['serial_number'], p.get('vendor_id'), p.get('purchase_id'), p.get('purchase_line_id'), p.get('unit_cost', '0'), p.get('warehouse_id'), p.get('model_ida', '')),
     "assign_serial_on_ship": lambda p: __import__('apps.products.services.serial.serial_lifecycle', fromlist=['assign_serial_on_ship']).assign_serial_on_ship(p['serial_id'], p['customer_id'], p.get('invoice_id'), p.get('invoice_line_id'), p.get('warranty_months', 12)),
@@ -1122,7 +1119,6 @@ _ACTION_DISPATCH = {
     # ── Contact Health ──
     "get_contact_health": lambda p: __import__('apps.core.services.contact_health', fromlist=['get_contact_health']).get_contact_health(p),
     # ── Action Horizon ──
-    "get_action_horizon": lambda p: __import__('apps.core.services.action_horizon', fromlist=['get_action_horizon']).get_action_horizon(p),
     # ── Dashboard card summaries ──
     "get_action_summary": lambda p: __import__('apps.core.services.action_report', fromlist=['get_action_summary']).get_action_summary(p),
     "get_item_summary": lambda p: __import__('apps.core.services.dashboard.dashboard_item', fromlist=['get_item_summary']).get_item_summary(p),
