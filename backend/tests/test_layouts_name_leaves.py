@@ -42,3 +42,32 @@ def unknown_fields(model_key, layout):
 
 def test_the_pending_form_names_what_a_pending_carries():
     assert unknown_fields('pending', designed()['pending']['form']) == []
+
+
+CARD_FIELDS = {'email', 'phone', 'address_full', 'domain', 'attention'}   # opened in a card, never typed
+
+
+def refused_on_save(model_key, layout):
+    """Editable form fields the door would refuse: no concrete field, no declared leaf."""
+    leaves = fl.model_leaves(model_key)['leaves']
+    model = get_model_meta(model_key).import_model()
+    concrete = {f.name for f in model._meta.concrete_fields} | {f.attname for f in model._meta.concrete_fields}
+    out = []
+    for sec in (layout.get('default') or {}).get('sections', []):
+        for col in sec.get('columns', []):
+            for f in col.get('fields', []):
+                name = f.get('field')
+                if not name or f.get('type') == 'readonly' or name in CARD_FIELDS:
+                    continue
+                ok = (name in concrete or name in leaves or any(l.startswith(name + '.') for l in leaves)
+                      or ('.' in name and name.split('.')[0] in concrete))
+                if not ok:
+                    out.append(name)
+    return sorted(out)
+
+
+@pytest.mark.parametrize('model_key', sorted(designed().keys()))
+def test_every_editable_form_field_is_one_the_door_accepts(model_key):
+    """Bill, 2026-11-05: "saving customer is not working" — the form edited display_name, a
+    property; the door refused it. A layout edits only what the model has."""
+    assert refused_on_save(model_key, designed()[model_key].get('form') or {}) == []

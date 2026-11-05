@@ -16243,7 +16243,7 @@
                   "label": "method"
                 },
                 {
-                  "field": "notes",
+                  "field": "metadata.reconciliation.notes",
                   "label": "notes"
                 },
                 {
@@ -16395,7 +16395,7 @@
                           "label": "purchase"
                         },
                         {
-                          "field": "contact",
+                          "field": "contact_id",
                           "label": "contact"
                         }
                       ]
@@ -16429,7 +16429,7 @@
                           "label": "dt_reconciliation"
                         },
                         {
-                          "field": "notes",
+                          "field": "metadata.reconciliation.notes",
                           "label": "notes"
                         }
                       ]
@@ -55257,7 +55257,7 @@
                   "label": "ida"
                 },
                 {
-                  "field": "display_name",
+                  "field": "company",
                   "label": "display_name"
                 },
                 {
@@ -55494,7 +55494,7 @@
                   "visible": true
                 },
                 {
-                  "field": "display_name",
+                  "field": "company",
                   "label": "display_name",
                   "width": 180,
                   "visible": true
@@ -69570,8 +69570,8 @@
               "title": "details",
               "fields": [
                 {
-                  "type": "select",
-                  "field": "allocation_method",
+                  "type": "readonly",
+                  "field": "allocations.method",
                   "label": "allocation_method",
                   "options": [
                     "value",
@@ -69580,11 +69580,11 @@
                   ]
                 },
                 {
-                  "field": "duty",
+                  "field": "allocations.duty",
                   "label": "duty"
                 },
                 {
-                  "field": "handling",
+                  "field": "allocations.handling",
                   "label": "handling"
                 },
                 {
@@ -69610,7 +69610,7 @@
                   ]
                 },
                 {
-                  "field": "vat",
+                  "field": "allocations.vat",
                   "label": "vat"
                 },
                 {
@@ -69618,7 +69618,7 @@
                   "label": "vendor_invoice_amount"
                 },
                 {
-                  "field": "vendor_invoice_freight",
+                  "field": "allocations.freight",
                   "label": "vendor_invoice_freight"
                 },
                 {
@@ -69688,23 +69688,28 @@
                       "fields": [
                         {
                           "field": "purchase.company",
-                          "label": ".company"
+                          "label": ".company",
+                          "type": "readonly"
                         },
                         {
                           "field": "purchase.phone",
-                          "label": ".phone"
+                          "label": ".phone",
+                          "type": "readonly"
                         },
                         {
                           "field": "purchase.attention",
-                          "label": ".attention"
+                          "label": ".attention",
+                          "type": "readonly"
                         },
                         {
                           "field": "purchase.address_full",
-                          "label": ".address_full"
+                          "label": ".address_full",
+                          "type": "readonly"
                         },
                         {
                           "field": "purchase.email",
-                          "label": ".email"
+                          "label": ".email",
+                          "type": "readonly"
                         }
                       ],
                       "title_ida": true
@@ -69723,7 +69728,8 @@
                         {
                           "link": true,
                           "field": "purchase.ida",
-                          "label": ".ida"
+                          "label": ".ida",
+                          "type": "readonly"
                         },
                         {
                           "field": "config.ship_to.company",
@@ -69764,28 +69770,29 @@
                           "format": "currency"
                         },
                         {
-                          "field": "vendor_invoice_freight",
+                          "field": "allocations.freight",
                           "label": "vendor_invoice_freight",
                           "format": "currency"
                         },
                         {
-                          "field": "duty",
+                          "field": "allocations.duty",
                           "label": "duty",
                           "format": "currency"
                         },
                         {
-                          "field": "handling",
+                          "field": "allocations.handling",
                           "label": "handling",
                           "format": "currency"
                         },
                         {
-                          "field": "vat",
+                          "field": "allocations.vat",
                           "label": "vat",
                           "format": "currency"
                         },
                         {
-                          "field": "allocation_method",
-                          "label": "allocation_method"
+                          "field": "allocations.method",
+                          "label": "allocation_method",
+                          "type": "readonly"
                         }
                       ],
                       "action_summary": true
@@ -75466,32 +75473,6 @@
                   "layout": "three-column",
                   "columns": [
                     {
-                      "title": "vendor",
-                      "fields": [
-                        {
-                          "field": "company",
-                          "label": "company"
-                        },
-                        {
-                          "field": "phone",
-                          "label": "phone"
-                        },
-                        {
-                          "field": "attention",
-                          "label": "attention"
-                        },
-                        {
-                          "field": "address_full",
-                          "label": "address_full"
-                        },
-                        {
-                          "field": "email",
-                          "label": "email"
-                        }
-                      ],
-                      "title_ida": true
-                    },
-                    {
                       "title": "ship_to",
                       "fields": [
                         {
@@ -75513,10 +75494,6 @@
                         {
                           "field": "config.ship_to.city_state_zip",
                           "label": ".city_state_zip"
-                        },
-                        {
-                          "field": "ship_via",
-                          "label": "ship_via"
                         }
                       ]
                     },
@@ -75524,28 +75501,12 @@
                       "title": "requisition",
                       "fields": [
                         {
-                          "field": "terms",
-                          "label": "terms"
-                        },
-                        {
                           "field": "status",
                           "label": "status"
                         },
                         {
                           "field": "dt_created",
                           "label": "dt_created"
-                        },
-                        {
-                          "field": "dt_needed",
-                          "label": "dt_needed"
-                        },
-                        {
-                          "field": "source_name",
-                          "label": "source_name"
-                        },
-                        {
-                          "field": "priority",
-                          "label": "priority"
                         }
                       ],
                       "action_summary": true
@@ -75676,12 +75637,6 @@
                   "visible": true
                 },
                 {
-                  "field": "dt_needed",
-                  "label": "dt_needed",
-                  "width": 90,
-                  "visible": true
-                },
-                {
                   "field": "purpose",
                   "label": "purpose",
                   "width": 140,
@@ -75691,36 +75646,6 @@
                   "field": "status",
                   "label": "status",
                   "width": 90,
-                  "visible": true
-                },
-                {
-                  "field": "priority",
-                  "label": "priority",
-                  "width": 70,
-                  "visible": true
-                },
-                {
-                  "field": "attention",
-                  "label": "attention",
-                  "width": 120,
-                  "visible": true
-                },
-                {
-                  "field": "company",
-                  "label": "company",
-                  "width": 160,
-                  "visible": true
-                },
-                {
-                  "field": "email",
-                  "label": "email",
-                  "width": 160,
-                  "visible": true
-                },
-                {
-                  "field": "phone",
-                  "label": "phone",
-                  "width": 110,
                   "visible": true
                 },
                 {
@@ -75737,12 +75662,6 @@
                   "label": "total",
                   "width": 90,
                   "format": "currency",
-                  "visible": true
-                },
-                {
-                  "field": "address_full",
-                  "label": "address_full",
-                  "width": 180,
                   "visible": true
                 },
                 {
