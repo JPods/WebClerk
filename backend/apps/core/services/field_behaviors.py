@@ -178,9 +178,10 @@ _POINTER_DISPLAY = {'contact': 'attention', 'customer': 'company', 'vendor': 'co
                     'manufacturer': 'company', 'rep': 'company', 'employee': 'company', 'other_org': 'company'}
 
 
-def _pointed_model(name, ftype):
+def _pointed_model(name, ftype, model_key):
     """The lookup behavior for an integer ``<model>_id`` or a text ``<model>_ida`` column, or
-    None when the stem names no registered model (parent_line_id, batch_id)."""
+    None when the stem names no registered model (parent_line_id, batch_id) or the model
+    itself (serial.serial_ida is the record's own number, not a pointer)."""
     if name.endswith('_id') and ftype in _INTEGER_TYPES:
         stem, by_ida = name[:-3], False
     elif name.endswith('_ida') and ftype == 'CharField':
@@ -188,7 +189,7 @@ def _pointed_model(name, ftype):
     else:
         return None
     model = _POINTER_STEMS.get(stem, stem)
-    if model == 'parent_line' or get_model_meta(model) is None:
+    if model in ('parent_line', model_key) or get_model_meta(model) is None:
         return None
     out = {'type': 'lookup', 'model': model}
     if by_ida:
@@ -284,7 +285,7 @@ def get_field_behaviors(model_key, field_map=None, overrides=None):
         # is still a record: found by name, shown as a name — never a bare number (lead's review
         # on contact_id, 2026-11-05; Bill the same day: "the vast majority of user input fields
         # should have a selectlist"). The stem names the model; an ida column the same, by ida.
-        pointed = _pointed_model(name, ftype)
+        pointed = _pointed_model(name, ftype, model_key)
         if pointed:
             behaviors[name] = pointed
             continue

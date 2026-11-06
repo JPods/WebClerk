@@ -8866,7 +8866,9 @@
             "label": "is archived"
           },
           "project_ida": {
-            "type": "text",
+            "type": "lookup",
+            "model": "project",
+            "value": "ida",
             "label": "project ida"
           },
           "dt_completed": {
@@ -15683,7 +15685,9 @@
             "label": "sequence"
           },
           "child_ida": {
-            "type": "text",
+            "type": "lookup",
+            "model": "item",
+            "value": "ida",
             "label": "child ida"
           },
           "is_active": {
@@ -19298,7 +19302,9 @@
             "label": "comments"
           },
           "item_ida": {
-            "type": "text",
+            "type": "lookup",
+            "model": "item",
+            "value": "ida",
             "label": "item ida"
           },
           "metadata": {
@@ -35943,7 +35949,9 @@
             "label": "comments"
           },
           "item_ida": {
-            "type": "text",
+            "type": "lookup",
+            "model": "item",
+            "value": "ida",
             "label": "item ida"
           },
           "metadata": {
@@ -44143,7 +44151,9 @@
             "label": "comments"
           },
           "item_ida": {
-            "type": "text",
+            "type": "lookup",
+            "model": "item",
+            "value": "ida",
             "label": "item ida"
           },
           "metadata": {
@@ -45037,7 +45047,9 @@
             "label": "comments"
           },
           "item_ida": {
-            "type": "text",
+            "type": "lookup",
+            "model": "item",
+            "value": "ida",
             "label": "item ida"
           },
           "metadata": {
@@ -78748,7 +78760,9 @@
             "label": "comments"
           },
           "item_ida": {
-            "type": "text",
+            "type": "lookup",
+            "model": "item",
+            "value": "ida",
             "label": "item ida"
           },
           "metadata": {
@@ -86904,7 +86918,9 @@
             "label": "comments"
           },
           "item_ida": {
-            "type": "text",
+            "type": "lookup",
+            "model": "item",
+            "value": "ida",
             "label": "item ida"
           },
           "metadata": {

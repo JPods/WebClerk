@@ -26,21 +26,36 @@ def test_an_integer_pointer_is_a_lookup_on_the_model_its_stem_names():
     assert line['parent_line_id'] == {'type': 'number'}          # no model named parent_line
     assert _typed(get_field_behaviors('cash')['contact_id']) == {'type': 'lookup', 'model': 'contact', 'display': 'attention'}
     assert _typed(get_field_behaviors('item_xref')['item_ida']) == {'type': 'lookup', 'model': 'item', 'value': 'ida'}
+    assert _typed(get_field_behaviors('serial')['serial_ida']) == {'type': 'text'}   # its own number, not a pointer
 
 
 def test_refresh_adds_what_is_missing_and_upgrades_a_number_to_its_lookup_only():
     config = {'behaviors': {'rep_id': {'type': 'number', 'label': 'Rep'},
                             'description': {'type': 'textarea', 'label': 'My words'}}}
-    out, changes = refreshed('order_line', config)
+    out, changes, kept = refreshed('order_line', config)
     assert out['behaviors']['rep_id'] == {'type': 'lookup', 'model': 'rep', 'display': 'company', 'label': 'Rep'}
     assert out['behaviors']['description'] == {'type': 'textarea', 'label': 'My words'}   # a staff edit stays
-    assert 'customer_id' in changes and 'item_fk' in out['behaviors']
-    assert refreshed('order_line', out) == (out, [])                                       # idempotent
+    assert 'customer_id' in changes and 'item_fk' in out['behaviors'] and kept == []
+    assert refreshed('order_line', out) == (out, [], [])                                   # idempotent
+    xref, _c, _k = refreshed('item_xref', {'behaviors': {'item_ida': {'type': 'text', 'label': 'Item'}}})
+    assert xref['behaviors']['item_ida'] == {'type': 'lookup', 'model': 'item', 'value': 'ida', 'label': 'Item'}   # the old text default of an _ida
+
+
+def test_an_entry_a_person_changed_is_reported_and_left_alone():
+    """The lead's rule (2026-11-05): additive never overwrites what a person changed. A stored
+    number with a key the code never gave it, or a lookup pointed elsewhere, is theirs."""
+    config = {'behaviors': {'rep_id': {'type': 'number', 'help': 'the rep who gets the commission'},
+                            'customer_id': {'type': 'lookup', 'model': 'contact'}}}
+    out, changes, kept = refreshed('order_line', config)
+    assert sorted(kept) == ['customer_id', 'rep_id']
+    assert out['behaviors']['rep_id'] == config['behaviors']['rep_id']
+    assert out['behaviors']['customer_id'] == config['behaviors']['customer_id']
+    assert 'rep_id' not in changes and 'customer_id' not in changes
 
 
 def test_a_stored_lookup_learns_the_keys_the_code_added():
     config = {'behaviors': {'terms': {'type': 'lookup', 'model': 'term', 'display': 'ida', 'value': 'ida', 'label': 'Terms'}}}
-    out, changes = refreshed('order', config)
+    out, changes, _kept = refreshed('order', config)
     assert 'terms' in changes and out['behaviors']['terms']['pick'] == 'list' and out['behaviors']['terms']['label'] == 'Terms'
 
 
@@ -50,7 +65,7 @@ def test_the_shipped_definitions_carry_every_behavior_the_code_computes(bundle):
     stale = {}
     for item in data['settings']:
         if item.get('purpose') == 'wc:model' and isinstance(item.get('config'), dict):
-            _config, changes = refreshed(item['parent_model'], item['config'])
+            _config, changes, _kept = refreshed(item['parent_model'], item['config'])
             if changes:
                 stale[item['parent_model']] = changes
     assert stale == {}, 'run: manage.py refresh_model_behaviors --bundles'
