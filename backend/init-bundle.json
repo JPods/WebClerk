@@ -11377,9 +11377,9 @@
           },
           "parent": {
             "type": "lookup",
-            "label": "parent",
-            "model": "aimessage",
-            "display": "ida"
+            "model": "ai_message",
+            "display": "ida",
+            "label": "parent"
           },
           "sender": {
             "type": "text",
@@ -11457,9 +11457,9 @@
           },
           "forward_of": {
             "type": "lookup",
-            "label": "forward of",
-            "model": "aimessage",
-            "display": "ida"
+            "model": "ai_message",
+            "display": "ida",
+            "label": "forward of"
           },
           "times_used": {
             "type": "readonly",
@@ -41202,7 +41202,7 @@
             "precision": 2
           },
           "cost.tax_code_id": {
-            "type": "lookup",
+            "type": "number",
             "label": "Tax Code ID"
           },
           "cost.line_sum_tax": {
@@ -54537,7 +54537,7 @@
             "precision": 2
           },
           "cost.tax_code_id": {
-            "type": "lookup",
+            "type": "number",
             "label": "Tax Code ID"
           },
           "cost.line_sum_tax": {
@@ -63993,7 +63993,7 @@
             "precision": 2
           },
           "cost.tax_code_id": {
-            "type": "lookup",
+            "type": "number",
             "label": "Tax Code ID"
           },
           "cost.line_sum_tax": {
@@ -68083,7 +68083,7 @@
             "precision": 2
           },
           "cost.tax_code_id": {
-            "type": "lookup",
+            "type": "number",
             "label": "Tax Code ID"
           },
           "cost.line_sum_tax": {
@@ -72340,7 +72340,7 @@
             "precision": 2
           },
           "cost.tax_code_id": {
-            "type": "lookup",
+            "type": "number",
             "label": "Tax Code ID"
           },
           "adjustment_reason": {
@@ -77665,7 +77665,7 @@
             "precision": 2
           },
           "cost.tax_code_id": {
-            "type": "lookup",
+            "type": "number",
             "label": "Tax Code ID"
           },
           "cost.line_sum_tax": {
@@ -94161,7 +94161,7 @@
             "precision": 2
           },
           "cost.tax_code_id": {
-            "type": "lookup",
+            "type": "number",
             "label": "Tax Code ID"
           },
           "cost.line_sum_tax": {

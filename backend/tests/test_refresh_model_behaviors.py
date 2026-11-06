@@ -69,3 +69,11 @@ def test_the_shipped_definitions_carry_every_behavior_the_code_computes(bundle):
             if changes:
                 stale[item['parent_model']] = changes
     assert stale == {}, 'run: manage.py refresh_model_behaviors --bundles'
+
+
+def test_a_lookup_on_no_registered_model_is_repointed():
+    """ai_message's FKs were stored as lookups on 'aimessage' (a key no registry has): a
+    search that could never find. Nobody meant that, so it is the code's to fix."""
+    out, changes, kept = refreshed('ai_message', {'behaviors': {'parent': {'type': 'lookup', 'model': 'aimessage', 'display': 'ida', 'label': 'parent'}}})
+    assert 'parent' in changes and kept == []
+    assert out['behaviors']['parent']['model'] == 'ai_message' and out['behaviors']['parent']['label'] == 'parent'

@@ -46,7 +46,9 @@ def refreshed(model_key: str, config: dict) -> tuple:
             behaviors[name] = dict(comp)
             changes.append(name)
             continue
-        if comp.get('type') != 'lookup' or stored.get('type') == 'lookup' and not (set(comp) - set(stored) - {'label'}):
+        same_lookup = (stored.get('type') == 'lookup' and stored.get('model') == comp.get('model')
+                       and not (set(comp) - set(stored) - {'label'}))
+        if comp.get('type') != 'lookup' or same_lookup:
             continue                                    # nothing the code would change
         if _is_old_default(stored, comp):
             behaviors[name] = {**comp, 'label': stored.get('label') or comp.get('label')}
@@ -66,6 +68,9 @@ def _is_old_default(stored: dict, comp: dict) -> bool:
     if rest == {'type': 'number'} or (rest == {'type': 'text'} and comp.get('value') == 'ida'):
         return True                     # the code's own defaults for an _id and an _ida column
     if rest.get('type') == 'lookup':
+        from apps.core.constants.model_registry import get_model_meta
+        if get_model_meta(rest.get('model') or '') is None:
+            return True                 # a lookup on no registered model is nobody's intent (aimessage)
         return all(k in comp and comp[k] == v for k, v in rest.items())
     return False
 
