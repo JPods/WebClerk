@@ -75,12 +75,18 @@ def test_comments_still_go_through(people, order):
 
 
 def test_a_locked_documents_lines_are_not_written(people, order):
+    """A line is edited through its document (the order save carrying lines; a direct line
+    save is refused as line_through_document for every order): on a locked order that save
+    is refused as document_locked and the line keeps its quantity."""
     line = OrderLine.objects.create(order=order)
     _lock(people['admin'], order)
+    order.refresh_from_db()
     with pytest.raises(Refused) as refused:
-        save_record(people['admin'], {'model_name': 'order_line', 'id': line.pk,
-                                      'quantity': {'active': 5}})
-    assert refused.value.code == 'document_locked'
+        save_record(people['admin'], {'model_name': 'order', 'id': order.pk, 'version': order.version,
+                                      'lines': [{'id': line.pk, 'quantity': {'active': 5}, '_dirty': True}]})
+    assert refused.value.status == 409 and refused.value.code == 'document_locked'
+    line.refresh_from_db()
+    assert (line.quantity or {}).get('active') != 5
 
 
 def test_commands_are_refused_but_unlock(people, order):
