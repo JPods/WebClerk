@@ -28205,6 +28205,397 @@
     "field": "purpose",
     "width": 100
    }
+  ],
+  "active": {
+   "list": "default",
+   "column": "default",
+   "detail": "default",
+   "form": "default"
+  },
+  "list": {
+   "default": {
+    "detail": "default",
+    "form": "default",
+    "columns": [
+     {
+      "field": "ida",
+      "label": "ida",
+      "width": 100,
+      "align": "left",
+      "visible": true
+     },
+     {
+      "field": "description",
+      "label": "description",
+      "width": 160,
+      "align": "left",
+      "visible": true
+     },
+     {
+      "field": "name",
+      "label": "name",
+      "width": 160,
+      "align": "left",
+      "visible": true
+     },
+     {
+      "field": "purpose",
+      "label": "purpose",
+      "width": 140,
+      "align": "left",
+      "visible": true
+     },
+     {
+      "field": "status",
+      "label": "status",
+      "width": 90,
+      "align": "center",
+      "visible": true
+     },
+     {
+      "field": "description_long",
+      "label": "description_long",
+      "width": 120,
+      "align": "left",
+      "visible": true
+     },
+     {
+      "field": "health_rating",
+      "label": "health_rating",
+      "width": 120,
+      "align": "left",
+      "visible": true
+     },
+     {
+      "field": "is_active",
+      "label": "is_active",
+      "width": 120,
+      "align": "left",
+      "visible": true
+     },
+     {
+      "field": "item",
+      "label": "item",
+      "width": 120,
+      "align": "left",
+      "visible": true
+     },
+     {
+      "field": "item_ida",
+      "label": "item_ida",
+      "width": 120,
+      "align": "left",
+      "visible": true
+     },
+     {
+      "field": "unit",
+      "label": "unit",
+      "width": 120,
+      "align": "left",
+      "visible": true
+     }
+    ]
+   }
+  },
+  "column": {
+   "default": {
+    "detail": "default",
+    "form": "default",
+    "columns": [
+     {
+      "field": "ida",
+      "label": "ida",
+      "width": 100,
+      "align": "left"
+     },
+     {
+      "field": "description",
+      "label": "description",
+      "width": 160,
+      "align": "left"
+     },
+     {
+      "field": "name",
+      "label": "name",
+      "width": 160,
+      "align": "left"
+     },
+     {
+      "field": "purpose",
+      "label": "purpose",
+      "width": 140,
+      "align": "left"
+     },
+     {
+      "field": "status",
+      "label": "status",
+      "width": 90,
+      "align": "center"
+     },
+     {
+      "field": "description_long",
+      "label": "description_long",
+      "width": 120,
+      "align": "left"
+     }
+    ]
+   }
+  },
+  "detail": {
+   "default": {
+    "list": "default",
+    "form": "default",
+    "fields": [
+     "ida",
+     "is_active",
+     "purpose",
+     "status",
+     "health_rating",
+     "item",
+     "item_ida",
+     "name",
+     "description",
+     "description_long",
+     "unit",
+     "comments",
+     "stats",
+     "details",
+     "docs",
+     "applies_to",
+     "dt_created",
+     "dt_modified",
+     "dt_approved",
+     "dt_last_used"
+    ]
+   }
+  },
+  "form": {
+   "default": {
+    "list": "default",
+    "detail": "default",
+    "model": "specification",
+    "family": "core",
+    "edit_rules": {
+     "status_field": "status",
+     "locked_statuses": []
+    },
+    "sections": [
+     {
+      "type": "header",
+      "layout": "three-column",
+      "columns": [
+       {
+        "title": "identity",
+        "fields": [
+         {
+          "field": "ida",
+          "label": "ida"
+         },
+         {
+          "field": "name",
+          "label": "name"
+         },
+         {
+          "field": "description",
+          "label": "description"
+         },
+         {
+          "field": "status",
+          "label": "status"
+         },
+         {
+          "field": "purpose",
+          "label": "purpose"
+         }
+        ]
+       },
+       {
+        "title": "details",
+        "fields": [
+         {
+          "field": "description_long",
+          "label": "description_long"
+         },
+         {
+          "field": "health_rating",
+          "label": "health_rating"
+         },
+         {
+          "field": "item",
+          "label": "item"
+         },
+         {
+          "field": "item_ida",
+          "label": "item_ida"
+         },
+         {
+          "field": "unit",
+          "label": "unit"
+         }
+        ]
+       },
+       {
+        "title": "schedule",
+        "fields": [
+         {
+          "field": "dt_approved",
+          "label": "dt_approved",
+          "type": "date"
+         },
+         {
+          "field": "dt_created",
+          "label": "dt_created",
+          "type": "date"
+         },
+         {
+          "field": "dt_last_used",
+          "label": "dt_last_used",
+          "type": "date"
+         },
+         {
+          "field": "dt_modified",
+          "label": "dt_modified",
+          "type": "date"
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "type": "panel",
+      "label": "comments",
+      "content": "comments",
+      "config": {
+       "channels": [
+        {
+         "key": "process",
+         "label": "process",
+         "color": "var(--db-accent-green)"
+        },
+        {
+         "key": "public",
+         "label": "public",
+         "color": "var(--db-accent)"
+        },
+        {
+         "key": "partner",
+         "label": "foreign",
+         "color": "var(--db-accent-purple)"
+        }
+       ]
+      }
+     },
+     {
+      "type": "tabs",
+      "tabs": [
+       {
+        "label": "contacts",
+        "content": "contacts"
+       },
+       {
+        "label": "actions",
+        "content": "actions"
+       },
+       {
+        "label": "touches",
+        "content": "touches"
+       },
+       {
+        "label": "documents",
+        "content": "documents"
+       },
+       {
+        "label": "files",
+        "content": "files"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  "card": {
+   "identity": {
+    "title": "identity",
+    "fields": [
+     {
+      "field": "ida",
+      "label": "ida"
+     },
+     {
+      "field": "name",
+      "label": "name"
+     },
+     {
+      "field": "description",
+      "label": "description"
+     },
+     {
+      "field": "status",
+      "label": "status"
+     },
+     {
+      "field": "purpose",
+      "label": "purpose"
+     }
+    ]
+   },
+   "details": {
+    "title": "details",
+    "fields": [
+     {
+      "field": "description_long",
+      "label": "description_long"
+     },
+     {
+      "field": "health_rating",
+      "label": "health_rating"
+     },
+     {
+      "field": "item",
+      "label": "item"
+     },
+     {
+      "field": "item_ida",
+      "label": "item_ida"
+     },
+     {
+      "field": "unit",
+      "label": "unit"
+     }
+    ]
+   },
+   "schedule": {
+    "title": "schedule",
+    "fields": [
+     {
+      "field": "dt_approved",
+      "label": "dt_approved",
+      "type": "date"
+     },
+     {
+      "field": "dt_created",
+      "label": "dt_created",
+      "type": "date"
+     },
+     {
+      "field": "dt_last_used",
+      "label": "dt_last_used",
+      "type": "date"
+     },
+     {
+      "field": "dt_modified",
+      "label": "dt_modified",
+      "type": "date"
+     }
+    ]
+   }
+  },
+  "tabs": [
+   "contacts",
+   "actions",
+   "touches",
+   "documents",
+   "files"
   ]
  }
 }
