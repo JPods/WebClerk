@@ -225,8 +225,8 @@ def incomplete(instance, model_type: str, payload_lines=None) -> list[str]:
 
 def incomplete_coaching(model_type: str, step: str, missing: list) -> str:
     needs = ', '.join(w if w != 'line' else 'at least one line' for w in REQUIRES.get(model_type, ()))
-    lacks = ', '.join(w if w != 'line' else 'a line' for w in missing)
-    return (f'A {model_type} cannot {step} without {needs}. This one has no {lacks}. '
+    lacks = ', '.join(f'no {w}' for w in missing)
+    return (f'A {model_type} cannot {step} without {needs}. This one has {lacks}. '
             f'Save it as it is; add what it lacks, then {step} again.')
 
 

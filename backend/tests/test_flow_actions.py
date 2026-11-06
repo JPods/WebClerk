@@ -14,6 +14,14 @@ import secrets
 TEST_PASSWORD = secrets.token_urlsafe(16)
 
 
+
+
+def _party(kind):
+    """A complete document names its party and terms, or the money steps refuse it (the team, 2026-11-06)."""
+    from apps.accounts.models import Term
+    from apps.orgs.models import Customer, Vendor
+    Term.objects.get_or_create(ida='N30', defaults={'name': 'N30', 'is_active': True})
+    return (Customer if kind == 'customer' else Vendor).objects.create(company=f'Flow {kind}').pk
 def _permission_setting(parent_model, config):
     """Minimal wc:view_edit rule; new Setting records require explicit authorization."""
     rule = Setting(purpose='wc:view_edit', parent_model=parent_model, is_active=True, config=config)
@@ -34,7 +42,7 @@ def test_quote_to_order_action(django_user_model):
     user = django_user_model.objects.create_user(email='flow1@example.com', password=TEST_PASSWORD, role='admin')
     client = _auth(user)
 
-    quote = Quote.objects.create(name="P-ACT")
+    quote = Quote.objects.create(name="P-ACT", customer_id=_party("customer"), terms="N30")
     # Optional: include a line to exercise copy path (not strictly required)
     QuoteLine.objects.create(quote=quote, status='OPEN',
                                 item={"id_num": 1}, quantity={"active": 1}, price={"amount": 1})
@@ -52,7 +60,7 @@ def test_order_to_invoice_action(django_user_model):
     user = django_user_model.objects.create_user(email='flow2@example.com', password=TEST_PASSWORD, role='admin')
     client = _auth(user)
 
-    so = Order.objects.create(ida="SO-T1")
+    so = Order.objects.create(ida="SO-T1", customer_id=_party("customer"), terms="N30")
     # A line with a quantity to invoice: the one engine refuses a line with nothing left
     # (the old hand-built invoice accepted it and made a zero-quantity invoice).
     OrderLine.objects.create(order=so, status='OPEN', quantity={"active": 1},
@@ -73,7 +81,7 @@ def test_receive_purchase_action(django_user_model):
 
     item = Item.objects.create(name='Widget', sku='W-1', description='Widget')
     Warehouse.objects.create(code='MAIN', name='Main WH')
-    po = Purchase.objects.create(ida='PO-T1')
+    po = Purchase.objects.create(ida='PO-T1', vendor_id=_party('vendor'), terms='N30')
     pol = PurchaseLine.objects.create(
         purchase=po, status='OPEN', item_fk=item,
         item={"item_id": item.id}, quantity={"active": 2, "staged": 2}, cost={"unit": 12.34}
