@@ -2,8 +2,9 @@
  * LookupWidget — a foreign key found by search. Shows the record's name; typing searches
  * the model; a miss offers to add the typed name through the door.
  *
- * A lookup stored by ida (terms) is a code list: a dozen records a person picks from a
- * select, never searches (Bill, 2026-11-05). The list is the model's active records.
+ * A lookup whose behavior says pick: list (terms) is a code list: a dozen records a person
+ * picks from a select, never searches (Bill, 2026-11-05). The list is the model's active records.
+ * An ida-valued lookup on a big table (item_ida) is still a search, by ida.
  */
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import type { WidgetProps } from "./types";
@@ -22,7 +23,7 @@ export const nameOf = (rec: any, display?: string): string =>
   || asText(rec?.display_name) || asText(rec?.attention) || asText(rec?.name) || asText(rec?.company)
   || asText(rec?.email) || asText(rec?.ida) || (rec?.id ? `#${rec.id}` : "");   // a document is its ida; its company snapshot comes after
 
-export const LookupWidget: React.FC<WidgetProps> = ({ name, value: v, onChange, disabled, model = "", valueField = "id", displayField, className, mode }) => {
+export const LookupWidget: React.FC<WidgetProps> = ({ name, value: v, onChange, disabled, model = "", valueField = "id", displayField, pick, className, mode }) => {
   const shown = (rec: any) => nameOf(rec, displayField);
   const [query, setQuery] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -31,7 +32,7 @@ export const LookupWidget: React.FC<WidgetProps> = ({ name, value: v, onChange, 
   const [loading, setLoading] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const wrapRef = useRef<HTMLDivElement>(null);
-  const isList = valueField === "ida";
+  const isList = pick === "list";
   const [list, setList] = useState<any[]>([]);
 
   // A code list: every active record of the model, once
@@ -90,10 +91,10 @@ export const LookupWidget: React.FC<WidgetProps> = ({ name, value: v, onChange, 
     const current = v == null ? "" : String(v);
     return (
       <select name={name} className={className || s} value={current} disabled={disabled}
-        onChange={e => onChange(e.target.value || null)}>
+        onChange={e => onChange(!e.target.value ? null : valueField === "ida" ? e.target.value : Number(e.target.value))}>
         <option value="">--</option>
-        {list.map(r => <option key={r.ida} value={r.ida}>{shown(r)}</option>)}
-        {current && !list.some(r => r.ida === current) && <option value={current}>{current}</option>}
+        {list.map(r => <option key={r[valueField]} value={String(r[valueField])}>{shown(r)}</option>)}
+        {current && !list.some(r => String(r[valueField]) === current) && <option value={current}>{displayName || current}</option>}
       </select>
     );
   }

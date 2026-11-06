@@ -52,7 +52,7 @@ const CardRenderer: React.FC<CardRendererProps> = ({ spec, data, isEditing, onCh
         isEditing={isEditing}
         options={selectOptionsOf(beh)}
         fieldType={f.type || beh.type}
-        lookup={beh.type === 'lookup' && beh.model ? { model: beh.model, valueField: beh.value, display: beh.display } : undefined}
+        lookup={beh.type === 'lookup' && beh.model ? { model: beh.model, valueField: beh.value, display: beh.display, pick: beh.pick } : undefined}
         help={f.help}
         onChange={onChange}
       />

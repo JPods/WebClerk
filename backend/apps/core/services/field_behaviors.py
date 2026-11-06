@@ -170,6 +170,34 @@ def _registry_key_for(model_cls) -> str:
     return keys[0] if keys else name
 
 
+_INTEGER_TYPES = ('IntegerField', 'BigIntegerField', 'PositiveIntegerField', 'PositiveBigIntegerField')
+#: Pointer stems that are not the model's own name.
+_POINTER_STEMS = {'assigned_to': 'contact', 'user': 'contact', 'child': 'item', 'parent_item': 'item'}
+#: How a looked-up record is named: a contact by its attention, an org by its company.
+_POINTER_DISPLAY = {'contact': 'attention', 'customer': 'company', 'vendor': 'company',
+                    'manufacturer': 'company', 'rep': 'company', 'employee': 'company', 'other_org': 'company'}
+
+
+def _pointed_model(name, ftype):
+    """The lookup behavior for an integer ``<model>_id`` or a text ``<model>_ida`` column, or
+    None when the stem names no registered model (parent_line_id, batch_id)."""
+    if name.endswith('_id') and ftype in _INTEGER_TYPES:
+        stem, by_ida = name[:-3], False
+    elif name.endswith('_ida') and ftype == 'CharField':
+        stem, by_ida = name[:-4], True
+    else:
+        return None
+    model = _POINTER_STEMS.get(stem, stem)
+    if model == 'parent_line' or get_model_meta(model) is None:
+        return None
+    out = {'type': 'lookup', 'model': model}
+    if by_ida:
+        out['value'] = 'ida'
+    if model in _POINTER_DISPLAY:
+        out['display'] = _POINTER_DISPLAY[model]
+    return out
+
+
 def get_field_behaviors(model_key, field_map=None, overrides=None):
     """Compute UI behaviors for every field on a model.
 
@@ -252,10 +280,13 @@ def get_field_behaviors(model_key, field_map=None, overrides=None):
             behaviors[name] = {'type': 'lookup', 'model': lookup_model, 'display': display}
             continue
 
-        # A contact pointer held as a plain integer (Cash.contact_id) is still a contact:
-        # found by name, shown as a name — never a bare number (lead's review, 2026-11-05).
-        if name == 'contact_id' and ftype in ('IntegerField', 'BigIntegerField', 'PositiveIntegerField'):
-            behaviors[name] = {'type': 'lookup', 'model': 'contact', 'display': 'attention'}
+        # A pointer held as a plain integer (Cash.contact_id, OrderLine.rep_id, Serial.item_id)
+        # is still a record: found by name, shown as a name — never a bare number (lead's review
+        # on contact_id, 2026-11-05; Bill the same day: "the vast majority of user input fields
+        # should have a selectlist"). The stem names the model; an ida column the same, by ida.
+        pointed = _pointed_model(name, ftype)
+        if pointed:
+            behaviors[name] = pointed
             continue
         # Select lists by name convention. A status list is the model's own
         # (definition config.selectlists, services/select_lists.py), never code's (readme 105).
@@ -299,7 +330,8 @@ def get_field_behaviors(model_key, field_map=None, overrides=None):
         if name == 'terms':
             # Terms point at Term records and store the ida (Bill, 2026-10-22): a lookup on the
             # model, never a copied list that drifts when a Term is added (readme 105 step d).
-            behaviors[name] = {'type': 'lookup', 'model': 'term', 'display': 'ida', 'value': 'ida'}
+            # pick: list — a dozen records a person picks from a select, never searches (Bill, 2026-11-05).
+            behaviors[name] = {'type': 'lookup', 'model': 'term', 'display': 'ida', 'value': 'ida', 'pick': 'list'}
             continue
         if name == 'method' and model_key == 'cash':
             behaviors[name] = {'type': 'select'}

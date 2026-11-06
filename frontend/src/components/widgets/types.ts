@@ -40,6 +40,8 @@ export interface WidgetProps {
   model?: string;
   /** Lookup: the field of the found record the value stores — its id (default) or its ida (terms). */
   valueField?: 'id' | 'ida';
+  /** 'list': the model's records are picked from a select, never searched (terms). */
+  pick?: 'list' | 'search';
   /** Display field — for lookup widgets */
   displayField?: string;
   /** Geo: the paired latitude/longitude field */

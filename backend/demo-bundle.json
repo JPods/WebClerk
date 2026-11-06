@@ -8759,8 +8759,10 @@
             "label": "languages"
           },
           "contact_id": {
-            "type": "number",
-            "label": "contact id"
+            "type": "lookup",
+            "label": "contact id",
+            "model": "contact",
+            "display": "attention"
           },
           "created_by": {
             "type": "i18n",
@@ -8779,8 +8781,9 @@
             "label": "dt updated"
           },
           "project_id": {
-            "type": "number",
-            "label": "project id"
+            "type": "lookup",
+            "label": "project id",
+            "model": "project"
           },
           "times_used": {
             "type": "readonly",
@@ -10269,6 +10272,12 @@
           "comments.process": {
             "type": "json-tree",
             "label": "Process Notes"
+          },
+          "contact": {
+            "type": "lookup",
+            "model": "contact",
+            "display": "ida",
+            "label": "contact"
           }
         },
         "enrichment": {},
@@ -10313,6 +10322,280 @@
             {
               "label": "Other",
               "value": "other"
+            }
+          ],
+          "address_type": [
+            {
+              "value": "billing",
+              "label": "Billing"
+            },
+            {
+              "value": "shipping",
+              "label": "Shipping"
+            },
+            {
+              "value": "home",
+              "label": "Home"
+            },
+            {
+              "value": "work",
+              "label": "Work"
+            },
+            {
+              "value": "other",
+              "label": "Other"
+            }
+          ],
+          "state": [
+            {
+              "value": "AL",
+              "label": "Alabama"
+            },
+            {
+              "value": "AK",
+              "label": "Alaska"
+            },
+            {
+              "value": "AZ",
+              "label": "Arizona"
+            },
+            {
+              "value": "AR",
+              "label": "Arkansas"
+            },
+            {
+              "value": "CA",
+              "label": "California"
+            },
+            {
+              "value": "CO",
+              "label": "Colorado"
+            },
+            {
+              "value": "CT",
+              "label": "Connecticut"
+            },
+            {
+              "value": "DE",
+              "label": "Delaware"
+            },
+            {
+              "value": "DC",
+              "label": "District of Columbia"
+            },
+            {
+              "value": "FL",
+              "label": "Florida"
+            },
+            {
+              "value": "GA",
+              "label": "Georgia"
+            },
+            {
+              "value": "HI",
+              "label": "Hawaii"
+            },
+            {
+              "value": "ID",
+              "label": "Idaho"
+            },
+            {
+              "value": "IL",
+              "label": "Illinois"
+            },
+            {
+              "value": "IN",
+              "label": "Indiana"
+            },
+            {
+              "value": "IA",
+              "label": "Iowa"
+            },
+            {
+              "value": "KS",
+              "label": "Kansas"
+            },
+            {
+              "value": "KY",
+              "label": "Kentucky"
+            },
+            {
+              "value": "LA",
+              "label": "Louisiana"
+            },
+            {
+              "value": "ME",
+              "label": "Maine"
+            },
+            {
+              "value": "MD",
+              "label": "Maryland"
+            },
+            {
+              "value": "MA",
+              "label": "Massachusetts"
+            },
+            {
+              "value": "MI",
+              "label": "Michigan"
+            },
+            {
+              "value": "MN",
+              "label": "Minnesota"
+            },
+            {
+              "value": "MS",
+              "label": "Mississippi"
+            },
+            {
+              "value": "MO",
+              "label": "Missouri"
+            },
+            {
+              "value": "MT",
+              "label": "Montana"
+            },
+            {
+              "value": "NE",
+              "label": "Nebraska"
+            },
+            {
+              "value": "NV",
+              "label": "Nevada"
+            },
+            {
+              "value": "NH",
+              "label": "New Hampshire"
+            },
+            {
+              "value": "NJ",
+              "label": "New Jersey"
+            },
+            {
+              "value": "NM",
+              "label": "New Mexico"
+            },
+            {
+              "value": "NY",
+              "label": "New York"
+            },
+            {
+              "value": "NC",
+              "label": "North Carolina"
+            },
+            {
+              "value": "ND",
+              "label": "North Dakota"
+            },
+            {
+              "value": "OH",
+              "label": "Ohio"
+            },
+            {
+              "value": "OK",
+              "label": "Oklahoma"
+            },
+            {
+              "value": "OR",
+              "label": "Oregon"
+            },
+            {
+              "value": "PA",
+              "label": "Pennsylvania"
+            },
+            {
+              "value": "RI",
+              "label": "Rhode Island"
+            },
+            {
+              "value": "SC",
+              "label": "South Carolina"
+            },
+            {
+              "value": "SD",
+              "label": "South Dakota"
+            },
+            {
+              "value": "TN",
+              "label": "Tennessee"
+            },
+            {
+              "value": "TX",
+              "label": "Texas"
+            },
+            {
+              "value": "UT",
+              "label": "Utah"
+            },
+            {
+              "value": "VT",
+              "label": "Vermont"
+            },
+            {
+              "value": "VA",
+              "label": "Virginia"
+            },
+            {
+              "value": "WA",
+              "label": "Washington"
+            },
+            {
+              "value": "WV",
+              "label": "West Virginia"
+            },
+            {
+              "value": "WI",
+              "label": "Wisconsin"
+            },
+            {
+              "value": "WY",
+              "label": "Wyoming"
+            }
+          ],
+          "country": [
+            {
+              "value": "US",
+              "label": "United States"
+            },
+            {
+              "value": "CA",
+              "label": "Canada"
+            },
+            {
+              "value": "MX",
+              "label": "Mexico"
+            },
+            {
+              "value": "GB",
+              "label": "United Kingdom"
+            },
+            {
+              "value": "DE",
+              "label": "Germany"
+            },
+            {
+              "value": "FR",
+              "label": "France"
+            },
+            {
+              "value": "AU",
+              "label": "Australia"
+            },
+            {
+              "value": "JP",
+              "label": "Japan"
+            },
+            {
+              "value": "CN",
+              "label": "China"
+            },
+            {
+              "value": "IN",
+              "label": "India"
+            },
+            {
+              "value": "BR",
+              "label": "Brazil"
             }
           ]
         },
@@ -17212,8 +17495,10 @@
             "label": "parent id"
           },
           "contact_id": {
-            "type": "number",
-            "label": "contact id"
+            "type": "lookup",
+            "label": "contact id",
+            "model": "contact",
+            "display": "attention"
           },
           "dt_created": {
             "type": "readonly",
@@ -17311,7 +17596,22 @@
             "type": "lookup",
             "model": "term",
             "display": "ida",
-            "value": "ida"
+            "value": "ida",
+            "pick": "list"
+          },
+          "receipt": {
+            "type": "lookup",
+            "model": "receipt",
+            "display": "ida",
+            "label": "receipt"
+          },
+          "dt_journaled": {
+            "type": "timestamp",
+            "label": "dt journaled"
+          },
+          "company": {
+            "type": "json",
+            "label": "company"
           }
         },
         "enrichment": {},
@@ -20610,6 +20910,14 @@
           "comments.process": {
             "type": "json-tree",
             "label": "Process Notes"
+          },
+          "role": {
+            "type": "text",
+            "label": "role"
+          },
+          "scope": {
+            "type": "json",
+            "label": "scope"
           }
         },
         "enrichment": {},
@@ -22220,8 +22528,9 @@
             "display": "display_name"
           },
           "email_id": {
-            "type": "number",
-            "label": "email id"
+            "type": "lookup",
+            "label": "email id",
+            "model": "email"
           },
           "is_staff": {
             "type": "boolean",
@@ -22236,16 +22545,18 @@
             "label": "password"
           },
           "phone_id": {
-            "type": "number",
-            "label": "phone id"
+            "type": "lookup",
+            "label": "phone id",
+            "model": "phone"
           },
           "attention": {
             "type": "text",
             "label": "attention"
           },
           "domain_id": {
-            "type": "number",
-            "label": "domain id"
+            "type": "lookup",
+            "label": "domain id",
+            "model": "domain"
           },
           "dt_joined": {
             "type": "date",
@@ -22260,8 +22571,9 @@
             "label": "name last"
           },
           "address_id": {
-            "type": "number",
-            "label": "address id"
+            "type": "lookup",
+            "label": "address id",
+            "model": "address"
           },
           "department": {
             "type": "text",
@@ -22344,6 +22656,14 @@
           "comments.process": {
             "type": "json-tree",
             "label": "Process Notes"
+          },
+          "is_employee": {
+            "type": "boolean",
+            "label": "is employee"
+          },
+          "source_name": {
+            "type": "select",
+            "label": "source name"
           }
         },
         "enrichment": {},
@@ -24603,8 +24923,9 @@
             "label": "contacts"
           },
           "email_id": {
-            "type": "number",
-            "label": "email id"
+            "type": "lookup",
+            "label": "email id",
+            "model": "email"
           },
           "metadata": {
             "type": "json-tree",
@@ -24634,8 +24955,9 @@
             ]
           },
           "phone_id": {
-            "type": "number",
-            "label": "phone id"
+            "type": "lookup",
+            "label": "phone id",
+            "model": "phone"
           },
           "addresses": {
             "type": "json",
@@ -24646,8 +24968,9 @@
             "label": "attention"
           },
           "domain_id": {
-            "type": "number",
-            "label": "domain id"
+            "type": "lookup",
+            "label": "domain id",
+            "model": "domain"
           },
           "financial": {
             "type": "json",
@@ -24662,12 +24985,15 @@
             "label": "relations"
           },
           "address_id": {
-            "type": "number",
-            "label": "address id"
+            "type": "lookup",
+            "label": "address id",
+            "model": "address"
           },
           "contact_id": {
-            "type": "number",
-            "label": "contact id"
+            "type": "lookup",
+            "label": "contact id",
+            "model": "contact",
+            "display": "attention"
           },
           "dt_created": {
             "type": "readonly",
@@ -24774,7 +25100,22 @@
             "type": "lookup",
             "model": "term",
             "display": "ida",
-            "value": "ida"
+            "value": "ida",
+            "pick": "list"
+          },
+          "company": {
+            "type": "text",
+            "label": "company"
+          },
+          "rep_id": {
+            "type": "lookup",
+            "model": "rep",
+            "display": "company",
+            "label": "rep id"
+          },
+          "attention_rep": {
+            "type": "text",
+            "label": "attention rep"
           }
         },
         "enrichment": {},
@@ -24859,6 +25200,32 @@
             {
               "label": "Sample",
               "value": "sample"
+            }
+          ],
+          "tax_exempt_code": [
+            {
+              "value": "resale",
+              "label": "Resale"
+            },
+            {
+              "value": "nonprofit",
+              "label": "Nonprofit"
+            },
+            {
+              "value": "government",
+              "label": "Government"
+            },
+            {
+              "value": "agricultural",
+              "label": "Agricultural"
+            },
+            {
+              "value": "manufacturing",
+              "label": "Manufacturing"
+            },
+            {
+              "value": "other",
+              "label": "Other"
             }
           ]
         },
@@ -25757,8 +26124,10 @@
             "label": "is active"
           },
           "contact_id": {
-            "type": "number",
-            "label": "contact id"
+            "type": "lookup",
+            "label": "contact id",
+            "model": "contact",
+            "display": "attention"
           },
           "dt_created": {
             "type": "readonly",
@@ -27981,6 +28350,12 @@
           "comments.process": {
             "type": "json-tree",
             "label": "Process Notes"
+          },
+          "contact": {
+            "type": "lookup",
+            "model": "contact",
+            "display": "ida",
+            "label": "contact"
           }
         },
         "enrichment": {},
@@ -29021,6 +29396,12 @@
           "comments.process": {
             "type": "json-tree",
             "label": "Process Notes"
+          },
+          "contact": {
+            "type": "lookup",
+            "model": "contact",
+            "display": "ida",
+            "label": "contact"
           }
         },
         "enrichment": {},
@@ -30198,8 +30579,9 @@
             "label": "contacts"
           },
           "email_id": {
-            "type": "number",
-            "label": "email id"
+            "type": "lookup",
+            "label": "email id",
+            "model": "email"
           },
           "metadata": {
             "type": "json-tree",
@@ -30229,8 +30611,9 @@
             ]
           },
           "phone_id": {
-            "type": "number",
-            "label": "phone id"
+            "type": "lookup",
+            "label": "phone id",
+            "model": "phone"
           },
           "addresses": {
             "type": "json",
@@ -30241,8 +30624,9 @@
             "label": "attention"
           },
           "domain_id": {
-            "type": "number",
-            "label": "domain id"
+            "type": "lookup",
+            "label": "domain id",
+            "model": "domain"
           },
           "financial": {
             "type": "json",
@@ -30257,12 +30641,15 @@
             "label": "relations"
           },
           "address_id": {
-            "type": "number",
-            "label": "address id"
+            "type": "lookup",
+            "label": "address id",
+            "model": "address"
           },
           "contact_id": {
-            "type": "number",
-            "label": "contact id"
+            "type": "lookup",
+            "label": "contact id",
+            "model": "contact",
+            "display": "attention"
           },
           "dt_created": {
             "type": "readonly",
@@ -30369,7 +30756,22 @@
             "type": "lookup",
             "model": "term",
             "display": "ida",
-            "value": "ida"
+            "value": "ida",
+            "pick": "list"
+          },
+          "company": {
+            "type": "text",
+            "label": "company"
+          },
+          "rep_id": {
+            "type": "lookup",
+            "model": "rep",
+            "display": "company",
+            "label": "rep id"
+          },
+          "attention_rep": {
+            "type": "text",
+            "label": "attention rep"
           }
         },
         "enrichment": {},
@@ -30446,6 +30848,32 @@
             {
               "label": "Sample",
               "value": "sample"
+            }
+          ],
+          "tax_exempt_code": [
+            {
+              "value": "resale",
+              "label": "Resale"
+            },
+            {
+              "value": "nonprofit",
+              "label": "Nonprofit"
+            },
+            {
+              "value": "government",
+              "label": "Government"
+            },
+            {
+              "value": "agricultural",
+              "label": "Agricultural"
+            },
+            {
+              "value": "manufacturing",
+              "label": "Manufacturing"
+            },
+            {
+              "value": "other",
+              "label": "Other"
             }
           ]
         },
@@ -31344,8 +31772,10 @@
             "label": "is active"
           },
           "contact_id": {
-            "type": "number",
-            "label": "contact id"
+            "type": "lookup",
+            "label": "contact id",
+            "model": "contact",
+            "display": "attention"
           },
           "dt_created": {
             "type": "readonly",
@@ -33672,6 +34102,14 @@
           "comments.process": {
             "type": "json-tree",
             "label": "Process Notes"
+          },
+          "event_id": {
+            "type": "text",
+            "label": "event id"
+          },
+          "reversal_of": {
+            "type": "number",
+            "label": "reversal of"
           }
         },
         "enrichment": {},
@@ -35794,6 +36232,14 @@
           "comments.process": {
             "type": "json-tree",
             "label": "Process Notes"
+          },
+          "parent_model": {
+            "type": "text",
+            "label": "parent model"
+          },
+          "parent_id": {
+            "type": "number",
+            "label": "parent id"
           }
         },
         "enrichment": {},
@@ -39459,7 +39905,30 @@
             "type": "lookup",
             "model": "term",
             "display": "ida",
-            "value": "ida"
+            "value": "ida",
+            "pick": "list"
+          },
+          "company": {
+            "type": "json",
+            "label": "company"
+          },
+          "allocations": {
+            "type": "json",
+            "label": "allocations"
+          },
+          "events": {
+            "type": "json",
+            "label": "events"
+          },
+          "rep_id": {
+            "type": "lookup",
+            "model": "rep",
+            "display": "company",
+            "label": "rep id"
+          },
+          "attention_rep": {
+            "type": "text",
+            "label": "attention rep"
           }
         },
         "enrichment": {},
@@ -41094,6 +41563,36 @@
             "label": "Disc %",
             "precision": 2,
             "description": "Discount percentage (0-100)"
+          },
+          "parent_line_id": {
+            "type": "number",
+            "label": "parent line id"
+          },
+          "totals": {
+            "type": "json",
+            "label": "totals"
+          },
+          "assigned_to_id": {
+            "type": "lookup",
+            "model": "contact",
+            "display": "attention",
+            "label": "assigned to id"
+          },
+          "customer_id": {
+            "type": "lookup",
+            "model": "customer",
+            "display": "company",
+            "label": "customer id"
+          },
+          "rep_id": {
+            "type": "lookup",
+            "model": "rep",
+            "display": "company",
+            "label": "rep id"
+          },
+          "events": {
+            "type": "json",
+            "label": "events"
           }
         },
         "enrichment": {},
@@ -42619,8 +43118,9 @@
             "label": "Process Notes"
           },
           "specification_id": {
-            "type": "number",
-            "label": "Specification ID"
+            "type": "lookup",
+            "label": "Specification ID",
+            "model": "specification"
           },
           "quantity.is_fixed": {
             "type": "boolean",
@@ -46902,7 +47402,14 @@
             "type": "lookup",
             "model": "term",
             "display": "ida",
-            "value": "ida"
+            "value": "ida",
+            "pick": "list"
+          },
+          "contact": {
+            "type": "lookup",
+            "model": "contact",
+            "display": "ida",
+            "label": "contact"
           }
         },
         "enrichment": {},
@@ -49045,8 +49552,9 @@
             "label": "contacts"
           },
           "email_id": {
-            "type": "number",
-            "label": "email id"
+            "type": "lookup",
+            "label": "email id",
+            "model": "email"
           },
           "metadata": {
             "type": "json-tree",
@@ -49076,8 +49584,9 @@
             ]
           },
           "phone_id": {
-            "type": "number",
-            "label": "phone id"
+            "type": "lookup",
+            "label": "phone id",
+            "model": "phone"
           },
           "addresses": {
             "type": "json",
@@ -49088,8 +49597,9 @@
             "label": "attention"
           },
           "domain_id": {
-            "type": "number",
-            "label": "domain id"
+            "type": "lookup",
+            "label": "domain id",
+            "model": "domain"
           },
           "financial": {
             "type": "json",
@@ -49104,12 +49614,15 @@
             "label": "relations"
           },
           "address_id": {
-            "type": "number",
-            "label": "address id"
+            "type": "lookup",
+            "label": "address id",
+            "model": "address"
           },
           "contact_id": {
-            "type": "number",
-            "label": "contact id"
+            "type": "lookup",
+            "label": "contact id",
+            "model": "contact",
+            "display": "attention"
           },
           "dt_created": {
             "type": "readonly",
@@ -49216,7 +49729,22 @@
             "type": "lookup",
             "model": "term",
             "display": "ida",
-            "value": "ida"
+            "value": "ida",
+            "pick": "list"
+          },
+          "company": {
+            "type": "text",
+            "label": "company"
+          },
+          "rep_id": {
+            "type": "lookup",
+            "model": "rep",
+            "display": "company",
+            "label": "rep id"
+          },
+          "attention_rep": {
+            "type": "text",
+            "label": "attention rep"
           }
         },
         "enrichment": {},
@@ -49301,6 +49829,32 @@
             {
               "label": "Sample",
               "value": "sample"
+            }
+          ],
+          "tax_exempt_code": [
+            {
+              "value": "resale",
+              "label": "Resale"
+            },
+            {
+              "value": "nonprofit",
+              "label": "Nonprofit"
+            },
+            {
+              "value": "government",
+              "label": "Government"
+            },
+            {
+              "value": "agricultural",
+              "label": "Agricultural"
+            },
+            {
+              "value": "manufacturing",
+              "label": "Manufacturing"
+            },
+            {
+              "value": "other",
+              "label": "Other"
             }
           ]
         },
@@ -51172,7 +51726,30 @@
             "type": "lookup",
             "model": "term",
             "display": "ida",
-            "value": "ida"
+            "value": "ida",
+            "pick": "list"
+          },
+          "company": {
+            "type": "json",
+            "label": "company"
+          },
+          "allocations": {
+            "type": "json",
+            "label": "allocations"
+          },
+          "events": {
+            "type": "json",
+            "label": "events"
+          },
+          "rep_id": {
+            "type": "lookup",
+            "model": "rep",
+            "display": "company",
+            "label": "rep id"
+          },
+          "attention_rep": {
+            "type": "text",
+            "label": "attention rep"
           }
         },
         "enrichment": {},
@@ -52783,6 +53360,32 @@
             "label": "Disc %",
             "precision": 2,
             "description": "Discount percentage (0-100)"
+          },
+          "parent_line_id": {
+            "type": "number",
+            "label": "parent line id"
+          },
+          "totals": {
+            "type": "json",
+            "label": "totals"
+          },
+          "assigned_to_id": {
+            "type": "lookup",
+            "model": "contact",
+            "display": "attention",
+            "label": "assigned to id"
+          },
+          "customer_id": {
+            "type": "lookup",
+            "model": "customer",
+            "display": "company",
+            "label": "customer id"
+          },
+          "rep_id": {
+            "type": "lookup",
+            "model": "rep",
+            "display": "company",
+            "label": "rep id"
           }
         },
         "enrichment": {},
@@ -53996,8 +54599,9 @@
             "label": "contacts"
           },
           "email_id": {
-            "type": "number",
-            "label": "email id"
+            "type": "lookup",
+            "label": "email id",
+            "model": "email"
           },
           "metadata": {
             "type": "json-tree",
@@ -54027,8 +54631,9 @@
             ]
           },
           "phone_id": {
-            "type": "number",
-            "label": "phone id"
+            "type": "lookup",
+            "label": "phone id",
+            "model": "phone"
           },
           "addresses": {
             "type": "json",
@@ -54039,8 +54644,9 @@
             "label": "attention"
           },
           "domain_id": {
-            "type": "number",
-            "label": "domain id"
+            "type": "lookup",
+            "label": "domain id",
+            "model": "domain"
           },
           "financial": {
             "type": "json",
@@ -54055,12 +54661,15 @@
             "label": "relations"
           },
           "address_id": {
-            "type": "number",
-            "label": "address id"
+            "type": "lookup",
+            "label": "address id",
+            "model": "address"
           },
           "contact_id": {
-            "type": "number",
-            "label": "contact id"
+            "type": "lookup",
+            "label": "contact id",
+            "model": "contact",
+            "display": "attention"
           },
           "dt_created": {
             "type": "readonly",
@@ -54167,7 +54776,22 @@
             "type": "lookup",
             "model": "term",
             "display": "ida",
-            "value": "ida"
+            "value": "ida",
+            "pick": "list"
+          },
+          "company": {
+            "type": "text",
+            "label": "company"
+          },
+          "rep_id": {
+            "type": "lookup",
+            "model": "rep",
+            "display": "company",
+            "label": "rep id"
+          },
+          "attention_rep": {
+            "type": "text",
+            "label": "attention rep"
           }
         },
         "enrichment": {},
@@ -54240,6 +54864,32 @@
             {
               "label": "Sample",
               "value": "sample"
+            }
+          ],
+          "tax_exempt_code": [
+            {
+              "value": "resale",
+              "label": "Resale"
+            },
+            {
+              "value": "nonprofit",
+              "label": "Nonprofit"
+            },
+            {
+              "value": "government",
+              "label": "Government"
+            },
+            {
+              "value": "agricultural",
+              "label": "Agricultural"
+            },
+            {
+              "value": "manufacturing",
+              "label": "Manufacturing"
+            },
+            {
+              "value": "other",
+              "label": "Other"
             }
           ]
         },
@@ -55097,6 +55747,50 @@
             "type": "lookup",
             "model": "inventorylayer",
             "display": "ida"
+          },
+          "comments": {
+            "type": "json-tree",
+            "label": "comments"
+          },
+          "times_used": {
+            "type": "readonly",
+            "label": "times used"
+          },
+          "status": {
+            "type": "select",
+            "label": "status"
+          },
+          "model_name": {
+            "type": "text",
+            "label": "model name"
+          },
+          "record_id": {
+            "type": "text",
+            "label": "record id"
+          },
+          "name": {
+            "type": "text",
+            "label": "name"
+          },
+          "dt_processed": {
+            "type": "timestamp",
+            "label": "dt processed"
+          },
+          "sequence": {
+            "type": "number",
+            "label": "sequence"
+          },
+          "attempts": {
+            "type": "number",
+            "label": "attempts"
+          },
+          "changes": {
+            "type": "json",
+            "label": "changes"
+          },
+          "metadata": {
+            "type": "json-tree",
+            "label": "metadata"
           }
         },
         "enrichment": {},
@@ -56099,6 +56793,12 @@
           "comments.process": {
             "type": "json-tree",
             "label": "Process Notes"
+          },
+          "contact": {
+            "type": "lookup",
+            "model": "contact",
+            "display": "ida",
+            "label": "contact"
           }
         },
         "enrichment": {},
@@ -57281,8 +57981,10 @@
             "label": "situation"
           },
           "contact_id": {
-            "type": "number",
-            "label": "contact id"
+            "type": "lookup",
+            "label": "contact id",
+            "model": "contact",
+            "display": "attention"
           },
           "dt_created": {
             "type": "readonly",
@@ -60193,7 +60895,34 @@
             "type": "lookup",
             "model": "term",
             "display": "ida",
-            "value": "ida"
+            "value": "ida",
+            "pick": "list"
+          },
+          "company": {
+            "type": "json",
+            "label": "company"
+          },
+          "allocations": {
+            "type": "json",
+            "label": "allocations"
+          },
+          "events": {
+            "type": "json",
+            "label": "events"
+          },
+          "rep_id": {
+            "type": "lookup",
+            "model": "rep",
+            "display": "company",
+            "label": "rep id"
+          },
+          "attention_rep": {
+            "type": "text",
+            "label": "attention rep"
+          },
+          "probability": {
+            "type": "number",
+            "label": "probability"
           }
         },
         "enrichment": {},
@@ -61793,6 +62522,32 @@
             "label": "Disc %",
             "precision": 2,
             "description": "Discount percentage (0-100)"
+          },
+          "parent_line_id": {
+            "type": "number",
+            "label": "parent line id"
+          },
+          "totals": {
+            "type": "json",
+            "label": "totals"
+          },
+          "assigned_to_id": {
+            "type": "lookup",
+            "model": "contact",
+            "display": "attention",
+            "label": "assigned to id"
+          },
+          "customer_id": {
+            "type": "lookup",
+            "model": "customer",
+            "display": "company",
+            "label": "customer id"
+          },
+          "rep_id": {
+            "type": "lookup",
+            "model": "rep",
+            "display": "company",
+            "label": "rep id"
           }
         },
         "enrichment": {},
@@ -63660,7 +64415,28 @@
             "type": "lookup",
             "model": "term",
             "display": "ida",
-            "value": "ida"
+            "value": "ida",
+            "pick": "list"
+          },
+          "company": {
+            "type": "json",
+            "label": "company"
+          },
+          "allocations": {
+            "type": "json",
+            "label": "allocations"
+          },
+          "events": {
+            "type": "json",
+            "label": "events"
+          },
+          "is_capital": {
+            "type": "boolean",
+            "label": "is capital"
+          },
+          "capital_asset": {
+            "type": "json",
+            "label": "capital asset"
           }
         },
         "enrichment": {},
@@ -65179,6 +65955,26 @@
             "type": "currency",
             "label": "Line Sum Shipping",
             "precision": 2
+          },
+          "parent_line_id": {
+            "type": "number",
+            "label": "parent line id"
+          },
+          "totals": {
+            "type": "json",
+            "label": "totals"
+          },
+          "assigned_to_id": {
+            "type": "lookup",
+            "model": "contact",
+            "display": "attention",
+            "label": "assigned to id"
+          },
+          "vendor_id": {
+            "type": "lookup",
+            "model": "vendor",
+            "display": "company",
+            "label": "vendor id"
           }
         },
         "enrichment": {},
@@ -67513,7 +68309,132 @@
             "type": "lookup",
             "model": "term",
             "display": "ida",
-            "value": "ida"
+            "value": "ida",
+            "pick": "list"
+          },
+          "line_increment": {
+            "type": "number",
+            "label": "line increment"
+          },
+          "priority": {
+            "type": "select",
+            "label": "priority"
+          },
+          "dt_needed": {
+            "type": "date",
+            "label": "dt needed"
+          },
+          "ship_via": {
+            "type": "select",
+            "label": "ship via"
+          },
+          "is_commission": {
+            "type": "boolean",
+            "label": "is commission"
+          },
+          "customer": {
+            "type": "lookup",
+            "model": "customer",
+            "display": "display_name",
+            "label": "customer"
+          },
+          "manufacturer": {
+            "type": "lookup",
+            "model": "manufacturer",
+            "display": "display_name",
+            "label": "manufacturer"
+          },
+          "vendor": {
+            "type": "lookup",
+            "model": "vendor",
+            "display": "display_name",
+            "label": "vendor"
+          },
+          "parent_id": {
+            "type": "number",
+            "label": "parent id"
+          },
+          "parent_model": {
+            "type": "text",
+            "label": "parent model"
+          },
+          "contact": {
+            "type": "lookup",
+            "model": "contact",
+            "display": "ida",
+            "label": "contact"
+          },
+          "attention": {
+            "type": "text",
+            "label": "attention"
+          },
+          "company": {
+            "type": "json",
+            "label": "company"
+          },
+          "addresses": {
+            "type": "json",
+            "label": "addresses"
+          },
+          "emails": {
+            "type": "json",
+            "label": "emails"
+          },
+          "phones": {
+            "type": "json",
+            "label": "phones"
+          },
+          "price_level": {
+            "type": "select",
+            "label": "price level"
+          },
+          "conditions_id": {
+            "type": "number",
+            "label": "conditions id"
+          },
+          "conditions_description": {
+            "type": "text",
+            "label": "conditions description"
+          },
+          "cost": {
+            "type": "json",
+            "label": "cost"
+          },
+          "finance": {
+            "type": "json",
+            "label": "finance"
+          },
+          "commission": {
+            "type": "json",
+            "label": "commission"
+          },
+          "flow": {
+            "type": "json",
+            "label": "flow"
+          },
+          "source": {
+            "type": "json",
+            "label": "source"
+          },
+          "source_name": {
+            "type": "select",
+            "label": "source name"
+          },
+          "events": {
+            "type": "json",
+            "label": "events"
+          },
+          "shipping": {
+            "type": "json",
+            "label": "shipping"
+          },
+          "totals": {
+            "type": "json",
+            "label": "totals"
+          },
+          "allocations": {
+            "type": "json",
+            "label": "allocations"
           }
         },
         "enrichment": {},
@@ -69038,6 +69959,24 @@
             "type": "currency",
             "label": "Line Sum Shipping",
             "precision": 2
+          },
+          "parent_line_id": {
+            "type": "number",
+            "label": "parent line id"
+          },
+          "totals": {
+            "type": "json",
+            "label": "totals"
+          },
+          "assigned_to_id": {
+            "type": "lookup",
+            "model": "contact",
+            "display": "attention",
+            "label": "assigned to id"
+          },
+          "events": {
+            "type": "json",
+            "label": "events"
           }
         },
         "enrichment": {},
@@ -70255,8 +71194,9 @@
             "label": "contacts"
           },
           "email_id": {
-            "type": "number",
-            "label": "email id"
+            "type": "lookup",
+            "label": "email id",
+            "model": "email"
           },
           "metadata": {
             "type": "json-tree",
@@ -70286,8 +71226,9 @@
             ]
           },
           "phone_id": {
-            "type": "number",
-            "label": "phone id"
+            "type": "lookup",
+            "label": "phone id",
+            "model": "phone"
           },
           "addresses": {
             "type": "json",
@@ -70298,8 +71239,9 @@
             "label": "attention"
           },
           "domain_id": {
-            "type": "number",
-            "label": "domain id"
+            "type": "lookup",
+            "label": "domain id",
+            "model": "domain"
           },
           "financial": {
             "type": "json",
@@ -70314,12 +71256,15 @@
             "label": "relations"
           },
           "address_id": {
-            "type": "number",
-            "label": "address id"
+            "type": "lookup",
+            "label": "address id",
+            "model": "address"
           },
           "contact_id": {
-            "type": "number",
-            "label": "contact id"
+            "type": "lookup",
+            "label": "contact id",
+            "model": "contact",
+            "display": "attention"
           },
           "dt_created": {
             "type": "readonly",
@@ -70426,7 +71371,22 @@
             "type": "lookup",
             "model": "term",
             "display": "ida",
-            "value": "ida"
+            "value": "ida",
+            "pick": "list"
+          },
+          "company": {
+            "type": "text",
+            "label": "company"
+          },
+          "rep_id": {
+            "type": "lookup",
+            "model": "rep",
+            "display": "company",
+            "label": "rep id"
+          },
+          "attention_rep": {
+            "type": "text",
+            "label": "attention rep"
           }
         },
         "enrichment": {},
@@ -70503,6 +71463,32 @@
             {
               "label": "Sample",
               "value": "sample"
+            }
+          ],
+          "tax_exempt_code": [
+            {
+              "value": "resale",
+              "label": "Resale"
+            },
+            {
+              "value": "nonprofit",
+              "label": "Nonprofit"
+            },
+            {
+              "value": "government",
+              "label": "Government"
+            },
+            {
+              "value": "agricultural",
+              "label": "Agricultural"
+            },
+            {
+              "value": "manufacturing",
+              "label": "Manufacturing"
+            },
+            {
+              "value": "other",
+              "label": "Other"
             }
           ]
         },
@@ -73966,6 +74952,20 @@
             "type": "currency",
             "label": "Line Sum Shipping",
             "precision": 2
+          },
+          "parent_line_id": {
+            "type": "number",
+            "label": "parent line id"
+          },
+          "totals": {
+            "type": "json",
+            "label": "totals"
+          },
+          "assigned_to_id": {
+            "type": "lookup",
+            "model": "contact",
+            "display": "attention",
+            "label": "assigned to id"
           }
         },
         "enrichment": {},
@@ -74905,8 +75905,9 @@
             "label": "actions"
           },
           "item_id": {
-            "type": "number",
-            "label": "item id"
+            "type": "lookup",
+            "label": "item id",
+            "model": "item"
           },
           "purpose": {
             "type": "text"
@@ -75875,8 +76876,10 @@
             "label": "is active"
           },
           "contact_id": {
-            "type": "number",
-            "label": "contact id"
+            "type": "lookup",
+            "label": "contact id",
+            "model": "contact",
+            "display": "attention"
           },
           "dt_created": {
             "type": "readonly",
@@ -77088,8 +78091,9 @@
             "label": "is deleted"
           },
           "cash_id": {
-            "type": "number",
-            "label": "cash id"
+            "type": "lookup",
+            "label": "cash id",
+            "model": "cash"
           },
           "times_used": {
             "type": "readonly",
@@ -82280,8 +83284,9 @@
             "label": "metadata"
           },
           "action_id": {
-            "type": "number",
-            "label": "action id"
+            "type": "lookup",
+            "label": "action id",
+            "model": "action"
           },
           "direction": {
             "type": "select",
@@ -82311,8 +83316,10 @@
             "label": "org model"
           },
           "contact_id": {
-            "type": "number",
-            "label": "contact id"
+            "type": "lookup",
+            "label": "contact id",
+            "model": "contact",
+            "display": "attention"
           },
           "dt_created": {
             "type": "readonly",
@@ -82323,12 +83330,14 @@
             "label": "is deleted"
           },
           "linkage_id": {
-            "type": "number",
-            "label": "linkage id"
+            "type": "lookup",
+            "label": "linkage id",
+            "model": "linkage"
           },
           "project_id": {
-            "type": "number",
-            "label": "project id"
+            "type": "lookup",
+            "label": "project id",
+            "model": "project"
           },
           "times_used": {
             "type": "readonly",
@@ -84563,8 +85572,9 @@
             "label": "contacts"
           },
           "email_id": {
-            "type": "number",
-            "label": "email id"
+            "type": "lookup",
+            "label": "email id",
+            "model": "email"
           },
           "metadata": {
             "type": "json-tree",
@@ -84594,8 +85604,9 @@
             ]
           },
           "phone_id": {
-            "type": "number",
-            "label": "phone id"
+            "type": "lookup",
+            "label": "phone id",
+            "model": "phone"
           },
           "addresses": {
             "type": "json",
@@ -84606,8 +85617,9 @@
             "label": "attention"
           },
           "domain_id": {
-            "type": "number",
-            "label": "domain id"
+            "type": "lookup",
+            "label": "domain id",
+            "model": "domain"
           },
           "financial": {
             "type": "json",
@@ -84622,12 +85634,15 @@
             "label": "relations"
           },
           "address_id": {
-            "type": "number",
-            "label": "address id"
+            "type": "lookup",
+            "label": "address id",
+            "model": "address"
           },
           "contact_id": {
-            "type": "number",
-            "label": "contact id"
+            "type": "lookup",
+            "label": "contact id",
+            "model": "contact",
+            "display": "attention"
           },
           "dt_created": {
             "type": "readonly",
@@ -84734,7 +85749,22 @@
             "type": "lookup",
             "model": "term",
             "display": "ida",
-            "value": "ida"
+            "value": "ida",
+            "pick": "list"
+          },
+          "company": {
+            "type": "text",
+            "label": "company"
+          },
+          "rep_id": {
+            "type": "lookup",
+            "model": "rep",
+            "display": "company",
+            "label": "rep id"
+          },
+          "attention_rep": {
+            "type": "text",
+            "label": "attention rep"
           }
         },
         "enrichment": {},
@@ -84819,6 +85849,32 @@
             {
               "label": "Sample",
               "value": "sample"
+            }
+          ],
+          "tax_exempt_code": [
+            {
+              "value": "resale",
+              "label": "Resale"
+            },
+            {
+              "value": "nonprofit",
+              "label": "Nonprofit"
+            },
+            {
+              "value": "government",
+              "label": "Government"
+            },
+            {
+              "value": "agricultural",
+              "label": "Agricultural"
+            },
+            {
+              "value": "manufacturing",
+              "label": "Manufacturing"
+            },
+            {
+              "value": "other",
+              "label": "Other"
             }
           ]
         },
@@ -86640,8 +87696,10 @@
             "label": "is active"
           },
           "contact_id": {
-            "type": "number",
-            "label": "contact id"
+            "type": "lookup",
+            "label": "contact id",
+            "model": "contact",
+            "display": "attention"
           },
           "dt_created": {
             "type": "readonly",
@@ -88453,7 +89511,24 @@
             "type": "lookup",
             "model": "term",
             "display": "ida",
-            "value": "ida"
+            "value": "ida",
+            "pick": "list"
+          },
+          "company": {
+            "type": "json",
+            "label": "company"
+          },
+          "allocations": {
+            "type": "json",
+            "label": "allocations"
+          },
+          "events": {
+            "type": "json",
+            "label": "events"
+          },
+          "kind": {
+            "type": "text",
+            "label": "kind"
           }
         },
         "enrichment": {},
@@ -89958,6 +91033,30 @@
             "type": "currency",
             "label": "Line Sum Shipping",
             "precision": 2
+          },
+          "parent_line_id": {
+            "type": "number",
+            "label": "parent line id"
+          },
+          "totals": {
+            "type": "json",
+            "label": "totals"
+          },
+          "assigned_to_id": {
+            "type": "lookup",
+            "model": "contact",
+            "display": "attention",
+            "label": "assigned to id"
+          },
+          "events": {
+            "type": "json",
+            "label": "events"
+          },
+          "inventory_layer": {
+            "type": "lookup",
+            "model": "inventory_layer",
+            "display": "ida",
+            "label": "inventory layer"
           }
         },
         "enrichment": {},
