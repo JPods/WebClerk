@@ -124,6 +124,15 @@ class DocumentBehaviour(ModelBehaviour):
         parent_model = getattr(ctx.obj, 'parent_model', None)
         if lines and parent_model and getattr(ctx.obj, 'parent_id', None):
             check_transfer(ctx.model_key, str(parent_model), lines)
+        # Release is a money step: an incomplete document is refused with coaching; the same
+        # document saves as it is (validate_status.REQUIRES; the team, 2026-11-06).
+        if ctx.is_update and 'status' in ctx.changed and ctx.obj.status == 'released':
+            from apps.transactions.services import validate_status
+            missing = validate_status.incomplete(ctx.obj, ctx.model_key, lines)
+            if missing:
+                raise Refused(409, 'incomplete_document',
+                              validate_status.incomplete_coaching(ctx.model_key, 'release', missing),
+                              {'missing': missing})
 
 
 class OrderBehaviour(DocumentBehaviour):
@@ -215,6 +224,11 @@ class CashBehaviour(ModelBehaviour):
                 or stored.get('purpose') == 'payment'
                 or bool(cash_door._applications(cash_id=obj.pk)))
 
+    @staticmethod
+    def _is_adjustment(cash) -> bool:
+        from apps.transactions.services.cash.cash_pending import ADJUSTMENT_METHODS
+        return (cash.method or '') in ADJUSTMENT_METHODS
+
     def before_save(self, ctx: HookContext) -> None:
         # The party comes from the document when the save names only the document, so a Cash is
         # scoped like its invoice or receipt from its first save (Bill, 2026-09-26: fully populated).
@@ -234,6 +248,10 @@ class CashBehaviour(ModelBehaviour):
                             .filter(pk=target).exists():
                         raise Refused(404, 'not_found', f'{model_key} {target} not found',
                                       {'field': field, 'id': target})
+        if 'reconciled' in ctx.changed and ctx.obj.reconciled and self._is_adjustment(ctx.obj):
+            raise Refused(400, 'not_a_bank_item',
+                          f'Cash {ctx.obj.pk} is a {ctx.obj.method}: an adjustment, not money that reached the bank. '
+                          f'It is never reconciled; reconcile the cash it adjusts.', {'method': ctx.obj.method})
         if ctx.is_update and ctx.obj.dt_journaled and (ctx.changed - self.AFTER_JOURNAL):
             locked = sorted(ctx.changed - self.AFTER_JOURNAL)
             raise Refused(409, 'journalized',
@@ -257,6 +275,20 @@ class CashBehaviour(ModelBehaviour):
                 raise Refused(400, 'payservice_cash',
                               'A connection-payservice Cash moves nothing until its pay; charge it '
                               'with POST /wcapi/cash/<id>/pay/.', {'status': ctx.obj.status})
+
+
+class StatementLineBehaviour(ModelBehaviour):
+    """A bank statement row matches money: a line naming a discount, write-off, small-balance or
+    FX Cash is refused — an adjustment never reached the bank (plan 102, 2026-11-06)."""
+
+    def before_save(self, ctx: HookContext) -> None:
+        if 'cash_id' in ctx.changed and ctx.obj.cash_id:
+            from apps.transactions.models import Cash
+            cash = Cash.objects.filter(pk=ctx.obj.cash_id).first()
+            if cash and CashBehaviour._is_adjustment(cash):
+                raise Refused(400, 'not_a_bank_item',
+                              f'Cash {cash.pk} is a {cash.method}: an adjustment, not money that reached the bank. '
+                              f'A statement line names the cash it adjusts.', {'cash_id': cash.pk, 'method': cash.method})
 
 
 class ReceiptBehaviour(ModelBehaviour):
@@ -328,9 +360,10 @@ LINE_DOCUMENTS = {'invoice_line': 'invoice_id', 'order_line': 'order_id', 'quote
 def register_documents() -> None:
     for key, fk in LINE_DOCUMENTS.items():
         register(key, LineBehaviour(fk))
-    for key in ('quote', 'purchase', 'workorder'):
+    for key in ('quote', 'purchase', 'workorder', 'requisition'):   # a requisition releases like a document (2026-11-06)
         register(key, DocumentBehaviour())
     register('order', OrderBehaviour())
     register('invoice', InvoiceBehaviour())
     register('cash', CashBehaviour())
+    register('statement_line', StatementLineBehaviour())
     register('receipt', ReceiptBehaviour())

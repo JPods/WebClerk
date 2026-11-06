@@ -193,7 +193,7 @@ def test_a_rep_converts_their_quote_and_the_order_keeps_what_they_cannot_type(wo
     setting.save(update_fields=['config'])
     access.clear_cache()
 
-    quote = Quote.objects.create(customer_id=world['her_customer'].pk, rep_id=world['mine'].pk,
+    quote = Quote.objects.create(customer_id=world['her_customer'].pk, rep_id=world['mine'].pk, terms='N30',
                                  finance={'tax': {'rate': 6.0}}, security_level=1,
                                  commission={'reps': [{'id': world['mine'].pk}], 'total': 5})
     QuoteLine.objects.create(quote=quote, status='OPEN', item={"id_num": 1},
@@ -211,7 +211,7 @@ def test_a_rep_cannot_convert_another_reps_quote(world):
     from apps.core.services import verbs
     from apps.transactions.models import Quote, QuoteLine
     quote = Quote.objects.create(customer_id=world['their_customer'].pk,
-                                 rep_id=world['other'].pk)
+                                 rep_id=world['other'].pk, terms='N30')
     QuoteLine.objects.create(quote=quote, status='OPEN', quantity={"active": 1})
     with pytest.raises(Refused) as refused:
         verbs.run_command(world['jane'], 'convert', 'quote', quote.pk, {'to': 'order'})

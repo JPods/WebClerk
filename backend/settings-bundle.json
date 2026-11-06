@@ -6571,6 +6571,15 @@
                 "format": "currency",
                 "filters": {
                   "amount__gt": 0
+                },
+                "exclude": {
+                  "method__in": [
+                    "write_off",
+                    "small_balance",
+                    "fx_gain",
+                    "fx_loss",
+                    "discount"
+                  ]
                 }
               },
               {
@@ -6580,6 +6589,15 @@
                 "format": "currency",
                 "filters": {
                   "amount__lt": 0
+                },
+                "exclude": {
+                  "method__in": [
+                    "write_off",
+                    "small_balance",
+                    "fx_gain",
+                    "fx_loss",
+                    "discount"
+                  ]
                 }
               }
             ]

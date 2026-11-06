@@ -14,6 +14,14 @@ import pytest
 pytestmark = pytest.mark.django_db
 
 
+
+
+def _complete_vendor():
+    """A purchase names its vendor and terms, or the money steps refuse it (the team, 2026-11-06)."""
+    from apps.accounts.models import Term
+    from apps.orgs.models import Vendor
+    Term.objects.get_or_create(ida='N30', defaults={'name': 'N30', 'is_active': True})
+    return Vendor.objects.create(company='Complete Vendor')
 def _received(qty=7, ordered=10):
     from apps.products.models import Item, Warehouse
     from apps.transactions.models import Purchase, PurchaseLine
@@ -22,7 +30,7 @@ def _received(qty=7, ordered=10):
     item = Item.objects.create(name='Widget', quantity={'on_hand': 0, 'on_po': 0, 'on_rc': 0,
                                                         'allocated': 0, 'available': 0})
     Warehouse.objects.create(code='WH1', name='Main')   # the default warehouse stock lands in
-    po = Purchase.objects.create(ida='PO-BAL')
+    po = Purchase.objects.create(ida='PO-BAL', vendor_id=_complete_vendor().pk, terms='N30')
     pol = PurchaseLine.objects.create(
         purchase=po, item={'item_id': item.pk, 'id_num': item.pk, 'description': 'Widget'},
         quantity={'active': ordered, 'staged': ordered}, cost={'unit': 4.00})

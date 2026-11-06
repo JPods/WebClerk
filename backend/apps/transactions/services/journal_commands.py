@@ -69,6 +69,12 @@ def journalize(ctx) -> Dict[str, Any]:
     events; an invoice and a cash post their entries (2026-10-27: the flight simulator posts each
     document through this one door, after its journal_preview)."""
     from apps.accounts.services import journalize as posting
+    from apps.transactions.services import validate_status
+    missing = validate_status.incomplete(ctx.obj, ctx.model_key)
+    if missing:   # a money step: the document is complete or it stays as it is (the team, 2026-11-06)
+        raise Refused(409, 'incomplete_document',
+                      validate_status.incomplete_coaching(ctx.model_key, 'journalize', missing),
+                      {'missing': missing})
     post = {'invoice': posting.journalize_invoice, 'cash': posting.journalize_cash,
             'receipt': posting.journalize_receipt,
             'workorder': posting.journalize_workorder}[ctx.model_key]

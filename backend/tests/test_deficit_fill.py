@@ -18,6 +18,14 @@ pytestmark = [pytest.mark.django_db, pytest.mark.usefixtures('chart_of_accounts'
 COGS, INVENTORY = '5000-cost_of_goods_sold', '1200-inventory'
 
 
+
+
+def _complete_vendor():
+    """A purchase names its vendor and terms, or the money steps refuse it (the team, 2026-11-06)."""
+    from apps.accounts.models import Term
+    from apps.orgs.models import Vendor
+    Term.objects.get_or_create(ida='N30', defaults={'name': 'N30', 'is_active': True})
+    return Vendor.objects.create(company='Complete Vendor')
 def _run(verb, model, pk, data=None):
     from apps.core.services.door import Actor
     from apps.core.services.verbs import run_command
@@ -33,7 +41,7 @@ def _item(avg='3.00'):
 
 def _receive(item, qty, unit):
     from apps.transactions.models import Purchase, PurchaseLine, Receipt
-    po = Purchase.objects.create()
+    po = Purchase.objects.create(vendor_id=_complete_vendor().pk, terms='N30')
     pol = PurchaseLine.objects.create(purchase=po, item={'item_id': item.pk, 'description': item.name},
                                       quantity={'active': qty, 'staged': qty}, cost={'unit': unit, 'precision': 2})
     out = _run('convert', 'purchase', po.pk, {'to': 'receipt', 'lines': [{'line_id': pol.pk}]})

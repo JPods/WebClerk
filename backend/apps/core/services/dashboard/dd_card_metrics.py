@@ -66,6 +66,8 @@ def _metric(qs, model, model_key, m: dict) -> dict:
     agg = m.get('agg')
     if m.get('filters'):
         qs = qs.filter(**m['filters'])
+    if m.get('exclude'):            # rows a metric leaves out (a cash card's adjustments, plan 102)
+        qs = qs.exclude(**m['exclude'])
     if agg == 'count':
         value: float | int = qs.count()
     elif agg == 'sum':
@@ -124,7 +126,7 @@ def card_metrics(params: dict, actor) -> dict[str, Any]:
     # The rows the list shows this person (one read gate: level, role block, id scope), and
     # none of the training rows (zz/qq never tally).
     model, qs = visible_queryset(model_key, actor=actor)
-    qs = tallied(qs).filter(**(params.get('filters') or {}))
+    qs = tallied(qs).filter(**(params.get('filters') or {})).exclude(**(params.get('exclude') or {}))
     metrics = [_metric(qs, model, model_key, m) for m in (params.get('metrics') or [])]
     distribution = _distribution(qs, model, model_key, params['distribution']) if params.get('distribution') else []
     return {'metrics': metrics, 'distribution': distribution}

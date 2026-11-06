@@ -67,8 +67,12 @@ DD_CARD_CONFIG = {
             "filters": {"is_active": True},
             "metrics": [
                 {"field": "id", "agg": "count", "label": "Count"},
-                {"field": "amount", "agg": "sum", "label": "Received", "format": "currency", "filters": {"amount__gt": 0}},
-                {"field": "amount", "agg": "sum", "label": "Disbursed", "format": "currency", "filters": {"amount__lt": 0}},
+                # Money only: a discount, write-off, small-balance or FX Cash is an adjustment, never
+                # money received (plan 102; cash_pending.ADJUSTMENT_METHODS).
+                {"field": "amount", "agg": "sum", "label": "Received", "format": "currency", "filters": {"amount__gt": 0},
+                 "exclude": {"method__in": ["write_off", "small_balance", "fx_gain", "fx_loss", "discount"]}},
+                {"field": "amount", "agg": "sum", "label": "Disbursed", "format": "currency", "filters": {"amount__lt": 0},
+                 "exclude": {"method__in": ["write_off", "small_balance", "fx_gain", "fx_loss", "discount"]}},
             ],
         },
         "receipt": {

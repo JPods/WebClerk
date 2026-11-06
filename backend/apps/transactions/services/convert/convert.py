@@ -422,6 +422,13 @@ def convert_command(ctx) -> Dict[str, Any]:
     to = (ctx.data.get("to") or "").lower()
     if not to:
         raise _refuse("to_required", f"Name what the {ctx.model_key} converts to: {{\"to\": ...}}.")
+    from apps.core.services.door import Refused
+    from apps.transactions.services import validate_status
+    missing = validate_status.incomplete(ctx.obj, ctx.model_key)
+    if missing:   # a money step: the source is complete or it stays as it is (the team, 2026-11-06)
+        raise Refused(409, "incomplete_document",
+                      validate_status.incomplete_coaching(ctx.model_key, f"convert to {to}", missing),
+                      {"missing": missing})
     named = ctx.data.get("lines")
     line_ids, take = None, None
     if named is not None:

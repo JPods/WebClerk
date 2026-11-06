@@ -165,6 +165,7 @@ def _get_line_count(instance, model_type: str) -> int:
         'order': ('transactions', 'OrderLine', 'order_id'),
         'invoice': ('transactions', 'InvoiceLine', 'invoice_id'),
         'purchase': ('transactions', 'PurchaseLine', 'purchase_id'),
+        'receipt': ('transactions', 'ReceiptLine', 'receipt_id'),
         'workorder': ('transactions', 'WorkOrderLine', 'workorder_id'),
         'requisition': ('transactions', 'RequisitionLine', 'requisition_id'),
     }
@@ -188,19 +189,56 @@ def _has_applied_cash_entries(instance) -> bool:
     ).exists()
 
 
+#: What a document must have before a money step — release, convert (invoice), journalize —
+#: may take it (the team, 2026-11-06; Bill: save stays permissive, a template order without a
+#: customer saves). A quote, order or invoice names a customer and terms; a purchase or receipt a
+#: vendor and terms; every document at least one line. A workorder builds and a requisition
+#: wants: lines only. The hard requirement lives on the state change, not on save.
+REQUIRES = {
+    'quote': ('customer', 'terms', 'lines'), 'order': ('customer', 'terms', 'lines'),
+    'invoice': ('customer', 'terms', 'lines'),
+    'purchase': ('vendor', 'terms', 'lines'), 'receipt': ('vendor', 'terms', 'lines'),
+    'workorder': ('lines',), 'requisition': ('lines',),
+}
+_LINE_MODELS = {'quote': 'QuoteLine', 'order': 'OrderLine', 'invoice': 'InvoiceLine', 'purchase': 'PurchaseLine',
+                'receipt': 'ReceiptLine', 'workorder': 'WorkOrderLine', 'requisition': 'RequisitionLine'}
+
+
+def incomplete(instance, model_type: str, payload_lines=None) -> list[str]:
+    """The requirements ``instance`` lacks, by name (customer, vendor, terms, line); [] when it
+    is complete. ``payload_lines`` are lines arriving in the same save, written after the hooks:
+    one not marked removed counts as a line the document will have."""
+    missing = []
+    for need in REQUIRES.get(model_type, ()):
+        if need == 'lines':
+            arriving = [l for l in (payload_lines or []) if isinstance(l, dict)
+                        and not l.get('_removed') and not l.get('_delete')]
+            if not arriving and _get_line_count(instance, model_type) == 0:
+                missing.append('line')
+        elif need == 'terms':
+            if not (getattr(instance, 'terms', None) or '').strip():
+                missing.append('terms')
+        elif not getattr(instance, f'{need}_id', None):
+            missing.append(need)
+    return missing
+
+
+def incomplete_coaching(model_type: str, step: str, missing: list) -> str:
+    needs = ', '.join(w if w != 'line' else 'at least one line' for w in REQUIRES.get(model_type, ()))
+    lacks = ', '.join(w if w != 'line' else 'a line' for w in missing)
+    return (f'A {model_type} cannot {step} without {needs}. This one has no {lacks}. '
+            f'Save it as it is; add what it lacks, then {step} again.')
+
+
 def _check_preconditions(instance, model_type: str, from_status: str, to_status: str) -> list[str]:
     """Check pre-conditions for a specific transition. Returns list of error messages."""
     errors = []
 
-    # ── Released requires at least one line ──
-    if to_status == 'released' and model_type in ('quote', 'order', 'invoice', 'purchase', 'workorder', 'requisition'):
-        if _get_line_count(instance, model_type) == 0:
-            errors.append(f"Cannot release {model_type} with no lines")
-
-    # ── Quote → released requires customer ──
-    if model_type == 'quote' and to_status == 'released':
-        if not getattr(instance, 'customer_id', None):
-            errors.append("Quote must have a customer before release")
+    # ── Released requires the document to be complete (REQUIRES) ──
+    if to_status == 'released':
+        missing = incomplete(instance, model_type)
+        if missing:
+            errors.append(incomplete_coaching(model_type, 'release', missing))
 
     # ── Cancel blocked if cash_entries applied ──
     if to_status == 'canceled':

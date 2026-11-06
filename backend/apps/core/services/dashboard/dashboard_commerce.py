@@ -308,8 +308,9 @@ def get_accounting_dashboard(params):
     ar_over_90 = ar_base.filter(dt_created__lt=day_90).aggregate(t=Sum('_bal'))['t'] or 0
 
     # Cash in period (Cash.amount is a real field, not a shadow)
-    cash_entries = Cash.objects.filter(dt_created__gte=cutoff).aggregate(
-        count=Count('id'), total=Sum('amount'))
+    from apps.transactions.services.cash.cash_pending import ADJUSTMENT_METHODS
+    cash_entries = Cash.objects.filter(dt_created__gte=cutoff).exclude(method__in=ADJUSTMENT_METHODS).aggregate(
+        count=Count('id'), total=Sum('amount'))       # money only: an adjustment Cash is never money received (plan 102)
 
     # AP — open purchases (mirror of AR aging)
     from apps.transactions.models import Purchase

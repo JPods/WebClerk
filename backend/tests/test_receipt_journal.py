@@ -14,6 +14,13 @@ pytestmark = [pytest.mark.django_db, pytest.mark.usefixtures('chart_of_accounts'
 COST = {'unit': 4.0, 'precision': 2}
 
 
+
+def _vendor():
+    from apps.accounts.models import Term
+    from apps.orgs.models import Vendor
+    Term.objects.get_or_create(ida='N30', defaults={'name': 'N30', 'is_active': True})
+    return Vendor.objects.create(company='Receipt Vendor')
+
 def _run(verb, model, pk, data=None):
     from apps.core.services.door import Actor
     from apps.core.services.verbs import run_command
@@ -26,7 +33,7 @@ def _received_receipt(qty=10, freight=0):
     item = Item.objects.create(name='Widget', quantity={'on_hand': 0, 'on_po': 0, 'on_rc': 0,
                                                         'allocated': 0, 'available': 0})
     Warehouse.objects.get_or_create(code='MAIN', defaults={'name': 'Main', 'is_active': True})
-    po = Purchase.objects.create()
+    po = Purchase.objects.create(vendor_id=_vendor().pk, terms='N30')   # a complete purchase: the money steps refuse one without a vendor and terms (2026-11-06)
     pol = PurchaseLine.objects.create(purchase=po, item={'item_id': item.pk, 'description': 'Widget'},
                                       quantity={'active': qty, 'staged': qty}, cost=dict(COST))
     out = _run('convert', 'purchase', po.pk, {'to': 'receipt', 'lines': [{'line_id': pol.pk}]})
@@ -77,7 +84,7 @@ def test_nothing_received_is_refused_and_journalized_twice_is_refused():
     with pytest.raises(Refused) as refused:
         _run('journalize', 'receipt', receipt.pk)
     assert refused.value.code == 'already_journalized'
-    po = Purchase.objects.create()
+    po = Purchase.objects.create(vendor_id=_vendor().pk, terms='N30')   # a complete purchase: the money steps refuse one without a vendor and terms (2026-11-06)
     pol = PurchaseLine.objects.create(purchase=po, item={'item_id': item.pk, 'description': 'Widget'},
                                       quantity={'active': 2, 'staged': 2}, cost=dict(COST))
     planned = _run('convert', 'purchase', po.pk, {'to': 'receipt', 'lines': [{'line_id': pol.pk}]})

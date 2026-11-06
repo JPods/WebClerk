@@ -10,6 +10,16 @@ class RequisitionLine(BaseExecLineModel):
         db_column='requisition_id',
     )
 
+    @property
+    def parent(self):
+        """Alias for the FK to parent transaction (uniform across all line types). Missing
+        until 2026-11-06: no requisition line could be saved — the delete guard read it."""
+        return self.requisition
+
+    @property
+    def parent_id_value(self):
+        return self.requisition_id
+
     def __str__(self):
         return f"RequisitionLine {self.id} on requisition {self.requisition_id}"
 

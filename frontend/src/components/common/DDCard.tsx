@@ -24,6 +24,7 @@ interface MetricDef {
   label: string;
   format?: "currency" | "percent" | "number";
   invert?: boolean;
+  exclude?: Record<string, any>;   // rows the metric leaves out (a cash card's adjustments, plan 102)
 }
 
 interface DistributionDef {

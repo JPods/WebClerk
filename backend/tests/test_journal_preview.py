@@ -24,7 +24,9 @@ def admin_client(client, django_user_model, chart_of_accounts):
 
 def _invoice(unit=100.0):
     buyer = OrgBase.objects.create(company='Journal Buyer', org_type='customer', is_active=True)
-    inv = Invoice.objects.create(customer_id=buyer.pk, finance={'sales_tax_rate': 0})
+    from apps.accounts.models import Term
+    Term.objects.get_or_create(ida='N30', defaults={'name': 'N30', 'is_active': True})
+    inv = Invoice.objects.create(customer_id=buyer.pk, terms='N30', finance={'sales_tax_rate': 0})   # complete: journalize refuses an invoice without terms (2026-11-06)
     InvoiceLine.objects.create(invoice=inv, quantity={'active': 1},
                                price={'unit': unit, 'precision': 2}, cost={'unit': 0})
     recalculate_totals(inv.pk, 'invoice')
