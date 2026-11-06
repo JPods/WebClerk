@@ -20,7 +20,6 @@ export interface CardFieldSpec {
   field: string;
   label?: string;
   type?: string;           // select, readonly, editable, search, action
-  options?: string[];
   help?: string;
 }
 

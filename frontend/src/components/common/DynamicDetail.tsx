@@ -22,7 +22,7 @@
  * Field configs can come from: Report config.fields (data-driven, preferred),
  * hardcoded FIELD_REGISTRIES (legacy), or auto-inferred from record data.
  */
-import { fieldBehaviorsOf } from '@/utils/fieldBehaviorsOf';
+import { fieldBehaviorsOf, selectOptionsOf } from '@/utils/fieldBehaviorsOf';
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { getRecord, saveRecord } from "../../api/wcapi";
 import { getWidget, WIDGETS } from "../widgets";
@@ -341,11 +341,10 @@ function DynamicDetail({
                   || (fieldName.split('.').pop() || fieldName).replace(/\[\d+\]$/, '');
 
                 // Map Setting field type to FieldConfig type
-                if (f.type === 'select' && Array.isArray(f.options)) {
+                const listed = selectOptionsOf(behaviors[baseName]);   // the definition's list, the one source
+                if (listed) {
                   cfg.type = 'select';
-                  cfg.options = f.options.map((opt: any) =>
-                    typeof opt === 'object' ? opt : { value: opt, label: String(opt) }
-                  );
+                  cfg.options = listed.map((opt: any) => ({ value: opt, label: String(opt) }));
                 } else if (f.type === 'contact-select' || f.type === 'contact_select') {
                   cfg.type = 'contact-select' as any;
                 } else if (f.type === 'readonly' || f.type === 'read_only') {

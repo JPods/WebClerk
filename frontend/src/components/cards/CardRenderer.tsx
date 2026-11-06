@@ -12,15 +12,18 @@ import React from 'react';
 import FieldRow from '@/apps/transactions/components/detail/FieldRow';
 import { getCardComponent, getFooterComponent } from './cardRegistry';
 import type { CardSpec } from './cardRegistry';
+import { selectOptionsOf } from '@/utils/fieldBehaviorsOf';
 
 interface CardRendererProps {
   spec: CardSpec;
   data: any;
   isEditing: boolean;
   onChange: (field: string, value: unknown) => void;
+  /** The model's field behaviors (useModelBehaviors): a select's options and a lookup's model come from here, never from the card. */
+  behaviors?: Record<string, any>;
 }
 
-const CardRenderer: React.FC<CardRendererProps> = ({ spec, data, isEditing, onChange }) => {
+const CardRenderer: React.FC<CardRendererProps> = ({ spec, data, isEditing, onChange, behaviors = {} }) => {
   const CardComponent = spec.component ? getCardComponent(spec.component) : undefined;
   const FooterComponent = spec.footer ? getFooterComponent(spec.footer) : undefined;
 
@@ -38,19 +41,23 @@ const CardRenderer: React.FC<CardRendererProps> = ({ spec, data, isEditing, onCh
   );
 
   // Default field rendering
-  const fieldRows = spec.fields.map((f) => (
-    <FieldRow
-      key={f.field}
-      field={f.field}
-      label={f.label || f.field.split('.').pop() || f.field}
-      data={data}
-      isEditing={isEditing}
-      options={f.options}
-      fieldType={f.type}
-      help={f.help}
-      onChange={onChange}
-    />
-  ));
+  const fieldRows = spec.fields.map((f) => {
+    const beh = behaviors[f.field] || {};
+    return (
+      <FieldRow
+        key={f.field}
+        field={f.field}
+        label={f.label || beh.label || f.field.split('.').pop() || f.field}
+        data={data}
+        isEditing={isEditing}
+        options={selectOptionsOf(beh)}
+        fieldType={f.type || beh.type}
+        lookup={beh.type === 'lookup' && beh.model ? { model: beh.model, valueField: beh.value, display: beh.display } : undefined}
+        help={f.help}
+        onChange={onChange}
+      />
+    );
+  });
 
   // Card shell — uses CSS variables for theme-aware styling
   return (

@@ -15327,11 +15327,7 @@
                 {
                   "field": "is_optional",
                   "label": "optional",
-                  "type": "select",
-                  "options": [
-                    "true",
-                    "false"
-                  ]
+                  "type": "select"
                 },
                 {
                   "field": "alternate_group",
@@ -25370,13 +25366,7 @@
                 {
                   "type": "select",
                   "field": "scope",
-                  "label": "scope",
-                  "options": [
-                    "system",
-                    "org",
-                    "role",
-                    "user"
-                  ]
+                  "label": "scope"
                 }
               ]
             },
@@ -25852,6 +25842,24 @@
             {
               "label": "Archived",
               "value": "archived"
+            }
+          ],
+          "scope": [
+            {
+              "value": "system",
+              "label": "System"
+            },
+            {
+              "value": "org",
+              "label": "Org"
+            },
+            {
+              "value": "role",
+              "label": "Role"
+            },
+            {
+              "value": "user",
+              "label": "User"
             }
           ]
         },
@@ -30945,13 +30953,7 @@
                 {
                   "type": "select",
                   "field": "scope",
-                  "label": "scope",
-                  "options": [
-                    "system",
-                    "org",
-                    "role",
-                    "user"
-                  ]
+                  "label": "scope"
                 }
               ]
             },
@@ -31427,6 +31429,24 @@
             {
               "label": "Archived",
               "value": "archived"
+            }
+          ],
+          "scope": [
+            {
+              "value": "system",
+              "label": "System"
+            },
+            {
+              "value": "org",
+              "label": "Org"
+            },
+            {
+              "value": "role",
+              "label": "Role"
+            },
+            {
+              "value": "user",
+              "label": "User"
             }
           ]
         },
@@ -37061,13 +37081,7 @@
                 {
                   "type": "select",
                   "field": "state",
-                  "label": "state",
-                  "options": [
-                    "pending",
-                    "committed",
-                    "canceled",
-                    "expired"
-                  ]
+                  "label": "state"
                 },
                 {
                   "field": "warehouse",
@@ -57942,15 +57956,7 @@
                 {
                   "type": "select",
                   "field": "model_code",
-                  "label": "model_code",
-                  "options": [
-                    "quote",
-                    "order",
-                    "invoice",
-                    "purchase",
-                    "workorder",
-                    "requisition"
-                  ]
+                  "label": "model_code"
                 },
                 {
                   "field": "object_id",
@@ -66733,12 +66739,7 @@
                 {
                   "type": "readonly",
                   "field": "allocations.method",
-                  "label": "allocation_method",
-                  "options": [
-                    "value",
-                    "weight",
-                    "quantity"
-                  ]
+                  "label": "allocation_method"
                 },
                 {
                   "field": "allocations.duty",
@@ -67712,6 +67713,20 @@
             {
               "value": "urgent",
               "label": "Urgent"
+            }
+          ],
+          "allocations.method": [
+            {
+              "value": "value",
+              "label": "Value"
+            },
+            {
+              "value": "weight",
+              "label": "Weight"
+            },
+            {
+              "value": "quantity",
+              "label": "Quantity"
             }
           ]
         },
@@ -86245,13 +86260,7 @@
                 {
                   "type": "select",
                   "field": "scope",
-                  "label": "scope",
-                  "options": [
-                    "system",
-                    "org",
-                    "role",
-                    "user"
-                  ]
+                  "label": "scope"
                 }
               ]
             },
@@ -86718,6 +86727,24 @@
             {
               "label": "Archived",
               "value": "archived"
+            }
+          ],
+          "scope": [
+            {
+              "value": "system",
+              "label": "System"
+            },
+            {
+              "value": "org",
+              "label": "Org"
+            },
+            {
+              "value": "role",
+              "label": "Role"
+            },
+            {
+              "value": "user",
+              "label": "User"
             }
           ]
         },

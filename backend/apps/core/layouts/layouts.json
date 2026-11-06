@@ -2639,11 +2639,7 @@
      {
       "field": "is_optional",
       "label": "optional",
-      "type": "select",
-      "options": [
-       "true",
-       "false"
-      ]
+      "type": "select"
      },
      {
       "field": "alternate_group",
@@ -6096,13 +6092,7 @@
      {
       "type": "select",
       "field": "scope",
-      "label": "scope",
-      "options": [
-       "system",
-       "org",
-       "role",
-       "user"
-      ]
+      "label": "scope"
      }
     ]
    },
@@ -8059,13 +8049,7 @@
      {
       "type": "select",
       "field": "scope",
-      "label": "scope",
-      "options": [
-       "system",
-       "org",
-       "role",
-       "user"
-      ]
+      "label": "scope"
      }
     ]
    },
@@ -19970,12 +19954,7 @@
      {
       "type": "readonly",
       "field": "allocations.method",
-      "label": "allocation_method",
-      "options": [
-       "value",
-       "weight",
-       "quantity"
-      ]
+      "label": "allocation_method"
      },
      {
       "field": "allocations.duty",
@@ -26943,13 +26922,7 @@
      {
       "type": "select",
       "field": "scope",
-      "label": "scope",
-      "options": [
-       "system",
-       "org",
-       "role",
-       "user"
-      ]
+      "label": "scope"
      }
     ]
    },

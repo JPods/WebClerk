@@ -70,6 +70,7 @@ const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditin
               data={data}
               isEditing={isEditing}
               onChange={onChange}
+              behaviors={behaviors}
             />
           ))}
         </div>
@@ -188,10 +189,11 @@ const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditin
                 record={data}
               />
             ) : col.fields.map((f: any) => {
-              // Merge behavior into field def — behavior provides type/options when field def doesn't
+              // The behavior names the type when the field def doesn't; a select's options are the
+              // definition's list and only that (Bill, 2026-11-05) — a layout carries none.
               const beh = behaviors[f.field] || {};
               const fieldType = f.type || beh.type;
-              const options = f.options || selectOptionsOf(beh);
+              const options = selectOptionsOf(beh);
               return (
                 <FieldRow
                   key={f.field}

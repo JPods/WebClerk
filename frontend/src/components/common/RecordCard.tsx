@@ -17,6 +17,7 @@ import { useDispatch } from 'react-redux';
 import { showToast } from '@/store/slices/toastSlice';
 import { getRecord, saveRecord } from '@/api/wcapi';
 import CardRenderer from '@/components/cards/CardRenderer';
+import { useModelBehaviors } from '@/hooks/useModelBehaviors';
 import type { CardSpec } from '@/components/cards/cardRegistry';
 import { readable } from '@/apps/common/components/panels/cellFormat';
 
@@ -54,6 +55,7 @@ const WIDTH = 380;
 
 const RecordCard: React.FC<Props> = ({ model, spec, anchor, make, recordId, restore, dropped, onUndo, onRegisterEdits, onClose }) => {
   const dispatch = useDispatch();
+  const behaviors = useModelBehaviors(model);
   const cardRef = useRef<HTMLDivElement>(null);
   const [loaded, setLoaded] = useState<Record<string, unknown>>({});
   const [values, setValues] = useState<Record<string, unknown>>({});
@@ -132,7 +134,7 @@ const RecordCard: React.FC<Props> = ({ model, spec, anchor, make, recordId, rest
               style={{ color: 'var(--db-accent, #0d6efd)' }}>Undo</button>
           </div>
         )}
-        <CardRenderer spec={spec} data={values} isEditing
+        <CardRenderer spec={spec} data={values} isEditing behaviors={behaviors}
           onChange={(field, value) => setValues((v) => ({ ...v, [field]: value }))} />
         <div className="flex items-center gap-2 px-3 pb-3 -mt-1" style={{ background: 'var(--db-surface)' }}>
           <button type="button" disabled={busy} onClick={save}
