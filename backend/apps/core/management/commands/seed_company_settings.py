@@ -105,7 +105,7 @@ COMPANY_PROFILE_CONFIG = {
         },
     },
     # What a record starts with when neither the person nor the customer says (Bill, 2026-11-05).
-    "default": {
+    "defaults": {
         "terms": "N30",              # a Term ida — an order's terms when its customer has none
         "order_new": {
             "days": 14,              # dt_needed = the day the order is born + days

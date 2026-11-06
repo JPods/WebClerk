@@ -6117,7 +6117,7 @@
             "company.pay_to"
           ]
         },
-        "default": {
+        "defaults": {
           "terms": "N30",
           "order_new": {
             "days": 14,

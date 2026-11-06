@@ -129,9 +129,9 @@ class DocumentBehaviour(ModelBehaviour):
 class OrderBehaviour(DocumentBehaviour):
     """An order is born with the company's defaults and takes its customer's (Bill, 2026-11-05).
 
-    Born (the `new` verb): dt_needed = now + ``default.order_new.days``, priority =
-    ``default.order_new.priority`` — the company profile's. When its customer is set or
-    changed: terms = the customer's, else the company's ``default.terms``; price_level = the
+    Born (the `new` verb): dt_needed = now + ``defaults.order_new.days``, priority =
+    ``defaults.order_new.priority`` — the company profile's. When its customer is set or
+    changed: terms = the customer's, else the company's ``defaults.terms``; price_level = the
     customer's, else retail. A value the same payload carries is the person's and stays. The
     server computes; the form shows what the save returns. It records the discount it gave away.
     """
@@ -140,7 +140,7 @@ class OrderBehaviour(DocumentBehaviour):
         super().before_save(ctx)
         from apps.core.services.company_profile import company_config
         obj = ctx.obj
-        default = company_config('default')
+        default = company_config('defaults')
         order_new = default.get('order_new') if isinstance(default.get('order_new'), dict) else {}
         if not ctx.is_update:
             days = order_new.get('days')
@@ -159,14 +159,14 @@ class OrderBehaviour(DocumentBehaviour):
 
     @staticmethod
     def _company_terms(default: dict) -> str:
-        """``default.terms`` as the Term's own ida; a profile naming no term is a configuration
+        """``defaults.terms`` as the Term's own ida; a profile naming no term is a configuration
         fault, refused where it bites with the valid idas (fail fast, never silent)."""
         from apps.accounts.services.terms_ledger import named_term_ida
         try:
             return named_term_ida(default.get('terms'))
         except ValueError as e:
             raise Refused(400, 'invalid_terms',
-                          f'The company profile default.terms is wrong: {e}', [f'terms: {e}'])
+                          f'The company profile defaults.terms is wrong: {e}', [f'terms: {e}'])
 
     def after_save(self, ctx: HookContext) -> None:
         from apps.accounts.services.value_erosion import detect_discount_erosion

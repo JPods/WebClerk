@@ -6046,7 +6046,7 @@
           },
           "active_gateway_type": ""
         },
-        "default": {
+        "defaults": {
           "terms": "N30",
           "order_new": {
             "days": 14,

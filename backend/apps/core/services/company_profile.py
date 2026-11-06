@@ -4,9 +4,10 @@ Cached, because operational saves read it (Item.save reads the cost basis; an or
 reads ``default``), and an operational save must not pay a query for admin configuration.
 The cache is cleared when the profile is saved (signals/access_signals.py).
 
-Sections a save reads: ``inventory`` (cost basis), ``pricing`` (minimum margin), ``default``
-(Bill, 2026-11-05: ``default.terms`` is the company's terms when a customer has none;
-``default.order_new.days`` and ``.priority`` are what a new order is born with).
+Sections a save reads: ``inventory`` (cost basis), ``pricing`` (minimum margin), ``defaults``
+(Bill, 2026-11-05: ``defaults.terms`` is the company's terms when a customer has none;
+``defaults.order_new.days`` and ``.priority`` are what a new order is born with — in config,
+not metadata: defaults are company policy, metadata is the record's bookkeeping).
 """
 from __future__ import annotations
 

@@ -1,6 +1,6 @@
 """A new order is born with the company's defaults and takes its customer's (Bill, 2026-11-05):
-price_level retail when no one says, terms from the customer or the company's default.terms,
-dt_needed = born + default.order_new.days, priority = default.order_new.priority. The server
+price_level retail when no one says, terms from the customer or the company's defaults.terms,
+dt_needed = born + defaults.order_new.days, priority = defaults.order_new.priority. The server
 computes them in the save door's hook; the form shows what the save returns."""
 import time
 
@@ -33,7 +33,7 @@ def company(chart_of_accounts):
         Term.objects.get_or_create(ida=ida, defaults={'name': ida, 'is_active': True})
     setting = Setting.objects.get(purpose='wc:company_profile')
     setting.config = {**(setting.config or {}),
-                      'default': {'terms': 'N30', 'order_new': {'days': 14, 'priority': 'medium'}}}
+                      'defaults': {'terms': 'N30', 'order_new': {'days': 14, 'priority': 'medium'}}}
     setting.save()
     cache_service.invalidate_namespace('company_profile')
     return setting
@@ -94,11 +94,11 @@ def test_a_later_save_does_not_rewrite_the_defaults(admin, company):
 
 
 def test_a_company_default_terms_that_is_no_term_is_refused_where_it_bites(admin, company):
-    company.config['default']['terms'] = 'net45'
+    company.config['defaults']['terms'] = 'net45'
     company.save()
     cache_service.invalidate_namespace('company_profile')
     buyer = Customer.objects.create(company='Plain Buyer')
     order = _born(admin)
     with pytest.raises(Refused) as refused:
         save_record(_as(admin), {'id': order.pk, 'version': order.version, 'customer_id': buyer.pk}, model_key='order')
-    assert refused.value.code == 'invalid_terms' and 'default.terms' in refused.value.message
+    assert refused.value.code == 'invalid_terms' and 'defaults.terms' in refused.value.message
