@@ -14914,8 +14914,7 @@
                 },
                 {
                   "field": "is_optional",
-                  "label": "optional",
-                  "type": "select"
+                  "label": "optional"
                 },
                 {
                   "field": "alternate_group",

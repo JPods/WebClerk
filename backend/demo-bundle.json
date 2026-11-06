@@ -15326,8 +15326,7 @@
                 },
                 {
                   "field": "is_optional",
-                  "label": "optional",
-                  "type": "select"
+                  "label": "optional"
                 },
                 {
                   "field": "alternate_group",
@@ -37079,7 +37078,6 @@
                   "label": "reason"
                 },
                 {
-                  "type": "select",
                   "field": "state",
                   "label": "state"
                 },
@@ -57954,7 +57952,6 @@
                   "label": "health_rating"
                 },
                 {
-                  "type": "select",
                   "field": "model_code",
                   "label": "model_code"
                 },
