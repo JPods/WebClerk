@@ -125,7 +125,7 @@ class Command(BaseCommand):
                 updated += 1
                 self.stdout.write(f'  {model_key}: updated schema_map with status guards')
             else:
-                Setting.objects.create(
+                Setting.authorized_create(
                     name=f'{model_key} schema and behaviors',
                     parent_model=model_key,
                     purpose='wc:schema_map',

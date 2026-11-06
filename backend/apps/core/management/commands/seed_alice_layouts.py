@@ -297,7 +297,7 @@ class Command(BaseCommand):
 
             if not setting:
                 # Create new with both layouts as views
-                Setting.objects.create(
+                Setting.authorized_create(
                     name=f'workbench_fields:{model_key}',
                     parent_model=model_key,
                     purpose='wc:workbench_fields',

@@ -17410,9 +17410,9 @@
           },
           "vendor": {
             "type": "lookup",
-            "label": "vendor",
-            "model": "customer",
-            "display": "display_name"
+            "model": "vendor",
+            "display": "display_name",
+            "label": "vendor"
           },
           "actions": {
             "type": "json-tree",
@@ -20008,6 +20008,20 @@
               "label": "Price Level",
               "value": "price_level"
             }
+          ],
+          "status": [
+            {
+              "label": "Active",
+              "value": "active"
+            },
+            {
+              "label": "Inactive",
+              "value": "inactive"
+            },
+            {
+              "label": "Archived",
+              "value": "archived"
+            }
           ]
         },
         "orderby": [
@@ -22427,9 +22441,9 @@
           },
           "rep": {
             "type": "lookup",
-            "label": "rep",
-            "model": "customer",
-            "display": "display_name"
+            "model": "rep",
+            "display": "display_name",
+            "label": "rep"
           },
           "refs": {
             "type": "json-tree",
@@ -22504,9 +22518,9 @@
           },
           "vendor": {
             "type": "lookup",
-            "label": "vendor",
-            "model": "customer",
-            "display": "display_name"
+            "model": "vendor",
+            "display": "display_name",
+            "label": "vendor"
           },
           "actions": {
             "type": "json-tree",
@@ -22635,9 +22649,9 @@
           },
           "manufacturer": {
             "type": "lookup",
-            "label": "manufacturer",
-            "model": "customer",
-            "display": "display_name"
+            "model": "manufacturer",
+            "display": "display_name",
+            "label": "manufacturer"
           },
           "health_rating": {
             "type": "readonly",
@@ -27452,6 +27466,20 @@
             {
               "label": "Secret",
               "value": "secret"
+            }
+          ],
+          "status": [
+            {
+              "label": "Active",
+              "value": "active"
+            },
+            {
+              "label": "Inactive",
+              "value": "inactive"
+            },
+            {
+              "label": "Archived",
+              "value": "archived"
             }
           ]
         },
@@ -39390,9 +39418,9 @@
           },
           "vendor": {
             "type": "lookup",
-            "label": "vendor",
-            "model": "customer",
-            "display": "display_name"
+            "model": "vendor",
+            "display": "display_name",
+            "label": "vendor"
           },
           "actions": {
             "type": "json-tree",
@@ -39604,9 +39632,9 @@
           },
           "manufacturer": {
             "type": "lookup",
-            "label": "manufacturer",
-            "model": "customer",
-            "display": "display_name"
+            "model": "manufacturer",
+            "display": "display_name",
+            "label": "manufacturer"
           },
           "parent_model": {
             "type": "text",
@@ -42958,9 +42986,9 @@
           },
           "vendor": {
             "type": "lookup",
-            "label": "vendor",
-            "model": "customer",
-            "display": "display_name"
+            "model": "vendor",
+            "display": "display_name",
+            "label": "vendor"
           },
           "actions": {
             "type": "json-tree",
@@ -43057,9 +43085,9 @@
           },
           "manufacturer": {
             "type": "lookup",
-            "label": "manufacturer",
-            "model": "customer",
-            "display": "display_name"
+            "model": "manufacturer",
+            "display": "display_name",
+            "label": "manufacturer"
           },
           "price.custom": {
             "type": "text",
@@ -51219,9 +51247,9 @@
           },
           "vendor": {
             "type": "lookup",
-            "label": "vendor",
-            "model": "customer",
-            "display": "display_name"
+            "model": "vendor",
+            "display": "display_name",
+            "label": "vendor"
           },
           "actions": {
             "type": "json-tree",
@@ -51429,9 +51457,9 @@
           },
           "manufacturer": {
             "type": "lookup",
-            "label": "manufacturer",
-            "model": "customer",
-            "display": "display_name"
+            "model": "manufacturer",
+            "display": "display_name",
+            "label": "manufacturer"
           },
           "parent_model": {
             "type": "text",
@@ -60388,9 +60416,9 @@
           },
           "vendor": {
             "type": "lookup",
-            "label": "vendor",
-            "model": "customer",
-            "display": "display_name"
+            "model": "vendor",
+            "display": "display_name",
+            "label": "vendor"
           },
           "actions": {
             "type": "json-tree",
@@ -60598,9 +60626,9 @@
           },
           "manufacturer": {
             "type": "lookup",
-            "label": "manufacturer",
-            "model": "customer",
-            "display": "display_name"
+            "model": "manufacturer",
+            "display": "display_name",
+            "label": "manufacturer"
           },
           "parent_model": {
             "type": "text",
@@ -63908,9 +63936,9 @@
           },
           "vendor": {
             "type": "lookup",
-            "label": "vendor",
-            "model": "customer",
-            "display": "display_name"
+            "model": "vendor",
+            "display": "display_name",
+            "label": "vendor"
           },
           "actions": {
             "type": "json-tree",
@@ -64118,9 +64146,9 @@
           },
           "manufacturer": {
             "type": "lookup",
-            "label": "manufacturer",
-            "model": "customer",
-            "display": "display_name"
+            "model": "manufacturer",
+            "display": "display_name",
+            "label": "manufacturer"
           },
           "parent_model": {
             "type": "text",
@@ -78043,9 +78071,9 @@
           },
           "vendor": {
             "type": "lookup",
-            "label": "vendor",
-            "model": "customer",
-            "display": "display_name"
+            "model": "vendor",
+            "display": "display_name",
+            "label": "vendor"
           },
           "actions": {
             "type": "json-tree",
@@ -79312,6 +79340,20 @@
             {
               "label": "Sync",
               "value": "sync"
+            }
+          ],
+          "status": [
+            {
+              "label": "Active",
+              "value": "active"
+            },
+            {
+              "label": "Inactive",
+              "value": "inactive"
+            },
+            {
+              "label": "Archived",
+              "value": "archived"
             }
           ]
         },
@@ -89008,9 +89050,9 @@
           },
           "vendor": {
             "type": "lookup",
-            "label": "vendor",
-            "model": "customer",
-            "display": "display_name"
+            "model": "vendor",
+            "display": "display_name",
+            "label": "vendor"
           },
           "actions": {
             "type": "json-tree",
@@ -89218,9 +89260,9 @@
           },
           "manufacturer": {
             "type": "lookup",
-            "label": "manufacturer",
-            "model": "customer",
-            "display": "display_name"
+            "model": "manufacturer",
+            "display": "display_name",
+            "label": "manufacturer"
           },
           "parent_model": {
             "type": "text",
@@ -94634,6 +94676,20 @@
               "label": "Quiz — a person's answer to a training question",
               "value": "quiz"
             }
+          ],
+          "status": [
+            {
+              "label": "Active",
+              "value": "active"
+            },
+            {
+              "label": "Inactive",
+              "value": "inactive"
+            },
+            {
+              "label": "Archived",
+              "value": "archived"
+            }
           ]
         },
         "orderby": []
@@ -94678,6 +94734,1879 @@
           },
           "modified": {
             "dt": 1793201474056,
+            "contact_id": 0
+          },
+          "verified": {
+            "dt": 0,
+            "contact_id": 0
+          }
+        },
+        "publish": "",
+        "version": "1.0",
+        "erosions": [],
+        "priority": "",
+        "security": "",
+        "documents": [],
+        "resources": {
+          "required": {},
+          "allocated": {}
+        },
+        "versioning": {
+          "size_activity": {},
+          "changed_fields": []
+        },
+        "audit_trail": [],
+        "explanation": "",
+        "import_data": null,
+        "userdefined": {},
+        "small_stings": []
+      },
+      "prefs": {
+        "tags": [],
+        "pinned": false,
+        "search": [],
+        "userdefined": {}
+      },
+      "refs": {
+        "tags": [],
+        "links": {
+          "item": [],
+          "contact": []
+        },
+        "source": null,
+        "parents": [],
+        "keywords": [],
+        "categories": [],
+        "depends_on": {},
+        "related_ids": []
+      }
+    },
+    {
+      "uuid": "4f9f250f-a81f-4158-b8db-9e92c016535f",
+      "ida": "wc-model-lesson",
+      "name": "Lesson Model Definition",
+      "scope": "system",
+      "purpose": "wc:model",
+      "parent_model": "lesson",
+      "explanation": "Model definition for Lesson. Governs named layouts (list columns, detail fields, ui sections), field behaviors, schema metadata, and access configuration.",
+      "paths": {},
+      "config": {
+        "access": {
+          "sets": {
+            "all": [
+              "actions.extra",
+              "actions.kind",
+              "actions.required",
+              "actions.status",
+              "actions.what",
+              "actions.when",
+              "actions.who",
+              "agent",
+              "comments.partner.key",
+              "comments.partner.mgs",
+              "comments.partner.source",
+              "comments.partner.time",
+              "comments.partner.user",
+              "comments.partner.user_id",
+              "comments.process.key",
+              "comments.process.mgs",
+              "comments.process.source",
+              "comments.process.time",
+              "comments.process.user",
+              "comments.process.user_id",
+              "comments.public.key",
+              "comments.public.mgs",
+              "comments.public.source",
+              "comments.public.time",
+              "comments.public.user",
+              "comments.public.user_id",
+              "config.details",
+              "config.is_new",
+              "contact_id",
+              "dt_approved",
+              "dt_created",
+              "dt_last_interaction",
+              "dt_last_updated",
+              "dt_last_used",
+              "dt_modified",
+              "health_rating",
+              "id",
+              "ida",
+              "is_active",
+              "is_archived",
+              "metadata.access.edit",
+              "metadata.access.view",
+              "metadata.audit_trail.action",
+              "metadata.audit_trail.details",
+              "metadata.audit_trail.dt",
+              "metadata.audit_trail.user_id",
+              "metadata.documents",
+              "metadata.erosions",
+              "metadata.explanation",
+              "metadata.flags.keywords_pending",
+              "metadata.flags.schema_rev",
+              "metadata.flow",
+              "metadata.health.accuracy",
+              "metadata.health.completeness",
+              "metadata.health.consistency",
+              "metadata.health.freshness",
+              "metadata.health.lock.by.id",
+              "metadata.health.lock.by.name",
+              "metadata.health.lock.dt",
+              "metadata.health.lock.reason",
+              "metadata.health.lock.status_before",
+              "metadata.health.lock_history.by.id",
+              "metadata.health.lock_history.by.name",
+              "metadata.health.lock_history.dt",
+              "metadata.health.lock_history.reason",
+              "metadata.health.lock_history.status_before",
+              "metadata.health.lock_history.unlock_reason",
+              "metadata.health.lock_history.unlocked_by.id",
+              "metadata.health.lock_history.unlocked_by.name",
+              "metadata.health.lock_history.unlocked_dt",
+              "metadata.health.rating",
+              "metadata.history.accessed.contact_id",
+              "metadata.history.accessed.dt",
+              "metadata.history.created.contact_id",
+              "metadata.history.created.dt",
+              "metadata.history.modified.contact_id",
+              "metadata.history.modified.dt",
+              "metadata.history.synced.contact_id",
+              "metadata.history.synced.dt",
+              "metadata.history.verified.contact_id",
+              "metadata.history.verified.dt",
+              "metadata.images.hr",
+              "metadata.images.md",
+              "metadata.images.source",
+              "metadata.images.tn",
+              "metadata.import_data.dt_delete_on",
+              "metadata.import_data.dt_imported",
+              "metadata.import_data.original",
+              "metadata.import_data.risk",
+              "metadata.import_data.source",
+              "metadata.import_data.status",
+              "metadata.priority",
+              "metadata.publish",
+              "metadata.resources",
+              "metadata.security",
+              "metadata.small_stings",
+              "metadata.source",
+              "metadata.temp",
+              "metadata.version",
+              "metadata.versioning.changed_fields",
+              "metadata.versioning.size_activity",
+              "observation_count",
+              "prefs.pinned",
+              "prefs.search.dt_saved",
+              "prefs.search.filters",
+              "prefs.search.keyword",
+              "prefs.search.limit",
+              "prefs.search.model_name",
+              "prefs.search.name",
+              "prefs.search.ordering",
+              "prefs.search.relative_period",
+              "prefs.search.search_fields",
+              "prefs.tags",
+              "purpose",
+              "refs.demo_source",
+              "refs.keywords",
+              "refs.links",
+              "refs.source.id",
+              "refs.source.order_line_id",
+              "refs.source.purchase_line_id",
+              "refs.source.quote_line_id",
+              "refs.source.type",
+              "refs.tags",
+              "security_level",
+              "status",
+              "subject_key",
+              "subject_type",
+              "summary",
+              "times_used",
+              "uuid",
+              "version"
+            ]
+          },
+          "roles": {
+            "admin": {
+              "edit": [
+                "@all"
+              ],
+              "view": [
+                "@all"
+              ],
+              "scope": {},
+              "create": true,
+              "delete": true
+            },
+            "agent": {
+              "edit": [
+                "@all"
+              ],
+              "view": [
+                "@all"
+              ],
+              "scope": {},
+              "create": true,
+              "delete": false
+            },
+            "superuser": {
+              "edit": [
+                "@all"
+              ],
+              "view": [
+                "@all"
+              ],
+              "scope": {},
+              "create": true,
+              "delete": true
+            }
+          }
+        },
+        "layout": {
+          "card": {
+            "details": {
+              "title": "details",
+              "fields": [
+                {
+                  "field": "agent",
+                  "label": "agent"
+                },
+                {
+                  "field": "contact_id",
+                  "label": "contact_id"
+                },
+                {
+                  "field": "health_rating",
+                  "label": "health_rating"
+                },
+                {
+                  "field": "observation_count",
+                  "label": "observation_count"
+                },
+                {
+                  "field": "subject_key",
+                  "label": "subject_key"
+                },
+                {
+                  "type": "select",
+                  "field": "subject_type",
+                  "label": "subject_type"
+                },
+                {
+                  "field": "summary",
+                  "label": "summary"
+                }
+              ]
+            },
+            "identity": {
+              "title": "identity",
+              "fields": [
+                {
+                  "field": "ida",
+                  "label": "ida"
+                },
+                {
+                  "field": "status",
+                  "label": "status"
+                },
+                {
+                  "field": "purpose",
+                  "label": "purpose"
+                }
+              ]
+            },
+            "schedule": {
+              "title": "schedule",
+              "fields": [
+                {
+                  "type": "date",
+                  "field": "dt_approved",
+                  "label": "dt_approved"
+                },
+                {
+                  "type": "date",
+                  "field": "dt_created",
+                  "label": "dt_created"
+                },
+                {
+                  "type": "date",
+                  "field": "dt_last_interaction",
+                  "label": "dt_last_interaction"
+                },
+                {
+                  "type": "date",
+                  "field": "dt_last_updated",
+                  "label": "dt_last_updated"
+                },
+                {
+                  "type": "date",
+                  "field": "dt_last_used",
+                  "label": "dt_last_used"
+                },
+                {
+                  "type": "date",
+                  "field": "dt_modified",
+                  "label": "dt_modified"
+                }
+              ]
+            }
+          },
+          "form": {
+            "default": {
+              "list": "default",
+              "model": "lesson",
+              "detail": "default",
+              "family": "core",
+              "sections": [
+                {
+                  "type": "header",
+                  "layout": "three-column",
+                  "columns": [
+                    {
+                      "title": "identity",
+                      "fields": [
+                        {
+                          "field": "ida",
+                          "label": "ida"
+                        },
+                        {
+                          "field": "status",
+                          "label": "status"
+                        },
+                        {
+                          "field": "purpose",
+                          "label": "purpose"
+                        }
+                      ]
+                    },
+                    {
+                      "title": "details",
+                      "fields": [
+                        {
+                          "field": "agent",
+                          "label": "agent"
+                        },
+                        {
+                          "field": "contact_id",
+                          "label": "contact_id"
+                        },
+                        {
+                          "field": "health_rating",
+                          "label": "health_rating"
+                        },
+                        {
+                          "field": "observation_count",
+                          "label": "observation_count"
+                        },
+                        {
+                          "field": "subject_key",
+                          "label": "subject_key"
+                        },
+                        {
+                          "type": "select",
+                          "field": "subject_type",
+                          "label": "subject_type"
+                        },
+                        {
+                          "field": "summary",
+                          "label": "summary"
+                        }
+                      ]
+                    },
+                    {
+                      "title": "schedule",
+                      "fields": [
+                        {
+                          "type": "date",
+                          "field": "dt_approved",
+                          "label": "dt_approved"
+                        },
+                        {
+                          "type": "date",
+                          "field": "dt_created",
+                          "label": "dt_created"
+                        },
+                        {
+                          "type": "date",
+                          "field": "dt_last_interaction",
+                          "label": "dt_last_interaction"
+                        },
+                        {
+                          "type": "date",
+                          "field": "dt_last_updated",
+                          "label": "dt_last_updated"
+                        },
+                        {
+                          "type": "date",
+                          "field": "dt_last_used",
+                          "label": "dt_last_used"
+                        },
+                        {
+                          "type": "date",
+                          "field": "dt_modified",
+                          "label": "dt_modified"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "panel",
+                  "label": "comments",
+                  "config": {
+                    "channels": [
+                      {
+                        "key": "process",
+                        "color": "var(--db-accent-green)",
+                        "label": "process"
+                      },
+                      {
+                        "key": "public",
+                        "color": "var(--db-accent)",
+                        "label": "public"
+                      },
+                      {
+                        "key": "partner",
+                        "color": "var(--db-accent-purple)",
+                        "label": "foreign"
+                      }
+                    ]
+                  },
+                  "content": "comments"
+                },
+                {
+                  "tabs": [
+                    {
+                      "label": "contacts",
+                      "content": "contacts"
+                    },
+                    {
+                      "label": "actions",
+                      "content": "actions"
+                    },
+                    {
+                      "label": "touches",
+                      "content": "touches"
+                    },
+                    {
+                      "label": "documents",
+                      "content": "documents"
+                    },
+                    {
+                      "label": "files",
+                      "content": "files"
+                    }
+                  ],
+                  "type": "tabs"
+                }
+              ],
+              "edit_rules": {
+                "status_field": "status",
+                "locked_statuses": []
+              }
+            }
+          },
+          "list": {
+            "default": {
+              "form": "default",
+              "detail": "default",
+              "columns": [
+                {
+                  "field": "agent",
+                  "label": "agent",
+                  "width": 80,
+                  "visible": true
+                },
+                {
+                  "field": "subject_type",
+                  "label": "subject_type",
+                  "width": 100,
+                  "visible": true
+                },
+                {
+                  "field": "subject_key",
+                  "label": "subject_key",
+                  "width": 140,
+                  "visible": true
+                },
+                {
+                  "field": "summary",
+                  "label": "summary",
+                  "width": 260,
+                  "visible": true
+                },
+                {
+                  "field": "observation_count",
+                  "label": "observation_count",
+                  "width": 70,
+                  "visible": true
+                },
+                {
+                  "field": "dt_last_updated",
+                  "label": "dt_last_updated",
+                  "width": 110,
+                  "visible": true
+                }
+              ]
+            }
+          },
+          "tabs": [
+            "contacts",
+            "actions",
+            "touches",
+            "documents",
+            "files"
+          ],
+          "panel": [
+            {
+              "align": "left",
+              "field": "ida",
+              "label": "ida",
+              "width": 100
+            },
+            {
+              "align": "left",
+              "field": "purpose",
+              "label": "purpose",
+              "width": 140
+            },
+            {
+              "align": "center",
+              "field": "status",
+              "label": "status",
+              "width": 90
+            },
+            {
+              "align": "left",
+              "field": "agent",
+              "label": "agent",
+              "width": 120
+            },
+            {
+              "align": "left",
+              "field": "contact_id",
+              "label": "contact_id",
+              "width": 120
+            },
+            {
+              "align": "left",
+              "field": "dt_last_interaction",
+              "label": "dt_last_interaction",
+              "width": 120
+            }
+          ],
+          "active": {
+            "form": "default",
+            "list": "default",
+            "column": "default",
+            "detail": "default"
+          },
+          "column": {
+            "default": {
+              "form": "default",
+              "detail": "default",
+              "columns": []
+            }
+          },
+          "detail": {
+            "default": {
+              "form": "default",
+              "list": "default",
+              "fields": [
+                "ida",
+                "is_active",
+                "purpose",
+                "status",
+                "agent",
+                "contact_id",
+                "subject_type",
+                "subject_key",
+                "summary",
+                "observation_count",
+                "dt_last_interaction",
+                "dt_last_updated",
+                "comments",
+                "config",
+                "metadata",
+                "refs",
+                "prefs",
+                "actions",
+                "id",
+                "uuid",
+                "dt_created",
+                "dt_modified",
+                "version",
+                "security_level",
+                "dt_approved",
+                "times_used",
+                "dt_last_used",
+                "is_archived",
+                "health_rating"
+              ]
+            }
+          }
+        },
+        "orderby": [],
+        "defaults": {},
+        "searches": [],
+        "behaviors": {
+          "id": {
+            "type": "readonly",
+            "label": "id"
+          },
+          "ida": {
+            "type": "readonly",
+            "label": "ida"
+          },
+          "refs": {
+            "type": "json-tree",
+            "label": "refs"
+          },
+          "uuid": {
+            "type": "readonly",
+            "label": "uuid"
+          },
+          "agent": {
+            "type": "text",
+            "label": "agent"
+          },
+          "prefs": {
+            "type": "json-tree",
+            "label": "prefs"
+          },
+          "config": {
+            "type": "json-tree",
+            "label": "config"
+          },
+          "status": {
+            "type": "select",
+            "label": "status",
+            "source": "inline"
+          },
+          "actions": {
+            "type": "json-tree",
+            "label": "actions"
+          },
+          "purpose": {
+            "type": "text"
+          },
+          "summary": {
+            "type": "textarea",
+            "label": "summary"
+          },
+          "version": {
+            "type": "readonly",
+            "label": "version"
+          },
+          "comments": {
+            "type": "json-tree",
+            "label": "comments"
+          },
+          "metadata": {
+            "type": "json-tree",
+            "label": "metadata"
+          },
+          "is_active": {
+            "type": "boolean",
+            "label": "is active"
+          },
+          "contact_id": {
+            "type": "lookup",
+            "label": "contact id",
+            "model": "contact",
+            "display": "attention"
+          },
+          "dt_created": {
+            "type": "readonly",
+            "label": "dt created"
+          },
+          "times_used": {
+            "type": "readonly",
+            "label": "times used"
+          },
+          "dt_approved": {
+            "type": "timestamp",
+            "label": "dt approved"
+          },
+          "dt_modified": {
+            "type": "readonly",
+            "label": "dt modified"
+          },
+          "is_archived": {
+            "type": "readonly",
+            "label": "is archived"
+          },
+          "subject_key": {
+            "type": "text",
+            "label": "subject key"
+          },
+          "dt_last_used": {
+            "type": "timestamp",
+            "label": "dt last used"
+          },
+          "subject_type": {
+            "type": "text",
+            "label": "subject type"
+          },
+          "health_rating": {
+            "type": "readonly",
+            "label": "health rating"
+          },
+          "comments.notes": {
+            "type": "json-tree",
+            "label": "Internal Notes"
+          },
+          "security_level": {
+            "type": "readonly",
+            "label": "security level"
+          },
+          "comments.public": {
+            "type": "json-tree",
+            "label": "Public Comments"
+          },
+          "dt_last_updated": {
+            "type": "timestamp",
+            "label": "dt last updated"
+          },
+          "comments.partner": {
+            "type": "json-tree",
+            "label": "Partner Notes"
+          },
+          "comments.process": {
+            "type": "json-tree",
+            "label": "Process Notes"
+          },
+          "observation_count": {
+            "type": "number",
+            "label": "observation count"
+          },
+          "dt_last_interaction": {
+            "type": "timestamp",
+            "label": "dt last interaction"
+          }
+        },
+        "enrichment": {},
+        "formatting": {
+          "locale": "en-US",
+          "currency": "USD",
+          "date_format": "short",
+          "number_precision": 2
+        },
+        "selectlists": {
+          "status": [
+            {
+              "label": "Active",
+              "value": "active"
+            },
+            {
+              "label": "Inactive",
+              "value": "inactive"
+            },
+            {
+              "label": "Archived",
+              "value": "archived"
+            }
+          ],
+          "purpose": [
+            {
+              "label": "User defined",
+              "value": "user_defined"
+            }
+          ],
+          "subject_type": [
+            {
+              "label": "User Profile",
+              "value": "user"
+            },
+            {
+              "label": "Model Usage",
+              "value": "model"
+            },
+            {
+              "label": "Transaction Flow",
+              "value": "flow"
+            },
+            {
+              "label": "Sync Pattern",
+              "value": "sync"
+            },
+            {
+              "label": "Coaching Track",
+              "value": "coaching"
+            },
+            {
+              "label": "Security Review",
+              "value": "security"
+            },
+            {
+              "label": "Risk Assessment",
+              "value": "risk"
+            },
+            {
+              "label": "System Health",
+              "value": "system"
+            }
+          ]
+        },
+        "field_groups": [
+          {
+            "key": "identity",
+            "label": "Identity",
+            "fields": [
+              "ida",
+              "times_used",
+              "purpose",
+              "agent",
+              "contact_id",
+              "subject_type",
+              "subject_key",
+              "summary",
+              "observation_count"
+            ]
+          },
+          {
+            "key": "status",
+            "label": "Status",
+            "fields": [
+              "is_active",
+              "status",
+              "is_archived"
+            ]
+          },
+          {
+            "key": "dates",
+            "label": "Dates",
+            "fields": [
+              "dt_created",
+              "dt_modified",
+              "dt_approved",
+              "dt_last_used",
+              "dt_last_interaction",
+              "dt_last_updated"
+            ]
+          },
+          {
+            "key": "system",
+            "label": "System",
+            "fields": [
+              "id",
+              "uuid",
+              "version",
+              "security_level",
+              "health_rating"
+            ]
+          },
+          {
+            "key": "json",
+            "label": "Data",
+            "fields": [
+              "comments",
+              "config",
+              "metadata",
+              "refs",
+              "prefs",
+              "actions"
+            ]
+          }
+        ],
+        "default_collapsed": [
+          "system",
+          "dates",
+          "json"
+        ]
+      },
+      "metadata": {
+        "flow": {},
+        "temp": [],
+        "flags": {
+          "schema_rev": 1,
+          "keywords_pending": true
+        },
+        "access": {
+          "edit": [],
+          "view": []
+        },
+        "health": {
+          "rating": 0,
+          "accuracy": 0,
+          "freshness": 0,
+          "consistency": 0,
+          "completeness": 0
+        },
+        "images": {
+          "hr": false,
+          "md": false,
+          "tn": false,
+          "source": ""
+        },
+        "source": {},
+        "history": {
+          "synced": {
+            "dt": 0,
+            "contact_id": 0
+          },
+          "created": {
+            "dt": 1793210800867,
+            "contact_id": 0
+          },
+          "accessed": {
+            "dt": 1793210800865,
+            "contact_id": 0
+          },
+          "modified": {
+            "dt": 1793750564226,
+            "contact_id": 0
+          },
+          "verified": {
+            "dt": 0,
+            "contact_id": 0
+          }
+        },
+        "publish": "",
+        "version": "1.0",
+        "erosions": [],
+        "priority": "",
+        "security": "",
+        "documents": [],
+        "resources": {
+          "required": {},
+          "allocated": {}
+        },
+        "versioning": {
+          "size_activity": {},
+          "changed_fields": [],
+          "keywords_dt_refreshed": 1793652301249
+        },
+        "audit_trail": [],
+        "explanation": "",
+        "import_data": null,
+        "userdefined": {},
+        "small_stings": []
+      },
+      "prefs": {
+        "tags": [],
+        "pinned": false,
+        "search": [],
+        "userdefined": {}
+      },
+      "refs": {
+        "tags": [],
+        "links": {
+          "item": [],
+          "contact": []
+        },
+        "source": null,
+        "parents": [],
+        "keywords": [
+          "4f9f250f-a81f-4158-b8db-9e92c016535f",
+          "access",
+          "behaviors",
+          "columns",
+          "configuration",
+          "definition",
+          "detail",
+          "field",
+          "fields",
+          "governs",
+          "layouts",
+          "lesson",
+          "list",
+          "metadata",
+          "model",
+          "named",
+          "schema",
+          "sections",
+          "system",
+          "wc-model-lesson",
+          "wc:model",
+          "wcmodel"
+        ],
+        "categories": [],
+        "depends_on": {},
+        "related_ids": []
+      }
+    },
+    {
+      "uuid": "03ac6f7f-bb88-4391-a367-1d86e2b035b2",
+      "ida": "wc-model-specification",
+      "name": "Specification Model Definition",
+      "scope": "system",
+      "purpose": "wc:model",
+      "parent_model": "specification",
+      "explanation": "Model definition for Specification. Governs named layouts (list columns, detail fields, ui sections), field behaviors, schema metadata, and access configuration.",
+      "paths": {},
+      "config": {
+        "access": {
+          "sets": {
+            "all": [
+              "actions.extra",
+              "actions.kind",
+              "actions.required",
+              "actions.status",
+              "actions.what",
+              "actions.when",
+              "actions.who",
+              "comments.partner.key",
+              "comments.partner.mgs",
+              "comments.partner.source",
+              "comments.partner.time",
+              "comments.partner.user",
+              "comments.partner.user_id",
+              "comments.process.key",
+              "comments.process.mgs",
+              "comments.process.source",
+              "comments.process.time",
+              "comments.process.user",
+              "comments.process.user_id",
+              "comments.public.key",
+              "comments.public.mgs",
+              "comments.public.source",
+              "comments.public.time",
+              "comments.public.user",
+              "comments.public.user_id",
+              "config.is_new",
+              "description",
+              "description_long",
+              "dt_approved",
+              "dt_created",
+              "dt_last_used",
+              "dt_modified",
+              "health_rating",
+              "id",
+              "ida",
+              "is_active",
+              "is_archived",
+              "item",
+              "item_id",
+              "item_ida",
+              "metadata.access.edit",
+              "metadata.access.view",
+              "metadata.audit_trail.action",
+              "metadata.audit_trail.details",
+              "metadata.audit_trail.dt",
+              "metadata.audit_trail.user_id",
+              "metadata.documents",
+              "metadata.erosions",
+              "metadata.explanation",
+              "metadata.flags.keywords_pending",
+              "metadata.flags.schema_rev",
+              "metadata.flow",
+              "metadata.health.accuracy",
+              "metadata.health.completeness",
+              "metadata.health.consistency",
+              "metadata.health.freshness",
+              "metadata.health.lock.by.id",
+              "metadata.health.lock.by.name",
+              "metadata.health.lock.dt",
+              "metadata.health.lock.reason",
+              "metadata.health.lock.status_before",
+              "metadata.health.lock_history.by.id",
+              "metadata.health.lock_history.by.name",
+              "metadata.health.lock_history.dt",
+              "metadata.health.lock_history.reason",
+              "metadata.health.lock_history.status_before",
+              "metadata.health.lock_history.unlock_reason",
+              "metadata.health.lock_history.unlocked_by.id",
+              "metadata.health.lock_history.unlocked_by.name",
+              "metadata.health.lock_history.unlocked_dt",
+              "metadata.health.rating",
+              "metadata.history.accessed.contact_id",
+              "metadata.history.accessed.dt",
+              "metadata.history.created.contact_id",
+              "metadata.history.created.dt",
+              "metadata.history.modified.contact_id",
+              "metadata.history.modified.dt",
+              "metadata.history.synced.contact_id",
+              "metadata.history.synced.dt",
+              "metadata.history.verified.contact_id",
+              "metadata.history.verified.dt",
+              "metadata.images.hr",
+              "metadata.images.md",
+              "metadata.images.source",
+              "metadata.images.tn",
+              "metadata.import_data.dt_delete_on",
+              "metadata.import_data.dt_imported",
+              "metadata.import_data.original",
+              "metadata.import_data.risk",
+              "metadata.import_data.source",
+              "metadata.import_data.status",
+              "metadata.priority",
+              "metadata.publish",
+              "metadata.resources",
+              "metadata.security",
+              "metadata.small_stings",
+              "metadata.source",
+              "metadata.temp",
+              "metadata.version",
+              "metadata.versioning.changed_fields",
+              "metadata.versioning.size_activity",
+              "name",
+              "prefs.pinned",
+              "prefs.search.dt_saved",
+              "prefs.search.filters",
+              "prefs.search.keyword",
+              "prefs.search.limit",
+              "prefs.search.model_name",
+              "prefs.search.name",
+              "prefs.search.ordering",
+              "prefs.search.relative_period",
+              "prefs.search.search_fields",
+              "prefs.tags",
+              "purpose",
+              "refs.demo_source",
+              "refs.links",
+              "refs.source.id",
+              "refs.source.order_line_id",
+              "refs.source.purchase_line_id",
+              "refs.source.quote_line_id",
+              "refs.source.type",
+              "security_level",
+              "status",
+              "times_used",
+              "unit",
+              "uuid",
+              "version"
+            ]
+          },
+          "roles": {
+            "admin": {
+              "edit": [
+                "@all"
+              ],
+              "view": [
+                "@all"
+              ],
+              "scope": {},
+              "create": true,
+              "delete": true
+            },
+            "agent": {
+              "edit": [
+                "@all"
+              ],
+              "view": [
+                "@all"
+              ],
+              "scope": {},
+              "create": true,
+              "delete": false
+            },
+            "superuser": {
+              "edit": [
+                "@all"
+              ],
+              "view": [
+                "@all"
+              ],
+              "scope": {},
+              "create": true,
+              "delete": true
+            }
+          }
+        },
+        "layout": {
+          "card": {
+            "details": {
+              "title": "details",
+              "fields": [
+                {
+                  "field": "description_long",
+                  "label": "description_long"
+                },
+                {
+                  "field": "health_rating",
+                  "label": "health_rating"
+                },
+                {
+                  "field": "item",
+                  "label": "item"
+                },
+                {
+                  "field": "item_ida",
+                  "label": "item_ida"
+                },
+                {
+                  "field": "unit",
+                  "label": "unit"
+                }
+              ]
+            },
+            "identity": {
+              "title": "identity",
+              "fields": [
+                {
+                  "field": "ida",
+                  "label": "ida"
+                },
+                {
+                  "field": "name",
+                  "label": "name"
+                },
+                {
+                  "field": "description",
+                  "label": "description"
+                },
+                {
+                  "field": "status",
+                  "label": "status"
+                },
+                {
+                  "field": "purpose",
+                  "label": "purpose"
+                }
+              ]
+            },
+            "schedule": {
+              "title": "schedule",
+              "fields": [
+                {
+                  "type": "date",
+                  "field": "dt_approved",
+                  "label": "dt_approved"
+                },
+                {
+                  "type": "date",
+                  "field": "dt_created",
+                  "label": "dt_created"
+                },
+                {
+                  "type": "date",
+                  "field": "dt_last_used",
+                  "label": "dt_last_used"
+                },
+                {
+                  "type": "date",
+                  "field": "dt_modified",
+                  "label": "dt_modified"
+                }
+              ]
+            }
+          },
+          "form": {
+            "default": {
+              "list": "default",
+              "model": "specification",
+              "detail": "default",
+              "family": "core",
+              "sections": [
+                {
+                  "type": "header",
+                  "layout": "three-column",
+                  "columns": [
+                    {
+                      "title": "identity",
+                      "fields": [
+                        {
+                          "field": "ida",
+                          "label": "ida"
+                        },
+                        {
+                          "field": "name",
+                          "label": "name"
+                        },
+                        {
+                          "field": "description",
+                          "label": "description"
+                        },
+                        {
+                          "field": "status",
+                          "label": "status"
+                        },
+                        {
+                          "field": "purpose",
+                          "label": "purpose"
+                        }
+                      ]
+                    },
+                    {
+                      "title": "details",
+                      "fields": [
+                        {
+                          "field": "description_long",
+                          "label": "description_long"
+                        },
+                        {
+                          "field": "health_rating",
+                          "label": "health_rating"
+                        },
+                        {
+                          "field": "item",
+                          "label": "item"
+                        },
+                        {
+                          "field": "item_ida",
+                          "label": "item_ida"
+                        },
+                        {
+                          "field": "unit",
+                          "label": "unit"
+                        }
+                      ]
+                    },
+                    {
+                      "title": "schedule",
+                      "fields": [
+                        {
+                          "type": "date",
+                          "field": "dt_approved",
+                          "label": "dt_approved"
+                        },
+                        {
+                          "type": "date",
+                          "field": "dt_created",
+                          "label": "dt_created"
+                        },
+                        {
+                          "type": "date",
+                          "field": "dt_last_used",
+                          "label": "dt_last_used"
+                        },
+                        {
+                          "type": "date",
+                          "field": "dt_modified",
+                          "label": "dt_modified"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "panel",
+                  "label": "comments",
+                  "config": {
+                    "channels": [
+                      {
+                        "key": "process",
+                        "color": "var(--db-accent-green)",
+                        "label": "process"
+                      },
+                      {
+                        "key": "public",
+                        "color": "var(--db-accent)",
+                        "label": "public"
+                      },
+                      {
+                        "key": "partner",
+                        "color": "var(--db-accent-purple)",
+                        "label": "foreign"
+                      }
+                    ]
+                  },
+                  "content": "comments"
+                },
+                {
+                  "tabs": [
+                    {
+                      "label": "contacts",
+                      "content": "contacts"
+                    },
+                    {
+                      "label": "actions",
+                      "content": "actions"
+                    },
+                    {
+                      "label": "touches",
+                      "content": "touches"
+                    },
+                    {
+                      "label": "documents",
+                      "content": "documents"
+                    },
+                    {
+                      "label": "files",
+                      "content": "files"
+                    }
+                  ],
+                  "type": "tabs"
+                }
+              ],
+              "edit_rules": {
+                "status_field": "status",
+                "locked_statuses": []
+              }
+            }
+          },
+          "list": {
+            "default": {
+              "form": "default",
+              "detail": "default",
+              "columns": [
+                {
+                  "align": "left",
+                  "field": "ida",
+                  "label": "ida",
+                  "width": 100,
+                  "visible": true
+                },
+                {
+                  "align": "left",
+                  "field": "description",
+                  "label": "description",
+                  "width": 160,
+                  "visible": true
+                },
+                {
+                  "align": "left",
+                  "field": "name",
+                  "label": "name",
+                  "width": 160,
+                  "visible": true
+                },
+                {
+                  "align": "left",
+                  "field": "purpose",
+                  "label": "purpose",
+                  "width": 140,
+                  "visible": true
+                },
+                {
+                  "align": "center",
+                  "field": "status",
+                  "label": "status",
+                  "width": 90,
+                  "visible": true
+                },
+                {
+                  "align": "left",
+                  "field": "description_long",
+                  "label": "description_long",
+                  "width": 120,
+                  "visible": true
+                },
+                {
+                  "align": "left",
+                  "field": "health_rating",
+                  "label": "health_rating",
+                  "width": 120,
+                  "visible": true
+                },
+                {
+                  "align": "left",
+                  "field": "is_active",
+                  "label": "is_active",
+                  "width": 120,
+                  "visible": true
+                },
+                {
+                  "align": "left",
+                  "field": "item",
+                  "label": "item",
+                  "width": 120,
+                  "visible": true
+                },
+                {
+                  "align": "left",
+                  "field": "item_ida",
+                  "label": "item_ida",
+                  "width": 120,
+                  "visible": true
+                },
+                {
+                  "align": "left",
+                  "field": "unit",
+                  "label": "unit",
+                  "width": 120,
+                  "visible": true
+                }
+              ]
+            }
+          },
+          "tabs": [
+            "contacts",
+            "actions",
+            "touches",
+            "documents",
+            "files"
+          ],
+          "panel": [
+            {
+              "field": "name",
+              "width": 160
+            },
+            {
+              "field": "description",
+              "width": 220
+            },
+            {
+              "field": "unit",
+              "width": 60
+            },
+            {
+              "field": "purpose",
+              "width": 100
+            }
+          ],
+          "active": {
+            "form": "default",
+            "list": "default",
+            "column": "default",
+            "detail": "default"
+          },
+          "column": {
+            "default": {
+              "form": "default",
+              "detail": "default",
+              "columns": [
+                {
+                  "align": "left",
+                  "field": "ida",
+                  "label": "ida",
+                  "width": 100
+                },
+                {
+                  "align": "left",
+                  "field": "description",
+                  "label": "description",
+                  "width": 160
+                },
+                {
+                  "align": "left",
+                  "field": "name",
+                  "label": "name",
+                  "width": 160
+                },
+                {
+                  "align": "left",
+                  "field": "purpose",
+                  "label": "purpose",
+                  "width": 140
+                },
+                {
+                  "align": "center",
+                  "field": "status",
+                  "label": "status",
+                  "width": 90
+                },
+                {
+                  "align": "left",
+                  "field": "description_long",
+                  "label": "description_long",
+                  "width": 120
+                }
+              ]
+            }
+          },
+          "detail": {
+            "default": {
+              "form": "default",
+              "list": "default",
+              "fields": [
+                "ida",
+                "is_active",
+                "purpose",
+                "status",
+                "health_rating",
+                "item",
+                "item_ida",
+                "name",
+                "description",
+                "description_long",
+                "unit",
+                "comments",
+                "stats",
+                "details",
+                "docs",
+                "applies_to",
+                "dt_created",
+                "dt_modified",
+                "dt_approved",
+                "dt_last_used"
+              ]
+            }
+          }
+        },
+        "orderby": [
+          "item_id",
+          "name"
+        ],
+        "defaults": {},
+        "searches": [],
+        "behaviors": {
+          "id": {
+            "type": "readonly",
+            "label": "id"
+          },
+          "ida": {
+            "type": "readonly",
+            "label": "ida"
+          },
+          "docs": {
+            "type": "json",
+            "label": "docs"
+          },
+          "item": {
+            "type": "lookup",
+            "label": "item",
+            "model": "item",
+            "display": "name"
+          },
+          "name": {
+            "type": "text",
+            "label": "name"
+          },
+          "refs": {
+            "type": "json-tree",
+            "label": "refs"
+          },
+          "unit": {
+            "type": "text",
+            "label": "unit"
+          },
+          "uuid": {
+            "type": "readonly",
+            "label": "uuid"
+          },
+          "prefs": {
+            "type": "json-tree",
+            "label": "prefs"
+          },
+          "stats": {
+            "type": "json",
+            "label": "stats"
+          },
+          "config": {
+            "type": "json-tree",
+            "label": "config"
+          },
+          "status": {
+            "type": "select",
+            "label": "status",
+            "source": "inline"
+          },
+          "actions": {
+            "type": "json-tree",
+            "label": "actions"
+          },
+          "details": {
+            "type": "json",
+            "label": "details"
+          },
+          "purpose": {
+            "type": "text",
+            "label": "purpose"
+          },
+          "version": {
+            "type": "readonly",
+            "label": "version"
+          },
+          "comments": {
+            "type": "json-tree",
+            "label": "comments"
+          },
+          "item_ida": {
+            "type": "lookup",
+            "label": "item ida",
+            "model": "item",
+            "value": "ida"
+          },
+          "metadata": {
+            "type": "json-tree",
+            "label": "metadata"
+          },
+          "is_active": {
+            "type": "boolean",
+            "label": "is active"
+          },
+          "applies_to": {
+            "type": "json",
+            "label": "applies to"
+          },
+          "dt_created": {
+            "type": "readonly",
+            "label": "dt created"
+          },
+          "times_used": {
+            "type": "readonly",
+            "label": "times used"
+          },
+          "description": {
+            "type": "text",
+            "label": "description"
+          },
+          "dt_approved": {
+            "type": "timestamp",
+            "label": "dt approved"
+          },
+          "dt_modified": {
+            "type": "readonly",
+            "label": "dt modified"
+          },
+          "is_archived": {
+            "type": "readonly",
+            "label": "is archived"
+          },
+          "dt_last_used": {
+            "type": "timestamp",
+            "label": "dt last used"
+          },
+          "health_rating": {
+            "type": "readonly",
+            "label": "health rating"
+          },
+          "comments.notes": {
+            "type": "json-tree",
+            "label": "Internal Notes"
+          },
+          "security_level": {
+            "type": "readonly",
+            "label": "security level"
+          },
+          "comments.public": {
+            "type": "json-tree",
+            "label": "Public Comments"
+          },
+          "comments.partner": {
+            "type": "json-tree",
+            "label": "Partner Notes"
+          },
+          "comments.process": {
+            "type": "json-tree",
+            "label": "Process Notes"
+          },
+          "description_long": {
+            "type": "textarea",
+            "label": "description long"
+          }
+        },
+        "enrichment": {},
+        "formatting": {
+          "locale": "en-US",
+          "currency": "USD",
+          "date_format": "short",
+          "number_precision": 2
+        },
+        "selectlists": {
+          "status": [
+            {
+              "label": "Active",
+              "value": "active"
+            },
+            {
+              "label": "Inactive",
+              "value": "inactive"
+            },
+            {
+              "label": "Archived",
+              "value": "archived"
+            }
+          ],
+          "purpose": [
+            {
+              "label": "User defined",
+              "value": "user_defined"
+            }
+          ]
+        },
+        "field_groups": [
+          {
+            "key": "identity",
+            "label": "Identity",
+            "fields": [
+              "ida",
+              "times_used",
+              "purpose",
+              "stats",
+              "item_ida",
+              "name",
+              "description",
+              "description_long",
+              "unit",
+              "details",
+              "applies_to"
+            ]
+          },
+          {
+            "key": "status",
+            "label": "Status",
+            "fields": [
+              "is_active",
+              "status",
+              "is_archived"
+            ]
+          },
+          {
+            "key": "dates",
+            "label": "Dates",
+            "fields": [
+              "dt_created",
+              "dt_modified",
+              "dt_approved",
+              "dt_last_used"
+            ]
+          },
+          {
+            "key": "system",
+            "label": "System",
+            "fields": [
+              "id",
+              "uuid",
+              "version",
+              "security_level",
+              "health_rating"
+            ]
+          },
+          {
+            "key": "json",
+            "label": "Data",
+            "fields": [
+              "comments",
+              "config",
+              "metadata",
+              "refs",
+              "prefs",
+              "actions",
+              "item",
+              "docs"
+            ]
+          }
+        ],
+        "default_collapsed": [
+          "system",
+          "dates",
+          "json"
+        ]
+      },
+      "metadata": {
+        "flow": {},
+        "temp": [],
+        "flags": {
+          "schema_rev": 1,
+          "keywords_pending": true
+        },
+        "access": {
+          "edit": [],
+          "view": []
+        },
+        "health": {
+          "rating": 0,
+          "accuracy": 0,
+          "freshness": 0,
+          "consistency": 0,
+          "completeness": 0
+        },
+        "images": {
+          "hr": false,
+          "md": false,
+          "tn": false,
+          "source": ""
+        },
+        "source": {},
+        "history": {
+          "synced": {
+            "dt": 0,
+            "contact_id": 0
+          },
+          "created": {
+            "dt": 1793506398049,
+            "contact_id": 0
+          },
+          "accessed": {
+            "dt": 1793506398049,
+            "contact_id": 0
+          },
+          "modified": {
+            "dt": 1793750564301,
             "contact_id": 0
           },
           "verified": {

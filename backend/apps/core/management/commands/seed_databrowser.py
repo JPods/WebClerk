@@ -204,7 +204,7 @@ class Command(BaseCommand):
                 updated += 1
                 self.stdout.write(f'  Updated {model_key} ({len(list_fields)} list, {len(detail_fields)} detail)')
             else:
-                Setting.objects.create(
+                Setting.authorized_create(
                     name=f'workbench_fields:{model_key}',
                     parent_model=model_key,
                     purpose='wc:workbench_fields',

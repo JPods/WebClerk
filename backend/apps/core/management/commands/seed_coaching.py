@@ -886,7 +886,7 @@ class Command(BaseCommand):
                     existing.save()
                     s_updated += 1
                 else:
-                    Setting.objects.create(name=f'alice_coaching:{model_key}', parent_model=model_key, purpose='wc:coaching', config=data, explanation=coach_expl)
+                    Setting.authorized_create(name=f'alice_coaching:{model_key}', parent_model=model_key, purpose='wc:coaching', config=data, explanation=coach_expl)
                     s_created += 1
                 self.stdout.write(f'  {model_key}: {len(data["tips"])} tips, {len(data["field_help"])} field helps')
             except Exception as e:
@@ -907,7 +907,7 @@ class Command(BaseCommand):
                     page_existing.config = page_data
                     page_existing.save()
                 else:
-                    Setting.objects.create(
+                    Setting.authorized_create(
                         name='alice_coaching:page_help', parent_model='system',
                         purpose='wc:coaching', config=page_data,
                         explanation='Page-level help for form objects, toolbar buttons, and UI sections.',

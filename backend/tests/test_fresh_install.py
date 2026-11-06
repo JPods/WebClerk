@@ -21,4 +21,4 @@ def fresh_install(django_db_setup, django_db_blocker):
 
 def test_a_fresh_install_has_no_form_a_door_refuses_and_no_empty_select(fresh_install):
     found = scan()
-    assert found == {'refused': [], 'no_list': [], 'no_model': [], 'stale': []}
+    assert found == {'refused': [], 'no_list': [], 'no_model': [], 'stale': [], 'inline': []}

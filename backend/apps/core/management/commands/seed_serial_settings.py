@@ -57,7 +57,7 @@ class Command(BaseCommand):
             existing.save()
             self.stdout.write(f"Updated Setting.serial (id={existing.pk})")
         else:
-            setting = Setting.objects.create(
+            setting = Setting.authorized_create(
                 name="Serial schema and behaviors",
                 parent_model="serial",
                 purpose="wc:schema_map",

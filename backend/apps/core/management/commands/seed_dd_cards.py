@@ -391,7 +391,7 @@ class Command(BaseCommand):
                 f"{len(DD_CARD_CONFIG['dashboards'])} dashboards"
             ))
         else:
-            obj = Setting.objects.create(
+            obj = Setting.authorized_create(
                 name="dd_card:base",
                 purpose="wc:dd_card",
                 config=DD_CARD_CONFIG,

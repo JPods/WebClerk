@@ -191,14 +191,17 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         force = options.get('force', False)
+        # A print layout's parent_model is the model it prints for; 'aged_receivables' and
+        # 'statement' are not models and the Setting refused them on every fresh install
+        # (fresh-install proof, 2026-11-06). Both print for a customer; the name tells them apart.
         layouts = [
-            ('aged_receivables', 'Aged Receivables Report', AGED_RECEIVABLES_LAYOUT),
-            ('statement', 'Customer Statement', STATEMENT_LAYOUT),
+            ('customer', 'Aged Receivables Report', AGED_RECEIVABLES_LAYOUT),
+            ('customer', 'Customer Statement', STATEMENT_LAYOUT),
         ]
 
         for model_key, name, layout in layouts:
             existing = Setting.objects.filter(
-                parent_model=model_key, purpose='wc:print_layout',
+                parent_model=model_key, purpose='wc:print_layout', name=name,
             ).first()
 
             if existing and not force:
@@ -211,7 +214,7 @@ class Command(BaseCommand):
                 existing.save()
                 self.stdout.write(f'  {model_key}: updated')
             else:
-                Setting.objects.create(
+                Setting.authorized_create(
                     name=name,
                     parent_model=model_key,
                     purpose='wc:print_layout',

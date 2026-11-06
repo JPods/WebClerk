@@ -231,7 +231,7 @@ class Command(BaseCommand):
             existing.save()
             self.stdout.write(self.style.SUCCESS(f'Updated: {len(BY_NAME)} by-name, {len(BY_TYPE)} by-type'))
         else:
-            Setting.objects.create(
+            Setting.authorized_create(
                 name='column_widths',
                 purpose='wc:ui',
                 parent_model='',

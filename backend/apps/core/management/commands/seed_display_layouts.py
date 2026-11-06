@@ -348,7 +348,7 @@ class Command(BaseCommand):
                 updated += 1
                 self.stdout.write(f'  Updated {model_key} (id={existing.id})')
             else:
-                Setting.objects.create(
+                Setting.authorized_create(
                     name=f'detail_layout:{model_key}',
                     ida=f'wc-display-{model_key}',
                     parent_model=model_key,

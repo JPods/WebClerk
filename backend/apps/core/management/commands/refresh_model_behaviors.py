@@ -71,6 +71,10 @@ def _is_old_default(stored: dict, comp: dict) -> bool:
         from apps.core.constants.model_registry import get_model_meta
         if get_model_meta(rest.get('model') or '') is None:
             return True                 # a lookup on no registered model is nobody's intent (aimessage)
+        if rest.get('model') == 'customer' and comp.get('model') in ('vendor', 'manufacturer', 'rep', 'employee'):
+            return all(k in comp and (k == 'model' or comp[k] == v) for k, v in rest.items())
+            # the old default for every OrgBase pointer was customer (fixed 2026-11-03: 17 lookups
+            # on 9 models searched customers for a vendor); the bundles still carried it
         return all(k in comp and comp[k] == v for k, v in rest.items())
     return False
 

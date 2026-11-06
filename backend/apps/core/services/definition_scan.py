@@ -6,7 +6,9 @@
 - ``no_list``  — a field typed select whose definition holds no list (an empty dropdown);
 - ``no_model`` — a lookup whose model is not registered (a search that can never find);
 - ``stale``    — a stored behavior that lags what the code computes
-                 (refresh_model_behaviors would change it).
+                 (refresh_model_behaviors would change it);
+- ``inline``   — a layout field carrying its own option list (a second source; the form
+                 offered what the door refused, Bill 2026-11-05).
 
 Run on a fresh database loaded from init-bundle.json it proves the bundle; run on a live one
 it audits the definitions. ``manage.py scan_definitions``; tests/test_fresh_install.py.
@@ -57,7 +59,8 @@ def scan_definition(model_key: str, config: dict) -> Dict[str, List[str]]:
     behaviors = config.get('behaviors') or {}
     lists = config.get('selectlists') or {}
     layout = config.get('layout') or {}
-    out = {'refused': [], 'no_list': [], 'no_model': [], 'stale': []}
+    out = {'refused': [], 'no_list': [], 'no_model': [], 'stale': [], 'inline': []}
+    out['inline'] = [f'{model_key}.{n}' for n in _inline_options(layout)]
     out['refused'] = [f'{model_key}.{n}' for n in refused_on_save(model_key, layout.get('form') or {})]
     seen = set()
     for f in _form_fields(layout.get('form') or {}):
@@ -74,10 +77,23 @@ def scan_definition(model_key: str, config: dict) -> Dict[str, List[str]]:
     return out
 
 
+def _inline_options(node, out=None) -> List[str]:
+    out = [] if out is None else out
+    if isinstance(node, dict):
+        if 'options' in node and node.get('field'):
+            out.append(node['field'])
+        for v in node.values():
+            _inline_options(v, out)
+    elif isinstance(node, list):
+        for v in node:
+            _inline_options(v, out)
+    return out
+
+
 def scan() -> Dict[str, List[str]]:
-    """Every wc:model definition in the database, the four findings merged."""
+    """Every wc:model definition in the database, the findings merged."""
     from apps.core.models import Setting
-    out = {'refused': [], 'no_list': [], 'no_model': [], 'stale': []}
+    out = {'refused': [], 'no_list': [], 'no_model': [], 'stale': [], 'inline': []}
     for s in Setting.objects.filter(purpose='wc:model').order_by('parent_model'):
         if not isinstance(s.config, dict) or get_model_meta(s.parent_model) is None:
             continue

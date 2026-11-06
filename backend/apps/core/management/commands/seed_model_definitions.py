@@ -161,8 +161,14 @@ def build_model_config(model_key):
         ),
         'behaviors': get_field_behaviors(model_key, field_map),
         'field_groups': get_field_groups(model_key, fields),
-        'selectlists': ({'purpose': SEED_PURPOSES.get(model_key) or [USER_DEFINED_PURPOSE]}
-                        if 'purpose' in field_map else {}),
+        'selectlists': {
+            # A field with choices gets its list here, the one source the form and the door read
+            # (the guessed layout types it select and carries no options; 2026-11-06).
+            **{name: [{'value': c[0], 'label': str(c[1])} for c in field.choices if c[0] not in (None, '')]
+               for name, field in field_map.items()
+               if getattr(field, 'choices', None) and any(c[0] not in (None, '') for c in field.choices)},
+            **({'purpose': SEED_PURPOSES.get(model_key) or [USER_DEFINED_PURPOSE]} if 'purpose' in field_map else {}),
+        },
         'formatting': salvaged.get('formatting') or {
             'currency': 'USD',
             'locale': 'en-US',
@@ -243,7 +249,10 @@ class Command(BaseCommand):
                 purpose='wc:model',
             ).first()
 
-            if existing and not force:
+            # A definition with no behaviors is a stub (a migration or a layout reset made it,
+            # never a person): filled like a missing one. A definition with behaviors is kept
+            # unless --force (fresh-install proof, 2026-11-06: specification was such a stub).
+            if existing and not force and (existing.config or {}).get('behaviors'):
                 skipped += 1
                 continue
 

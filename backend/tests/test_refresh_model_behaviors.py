@@ -77,3 +77,8 @@ def test_a_lookup_on_no_registered_model_is_repointed():
     out, changes, kept = refreshed('ai_message', {'behaviors': {'parent': {'type': 'lookup', 'model': 'aimessage', 'display': 'ida', 'label': 'parent'}}})
     assert 'parent' in changes and kept == []
     assert out['behaviors']['parent']['model'] == 'ai_message' and out['behaviors']['parent']['label'] == 'parent'
+
+
+def test_an_org_pointer_stored_on_customer_is_the_old_default_and_follows_its_role():
+    out, changes, kept = refreshed('item', {'behaviors': {'vendor': {'type': 'lookup', 'model': 'customer', 'display': 'display_name', 'label': 'vendor'}}})
+    assert 'vendor' in changes and kept == [] and out['behaviors']['vendor']['model'] == 'vendor'

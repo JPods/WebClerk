@@ -57,9 +57,11 @@ def _json(field) -> bool:
 
 def _spec(name: str, field=None) -> dict:
     spec = {'field': name, 'label': name}
-    choices = [c[0] for c in (getattr(field, 'choices', None) or []) if c[0] not in (None, '')]
-    if choices:
-        spec.update(type='select', options=choices)
+    # A field with choices is a select; its options are the definition's selectlists (the one
+    # source, which seed_model_definitions fills from the same choices), never the layout's
+    # (Bill, 2026-11-05: no difference between the selectlist and the approved values).
+    if any(c[0] not in (None, '') for c in (getattr(field, 'choices', None) or [])):
+        spec['type'] = 'select'
     elif name.startswith('dt_'):
         spec['type'] = 'date'
     return spec
