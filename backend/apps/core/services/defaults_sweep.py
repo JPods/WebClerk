@@ -1,6 +1,11 @@
 """The sweep: existing records get the defaults they were born without (readme 106 rule 4;
 Bill, 2026-11-07: "loop through them and fix them").
 
+A document the lock covers is never filled (the lead's review): locked, journalized, released
+or terminal (complete, canceled, paid, voided) — setting terms on an invoice after the books
+took it moves its due date and its aging, the money effect the lock exists to stop. They are
+reported as kept, with why; Alice may coach them. An open document gets dt_created + days.
+
 A record is filled at the moment it is named (core/services/defaults.fill_defaults); a record
 made before that rule, or outside the door, has blanks. The sweep finds, per model and field,
 the records whose default field is blank and the records whose value is off the field's list.
@@ -22,11 +27,16 @@ DAY_MS = 86_400_000
 UNREAD_CURRENCY_KEYS = ('code', 'locale', 'symbol')
 
 
+#: Documents past the point the sweep may touch: the lock (status locked, metadata.health.lock),
+#: the journal (dt_journaled), release and the terminal statuses.
+KEPT_STATUSES = ('locked', 'released', 'complete', 'canceled', 'paid', 'voided')
+
+
 @dataclass
 class Finding:
     model: str
     field: str
-    kind: str                       # blank | unlisted | profile
+    kind: str                       # blank | kept | unlisted | profile
     count: int
     value: Any = None               # the default that would be written (blank), or the off-list value
     ids: List[int] = field(default_factory=list)
@@ -50,6 +60,23 @@ def _blank(model, name):
     field = model._meta.get_field(name)
     q = Q(**{f'{name}__isnull': True})
     return q | Q(**{name: ''}) if isinstance(field, (CharField, TextField)) else q
+
+
+def _kept(model):
+    """The filter for records the sweep never writes: a lockable document that is locked,
+    journalized, released or terminal. None for a model the lock does not cover."""
+    from django.db.models import Q
+    from apps.transactions.services.document_lock import LOCKABLE_MODELS
+    key = model._meta.model_name
+    if key not in LOCKABLE_MODELS and key != 'workorder':
+        return None
+    names = {f.name for f in model._meta.concrete_fields}
+    q = Q(status__in=KEPT_STATUSES) if 'status' in names else Q(pk__in=[])
+    if 'dt_journaled' in names:
+        q |= Q(dt_journaled__isnull=False) & ~Q(dt_journaled=0)
+    if 'metadata' in names:
+        q |= Q(metadata__health__has_key='lock')
+    return q
 
 
 def _models_with_defaults() -> Dict[str, Dict[str, Any]]:
@@ -78,11 +105,22 @@ def find_blanks(limit_ids: int = 20) -> List[Finding]:
             name, _ = resolve(raw, value)
             if name not in names:
                 continue
-            qs = tallied(model.objects.all()).filter(_blank(model, name))
-            count = qs.count()
+            blank = tallied(model.objects.all()).filter(_blank(model, name))
+            kept_q = _kept(model)
+            # Exclude by pk, not by the negated Q: a null metadata.health makes the JSON test
+            # NULL, and NOT (… OR NULL) drops the open rows from both sides.
+            open_qs = blank.exclude(pk__in=blank.filter(kept_q).values('pk')) if kept_q is not None else blank
+            shown = raw if raw.endswith('_days') else value
+            count = open_qs.count()
             if count:
-                findings.append(Finding(key, name, 'blank', count, raw if raw.endswith('_days') else value,
-                                        list(qs.order_by('pk').values_list('pk', flat=True)[:limit_ids])))
+                findings.append(Finding(key, name, 'blank', count, shown,
+                                        list(open_qs.order_by('pk').values_list('pk', flat=True)[:limit_ids])))
+            if kept_q is not None:
+                kept_qs = blank.filter(kept_q)
+                kept = kept_qs.count()
+                if kept:
+                    findings.append(Finding(key, name, 'kept', kept, shown,
+                                            list(kept_qs.order_by('pk').values_list('pk', flat=True)[:limit_ids])))
     return findings
 
 
@@ -129,13 +167,16 @@ def find_all() -> List[Finding]:
 
 
 def apply(findings: List[Finding]) -> Dict[str, int]:
-    """Repair the blanks and the profile; unlisted values are left for a person. Returns
-    {'<model>.<field>': rows written}."""
+    """Repair the open blanks and the profile; kept documents and unlisted values are left for
+    a person. Every write bumps version and dt_modified, so a form open on a swept record meets
+    the version check instead of saving over the fill. Returns {'<model>.<field>': rows written}."""
+    import time
     from django.db.models import F
     from apps.core.models import Setting
-    from apps.core.services.defaults import model_defaults, named_term, resolve
+    from apps.core.services.defaults import model_defaults, named_term
     from apps.core.services.tally import tallied
     written: Dict[str, int] = {}
+    now_ms = int(time.time() * 1000)
     for finding in findings:
         if finding.kind == 'blank':
             model = _model(finding.model)
@@ -145,11 +186,15 @@ def apply(findings: List[Finding]) -> Dict[str, int]:
             if model is None or value in (None, ''):
                 continue
             qs = tallied(model.objects.all()).filter(_blank(model, finding.field))
+            kept_q = _kept(model)
+            if kept_q is not None:
+                qs = qs.exclude(pk__in=qs.filter(kept_q).values('pk'))
+            stamp = {'version': F('version') + 1, 'dt_modified': now_ms}
             if raw.endswith('_days'):
                 # Born + days, from the record's own birth; a record with no dt_created is left.
-                n = qs.exclude(dt_created__isnull=True).update(**{finding.field: F('dt_created') + int(float(value)) * DAY_MS})
+                n = qs.exclude(dt_created__isnull=True).update(**{finding.field: F('dt_created') + int(float(value)) * DAY_MS}, **stamp)
             else:
-                n = qs.update(**{finding.field: named_term(value) if finding.field == 'terms' else value})
+                n = qs.update(**{finding.field: named_term(value) if finding.field == 'terms' else value}, **stamp)
             written[f'{finding.model}.{finding.field}'] = written.get(f'{finding.model}.{finding.field}', 0) + n
         elif finding.kind == 'profile':
             company = Setting.objects.filter(pk=finding.ids[0]).first()

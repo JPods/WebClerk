@@ -3,7 +3,8 @@
     manage.py sweep_defaults                               # dry run: counts per model and field
     manage.py sweep_defaults --apply --backup <pg_dump>    # write, after a backup that exists
 
-Blanks are filled from each model's own definition (a dt_ field as born + days); a value off
+Blanks on open records are filled from each model's own definition (a dt_ field as born + days);
+a locked, journalized, released or terminal document is kept and reported; a value off
 its list is reported, never rewritten (Alice coaches the owner: watch_defaults); the company
 profile's unread prefs.currency keys (code, locale, symbol) are dropped. Training rows are
 never touched. Bill: back up before a bulk change — --apply refuses without --backup naming a
@@ -26,11 +27,16 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         findings = defaults_sweep.find_all()
         blanks = [f for f in findings if f.kind == 'blank']
+        kept = [f for f in findings if f.kind == 'kept']
         unlisted = [f for f in findings if f.kind == 'unlisted']
         profile = [f for f in findings if f.kind == 'profile']
-        self.stdout.write(f'Blank defaults: {sum(f.count for f in blanks)} rows on {len(blanks)} model fields')
+        self.stdout.write(f'Blank defaults to fill: {sum(f.count for f in blanks)} rows on {len(blanks)} model fields')
         for f in blanks:
             self.stdout.write(f'  {f.count:6d}  {f.model}.{f.field} ← {f.value!r}   ids {f.ids[:8]}{"…" if f.count > 8 else ""}')
+        self.stdout.write(f'Kept, locked (locked, journalized, released or terminal — never filled): '
+                          f'{sum(f.count for f in kept)} rows on {len(kept)} model fields')
+        for f in kept:
+            self.stdout.write(f'  {f.count:6d}  {f.model}.{f.field}   ids {f.ids[:8]}{"…" if f.count > 8 else ""}')
         self.stdout.write(f'Off the list (reported, never rewritten): {sum(f.count for f in unlisted)} rows on {len(unlisted)} values')
         for f in unlisted:
             self.stdout.write(f'  {f.count:6d}  {f.model}.{f.field} = {f.value!r}   ids {f.ids[:8]}{"…" if f.count > 8 else ""}')

@@ -49,6 +49,28 @@ def test_the_sweep_finds_and_fills_what_was_born_outside_the_door(admin, model_d
     assert defaults_sweep.find_blanks() == [] or all(f.model != 'quote' for f in defaults_sweep.find_blanks())
 
 
+def test_a_document_the_lock_covers_is_kept_and_a_swept_one_bumps_its_version(admin, model_defaults):
+    """The lead's review: terms on a released or journalized invoice moves its due date after
+    the books took it — the sweep never writes past the lock; and every write bumps version and
+    dt_modified so an open form meets the version check instead of saving over the fill."""
+    from apps.transactions.models import Invoice
+    released = Invoice.objects.create(finance={'sales_tax_rate': 0}, status='released')
+    journaled = Invoice.objects.create(finance={'sales_tax_rate': 0}, status='planned', dt_journaled=1_700_000_000_000)
+    locked = Invoice.objects.create(finance={'sales_tax_rate': 0}, status='planned',
+                                    metadata={'health': {'lock': {'dt': 1, 'by': {'id': 1, 'name': 'x'}, 'reason': 'audit', 'status_before': 'planned'}}})
+    done = Invoice.objects.create(finance={'sales_tax_rate': 0}, status='complete')
+    open_ = Invoice.objects.create(finance={'sales_tax_rate': 0}, status='planned')
+    before = (open_.version, open_.dt_modified)
+    found = defaults_sweep.find_blanks()
+    assert _by(found, 'invoice', 'terms').ids == [open_.pk]
+    assert sorted(_by(found, 'invoice', 'terms', 'kept').ids) == sorted([released.pk, journaled.pk, locked.pk, done.pk])
+    defaults_sweep.apply(found)
+    for doc in (released, journaled, locked, done):
+        doc.refresh_from_db(); assert doc.terms is None, doc.status
+    open_.refresh_from_db()
+    assert open_.terms == 'N30' and open_.version > before[0] and open_.dt_modified > before[1], 'one bump per field filled'
+
+
 def test_a_value_off_its_list_is_reported_never_rewritten(admin, model_defaults):
     select_lists.replace_list('quote', 'priority', [{'value': 'low'}, {'value': 'medium'}], actor=_as(admin))
     odd = Quote.objects.create(finance={'sales_tax_rate': 0}, priority='rush')

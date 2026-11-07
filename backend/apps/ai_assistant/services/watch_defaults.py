@@ -37,6 +37,11 @@ def check_defaults() -> dict:
             detail = (f"The {f.model} definition says {f.field} starts as {f.value!r}. A staff member fills them: "
                       f"manage.py sweep_defaults --apply --backup <pg_dump>. First ids: {f.ids[:10]}.")
             key = f'defaults:blank:{f.model}.{f.field}'
+        elif f.kind == 'kept':
+            message = f'{f.count} {f.model} record{"s" if f.count != 1 else ""} past the lock lack {f.field}'
+            detail = (f"Locked, journalized, released or complete: the sweep never fills them. A person decides each "
+                      f"— unlock and set it, or leave it as the books took it. First ids: {f.ids[:10]}.")
+            key = f'defaults:kept:{f.model}.{f.field}'
         elif f.kind == 'unlisted':
             message = f"{f.count} {f.model} record{'s' if f.count != 1 else ''} carry {f.field} '{f.value}', which is not on the list"
             detail = (f"Either the value belongs on the {f.model} {f.field} list (a staff member adds it: Cmd+click the "
@@ -52,6 +57,7 @@ def check_defaults() -> dict:
             made += 1
     result = {'findings': [f.as_dict() for f in findings], 'observations': made,
               'blank_rows': sum(f.count for f in findings if f.kind == 'blank'),
+              'kept_rows': sum(f.count for f in findings if f.kind == 'kept'),
               'unlisted_rows': sum(f.count for f in findings if f.kind == 'unlisted')}
     logger.info('Defaults check: %s blank rows, %s unlisted rows, %s observations', result['blank_rows'], result['unlisted_rows'], made)
     return result
