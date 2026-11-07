@@ -5,13 +5,12 @@ front a new record … It is very important to properly populate a new record." 
 end never builds a record: ``POST /wcapi/<model>/`` saves an empty one and returns it with
 its id. The values come afterwards, as a save (``PUT /wcapi/<model>/<id>/``).
 
-    Setting defaults → config.is_new → save_record (its hooks populate) → the record
+    config.is_new → save_record (the company defaults fill it, its hooks populate) → the record
 
-- **Defaults** are the model's ``Setting(purpose='wc:model').prefs.defaults``, which users
-  edit. ``<field>_offset_days: N`` is that many days from now (UTC epoch ms). They pass the
-  role's field filter like any value, so a default only reaches a field the role may edit;
-  a rule that needs logic (rep = the actor, a status, a copy from a parent) is the model's
-  code hook.
+- **Defaults** are the company profile's ``config.defaults`` block for the model, written by
+  the save door when a record is first given its ida (core/services/defaults.py; readme 106,
+  Bill 2026-11-07 — one home for every model's defaults, not role-filtered). A rule that needs
+  logic (rep = the actor, a status, a copy from a parent) is the model's code hook.
 - **The mark** ``config.is_new`` is set before the hooks (``save._mark_new``), so the code
   hook and the user's ``<model>.save_pre`` Report case on ``if config.is_new``. The next
   save removes it; Alice sweeps records that keep it.
@@ -26,14 +25,12 @@ Plan: Allie ``readmes/assessments/2026-09-26-new-verb.md``.
 """
 from __future__ import annotations
 
-import time
 from typing import Any, Dict
 
 from apps.core.services.door import Actor, Refused
 
 #: Payload keys the channel adds that are not values: the path's model, and no id.
 _ENVELOPE = frozenset({'model_name', 'id'})
-_DAY_MS = 86_400_000
 
 
 def new_record(actor: Actor, model_key: str, payload: dict):
@@ -66,7 +63,7 @@ def new_record(actor: Actor, model_key: str, payload: dict):
                       f'A {model_key} cannot exist without {", ".join(missing)}; send '
                       f'{"them" if len(missing) > 1 else "it"} to new.', missing)
 
-    data = setting_defaults(model_key)
+    data: Dict[str, Any] = {}
     data.update({k: v for k, v in payload.items()
                  if (k.startswith('_') and k != '_parent') or k in accepts})
     if payload.get('_parent') is not None:
@@ -108,24 +105,6 @@ def _born_under(model_cls, model_key: str, link) -> Dict[str, Any]:
                       f'{field.related_model._meta.model_name} {parent.id} does not exist.',
                       {'field': parent.field, 'id': parent.id})
     return {field.attname: parent.id}
-
-
-def setting_defaults(model_key: str) -> Dict[str, Any]:
-    """The model's ``prefs.defaults``, with ``<field>_offset_days`` turned into dates."""
-    from apps.core.models import Setting
-    setting = (Setting.objects.filter(purpose='wc:model', parent_model=model_key)
-               .only('prefs').first())
-    defaults = ((setting.prefs or {}).get('defaults') if setting else None) or {}
-    now_ms = int(time.time() * 1000)
-    out: Dict[str, Any] = {}
-    for key, value in defaults.items():
-        if value == '' or value is None:
-            continue
-        if key.endswith('_offset_days'):
-            out[key[:-len('_offset_days')]] = now_ms + int(float(value) * _DAY_MS)
-        else:
-            out[key] = value
-    return out
 
 
 def clear_mark(obj) -> None:

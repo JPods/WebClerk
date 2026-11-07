@@ -309,7 +309,7 @@ def apply_tax_to_finance(
 
     ZIP code is the primary input — state is derived if not provided.
     Only fills in tax fields if not already set (unless force=True).
-    Called from customer_defaults and from transaction_save.
+    Called from party_fill (a customer's pick) and from transaction_save.
     """
     existing_id = finance.get('sales_tax_id', 0)
     existing_rate = finance.get('sales_tax_rate')

@@ -28,9 +28,6 @@ export interface ConfigState {
   /** Whether local changes exist that haven't been pushed to wc3 */
   dirty: boolean;
 
-  /** Per-model default values (merged: static + wc3 overrides) */
-  modelDefaults: Record<string, Record<string, unknown>>;
-
   /** Select list overrides (key → options). Only dynamic (editable) lists appear here. */
   selectListOverrides: Record<string, SelectOption[]>;
 
@@ -42,7 +39,6 @@ const initialState: ConfigState = {
   lastSyncedAt: 0,
   loading: false,
   dirty: false,
-  modelDefaults: {},
   selectListOverrides: {},
   wc3SettingId: null,
 };
@@ -67,15 +63,11 @@ const configSlice = createSlice({
     configLoaded(
       state,
       action: PayloadAction<{
-        modelDefaults?: Record<string, Record<string, unknown>>;
         selectLists?: Record<string, SelectOption[]>;
         settingId: number | null;
       }>,
     ) {
-      const { modelDefaults, selectLists, settingId } = action.payload;
-      if (modelDefaults) {
-        state.modelDefaults = modelDefaults;
-      }
+      const { selectLists, settingId } = action.payload;
       if (selectLists) {
         state.selectListOverrides = selectLists;
       }
@@ -88,18 +80,6 @@ const configSlice = createSlice({
     /** Loading failed — clear loading flag but keep existing state */
     configLoadFailed(state) {
       state.loading = false;
-    },
-
-    /**
-     * Update a single model's defaults (admin edit).
-     * Marks state as dirty so the next sync push will fire.
-     */
-    setModelDefaults(
-      state,
-      action: PayloadAction<{ model: string; defaults: Record<string, unknown> }>,
-    ) {
-      state.modelDefaults[action.payload.model] = action.payload.defaults;
-      state.dirty = true;
     },
 
     /**
@@ -131,7 +111,6 @@ export const {
   configLoadStart,
   configLoaded,
   configLoadFailed,
-  setModelDefaults,
   setSelectListOptions,
   configSynced,
   configReset,

@@ -3,7 +3,7 @@ it lacks (Bill, 2026-11-05, on the customer's contact card).
 
 The org's parties live in its aspects — addresses.bill_to / ship_to (company, attention,
 full_address, contact_id), emails.<role> (email), phones.<role> (number) — and a document takes
-them when its customer is chosen (applyCustomerDefaults). The values come from the contact's
+them when its customer is chosen (transactions/services/party_fill.py). The values come from the contact's
 own records: its address record's full text, its phone record's number, its login email.
 One formula, on the server; the card only asks.
 

@@ -710,12 +710,6 @@ class ConfigBase(BaseModel):
 # Setting types
 # ═══════════════════════════════════════════════════════════════════════
 
-class SettingDefaults(BaseModel):
-    """Installation-level defaults for new records. Lives in Setting.prefs.defaults."""
-    class Config:
-        extra = 'allow'
-
-
 class DisplayPrefs(BaseModel):
     """DataBrowser display preferences. Lives in Setting.prefs.display."""
     detail_width: int = 420

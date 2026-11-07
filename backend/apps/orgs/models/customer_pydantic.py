@@ -15,7 +15,7 @@ from common.schemas.envelopes import ConfigBase, MetadataBase, RecordPrefsBase, 
 
 class CustomerConfig(ConfigBase):
     # Default carrier copied onto new transactions for this customer
-    # (frontend applyCustomerDefaults). Customer has no ship_via column.
+    # (party_fill reads config.ship_via). Customer has no ship_via column.
     ship_via: Optional[str] = None
 
 

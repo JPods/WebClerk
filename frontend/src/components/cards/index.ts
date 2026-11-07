@@ -9,7 +9,6 @@ export type { CardSpec, CardFieldSpec, CardComponentProps, FooterComponentProps 
 export { getCardComponent, getFooterComponent, registerCardComponent, registerFooterComponent } from './cardRegistry';
 
 // Self-registering components — import triggers registration
-import './CustomerSearchCard';
 import './ActionSummaryFooter';
 import './FlightSimCard';
 import './TimeClockCard';

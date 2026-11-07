@@ -55,16 +55,12 @@ def test_new_saves_an_empty_record_marked_new():
     assert result.record['config']['is_new'] is True, 'the front end is handed the mark'
 
 
-def test_the_setting_defaults_populate_it_and_offset_days_are_dates():
-    _defaults('item', {'name': 'From the Setting', 'description': '', 'dt_created_offset_days': ''})
+def test_a_models_own_prefs_defaults_are_no_longer_read():
+    """Readme 106 (Bill, 2026-11-07): one home for defaults, the company profile. A model's
+    Setting.prefs.defaults — the 09-26 plan — is not a source any more."""
+    _defaults('item', {'name': 'From the Setting', 'dt_created_offset_days': 3})
     item = _new().obj
-    assert item.name == 'From the Setting'
-
-    _defaults('action', {'dt_deadline_offset_days': 7})
-    before = int(time.time() * 1000)
-    action = _new('action').obj
-    week = 7 * 86_400_000
-    assert before + week - 5_000 <= int(action.dt_deadline) <= int(time.time() * 1000) + week
+    assert item.name != 'From the Setting'
 
 
 def test_the_code_hook_sees_the_mark_and_the_next_save_does_not(naked):

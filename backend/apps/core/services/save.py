@@ -48,6 +48,7 @@ from common.models import JsonTooLarge
 from apps.core.services import verbs
 from apps.core.services.behaviours import HookContext
 from apps.core.services.door import Actor, Refused, SaveResult, resolve_model
+from apps.core.services.defaults import fill_defaults
 from apps.core.services.dt_fields import SYSTEM_DT_FIELDS, system_dt_coaching
 from apps.core.services.unit_of_work import flush, unit_of_work
 
@@ -676,6 +677,7 @@ def _write(actor: Actor, obj, model_cls, model_key: str, norm_key: str, data: di
     _results_are_computed(model_key, data)
     snapshot = _snapshot(obj)
     _assign(obj, data, model_cls, model_key, norm_key, is_update)
+    fill_defaults(obj, model_key, data)   # the save that first names a record fills its blanks (106)
     _terms_are_named(obj, snapshot)
     _price_level_is_named(obj, snapshot)
     # After the payload, before the hooks: the hooks see the mark, and no payload sets it.

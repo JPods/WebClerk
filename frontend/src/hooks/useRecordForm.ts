@@ -10,9 +10,10 @@
  * DataBrowser's inline pane uses. db.form draws on it; db.detail (step 5) will too.
  *
  * What is a transaction here is read from the layout, not a model list: a layout with a
- * line_card section has lines, totals and a customer whose defaults fill the header.
+ * line_card section has lines, totals and a party. Picking the party saves the pick at once and
+ * reloads: the server fills the header from the org (readme 106 rule 3, party_fill.py).
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { getRecord, newRecord, previewTotals, saveRecord, saveTransactionWithLines } from '@/api/wcapi';
 import type { TotalsPreview } from '@/api/wcapi';
@@ -26,7 +27,6 @@ import { applyDerived } from '@/utils/derivedFields';
 import { checkJsonLimits, describeJsonLimitProblems, jsonLimitsLoaded, loadJsonLimits } from '@/utils/jsonLimits';
 import { COMMUNICATION_FIELDS, communicationField, communicationValue, showsCommunication } from '@/utils/communicationFields';
 import { windowChannel } from '@/utils/windowChannel';
-import { applyPartyDefaults, DISPLAY_ONLY_KEYS } from '@/apps/transactions/utils/applyCustomerDefaults';
 import { partyOf } from '@/apps/transactions/components/detail/CustomerSearch';
 import { getActiveLines, getRemovedLines, isPersistedLine } from '@/apps/transactions/services/lineItemService';
 import type { TransactionLine } from '@/apps/transactions/types/transactionTypes';
@@ -34,6 +34,9 @@ import type { TransactionLine } from '@/apps/transactions/types/transactionTypes
 /** The header values compute_totals reads — what totals_preview needs from the screen
  *  (backend PREVIEW_HEADER_KEYS, apps/transactions/views/transaction_views.py). */
 const PREVIEW_HEADER_KEYS = ['finance', 'tax', 'allocations', 'ship_via', 'customer_id'] as const;
+
+/** Keys the screen shows but the document does not store; never sent on save. */
+export const DISPLAY_ONLY_KEYS = ['customer_config', 'customer_company'] as const;
 
 /** Orgs whose primary contact's name, email, phone and address they show (PrimaryContactCard). */
 export const ORGS_WITH_CONTACTS = ['customer', 'vendor', 'manufacturer', 'rep'];
@@ -143,10 +146,7 @@ export function useRecordForm(opts: RecordFormOptions) {
     try {
       const response = await getRecord(modelName, recordId);
       const record = (response as any)?.record || response;
-      // A price level or terms taken from the customer go on the edit copy only: on both,
-      // the save saw no change and never stored them (the screen showed wholesale while the
-      // record held retail).
-      const fills: Record<string, unknown> = {};
+      // The party's credit figures and name are shown beside the document, never stored on it.
       const party = partyOf(modelName);
       const custId = withLines ? (record?.[`${party}_id`] || record?.[party]) : null;
       if (custId) {
@@ -155,8 +155,6 @@ export function useRecordForm(opts: RecordFormOptions) {
           const cust = (custResp as any)?.record || custResp;
           if (cust?.config) record.customer_config = cust.config;
           record.customer_company = cust?.company || cust?.display_name || cust?.name || '';
-          if (!record.price_level && cust?.price_level) fills.price_level = cust.price_level;
-          if (!record.terms && cust?.terms) fills.terms = cust.terms;
         } catch { /* customer not found */ }
       }
       // An org shows its primary contact (PrimaryContactCard reads it from the record).
@@ -169,7 +167,7 @@ export function useRecordForm(opts: RecordFormOptions) {
         } catch { /* contact not found */ }
       }
       setData(record);
-      setEditData({ ...record, ...fills });
+      setEditData({ ...record });
     } catch {
       dispatch(showToast({ message: `Failed to load ${modelName}`, type: 'error' }));
     } finally {
@@ -215,21 +213,15 @@ export function useRecordForm(opts: RecordFormOptions) {
       const next = nestedWrite(prev, field, value);
       return field.includes('.') ? next : applyDerived(modelName, prev, next, field);
     });
-    // A document's party brings its defaults: a customer its bill-to, ship-to, terms and reps; a
-    // purchase's vendor its bill-to block and terms (Bill, 2026-11-06).
+    // A document's party is saved the moment it is picked: the server fills terms, level, the
+    // bill-to and ship-to blocks and tax from the org, and the form reloads what it returns
+    // (readme 106 rule 3; Bill, 2026-11-07: "the quote reloads with that customer's values").
     const party = partyOf(modelName);
-    if (withLines && (field === party || field === `${party}_id`) && value) {
-      const custId = typeof value === 'number' ? value : Number(value);
-      if (custId > 0) {
-        applyPartyDefaults(party, custId).then((defaults: any) => {
-          setEditData((prev: any) => (prev ? { ...prev, ...defaults } : prev));
-          dispatch(showToast({ message: `${party === 'vendor' ? 'Vendor' : 'Customer'} defaults applied: ${defaults.addresses?.bill_to?.company || ''}`, type: 'success' }));
-        }).catch(() => {
-          dispatch(showToast({ message: `Could not load ${party} defaults`, type: 'error' }));
-        });
-      }
+    if (withLines && (field === party || field === `${party}_id`) && Number(value) > 0) {
+      partyPicked.current = party;
     }
-  }, [modelName, withLines, dispatch]);
+  }, [modelName, withLines]);
+  const partyPicked = useRef<string | null>(null);
 
   // Every line, removed ones included — they stay on screen marked deleted until the save.
   // If a child hands back a filtered array, the removed lines are merged back in, or the
@@ -254,7 +246,7 @@ export function useRecordForm(opts: RecordFormOptions) {
     return problems.length ? describeJsonLimitProblems(problems) : undefined;
   }, [limitsReady, isEditing, editData, data, modelName]);
 
-  const save = useCallback(async () => {
+  const save = useCallback(async (opts?: { keepEditing?: boolean; message?: string }) => {
     if (!editData || saveBlocked) return;
     setSaving(true);
     try {
@@ -281,8 +273,8 @@ export function useRecordForm(opts: RecordFormOptions) {
       } else {
         await saveRecord(modelName, header);
       }
-      dispatch(showToast({ message: `${modelName} saved`, type: 'success' }));
-      setIsEditing(false);
+      dispatch(showToast({ message: opts?.message || `${modelName} saved`, type: 'success' }));
+      if (opts?.keepEditing !== true) setIsEditing(false);
       fetchData();
       onAfterSave?.();
     } catch (err: any) {
@@ -291,6 +283,14 @@ export function useRecordForm(opts: RecordFormOptions) {
       setSaving(false);
     }
   }, [editData, data, saveBlocked, modelName, dispatch, fetchData, onAfterSave]);
+
+  // The party pick is on the edit copy now: save it and stay in edit on the reloaded record.
+  useEffect(() => {
+    if (!partyPicked.current || !editData) return;
+    const party = partyPicked.current;
+    partyPicked.current = null;
+    save({ keepEditing: true, message: `${party === 'vendor' ? 'Vendor' : 'Customer'} applied` });
+  }, [editData, save]);
 
   const addNew = useCallback(async () => {
     try {

@@ -1,8 +1,10 @@
-"""A new document is born with the company's defaults and takes its party's (Bill, 2026-11-05;
-every document, 2026-11-06): price_level retail when no one says, terms from the customer or
-vendor or the company's defaults.terms, dt_needed = born + defaults.order_new.days, priority =
-defaults.order_new.priority. The server computes them in the save door's hook; the form shows
-what the save returns."""
+"""Defaults: one home, one moment, the org first (readme 106; Bill, 2026-11-05/06/07).
+
+Every record is born with its model's company defaults — the save that first gives it an ida
+fills its blanks (core/services/defaults.py, called by the save door): a document's terms,
+price_level retail, dt_needed = born + days, priority; a customer's terms and level; a vendor's
+terms. A document takes its party's values when its customer or vendor is set (party_fill).
+The server computes them; the form shows what the save returns."""
 import time
 
 import pytest
@@ -12,6 +14,7 @@ from apps.core.services.cache import cache_service
 from apps.core.services.door import Actor, Refused
 from apps.core.services.new import new_record
 from apps.core.services.save import save_record
+from apps.core.models import Contact
 from apps.orgs.models import Customer, Vendor
 from apps.transactions.models import Order, Purchase, Quote, Receipt
 
@@ -118,3 +121,41 @@ def test_a_company_default_terms_that_is_no_term_is_refused_where_it_bites(admin
     with pytest.raises(Refused) as refused:   # it bites at birth: the company's terms are the newborn's
         _born(admin)
     assert refused.value.code == 'invalid_terms' and 'defaults.terms' in refused.value.message
+
+
+@pytest.mark.parametrize('model_key,Model,expected', [
+    ('customer', Customer, {'terms': 'N30', 'price_level': 'retail'}),
+    ('vendor', Vendor, {'terms': 'N30', 'price_level': None}),
+])
+def test_an_org_is_born_with_the_company_defaults(admin, company, model_key, Model, expected):
+    """Bill, 2026-11-07: Rubble Manufacturing passed nothing on because it had no terms and no
+    level — new orgs were never born with the company's."""
+    org = Model.objects.get(pk=new_record(_as(admin), model_key, {}).obj_id)
+    assert {k: getattr(org, k) for k in expected} == expected
+    assert org.ida, 'the moment is the ida'
+
+
+def test_a_record_that_already_has_an_ida_is_not_filled(admin, company):
+    """The moment is the first ida, once: a record made outside the door has one, so a later
+    save through the door leaves its blanks alone (the sweep repairs existing records)."""
+    buyer = Customer.objects.create(company='Old Buyer')
+    assert buyer.ida and buyer.terms is None
+    save_record(_as(admin), {'id': buyer.pk, 'version': buyer.version, 'comments': {'public': 'hello'}}, model_key='customer')
+    buyer.refresh_from_db()
+    assert buyer.terms is None and buyer.price_level is None
+
+
+def test_a_blank_the_person_leaves_is_not_refilled(admin, company):
+    """No fill on every save: a cleared priority stays cleared (106 rule 4)."""
+    order = _born(admin)
+    save_record(_as(admin), {'id': order.pk, 'version': order.version, 'priority': ''}, model_key='order')
+    order.refresh_from_db()
+    save_record(_as(admin), {'id': order.pk, 'version': order.version, 'comments': {'public': 'later'}}, model_key='order')
+    order.refresh_from_db()
+    assert not order.priority
+
+
+def test_a_model_without_a_block_is_born_as_it_is(admin, company):
+    """A contact has no defaults block yet (106 open B: source_name): nothing is written."""
+    contact = Contact.objects.get(pk=new_record(_as(admin), 'contact', {}).obj_id)
+    assert contact.ida and not contact.source_name

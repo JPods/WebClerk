@@ -27,9 +27,6 @@ vi.mock('@/utils/jsonLimits', () => ({
   checkJsonLimits: () => [], describeJsonLimitProblems: () => '',
 }));
 vi.mock('@/utils/windowChannel', () => ({ windowChannel: { on: () => () => {}, send: () => {} } }));
-vi.mock('@/apps/transactions/utils/applyCustomerDefaults', () => ({
-  applyPartyDefaults: vi.fn(), DISPLAY_ONLY_KEYS: ['customer_config', 'customer_company'],
-}));
 
 import { useRecordForm, editTierOf, nestedWrite } from './useRecordForm';
 
@@ -63,6 +60,17 @@ describe('useRecordForm', () => {
     expect(api.saveRecord).toHaveBeenCalledWith('contact', { id: 7, version: 3, name_last: 'Jones', attention: 'Al Jones' });
     expect(api.saveTransactionWithLines).not.toHaveBeenCalled();
     expect(result.current.isEditing).toBe(false);
+  });
+
+  it('picking the party saves the pick at once and reloads, staying in edit (106 rule 3)', async () => {
+    const record = { id: 21, version: 1, status: 'planned', totals: { total: 0 }, lines: [] };
+    const { result } = await load('order', record, orderLayout);
+    act(() => result.current.startEdit());
+    act(() => result.current.setField('customer', 5));
+    await waitFor(() => expect(api.saveRecord).toHaveBeenCalledWith('order', { id: 21, version: 1, customer: 5 }));
+    await waitFor(() => expect(api.getRecord).toHaveBeenCalledTimes(2));   // the reload: the server's fill
+    expect(result.current.isEditing).toBe(true);
+    expect(toasts[toasts.length - 1]?.message).toBe('Customer applied');
   });
 
   it('writes a dotted field into its envelope', () => {

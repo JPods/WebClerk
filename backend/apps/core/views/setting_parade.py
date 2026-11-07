@@ -270,12 +270,6 @@ class SettingParadePreviewView(APIView):
         if isinstance(field_groups, list) and field_groups:
             preview['field_groups'] = field_groups
 
-        # ── Defaults ──
-        # Key/value table of default field values
-        defaults = prefs.get('defaults', {}) if isinstance(prefs, dict) else {}
-        if isinstance(defaults, dict) and defaults:
-            preview['defaults'] = defaults
-
         # Feedback
         preview['feedback'] = _get_feedback(s)
 
