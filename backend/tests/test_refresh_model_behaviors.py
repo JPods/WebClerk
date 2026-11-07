@@ -82,3 +82,15 @@ def test_a_lookup_on_no_registered_model_is_repointed():
 def test_an_org_pointer_stored_on_customer_is_the_old_default_and_follows_its_role():
     out, changes, kept = refreshed('item', {'behaviors': {'vendor': {'type': 'lookup', 'model': 'customer', 'display': 'display_name', 'label': 'vendor'}}})
     assert 'vendor' in changes and kept == [] and out['behaviors']['vendor']['model'] == 'vendor'
+
+
+def test_the_old_inline_source_marker_is_dropped():
+    """133 stored behaviors in wc_demo carried "source": "inline" from the old option lists;
+    the definition's selectlists are the one source and nothing reads the marker (the lead,
+    2026-11-06)."""
+    stored = {'behaviors': {'price_level': {'type': 'select', 'label': 'price level', 'source': 'inline'},
+                            'priority': {'type': 'select', 'label': 'priority'}}}
+    config, changes, kept = refreshed('order', stored)
+    assert 'price_level' in changes and 'priority' not in changes
+    assert config['behaviors']['price_level'] == {'type': 'select', 'label': 'price level'}
+    assert config['behaviors']['priority'] == {'type': 'select', 'label': 'priority'}

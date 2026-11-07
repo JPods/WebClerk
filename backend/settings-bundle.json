@@ -8730,7 +8730,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -8784,7 +8783,6 @@
           "priority": {
             "type": "select",
             "label": "priority",
-            "source": "inline",
             "options": [
               {
                 "label": "Low",
@@ -8908,7 +8906,6 @@
           "kanban_column": {
             "type": "select",
             "label": "kanban column",
-            "source": "inline",
             "options": [
               {
                 "label": "Backlog",
@@ -10113,7 +10110,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -11470,7 +11466,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -12571,7 +12566,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -12623,7 +12617,6 @@
           "priority": {
             "type": "select",
             "label": "priority",
-            "source": "inline",
             "options": [
               {
                 "label": "Low",
@@ -13642,7 +13635,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -14563,7 +14555,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -14605,7 +14596,6 @@
           "priority": {
             "type": "select",
             "label": "priority",
-            "source": "inline",
             "options": [
               {
                 "label": "Low",
@@ -15651,7 +15641,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -16905,7 +16894,6 @@
           "type": {
             "type": "select",
             "label": "type",
-            "source": "inline",
             "options": [
               {
                 "label": "Received (AR)",
@@ -16940,7 +16928,6 @@
           "method": {
             "type": "select",
             "label": "method",
-            "source": "inline",
             "options": [
               {
                 "label": "Check",
@@ -16971,7 +16958,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -17021,7 +17007,6 @@
           "category": {
             "type": "select",
             "label": "category",
-            "source": "inline",
             "options": [
               {
                 "label": "Standard",
@@ -18205,7 +18190,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -18257,7 +18241,6 @@
           "priority": {
             "type": "select",
             "label": "priority",
-            "source": "inline",
             "options": [
               {
                 "label": "Low",
@@ -19270,7 +19253,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -20277,7 +20259,6 @@
           "type": {
             "type": "select",
             "label": "type",
-            "source": "inline",
             "options": [
               {
                 "label": "API",
@@ -20324,7 +20305,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -21952,7 +21932,6 @@
           "role": {
             "type": "select",
             "label": "role",
-            "source": "inline",
             "options": [
               {
                 "label": "User",
@@ -22000,7 +21979,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -23101,7 +23079,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -24820,7 +24797,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -24879,7 +24855,6 @@
           "org_type": {
             "type": "select",
             "label": "org type",
-            "source": "inline",
             "options": [
               {
                 "label": "Customer",
@@ -24975,7 +24950,6 @@
           "price_level": {
             "type": "select",
             "label": "price level",
-            "source": "inline",
             "options": [
               {
                 "label": "Retail",
@@ -26007,7 +25981,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -27112,7 +27085,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -28110,7 +28082,6 @@
           "type": {
             "type": "select",
             "label": "type",
-            "source": "inline",
             "options": [
               {
                 "label": "Website",
@@ -28145,7 +28116,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -29083,7 +29053,6 @@
           "type": {
             "type": "select",
             "label": "type",
-            "source": "inline",
             "options": [
               {
                 "label": "Work",
@@ -29127,7 +29096,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -30540,7 +30508,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -30599,7 +30566,6 @@
           "org_type": {
             "type": "select",
             "label": "org type",
-            "source": "inline",
             "options": [
               {
                 "label": "Customer",
@@ -30695,7 +30661,6 @@
           "price_level": {
             "type": "select",
             "label": "price level",
-            "source": "inline",
             "options": [
               {
                 "label": "Retail",
@@ -31719,7 +31684,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -32647,7 +32611,6 @@
           "type": {
             "type": "select",
             "label": "type",
-            "source": "inline",
             "options": [
               {
                 "label": "Asset",
@@ -32686,7 +32649,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -32720,7 +32682,6 @@
           "category": {
             "type": "select",
             "label": "category",
-            "source": "inline",
             "options": [
               {
                 "label": "Cash",
@@ -33910,7 +33871,6 @@
           "type": {
             "type": "select",
             "label": "type",
-            "source": "inline",
             "options": [
               {
                 "label": "General",
@@ -33965,7 +33925,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -34979,7 +34938,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -35963,7 +35921,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -36784,7 +36741,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -39121,7 +39077,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Planned",
@@ -39197,7 +39152,6 @@
           "priority": {
             "type": "select",
             "label": "priority",
-            "source": "inline",
             "options": [
               {
                 "label": "Low",
@@ -39274,7 +39228,6 @@
           "price_level": {
             "type": "select",
             "label": "price level",
-            "source": "inline",
             "options": [
               {
                 "label": "Retail",
@@ -39297,7 +39250,6 @@
           "source_name": {
             "type": "select",
             "label": "source name",
-            "source": "inline",
             "options": [
               {
                 "label": "Direct",
@@ -41031,7 +40983,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -41103,7 +41054,6 @@
           "line_type": {
             "type": "select",
             "label": "line type",
-            "source": "inline",
             "options": [
               {
                 "label": "Product",
@@ -41170,7 +41120,6 @@
           "price_level": {
             "type": "select",
             "label": "price level",
-            "source": "inline",
             "options": [
               {
                 "label": "Retail",
@@ -43022,7 +42971,6 @@
           "kind": {
             "type": "select",
             "label": "kind",
-            "source": "inline",
             "options": [
               {
                 "label": "Product",
@@ -43089,7 +43037,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -44161,7 +44108,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -45061,7 +45007,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -46093,7 +46038,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -47205,7 +47149,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -48206,7 +48149,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -49573,7 +49515,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -49632,7 +49573,6 @@
           "org_type": {
             "type": "select",
             "label": "org type",
-            "source": "inline",
             "options": [
               {
                 "label": "Customer",
@@ -49728,7 +49668,6 @@
           "price_level": {
             "type": "select",
             "label": "price level",
-            "source": "inline",
             "options": [
               {
                 "label": "Retail",
@@ -52510,7 +52449,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Planned",
@@ -52586,7 +52524,6 @@
           "priority": {
             "type": "select",
             "label": "priority",
-            "source": "inline",
             "options": [
               {
                 "label": "Low",
@@ -52663,7 +52600,6 @@
           "price_level": {
             "type": "select",
             "label": "price level",
-            "source": "inline",
             "options": [
               {
                 "label": "Retail",
@@ -52686,7 +52622,6 @@
           "source_name": {
             "type": "select",
             "label": "source name",
-            "source": "inline",
             "options": [
               {
                 "label": "Direct",
@@ -54372,7 +54307,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -54438,7 +54372,6 @@
           "line_type": {
             "type": "select",
             "label": "line type",
-            "source": "inline",
             "options": [
               {
                 "label": "Product",
@@ -54505,7 +54438,6 @@
           "price_level": {
             "type": "select",
             "label": "price level",
-            "source": "inline",
             "options": [
               {
                 "label": "Retail",
@@ -56103,7 +56035,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -56158,7 +56089,6 @@
           "org_type": {
             "type": "select",
             "label": "org type",
-            "source": "inline",
             "options": [
               {
                 "label": "Customer",
@@ -56254,7 +56184,6 @@
           "price_level": {
             "type": "select",
             "label": "price level",
-            "source": "inline",
             "options": [
               {
                 "label": "Retail",
@@ -58076,7 +58005,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -59307,7 +59235,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -59341,7 +59268,6 @@
           "category": {
             "type": "select",
             "label": "category",
-            "source": "inline",
             "options": [
               {
                 "label": "Sprint",
@@ -59380,7 +59306,6 @@
           "priority": {
             "type": "select",
             "label": "priority",
-            "source": "inline",
             "options": [
               {
                 "label": "Low",
@@ -61973,7 +61898,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Planned",
@@ -62049,7 +61973,6 @@
           "priority": {
             "type": "select",
             "label": "priority",
-            "source": "inline",
             "options": [
               {
                 "label": "Low",
@@ -62126,7 +62049,6 @@
           "price_level": {
             "type": "select",
             "label": "price level",
-            "source": "inline",
             "options": [
               {
                 "label": "Retail",
@@ -62149,7 +62071,6 @@
           "source_name": {
             "type": "select",
             "label": "source name",
-            "source": "inline",
             "options": [
               {
                 "label": "Direct",
@@ -63828,7 +63749,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -63894,7 +63814,6 @@
           "line_type": {
             "type": "select",
             "label": "line type",
-            "source": "inline",
             "options": [
               {
                 "label": "Product",
@@ -63961,7 +63880,6 @@
           "price_level": {
             "type": "select",
             "label": "price level",
-            "source": "inline",
             "options": [
               {
                 "label": "Retail",
@@ -66141,7 +66059,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Planned",
@@ -66217,7 +66134,6 @@
           "priority": {
             "type": "select",
             "label": "priority",
-            "source": "inline",
             "options": [
               {
                 "label": "Low",
@@ -66294,7 +66210,6 @@
           "price_level": {
             "type": "select",
             "label": "price level",
-            "source": "inline",
             "options": [
               {
                 "label": "Retail",
@@ -66317,7 +66232,6 @@
           "source_name": {
             "type": "select",
             "label": "source name",
-            "source": "inline",
             "options": [
               {
                 "label": "Direct",
@@ -67946,7 +67860,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -68018,7 +67931,6 @@
           "line_type": {
             "type": "select",
             "label": "line type",
-            "source": "inline",
             "options": [
               {
                 "label": "Product",
@@ -68079,7 +67991,6 @@
           "price_level": {
             "type": "select",
             "label": "price level",
-            "source": "inline",
             "options": [
               {
                 "label": "Retail",
@@ -69159,7 +69070,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -70752,7 +70662,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -72187,7 +72096,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -72259,7 +72167,6 @@
           "line_type": {
             "type": "select",
             "label": "line type",
-            "source": "inline",
             "options": [
               {
                 "label": "Product",
@@ -72326,7 +72233,6 @@
           "price_level": {
             "type": "select",
             "label": "price level",
-            "source": "inline",
             "options": [
               {
                 "label": "Retail",
@@ -73883,7 +73789,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -73942,7 +73847,6 @@
           "org_type": {
             "type": "select",
             "label": "org type",
-            "source": "inline",
             "options": [
               {
                 "label": "Customer",
@@ -74038,7 +73942,6 @@
           "price_level": {
             "type": "select",
             "label": "price level",
-            "source": "inline",
             "options": [
               {
                 "label": "Retail",
@@ -75137,7 +75040,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -75171,7 +75073,6 @@
           "category": {
             "type": "select",
             "label": "category",
-            "source": "inline",
             "options": [
               {
                 "label": "Transaction",
@@ -75242,7 +75143,6 @@
           "editor_type": {
             "type": "select",
             "label": "editor type",
-            "source": "inline",
             "options": [
               {
                 "label": "Plain text",
@@ -75269,7 +75169,6 @@
           "output_type": {
             "type": "select",
             "label": "output type",
-            "source": "inline",
             "options": [
               {
                 "label": "Print/PDF",
@@ -76504,7 +76403,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Planned",
@@ -77528,7 +77426,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -77594,7 +77491,6 @@
           "line_type": {
             "type": "select",
             "label": "line type",
-            "source": "inline",
             "options": [
               {
                 "label": "Product",
@@ -77655,7 +77551,6 @@
           "price_level": {
             "type": "select",
             "label": "price level",
-            "source": "inline",
             "options": [
               {
                 "label": "Retail",
@@ -78753,7 +78648,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Available",
@@ -79876,7 +79770,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -80977,7 +80870,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -81994,7 +81886,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -82048,7 +81939,6 @@
           "direction": {
             "type": "select",
             "label": "direction",
-            "source": "inline",
             "options": [
               {
                 "label": "Import",
@@ -82939,7 +82829,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -83828,7 +83717,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -84803,7 +84691,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -85862,7 +85749,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -85885,7 +85771,6 @@
           "channel": {
             "type": "select",
             "label": "channel",
-            "source": "inline",
             "options": [
               {
                 "label": "Phone Call",
@@ -85960,7 +85845,6 @@
           "direction": {
             "type": "select",
             "label": "direction",
-            "source": "inline",
             "options": [
               {
                 "label": "Inbound",
@@ -86946,7 +86830,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -88554,7 +88437,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -88613,7 +88495,6 @@
           "org_type": {
             "type": "select",
             "label": "org type",
-            "source": "inline",
             "options": [
               {
                 "label": "Customer",
@@ -88709,7 +88590,6 @@
           "price_level": {
             "type": "select",
             "label": "price level",
-            "source": "inline",
             "options": [
               {
                 "label": "Retail",
@@ -89694,7 +89574,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -89736,7 +89615,6 @@
           "priority": {
             "type": "select",
             "label": "priority",
-            "source": "inline",
             "options": [
               {
                 "label": "Low",
@@ -90656,7 +90534,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -92216,7 +92093,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Planned",
@@ -92292,7 +92168,6 @@
           "priority": {
             "type": "select",
             "label": "priority",
-            "source": "inline",
             "options": [
               {
                 "label": "Low",
@@ -92369,7 +92244,6 @@
           "price_level": {
             "type": "select",
             "label": "price level",
-            "source": "inline",
             "options": [
               {
                 "label": "Retail",
@@ -92392,7 +92266,6 @@
           "source_name": {
             "type": "select",
             "label": "source name",
-            "source": "inline",
             "options": [
               {
                 "label": "Direct",
@@ -94038,7 +93911,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -94104,7 +93976,6 @@
           "line_type": {
             "type": "select",
             "label": "line type",
-            "source": "inline",
             "options": [
               {
                 "label": "Product",
@@ -94171,7 +94042,6 @@
           "price_level": {
             "type": "select",
             "label": "price level",
-            "source": "inline",
             "options": [
               {
                 "label": "Retail",
@@ -97757,7 +97627,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -98639,7 +98508,6 @@
           "status": {
             "type": "select",
             "label": "status",
-            "source": "inline",
             "options": [
               {
                 "label": "Active",
@@ -100794,8 +100662,7 @@
           },
           "status": {
             "type": "select",
-            "label": "status",
-            "source": "inline"
+            "label": "status"
           },
           "actions": {
             "type": "json-tree",

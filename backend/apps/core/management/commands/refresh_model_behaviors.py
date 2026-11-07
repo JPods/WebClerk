@@ -40,6 +40,12 @@ def refreshed(model_key: str, config: dict) -> tuple:
         return config, [], []
     behaviors = dict(config.get('behaviors') or {})
     changes, kept = [], []
+    # The old option lists marked a select "source": "inline"; the definition's selectlists are
+    # the one source now and nothing reads the marker (the lead, 2026-11-06). Dropped.
+    for name, stored in list(behaviors.items()):
+        if isinstance(stored, dict) and stored.get('source') == 'inline':
+            behaviors[name] = {k: v for k, v in stored.items() if k != 'source'}
+            changes.append(name)
     for name, comp in computed.items():
         stored = behaviors.get(name)
         if stored is None:
