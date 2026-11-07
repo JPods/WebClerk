@@ -243,17 +243,20 @@ def may_post(instance, model_type: str) -> bool:
 
 
 def not_released_coaching(model_type: str, status: str) -> str:
-    article = 'An' if model_type[:1] in 'aeiou' else 'A'
-    return (f"{article} {model_type} posts to the GL only after release; this one is "
+    return (f"{_article(model_type)} {model_type} posts to the GL only after release; this one is "
             f"'{status or 'blank'}'. Release it first, then journalize — once posted, "
             f"its status cannot move.")
+
+
+def _article(word: str) -> str:
+    return 'An' if word[:1].lower() in 'aeiou' else 'A'
 
 
 def incomplete_coaching(model_type: str, step: str, missing: list, needs=None) -> str:
     needs = ', '.join(w if w != 'line' else 'at least one line'
                       for w in (REQUIRES.get(model_type, ()) if needs is None else needs))
     lacks = ', '.join(f'no {w}' for w in missing)
-    return (f'A {model_type} cannot {step} without {needs}. This one has {lacks}. '
+    return (f'{_article(model_type)} {model_type} cannot {step} without {needs}. This one has {lacks}. '
             f'Save it as it is; add what it lacks, then {step} again.')
 
 
