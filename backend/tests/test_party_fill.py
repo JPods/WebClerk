@@ -180,3 +180,25 @@ def test_an_orgs_defaults_are_served_to_a_role_that_may_see_it(admin, company):
     north = Customer.objects.create(company='North Co', config={'defaults': {'fields': {'ship_via': 'ups'}, 'formatting': {'currency': 'CAD'}}})
     served = filter_response_data(_as(admin), 'customer', to_dict(north))
     assert served['config']['defaults'] == {'fields': {'ship_via': 'ups'}, 'formatting': {'currency': 'CAD'}}
+
+
+def test_a_role_with_all_writes_an_orgs_defaults_and_source_through_the_door(admin, company):
+    """The write side of the leaf enumeration (the lead, after 9c48a00): a superuser saves an org's
+    config.defaults.fields.ship_via and its source_name through save_record, and both are stored
+    — before core 0073 the door dropped them as paths no list named."""
+    from apps.core.models import Setting
+    from apps.core.services import select_lists
+    from apps.core.services.access import default_access
+    setting = Setting.objects.get(purpose='wc:model', parent_model='customer')
+    setting.config = {**setting.config, 'access': default_access('customer')}
+    setting._setting_create_authorized = True
+    setting.save()
+    select_lists.replace_list('customer', 'source_name', [{'value': 'referral'}, {'value': 'website'}], actor=_as(admin))
+    select_lists.replace_list('order', 'ship_via', [{'value': 'ups'}, {'value': 'usps'}], actor=_as(admin))
+    west = Customer.objects.create(company='West Co')
+    saved = save_record(_as(admin), {'id': west.pk, 'version': west.version, 'source_name': 'referral',
+                                     'config': {'defaults': {'fields': {'ship_via': 'UPS'}}}}, model_key='customer')
+    west.refresh_from_db()
+    assert west.source_name == 'referral'
+    assert west.config['defaults']['fields'] == {'ship_via': 'ups'}, "stored in the lists' spelling"
+    assert saved.record['config']['defaults']['fields'] == {'ship_via': 'ups'} and saved.record['source_name'] == 'referral'

@@ -1,4 +1,5 @@
-"""The flight simulator's consoles are Settings (readme 100; Bill 2026-11-05: wire the steps in)."""
+"""The flight simulator's consoles are Settings (readme 100; Bill 2026-11-05: wire the steps in),
+and so is the defaults console (readme 106; kind 'defaults', beside the simulations)."""
 import pytest
 from django.core.management import call_command
 
@@ -18,14 +19,16 @@ def test_every_console_seeds_once_with_its_steps(chart_of_accounts):
     _rates()
     call_command('seed_consoles', verbosity=0)
     rows = {s.ida: s for s in Setting.objects.filter(purpose='wc:console')}
-    assert sorted(rows) == sorted(c['id'] for c in CONSOLES)
+    assert sorted(rows) == sorted([c['id'] for c in CONSOLES] + ['defaults'])
     assert [rows[c['id']].config['sequence'] for c in CONSOLES] == list(range(1, len(CONSOLES) + 1))
+    assert rows['defaults'].config['kind'] == 'defaults' and 'steps' not in rows['defaults'].config
+    assert all(rows[c['id']].config['kind'] == 'sim' for c in CONSOLES)
     for sim_id in SCENARIOS:
         steps = rows[sim_id].config['steps']
         assert steps and all({'step', 'title', 'instruction'} <= set(s) for s in steps), sim_id
     assert rows['gl-audit'].config['steps'] == []      # no scenario yet: the description only
     call_command('seed_consoles', verbosity=0)         # a second run keeps the company's edits
-    assert Setting.objects.filter(purpose='wc:console').count() == len(CONSOLES)
+    assert Setting.objects.filter(purpose='wc:console').count() == len(CONSOLES) + 1
 
 
 def test_the_shipped_set_is_what_the_console_reads(chart_of_accounts):
