@@ -906,6 +906,14 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': crontab(hour=5, minute=0, day_of_week='sunday'),
     },
 
+    # ── Alice: Defaults check (weekly Sunday 5:20 AM) ────────────────
+    # Records born without their model's defaults, values off a default field's list, the
+    # profile's unread currency keys — one observation each (readme 106 rule 4)
+    'alice-defaults-watchdog-weekly': {
+        'task': 'apps.ai_assistant.tasks.defaults_watchdog_task',
+        'schedule': crontab(hour=5, minute=20, day_of_week='sunday'),
+    },
+
     # ── Alice: Episode harvest (every 6 hours) ───────────────────────
     # Harvest episodes from all active Connections with episode_harvest=true
     'alice-episode-harvest-6h': {

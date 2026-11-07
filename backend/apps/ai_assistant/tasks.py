@@ -508,6 +508,21 @@ def select_list_watchdog_task(limit: int = 500) -> dict:
     return result
 
 
+# ─── Defaults Watchdog ───────────────────────────────────────────────
+@shared_task
+def defaults_watchdog_task() -> dict:
+    """Weekly task (readme 106 rule 4): records born without their model's defaults, values
+    off a default field's list, the profile's unread currency keys — one observation each;
+    the repair is a staff member's sweep_defaults --apply."""
+    logger.info("Starting defaults watchdog")
+    started = timezone.now()
+    from apps.ai_assistant.services.watch_defaults import run_defaults_watchdog
+    result = run_defaults_watchdog()
+    result['duration_seconds'] = (timezone.now() - started).total_seconds()
+    logger.info("Defaults watchdog complete in %.1fs", result['duration_seconds'])
+    return result
+
+
 # ─── Episode Harvest (all active connections) ────────────────────────
 
 @shared_task
