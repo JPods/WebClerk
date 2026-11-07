@@ -67,11 +67,13 @@ def named_term(value: Any) -> str:
                       [f'terms: {e}'])
 
 
-def fill_defaults(obj, model_key: str, data: Dict[str, Any]) -> List[str]:
+def fill_defaults(obj, model_key: str, data: Dict[str, Any], named: bool) -> List[str]:
     """Fill the blank fields of a record this save first gives an ida; the fields filled.
-    Called by the save door after the payload is assigned (save._write)."""
+    Called by the save door after the payload is assigned (save._write). ``named`` is whether
+    the record had an ida before this save: one whose payload carries its ida (an import, a
+    bundle) is still being named now, and its blanks are filled like any newborn's."""
     names = {f.name for f in obj._meta.concrete_fields}
-    if 'ida' not in names or getattr(obj, 'ida', None):      # already named: the moment has passed
+    if 'ida' not in names or named:                           # already named: the moment has passed
         return []
     filled: List[str] = []
     for key, value in model_defaults(model_key).items():

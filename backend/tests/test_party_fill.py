@@ -129,4 +129,4 @@ def test_a_ship_via_from_the_org_lands_in_the_lists_own_spelling(admin, company)
     assert q.ship_via == 'usps'
     odd = Customer.objects.create(company='Odd Co', config={'ship_via': 'pony-express'})
     q = _pick(admin, q, 'quote', 'customer', odd)
-    assert q.ship_via == '', "a carrier the list lacks is not written, and the last customer's does not linger"
+    assert q.ship_via == 'usps', 'a carrier the list lacks is not written; where the org has none the value stays (rule 3)'

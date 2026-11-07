@@ -159,3 +159,11 @@ def test_a_model_without_a_block_is_born_as_it_is(admin, company):
     """A contact has no defaults block yet (106 open B: source_name): nothing is written."""
     contact = Contact.objects.get(pk=new_record(_as(admin), 'contact', {}).obj_id)
     assert contact.ida and not contact.source_name
+
+
+def test_a_record_whose_payload_names_it_is_filled_like_a_newborn(admin, company):
+    """An import or a bundle carries the ida in the create: that save is still the one that
+    first names the record, so its blanks are filled (the lead's review of 2038bf4)."""
+    saved = save_record(_as(admin), {'model_name': 'customer', 'ida': 'IMP-1', 'company': 'Imported Co'}, model_key='customer')
+    imported = Customer.objects.get(pk=saved.obj_id)
+    assert (imported.ida, imported.terms, imported.price_level) == ('IMP-1', 'N30', 'retail')

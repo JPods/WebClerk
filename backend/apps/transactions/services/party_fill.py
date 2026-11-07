@@ -54,9 +54,9 @@ def _take(obj, org, party: str, model_key: str, data: Dict[str, Any], names: set
         setattr(obj, aspect, current)
     if 'attention' in names and 'attention' not in data:
         obj.attention = blocks['bill_to']['addresses']['attention']
-    if 'ship_via' in names and 'ship_via' not in data:      # the org's carrier, else the company's, else none
+    if 'ship_via' in names and 'ship_via' not in data:      # the org's carrier, else the company's, else as it was
         theirs = (org.config or {}).get('ship_via') if isinstance(org.config, dict) else None
-        obj.ship_via = _listed(model_key, 'ship_via', theirs) or company.get('ship_via') or ''
+        obj.ship_via = _listed(model_key, 'ship_via', theirs) or company.get('ship_via') or obj.ship_via
     if party == 'customer' and 'finance' in names and 'finance' not in data:
         _tax(obj, org, blocks.get('ship_to', blocks['bill_to'])['addresses'].get('full_address', ''))
 

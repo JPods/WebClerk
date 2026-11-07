@@ -677,7 +677,7 @@ def _write(actor: Actor, obj, model_cls, model_key: str, norm_key: str, data: di
     _results_are_computed(model_key, data)
     snapshot = _snapshot(obj)
     _assign(obj, data, model_cls, model_key, norm_key, is_update)
-    fill_defaults(obj, model_key, data)   # the save that first names a record fills its blanks (106)
+    fill_defaults(obj, model_key, data, named=bool(snapshot.get('ida')))   # the save that first names a record fills its blanks (106)
     _terms_are_named(obj, snapshot)
     _price_level_is_named(obj, snapshot)
     # After the payload, before the hooks: the hooks see the mark, and no payload sets it.
