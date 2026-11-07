@@ -61,8 +61,8 @@ export async function applyVendorDefaults(vendorId: number): Promise<Record<stri
 }
 
 /** The party's defaults: a sale's customer or a purchase's vendor. */
-export function applyPartyDefaults(party: 'customer' | 'vendor', id: number): Promise<Record<string, unknown>> {
-  return party === 'vendor' ? applyVendorDefaults(id) : applyCustomerDefaults(id);
+export async function applyPartyDefaults(party: 'customer' | 'vendor', id: number): Promise<Record<string, unknown>> {
+  return party === 'vendor' ? applyVendorDefaults(id) : { ...(await applyCustomerDefaults(id)) };
 }
 
 /**

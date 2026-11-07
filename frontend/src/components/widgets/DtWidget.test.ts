@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { dtToLocal, localToDt, localDay, localClock } from './DtWidget';
+import { dtToLocal, localToDt, localDay, localClock, monthGrid } from './DtWidget';
 
 describe('DtWidget — stored UTC, shown local', () => {
   it('reads epoch ms, epoch seconds, an ISO instant and a datetime-local string as the same local moment', () => {
@@ -35,5 +35,21 @@ describe('DtWidget — stored UTC, shown local', () => {
     expect(dtToLocal(null)).toBeNull();
     expect(dtToLocal(0)).toBeNull();
     expect(localClock(dtToLocal('2026-11-03'))).toBe('23:59');
+  });
+});
+
+describe('DtWidget — the month grid', () => {
+  it('shows six Sunday-first weeks around the month (November 2026 opens on Sunday the 1st)', () => {
+    const grid = monthGrid(2026, 10);
+    expect(grid).toHaveLength(42);
+    expect(grid[0].getDay()).toBe(0);
+    expect([grid[0].getMonth(), grid[0].getDate()]).toEqual([10, 1]);
+    expect([grid[41].getMonth(), grid[41].getDate()]).toEqual([11, 12]);
+  });
+
+  it('a month that starts mid-week leads with the end of the month before (October 2026 starts Thursday)', () => {
+    const grid = monthGrid(2026, 9);
+    expect([grid[0].getMonth(), grid[0].getDate()]).toEqual([8, 27]);
+    expect([grid[4].getMonth(), grid[4].getDate()]).toEqual([9, 1]);
   });
 });
