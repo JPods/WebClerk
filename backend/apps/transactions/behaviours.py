@@ -20,6 +20,7 @@ from typing import Any, Dict, List
 from apps.core.services.behaviours import HookContext, ModelBehaviour, register
 from apps.core.services.door import Refused
 from apps.transactions.services.party_fill import take_party
+from apps.transactions.services.reprice import reprice_lines
 
 logger = logging.getLogger(__name__)
 
@@ -112,8 +113,9 @@ def check_transfer(model_key: str, parent_model: str, lines: List[Dict[str, Any]
 class DocumentBehaviour(ModelBehaviour):
     """Every document: takes its party's values when its customer or vendor is set
     (services/party_fill.py; its company defaults are the save door's, core/services/defaults.py),
-    a transfer takes no more than its source has left, and a locked one refuses what its lock
-    stops (services/document_lock.py)."""
+    reprices its lines when its party or price level changed (services/reprice.py), a transfer
+    takes no more than its source has left, and a locked one refuses what its lock stops
+    (services/document_lock.py)."""
 
     def hook(self, moment: str, ctx: HookContext) -> None:
         from apps.transactions.services.document_lock import LOCKABLE_MODELS, refuse_if_locked
@@ -137,11 +139,16 @@ class DocumentBehaviour(ModelBehaviour):
                               validate_status.incomplete_coaching(ctx.model_key, 'release', missing),
                               {'missing': missing})
 
+    def after_save(self, ctx: HookContext) -> None:
+        """A sell document whose party or price level changed reprices its lines (106 rule 5)."""
+        reprice_lines(ctx)
+
 
 class OrderBehaviour(DocumentBehaviour):
     """An order records the discount it gave away."""
 
     def after_save(self, ctx: HookContext) -> None:
+        super().after_save(ctx)
         from apps.accounts.services.value_erosion import detect_discount_erosion
         detect_discount_erosion(ctx.obj)
 
@@ -151,6 +158,7 @@ class InvoiceBehaviour(DocumentBehaviour):
     discount it gave away. Both replace their earlier record, so a re-save is safe."""
 
     def after_save(self, ctx: HookContext) -> None:
+        super().after_save(ctx)
         from apps.accounts.services.value_erosion import (detect_discount_erosion,
                                                           detect_margin_erosion)
         detect_margin_erosion(ctx.obj)

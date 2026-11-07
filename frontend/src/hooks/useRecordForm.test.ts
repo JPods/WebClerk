@@ -28,7 +28,7 @@ vi.mock('@/utils/jsonLimits', () => ({
 }));
 vi.mock('@/utils/windowChannel', () => ({ windowChannel: { on: () => () => {}, send: () => {} } }));
 
-import { useRecordForm, editTierOf, nestedWrite } from './useRecordForm';
+import { useRecordForm, editTierOf, nestedWrite, repriceNote } from './useRecordForm';
 
 const contactLayout: any = { model: 'contact', family: 'core', sections: [{ type: 'header', columns: [] }],
   edit_rules: { status_field: 'status', locked_statuses: ['canceled'] } };
@@ -71,6 +71,17 @@ describe('useRecordForm', () => {
     await waitFor(() => expect(api.getRecord).toHaveBeenCalledTimes(2));   // the reload: the server's fill
     expect(result.current.isEditing).toBe(true);
     expect(toasts[toasts.length - 1]?.message).toBe('Customer applied');
+  });
+
+  it('tells the person what the party pick repriced (106 rule 5)', async () => {
+    api.saveRecord.mockResolvedValue({ messages: [{ repriced: [{ line: 1, old: 100, new: 75 }, { line: 2, old: 100, new: 75 }], kept: [{ line: 3, why: 'fixed' }], price_level: 'wholesale' }] });
+    const record = { id: 22, version: 1, status: 'planned', totals: { total: 0 }, lines: [] };
+    const { result } = await load('order', record, orderLayout);
+    act(() => result.current.startEdit());
+    act(() => result.current.setField('customer', 5));
+    await waitFor(() => expect(api.saveRecord).toHaveBeenCalled());
+    await waitFor(() => expect(toasts[toasts.length - 1]?.message).toBe('Customer applied. 2 lines repriced to wholesale, 1 kept'));
+    expect(repriceNote(['plain text'])).toBe('');
   });
 
   it('writes a dotted field into its envelope', () => {

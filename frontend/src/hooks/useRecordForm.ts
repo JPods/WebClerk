@@ -98,6 +98,19 @@ export function nestedWrite(prev: any, field: string, value: unknown): any {
   return clone;
 }
 
+/** What the save repriced, in a sentence: the server's structured detail (readme 106 rule 5,
+ *  transactions/services/reprice.py) — "2 lines repriced to wholesale, 1 kept". */
+export function repriceNote(messages: unknown): string {
+  const detail = (Array.isArray(messages) ? messages : []).find((m: any) => m && typeof m === 'object' && Array.isArray(m.repriced)) as any;
+  if (!detail) return '';
+  const n = detail.repriced.length;
+  const kept = Array.isArray(detail.kept) ? detail.kept.length : 0;
+  const parts = [];
+  if (n) parts.push(`${n} line${n === 1 ? '' : 's'} repriced to ${detail.price_level || 'the new level'}`);
+  if (kept) parts.push(`${kept} kept`);
+  return parts.join(', ');
+}
+
 /** The server's sentence for a refused save, else the error's. */
 export function refusalMessage(err: any): string {
   const resp = err?.response?.data;
@@ -268,12 +281,11 @@ export function useRecordForm(opts: RecordFormOptions) {
         ? { ...changedFields(loadedById.get(l.id), l), _dirty: true }
         : withoutEmpties(l));
       const header = changedFields(data, editedHeader);
-      if (linesToSend.length || deletions.length) {
-        await saveTransactionWithLines(modelName, { ...header, lines: [...linesToSend, ...deletions] });
-      } else {
-        await saveRecord(modelName, header);
-      }
-      dispatch(showToast({ message: opts?.message || `${modelName} saved`, type: 'success' }));
+      const saved = (linesToSend.length || deletions.length)
+        ? await saveTransactionWithLines(modelName, { ...header, lines: [...linesToSend, ...deletions] })
+        : await saveRecord(modelName, header);
+      const repriced = repriceNote(saved?.messages);
+      dispatch(showToast({ message: [opts?.message || `${modelName} saved`, repriced].filter(Boolean).join('. '), type: 'success' }));
       if (opts?.keepEditing !== true) setIsEditing(false);
       fetchData();
       onAfterSave?.();
