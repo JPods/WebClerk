@@ -28,7 +28,7 @@ vi.mock('@/utils/jsonLimits', () => ({
 }));
 vi.mock('@/utils/windowChannel', () => ({ windowChannel: { on: () => () => {}, send: () => {} } }));
 vi.mock('@/apps/transactions/utils/applyCustomerDefaults', () => ({
-  applyCustomerDefaults: vi.fn(), DISPLAY_ONLY_KEYS: ['customer_config', 'customer_company'],
+  applyPartyDefaults: vi.fn(), DISPLAY_ONLY_KEYS: ['customer_config', 'customer_company'],
 }));
 
 import { useRecordForm, editTierOf, nestedWrite } from './useRecordForm';

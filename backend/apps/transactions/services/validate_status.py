@@ -200,16 +200,21 @@ REQUIRES = {
     'purchase': ('vendor', 'terms', 'lines'), 'receipt': ('vendor', 'terms', 'lines'),
     'workorder': ('lines',), 'requisition': ('lines',),
 }
+#: What a convert needs of its source, by target. Invoicing is a money step: the source carries the
+#: customer and terms the invoice bills on. Receiving is goods arriving: a vendor and lines; the terms
+#: bind at the bill, not at the dock (the lead, 2026-11-06). Other converts are planning steps and free.
+CONVERT_REQUIRES = {'invoice': ('customer', 'terms', 'lines'), 'receipt': ('vendor', 'lines')}
 _LINE_MODELS = {'quote': 'QuoteLine', 'order': 'OrderLine', 'invoice': 'InvoiceLine', 'purchase': 'PurchaseLine',
                 'receipt': 'ReceiptLine', 'workorder': 'WorkOrderLine', 'requisition': 'RequisitionLine'}
 
 
-def incomplete(instance, model_type: str, payload_lines=None) -> list[str]:
+def incomplete(instance, model_type: str, payload_lines=None, needs=None) -> list[str]:
     """The requirements ``instance`` lacks, by name (customer, vendor, terms, line); [] when it
-    is complete. ``payload_lines`` are lines arriving in the same save, written after the hooks:
-    one not marked removed counts as a line the document will have."""
+    is complete. ``needs`` is the step's tuple (REQUIRES[model_type] when None). ``payload_lines``
+    are lines arriving in the same save, written after the hooks: one not marked removed counts
+    as a line the document will have."""
     missing = []
-    for need in REQUIRES.get(model_type, ()):
+    for need in (REQUIRES.get(model_type, ()) if needs is None else needs):
         if need == 'lines':
             arriving = [l for l in (payload_lines or []) if isinstance(l, dict)
                         and not l.get('_removed') and not l.get('_delete')]
@@ -223,8 +228,9 @@ def incomplete(instance, model_type: str, payload_lines=None) -> list[str]:
     return missing
 
 
-def incomplete_coaching(model_type: str, step: str, missing: list) -> str:
-    needs = ', '.join(w if w != 'line' else 'at least one line' for w in REQUIRES.get(model_type, ()))
+def incomplete_coaching(model_type: str, step: str, missing: list, needs=None) -> str:
+    needs = ', '.join(w if w != 'line' else 'at least one line'
+                      for w in (REQUIRES.get(model_type, ()) if needs is None else needs))
     lacks = ', '.join(f'no {w}' for w in missing)
     return (f'A {model_type} cannot {step} without {needs}. This one has {lacks}. '
             f'Save it as it is; add what it lacks, then {step} again.')

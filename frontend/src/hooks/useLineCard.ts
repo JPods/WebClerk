@@ -410,10 +410,8 @@ export function useLineCard(options: UseLineCardOptions) {
     }
 
     cols.push({ name: 'amount', field: 'amount', width: '110px', sortable: true });
-
-    if (isSellSide) {
-      cols.push({ name: 'tax%', field: 'tax_rate', width: '55px', sortable: true });
-    }
+    // No tax% column: a line's tax rate is noise to 95% of companies (Bill, 2026-11-06); the
+    // document's tax stays in finance and on the totals strip.
 
     // Commission columns — hidden unless toggled on
     if (showCommission && isSellSide) {

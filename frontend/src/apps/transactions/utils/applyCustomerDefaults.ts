@@ -38,6 +38,33 @@ export interface CustomerDefaults {
   has_reps?: boolean;
 }
 
+/** A vendor's defaults for a purchase or receipt: the vendor is the bill_to block (the layout's
+ *  first column, title_ida), its terms are the document's; ship_to stays the company's own.
+ *  Bill, 2026-11-06: searching for a vendor found it but populated nothing. */
+export async function applyVendorDefaults(vendorId: number): Promise<Record<string, unknown>> {
+  const resp = await getRecord('vendor', vendorId);
+  const v = resp?.record || resp;
+  if (!v) throw new Error(`Vendor ${vendorId} not found`);
+  const addrs = v.addresses || {};
+  const company = addrs.bill_to?.company || v.company || v.display_name || v.name || '';
+  const attention = addrs.bill_to?.attention || v.attention || '';
+  return {
+    vendor_id: vendorId,
+    attention,
+    terms: v.terms || '',
+    addresses: { bill_to: { contact_id: addrs.bill_to?.contact_id || v.contact_id || null, company, attention,
+                            full_address: addrs.bill_to?.full_address || v.address_full || '',
+                            instructions: addrs.bill_to?.instructions || '' } },
+    emails: { bill_to: { email: (v.emails || {}).bill_to?.email || v.email || '' } },
+    phones: { bill_to: { number: (v.phones || {}).bill_to?.number || v.phone || '' } },
+  };
+}
+
+/** The party's defaults: a sale's customer or a purchase's vendor. */
+export function applyPartyDefaults(party: 'customer' | 'vendor', id: number): Promise<Record<string, unknown>> {
+  return party === 'vendor' ? applyVendorDefaults(id) : applyCustomerDefaults(id);
+}
+
 /**
  * Fetch customer + contact and build defaults dict.
  * @param customerId - OrgBase record ID

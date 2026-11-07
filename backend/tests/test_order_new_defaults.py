@@ -1,7 +1,8 @@
-"""A new order is born with the company's defaults and takes its customer's (Bill, 2026-11-05):
-price_level retail when no one says, terms from the customer or the company's defaults.terms,
-dt_needed = born + defaults.order_new.days, priority = defaults.order_new.priority. The server
-computes them in the save door's hook; the form shows what the save returns."""
+"""A new document is born with the company's defaults and takes its party's (Bill, 2026-11-05;
+every document, 2026-11-06): price_level retail when no one says, terms from the customer or
+vendor or the company's defaults.terms, dt_needed = born + defaults.order_new.days, priority =
+defaults.order_new.priority. The server computes them in the save door's hook; the form shows
+what the save returns."""
 import time
 
 import pytest
@@ -11,8 +12,8 @@ from apps.core.services.cache import cache_service
 from apps.core.services.door import Actor, Refused
 from apps.core.services.new import new_record
 from apps.core.services.save import save_record
-from apps.orgs.models import Customer
-from apps.transactions.models import Order
+from apps.orgs.models import Customer, Vendor
+from apps.transactions.models import Order, Purchase, Quote, Receipt
 
 pytestmark = pytest.mark.django_db
 
@@ -53,7 +54,24 @@ def test_an_order_is_born_with_the_company_defaults(admin, company):
     assert order.priority == 'medium'
     assert order.price_level == 'retail'
     assert before + 14 * DAY_MS <= order.dt_needed <= before + 14 * DAY_MS + 60_000
-    assert order.terms in (None, '')   # no customer yet: the customer decides the terms
+    assert order.terms == 'N30'   # the company's until a customer says otherwise
+
+
+@pytest.mark.parametrize('model_key,Model', [('quote', Quote), ('purchase', Purchase), ('receipt', Receipt)])
+def test_every_document_is_born_with_the_company_defaults(admin, company, model_key, Model):
+    """Bill walked the simulator on 2026-11-06: a quote and a purchase were born bare."""
+    before = int(time.time() * 1000)
+    doc = Model.objects.get(pk=new_record(_as(admin), model_key, {}).obj_id)
+    assert (doc.priority, doc.price_level, doc.terms) == ('medium', 'retail', 'N30')
+    assert before + 14 * DAY_MS <= doc.dt_needed <= before + 14 * DAY_MS + 60_000
+
+
+def test_a_vendor_gives_its_terms_to_a_purchase(admin, company):
+    seller = Vendor.objects.create(company='Terms Seller', terms='N10')
+    po = Purchase.objects.get(pk=new_record(_as(admin), 'purchase', {}).obj_id)
+    save_record(_as(admin), {'id': po.pk, 'version': po.version, 'vendor_id': seller.pk}, model_key='purchase')
+    po.refresh_from_db()
+    assert po.terms == 'N10'
 
 
 def test_a_customer_with_terms_and_a_level_gives_them_to_the_order(admin, company):
@@ -97,8 +115,6 @@ def test_a_company_default_terms_that_is_no_term_is_refused_where_it_bites(admin
     company.config['defaults']['terms'] = 'net45'
     company.save()
     cache_service.invalidate_namespace('company_profile')
-    buyer = Customer.objects.create(company='Plain Buyer')
-    order = _born(admin)
-    with pytest.raises(Refused) as refused:
-        save_record(_as(admin), {'id': order.pk, 'version': order.version, 'customer_id': buyer.pk}, model_key='order')
+    with pytest.raises(Refused) as refused:   # it bites at birth: the company's terms are the newborn's
+        _born(admin)
     assert refused.value.code == 'invalid_terms' and 'defaults.terms' in refused.value.message

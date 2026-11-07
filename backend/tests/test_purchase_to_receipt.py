@@ -13,6 +13,7 @@ never changes after (2026-09-28).
 import pytest
 
 from apps.core.models.pending import Pending
+from apps.orgs.models import Vendor
 from apps.products.models import Item, Warehouse
 from apps.transactions.models import Purchase, PurchaseLine, Receipt, ReceiptLine
 
@@ -45,9 +46,11 @@ def _item(name):
 
 
 def _po(*lines):
-    """A purchase with a line per (item, ordered, cost)."""
+    """A purchase from a vendor with a line per (item, ordered, cost). No terms on purpose:
+    receiving needs the vendor and lines; the terms bind at the bill (the lead, 2026-11-06)."""
     Warehouse.objects.get_or_create(code='MAIN', defaults={'name': 'Main', 'is_active': True})
-    po = Purchase.objects.create()
+    vendor, _ = Vendor.objects.get_or_create(company='Receiving Vendor', defaults={'is_active': True})
+    po = Purchase.objects.create(vendor_id=vendor.pk)
     pols = [PurchaseLine.objects.create(
         purchase=po, item={'item_id': item.pk, 'description': item.name},
         quantity={'active': ordered, 'staged': ordered}, cost=dict(cost))
@@ -78,6 +81,7 @@ def test_a_planned_receipt_takes_everything_left_and_holds_it_until_received(adm
     assert r.status_code == 200, r.content
     receipt = Receipt.objects.get(pk=_data(r)['receipt_id'])
     assert receipt.ida, 'the core model assigns the number'
+    assert receipt.vendor_id == po.vendor_id, 'the receipt is from the purchase\'s vendor'
     assert (receipt.status, receipt.parent_model, receipt.parent_id) == ('planned', 'purchase', po.pk)
     lines = {line.parent_line_id: line for line in ReceiptLine.objects.filter(receipt=receipt)}
     assert set(lines) == {pa.pk, pb.pk}
@@ -246,8 +250,11 @@ def test_the_old_receive_routes_are_gone(admin_client):
 # ── the other pairs keep their rules ───────────────────────────────────────────────
 
 def _order(item, ordered):
+    """An order a person can invoice: a customer, terms and a line (invoicing is a money step)."""
+    from apps.orgs.models import Customer
     from apps.transactions.models import Order, OrderLine
-    order = Order.objects.create()
+    buyer, _ = Customer.objects.get_or_create(company='Invoiced Customer', defaults={'is_active': True})
+    order = Order.objects.create(customer_id=buyer.pk, terms='N30')
     line = OrderLine.objects.create(order=order, item_fk=item,
                                     item={'item_id': item.pk, 'description': item.name},
                                     quantity={'active': ordered, 'staged': ordered},

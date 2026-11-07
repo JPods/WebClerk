@@ -26,7 +26,8 @@ import { applyDerived } from '@/utils/derivedFields';
 import { checkJsonLimits, describeJsonLimitProblems, jsonLimitsLoaded, loadJsonLimits } from '@/utils/jsonLimits';
 import { COMMUNICATION_FIELDS, communicationField, communicationValue, showsCommunication } from '@/utils/communicationFields';
 import { windowChannel } from '@/utils/windowChannel';
-import { applyCustomerDefaults, DISPLAY_ONLY_KEYS } from '@/apps/transactions/utils/applyCustomerDefaults';
+import { applyPartyDefaults, DISPLAY_ONLY_KEYS } from '@/apps/transactions/utils/applyCustomerDefaults';
+import { partyOf } from '@/apps/transactions/components/detail/CustomerSearch';
 import { getActiveLines, getRemovedLines, isPersistedLine } from '@/apps/transactions/services/lineItemService';
 import type { TransactionLine } from '@/apps/transactions/types/transactionTypes';
 
@@ -146,10 +147,11 @@ export function useRecordForm(opts: RecordFormOptions) {
       // the save saw no change and never stored them (the screen showed wholesale while the
       // record held retail).
       const fills: Record<string, unknown> = {};
-      const custId = withLines ? (record?.customer_id || record?.customer) : null;
+      const party = partyOf(modelName);
+      const custId = withLines ? (record?.[`${party}_id`] || record?.[party]) : null;
       if (custId) {
         try {
-          const custResp = await getRecord('customer', custId);
+          const custResp = await getRecord(party, custId);
           const cust = (custResp as any)?.record || custResp;
           if (cust?.config) record.customer_config = cust.config;
           record.customer_company = cust?.company || cust?.display_name || cust?.name || '';
@@ -213,15 +215,17 @@ export function useRecordForm(opts: RecordFormOptions) {
       const next = nestedWrite(prev, field, value);
       return field.includes('.') ? next : applyDerived(modelName, prev, next, field);
     });
-    // A document's customer brings its defaults (bill-to, ship-to, terms, reps).
-    if (withLines && (field === 'customer' || field === 'customer_id') && value) {
+    // A document's party brings its defaults: a customer its bill-to, ship-to, terms and reps; a
+    // purchase's vendor its bill-to block and terms (Bill, 2026-11-06).
+    const party = partyOf(modelName);
+    if (withLines && (field === party || field === `${party}_id`) && value) {
       const custId = typeof value === 'number' ? value : Number(value);
       if (custId > 0) {
-        applyCustomerDefaults(custId).then((defaults) => {
+        applyPartyDefaults(party, custId).then((defaults: any) => {
           setEditData((prev: any) => (prev ? { ...prev, ...defaults } : prev));
-          dispatch(showToast({ message: `Customer defaults applied: ${defaults.addresses.bill_to.company}`, type: 'success' }));
+          dispatch(showToast({ message: `${party === 'vendor' ? 'Vendor' : 'Customer'} defaults applied: ${defaults.addresses?.bill_to?.company || ''}`, type: 'success' }));
         }).catch(() => {
-          dispatch(showToast({ message: 'Could not load customer defaults', type: 'error' }));
+          dispatch(showToast({ message: `Could not load ${party} defaults`, type: 'error' }));
         });
       }
     }

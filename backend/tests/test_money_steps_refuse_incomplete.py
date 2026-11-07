@@ -1,7 +1,9 @@
 """The money steps refuse an incomplete document, with coaching (the team, 2026-11-06; Bill:
 save stays permissive — a template order without a customer saves). Release, invoice (convert)
-and journalize refuse a document that has no party, no terms or no lines; the hard requirement
-lives on the state change, not on save, and goes through the existing state-change code.
+and journalize refuse a document that has no party, no terms or no lines; receiving (convert to
+receipt) needs the vendor and lines, not terms (the lead, 2026-11-06); quote→order and
+order→purchase are planning steps and free. The hard requirement lives on the state change,
+not on save, and goes through the existing state-change code.
 There is no ship step in WC3: an invoice's release is where goods leave."""
 import pytest
 
@@ -104,17 +106,36 @@ def test_an_incomplete_document_still_saves(admin, model_key):
     assert doc.comments.get('public') == 'template'
 
 
-# ── invoice: convert, the source must be complete ──
+# ── convert: invoicing needs the customer, terms and lines; receiving needs the vendor and lines ──
 
 @pytest.mark.parametrize('source,target,lack', [
-    ('quote', 'order', 'party'), ('quote', 'order', 'terms'),
     ('quote', 'invoice', 'party'), ('order', 'invoice', 'party'), ('order', 'invoice', 'terms'),
-    ('order', 'purchase', 'party'), ('purchase', 'receipt', 'party'), ('purchase', 'receipt', 'terms'),
+    ('order', 'invoice', 'lines'), ('purchase', 'receipt', 'party'), ('purchase', 'receipt', 'lines'),
 ])
 def test_convert_refuses_an_incomplete_source(admin, terms, source, target, lack):
-    doc = _document(source, party=lack != 'party', terms_ida='' if lack == 'terms' else terms)
+    doc = _document(source, party=lack != 'party', terms_ida='' if lack == 'terms' else terms,
+                    lines=0 if lack == 'lines' else 1)
     refused = _refused(lambda: run_command(admin, 'convert', source, doc.pk, {'to': target}))
     assert refused.status == 409 and refused.code == 'incomplete_document'
+    assert refused.details['missing'] == [{'party': 'customer' if source != 'purchase' else 'vendor',
+                                           'terms': 'terms', 'lines': 'line'}[lack]]
+
+
+def test_receiving_does_not_need_terms(admin):
+    """Receiving is goods arriving; the terms bind at the vendor's bill (the lead, 2026-11-06)."""
+    from apps.products.models import Warehouse
+    Warehouse.objects.get_or_create(code='MAIN', defaults={'name': 'Main', 'is_active': True})
+    po = _document('purchase', terms_ida='')
+    run_command(admin, 'convert', 'purchase', po.pk, {'to': 'receipt'})
+    assert Receipt.objects.filter(parent_id=po.pk, parent_model="purchase").exists()
+
+
+def test_planning_converts_are_free(admin):
+    """quote→order moves no money: a template quote without a customer becomes a template order
+    (Bill: template orders without a customer are a person's own business)."""
+    quote = _document('quote', party=False, terms_ida='')
+    run_command(admin, 'convert', 'quote', quote.pk, {'to': 'order'})
+    assert Order.objects.get(parent_id=quote.pk, parent_model="quote").customer_id is None
 
 
 # ── journalize ──

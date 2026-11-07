@@ -109,9 +109,54 @@ def check_transfer(model_key: str, parent_model: str, lines: List[Dict[str, Any]
                      'available': available})
 
 
+def _company_terms(default: dict) -> str:
+    """``defaults.terms`` as the Term's own ida; a profile naming no term is a configuration
+    fault, refused where it bites with the valid idas (fail fast, never silent)."""
+    from apps.accounts.services.terms_ledger import named_term_ida
+    try:
+        return named_term_ida(default.get('terms'))
+    except ValueError as e:
+        raise Refused(400, 'invalid_terms',
+                      f'The company profile defaults.terms is wrong: {e}', [f'terms: {e}'])
+
+
+def apply_document_defaults(ctx: HookContext) -> None:
+    """A document is born with the company's defaults and takes its party's (Bill, 2026-11-05;
+    every document, not only the order — Bill in the simulator, 2026-11-06).
+
+    Born (the `new` verb): dt_needed = now + ``defaults.order_new.days``, priority =
+    ``defaults.order_new.priority``, terms = ``defaults.terms`` — the company profile's. When
+    its party (customer or vendor) is set or changed: terms = the party's, else the company's;
+    price_level = the party's, else retail. A value the same payload carries is the person's
+    and stays. The server computes; the form shows what the save returns."""
+    from apps.core.services.company_profile import company_config
+    obj = ctx.obj
+    has = lambda name: hasattr(obj, name)   # a requisition is a plain BaseModel: no party, no terms
+    default = company_config('defaults')
+    order_new = default.get('order_new') if isinstance(default.get('order_new'), dict) else {}
+    if not ctx.is_update:
+        days = order_new.get('days')
+        if has('dt_needed') and not obj.dt_needed and 'dt_needed' not in ctx.data and days not in (None, ''):
+            obj.dt_needed = int(time.time() * 1000) + int(float(days) * 86_400_000)
+        if has('priority') and not obj.priority and order_new.get('priority'):
+            obj.priority = order_new['priority']
+        if has('terms') and not obj.terms and 'terms' not in ctx.data and default.get('terms'):
+            obj.terms = _company_terms(default)
+    for party in ('customer', 'vendor'):                                      # the FK's field name
+        if getattr(obj, f'{party}_id', None) and (not ctx.is_update or party in ctx.changed):
+            org = getattr(obj, party)
+            if 'terms' not in ctx.data:            # the payload's keys: what the person typed
+                obj.terms = org.terms or _company_terms(default) or obj.terms
+            if 'price_level' not in ctx.data:
+                obj.price_level = org.price_level or obj.price_level
+    if has('price_level') and not obj.price_level:
+        obj.price_level = 'retail'
+
+
 class DocumentBehaviour(ModelBehaviour):
-    """Every document: a transfer takes no more than its source has left, and a locked one
-    refuses what its lock stops (services/document_lock.py)."""
+    """Every document: born with the company's defaults (apply_document_defaults), a transfer
+    takes no more than its source has left, and a locked one refuses what its lock stops
+    (services/document_lock.py)."""
 
     def hook(self, moment: str, ctx: HookContext) -> None:
         from apps.transactions.services.document_lock import LOCKABLE_MODELS, refuse_if_locked
@@ -120,6 +165,7 @@ class DocumentBehaviour(ModelBehaviour):
         super().hook(moment, ctx)
 
     def before_save(self, ctx: HookContext) -> None:
+        apply_document_defaults(ctx)
         lines = ctx.data.get('lines')
         parent_model = getattr(ctx.obj, 'parent_model', None)
         if lines and parent_model and getattr(ctx.obj, 'parent_id', None):
@@ -136,46 +182,7 @@ class DocumentBehaviour(ModelBehaviour):
 
 
 class OrderBehaviour(DocumentBehaviour):
-    """An order is born with the company's defaults and takes its customer's (Bill, 2026-11-05).
-
-    Born (the `new` verb): dt_needed = now + ``defaults.order_new.days``, priority =
-    ``defaults.order_new.priority`` — the company profile's. When its customer is set or
-    changed: terms = the customer's, else the company's ``defaults.terms``; price_level = the
-    customer's, else retail. A value the same payload carries is the person's and stays. The
-    server computes; the form shows what the save returns. It records the discount it gave away.
-    """
-
-    def before_save(self, ctx: HookContext) -> None:
-        super().before_save(ctx)
-        from apps.core.services.company_profile import company_config
-        obj = ctx.obj
-        default = company_config('defaults')
-        order_new = default.get('order_new') if isinstance(default.get('order_new'), dict) else {}
-        if not ctx.is_update:
-            days = order_new.get('days')
-            if not obj.dt_needed and 'dt_needed' not in ctx.data and days not in (None, ''):
-                obj.dt_needed = int(time.time() * 1000) + int(float(days) * 86_400_000)
-            if not obj.priority and order_new.get('priority'):
-                obj.priority = order_new['priority']
-        if obj.customer_id and (not ctx.is_update or 'customer' in ctx.changed):   # the FK's field name
-            customer = obj.customer
-            if 'terms' not in ctx.data:            # the payload's keys: what the person typed
-                obj.terms = customer.terms or self._company_terms(default) or obj.terms
-            if 'price_level' not in ctx.data:
-                obj.price_level = customer.price_level or obj.price_level
-        if not obj.price_level:
-            obj.price_level = 'retail'
-
-    @staticmethod
-    def _company_terms(default: dict) -> str:
-        """``defaults.terms`` as the Term's own ida; a profile naming no term is a configuration
-        fault, refused where it bites with the valid idas (fail fast, never silent)."""
-        from apps.accounts.services.terms_ledger import named_term_ida
-        try:
-            return named_term_ida(default.get('terms'))
-        except ValueError as e:
-            raise Refused(400, 'invalid_terms',
-                          f'The company profile defaults.terms is wrong: {e}', [f'terms: {e}'])
+    """An order records the discount it gave away."""
 
     def after_save(self, ctx: HookContext) -> None:
         from apps.accounts.services.value_erosion import detect_discount_erosion
@@ -294,7 +301,11 @@ class StatementLineBehaviour(ModelBehaviour):
 class ReceiptBehaviour(ModelBehaviour):
     """A receipt may take more than its purchase line has left: a vendor's over-shipment is
     accepted and Alice is told (Bill, 2026-09-27, "accept and flag"). So a receipt carries no
-    transfer check; after the save, each purchase line received past its active is flagged."""
+    transfer check; after the save, each purchase line received past its active is flagged.
+    It is born with the company's defaults and its vendor's terms like every document."""
+
+    def before_save(self, ctx: HookContext) -> None:
+        apply_document_defaults(ctx)
 
     def after_save(self, ctx: HookContext) -> None:
         flag_over_receipts(ctx.obj)

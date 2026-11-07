@@ -55,12 +55,10 @@ def test_quote_has_no_list_or_detail_route():
 
 def test_quote_convert_to_order_endpoint_exists(api_client, customer):
     """Converting is a command on the quote: POST /wcapi/quote/<id>/convert/ {to}. A quote
-    with no lines is refused with the reason, not a missing route — as an incomplete document
-    (409 incomplete_document, the money steps' one rule, 2026-11-06)."""
-    from apps.accounts.models import Term
-    Term.objects.get_or_create(ida='N30', defaults={'name': 'N30', 'is_active': True})
-    quote = Quote.objects.create(status='planned', customer_id=customer.id, terms='N30')   # complete: convert refuses a quote without terms (2026-11-06)
+    with no lines is refused with the reason, not a missing route. quote→order is a planning
+    step, not a money step, so the refusal is the convert's own (no_lines), not incomplete_document
+    (the lead, 2026-11-06: REQUIRES per step)."""
+    quote = Quote.objects.create(status='planned', customer_id=customer.id)
     response = api_client.post(f'/wcapi/quote/{quote.pk}/convert/', {'to': 'order'}, format='json')
-    assert response.status_code == status.HTTP_409_CONFLICT, response.content
-    assert response.json()['error']['code'] == 'incomplete_document'
-    assert response.json()['error']['details']['missing'] == ['line']
+    assert response.status_code == status.HTTP_400_BAD_REQUEST, response.content
+    assert response.json()['error']['code'] == 'no_lines'

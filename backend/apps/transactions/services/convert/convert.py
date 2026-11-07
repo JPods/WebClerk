@@ -54,6 +54,9 @@ _HEADER_COPY_FIELDS_SELL = (
     # of truth; address_full/email/phone are read-only properties derived from them.
     "addresses", "emails", "phones",
     "price_level", "terms",
+    # How the sale came in and when it is needed travel with it (Bill, 2026-11-06: source_name
+    # did not track from the quote to the order).
+    "source_name", "priority", "dt_needed",
     "is_commission", "conditions_id", "conditions_description",
     # Tax jurisdiction and rate: the same sale is taxed the same way at every step.
     "finance",
@@ -65,6 +68,9 @@ _HEADER_COPY_FIELDS_SELL = (
 # Only item references and basic config carry forward.
 _HEADER_COPY_FIELDS_BUY = (
     "config", "source",
+    # A receipt is from its purchase's vendor and carries its need; an order has no vendor_id, so
+    # order → purchase copies nothing here and the person names the vendor in review.
+    "vendor_id", "source_name", "priority", "dt_needed",
 )
 
 # Fields copied from source line to target line (sell-side)
@@ -424,10 +430,11 @@ def convert_command(ctx) -> Dict[str, Any]:
         raise _refuse("to_required", f"Name what the {ctx.model_key} converts to: {{\"to\": ...}}.")
     from apps.core.services.door import Refused
     from apps.transactions.services import validate_status
-    missing = validate_status.incomplete(ctx.obj, ctx.model_key)
+    needs = validate_status.CONVERT_REQUIRES.get(to)
+    missing = validate_status.incomplete(ctx.obj, ctx.model_key, needs=needs) if needs else []
     if missing:   # a money step: the source is complete or it stays as it is (the team, 2026-11-06)
         raise Refused(409, "incomplete_document",
-                      validate_status.incomplete_coaching(ctx.model_key, f"convert to {to}", missing),
+                      validate_status.incomplete_coaching(ctx.model_key, f"convert to {to}", missing, needs),
                       {"missing": missing})
     named = ctx.data.get("lines")
     line_ids, take = None, None
