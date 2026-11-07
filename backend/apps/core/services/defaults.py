@@ -17,7 +17,8 @@ existing records are repaired by the sweep (106 step 4), not on every save.
 ``model_defaults`` is the one reader. ``checked_defaults`` is the one gate: a block naming a
 field the model lacks, a value off the field's list, or a formatting key that is not one of the
 four is refused where it is written (Setting.save). ``shipped_defaults`` is what a fresh
-installation starts with (seed_model_definitions) and what the migration gave wc_demo.
+installation starts with (seed_model_definitions); the migration that gave wc_demo its blocks
+(core 0072) carries its own frozen copy.
 
 A ``<field>_days`` default is that many days from now, written as the dt_ field's UTC epoch ms.
 """
@@ -214,40 +215,6 @@ def defaults_schema(model_key: str):
     return None
 
 
-# ── the migration's transform (pure; also applied to the bundles) ────────────
-
-def migrate_definition(model_key: str, config: Dict[str, Any], company_defaults: Optional[Dict[str, Any]]) -> Dict[str, Any]:
-    """A definition's config in the new shape: ``defaults`` = {fields, formatting}, the old
-    ``formatting`` section folded in and gone. The fields are what the company profile gave
-    every document before (terms, order_new.days, order_new.priority), else the shipped ones;
-    a definition that already holds the new shape is left as it is."""
-    config = dict(config or {})
-    old = config.get('defaults')
-    if isinstance(old, dict) and set(old) <= {'fields', 'formatting'} and ('fields' in old or 'formatting' in old):
-        fields = dict(old.get('fields') or {})
-        formatting = dict(old.get('formatting') or {})
-    else:
-        fields = {k: v for k, v in (old or {}).items() if v not in (None, '')} if isinstance(old, dict) else {}
-        fields = fields or fields_from_company(model_key, company_defaults)
-        formatting = {}
-    legacy = config.pop('formatting', None)
-    if isinstance(legacy, dict):
-        formatting = {**legacy, **formatting}
-    config['defaults'] = {'fields': fields, 'formatting': {**SHIPPED_FORMATTING, **{k: v for k, v in formatting.items() if k in FORMATTING_KEYS}}}
-    return config
-
-
-def fields_from_company(model_key: str, company_defaults: Optional[Dict[str, Any]]) -> Dict[str, Any]:
-    """The pre-106 company profile's {terms, order_new: {days, priority}} as this model's block."""
-    shipped = dict(SHIPPED_FIELDS.get(model_key, {}))
-    if not isinstance(company_defaults, dict) or not company_defaults:
-        return shipped
-    terms = company_defaults.get('terms')
-    order_new = company_defaults.get('order_new') if isinstance(company_defaults.get('order_new'), dict) else {}
-    carried = {'terms': terms, 'dt_needed_days': order_new.get('days'), 'priority': order_new.get('priority')}
-    return {k: (carried[k] if k in carried and carried[k] not in (None, '') else v) for k, v in shipped.items()}
-
-
 # ── an org's own defaults for its documents ─────────────────────────────────
 #: What an org's config.defaults.fields may hold: the document fields a party fill may set
 #: that are not columns on the org (a column describes the org — terms, price_level,
@@ -303,17 +270,3 @@ def org_defaults(org) -> Dict[str, Any]:
     block = config.get('defaults') if isinstance(config.get('defaults'), dict) else {}
     fields = block.get('fields') if isinstance(block.get('fields'), dict) else {}
     return _present(fields)
-
-
-def migrate_org_config(config: Dict[str, Any]) -> Dict[str, Any]:
-    """An org's config in the new shape: a loose ``ship_via`` (Riverside's 'USPS') moves into
-    ``defaults.fields.ship_via``, lowercased as the document lists spell carriers."""
-    config = dict(config or {})
-    loose = config.pop('ship_via', None)
-    block = config.get('defaults') if isinstance(config.get('defaults'), dict) else {}
-    fields = dict(block.get('fields') or {}) if isinstance(block.get('fields'), dict) else {}
-    if loose not in (None, '') and not fields.get('ship_via'):
-        fields['ship_via'] = str(loose).strip().lower()
-    if fields or 'defaults' in config or loose is not None:
-        config['defaults'] = {'fields': fields, 'formatting': dict(block.get('formatting') or {})}
-    return config

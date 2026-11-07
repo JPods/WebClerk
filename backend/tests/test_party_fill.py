@@ -135,7 +135,8 @@ def test_an_orgs_own_defaults_hold_only_what_it_has_no_column_for(admin, company
         Customer.objects.create(company='Twice Co', config={'defaults': {'fields': {'terms': 'N10'}}})
     with pytest.raises(ValidationError, match='nothing else'):
         Customer.objects.create(company='Loose Co', config={'defaults': {'ship_via': 'ups'}})
-    from apps.core.services.defaults import migrate_org_config
+    from importlib import import_module
+    migrate_org_config = import_module('apps.orgs.migrations.0014_org_defaults_in_config').migrate_org_config
     assert migrate_org_config({'ship_via': 'USPS'}) == {'defaults': {'fields': {'ship_via': 'usps'}, 'formatting': {}}}
     assert migrate_org_config({'credit_limit': 5}) == {'credit_limit': 5}
 

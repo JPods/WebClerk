@@ -8,8 +8,7 @@ from django.core.exceptions import ValidationError
 from apps.core.consoles import console_settings
 from apps.core.services import definition, select_lists
 from apps.core.services.defaults import (FORMATTING_KEYS, SHIPPED_FIELDS, SHIPPED_FORMATTING, checked_defaults,
-                                         defaults_schema, migrate_definition, model_defaults, model_formatting,
-                                         shipped_defaults)
+                                         defaults_schema, model_defaults, model_formatting, shipped_defaults)
 from apps.core.services.door import Actor
 from tests.conftest import make_setting
 
@@ -80,6 +79,12 @@ def test_every_shipped_block_passes_its_own_gate(chart_of_accounts):
 
 
 def test_the_migration_transform_carries_the_company_values_and_folds_formatting():
+    """The migration is a frozen snapshot (the lead's rule): its transform and the shipped
+    blocks it carries are tested where they live, and must match what the seed ships today."""
+    from importlib import import_module
+    mig = import_module('apps.core.migrations.0072_defaults_in_each_models_setting')
+    migrate_definition = mig.migrate_definition
+    assert mig.SHIPPED_FIELDS == SHIPPED_FIELDS and mig.SHIPPED_FORMATTING == SHIPPED_FORMATTING
     company = {'terms': 'N10', 'order_new': {'days': 21, 'priority': 'high'}}
     legacy = {'behaviors': {'terms': {'type': 'lookup'}}, 'defaults': {}, 'formatting': {'currency': 'CAD', 'locale': 'en-CA'}}
     out = migrate_definition('order', legacy, company)
