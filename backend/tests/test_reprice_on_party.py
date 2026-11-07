@@ -5,7 +5,6 @@ backend"). transactions/services/reprice.py in the document's after_save."""
 import pytest
 
 from apps.core.models import Setting
-from apps.core.services.cache import cache_service
 from apps.core.services.door import Actor, Refused
 from apps.core.services.new import new_record
 from apps.core.services.save import save_record
@@ -25,15 +24,11 @@ def admin(django_user_model):
 
 
 @pytest.fixture
-def company(chart_of_accounts):
+def company(model_defaults):
+    """Each model's definition carries the shipped defaults (readme 106 A); N10 is a Term too."""
     from apps.accounts.models import Term
-    Term.objects.get_or_create(ida='N30', defaults={'name': 'N30', 'is_active': True})
-    setting = Setting.objects.get(purpose='wc:company_profile')
-    setting.config = {**(setting.config or {}),
-                      'defaults': {'terms': 'N30', 'order_new': {'days': 14, 'priority': 'medium'}}}
-    setting.save()
-    cache_service.invalidate_namespace('company_profile')
-    return setting
+    Term.objects.get_or_create(ida='N10', defaults={'name': 'N10', 'is_active': True})
+    return Setting.objects.get(purpose='wc:company_profile')
 
 
 @pytest.fixture
@@ -72,9 +67,11 @@ def test_a_wholesale_customer_reprices_retail_lines_and_the_save_says_so(admin, 
     q = _quote(admin)
     line = add_item_to_transaction(q, item.pk, quantity=2)
     assert (q.price_level, line.price['unit']) == ('retail', 100.0)
+    before = (line.version, line.dt_modified)
     result = _save(admin, q, 'quote', customer_id=_customer('wholesale').pk)
     line.refresh_from_db()
     assert (q.price_level, line.price['unit'], line.price_level) == ('wholesale', 75.0, 'wholesale')
+    assert line.version > before[0] and line.dt_modified >= before[1], 'a stale open form meets the version check, never overwrites'
     assert float(q.totals['amount']) == 150.0, 'the totals follow the repriced lines in the same save'
     detail = _detail(result)
     assert detail['price_level'] == 'wholesale' and detail['kept'] == []

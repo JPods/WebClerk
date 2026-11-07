@@ -38,3 +38,16 @@ class OtherOrgRefs(RefsBase):
     tags: list[str] = Field(default_factory=list)
     keywords: list[str] = Field(default_factory=list)
     source: Optional[SourceRef] = None
+
+
+# -- Setting.config.defaults.fields (readme 106: each model's own defaults) ----
+
+class OtherOrgSettingDefaults(BaseModel):
+    """What a new other is born with when nobody says (core/services/defaults.py)."""
+    terms: str = ""
+    price_level: str = ""
+    source_name: str = ""
+    is_active: bool = True
+
+    class Config:
+        extra = "forbid"

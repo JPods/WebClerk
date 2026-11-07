@@ -6116,13 +6116,6 @@
             "company.email",
             "company.pay_to"
           ]
-        },
-        "defaults": {
-          "terms": "N30",
-          "order_new": {
-            "days": 14,
-            "priority": "medium"
-          }
         }
       },
       "metadata": {
@@ -8692,7 +8685,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -8977,12 +8978,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -10063,7 +10058,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -10248,12 +10251,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -11418,7 +11415,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -11600,12 +11605,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "kind": [
             {
@@ -12528,7 +12527,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -12724,12 +12731,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "source": [
             {
@@ -13597,7 +13598,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -13745,12 +13754,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "source": [
             {
@@ -14517,7 +14520,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -14681,12 +14692,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -15615,7 +15620,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -15815,12 +15828,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -16876,7 +16883,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -17179,12 +17194,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "type": [
             {
@@ -18156,7 +18165,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -18368,12 +18385,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -19213,7 +19224,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -19385,12 +19404,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "purpose": [
             {
@@ -20233,7 +20246,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -20421,12 +20442,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "role": [
             {
@@ -21908,7 +21923,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -22165,12 +22188,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "role": [
             {
@@ -23041,7 +23058,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -23175,12 +23200,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -24440,6 +24459,10 @@
                         {
                           "field": "domain",
                           "label": "domain"
+                        },
+                        {
+                          "field": "source_name",
+                          "label": "source_name"
                         }
                       ]
                     },
@@ -24746,7 +24769,18 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {
+            "terms": "N30",
+            "price_level": "retail"
+          },
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -25031,15 +25065,13 @@
           "attention_rep": {
             "type": "text",
             "label": "attention rep"
+          },
+          "source_name": {
+            "type": "select",
+            "label": "source_name"
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -25137,6 +25169,48 @@
             {
               "value": "manufacturing",
               "label": "Manufacturing"
+            },
+            {
+              "value": "other",
+              "label": "Other"
+            }
+          ],
+          "source_name": [
+            {
+              "value": "direct",
+              "label": "Direct"
+            },
+            {
+              "value": "referral",
+              "label": "Referral"
+            },
+            {
+              "value": "social_media",
+              "label": "Social Media"
+            },
+            {
+              "value": "website",
+              "label": "Website"
+            },
+            {
+              "value": "trade_show",
+              "label": "Trade Show"
+            },
+            {
+              "value": "cold_call",
+              "label": "Cold Call"
+            },
+            {
+              "value": "email_campaign",
+              "label": "Email Campaign"
+            },
+            {
+              "value": "repeat",
+              "label": "Repeat Customer"
+            },
+            {
+              "value": "partner",
+              "label": "Partner"
             },
             {
               "value": "other",
@@ -25931,7 +26005,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -26083,12 +26165,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -27039,7 +27115,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -27217,12 +27301,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "purpose": [
             {
@@ -28059,7 +28137,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -28218,12 +28304,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "type": [
             {
@@ -29031,7 +29111,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -29206,12 +29294,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "type": [
             {
@@ -30159,6 +30241,10 @@
                         {
                           "field": "domain",
                           "label": "domain"
+                        },
+                        {
+                          "field": "source_name",
+                          "label": "source_name"
                         }
                       ]
                     },
@@ -30457,7 +30543,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -30742,15 +30836,13 @@
           "attention_rep": {
             "type": "text",
             "label": "attention rep"
+          },
+          "source_name": {
+            "type": "select",
+            "label": "source_name"
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -30840,6 +30932,48 @@
             {
               "value": "manufacturing",
               "label": "Manufacturing"
+            },
+            {
+              "value": "other",
+              "label": "Other"
+            }
+          ],
+          "source_name": [
+            {
+              "value": "direct",
+              "label": "Direct"
+            },
+            {
+              "value": "referral",
+              "label": "Referral"
+            },
+            {
+              "value": "social_media",
+              "label": "Social Media"
+            },
+            {
+              "value": "website",
+              "label": "Website"
+            },
+            {
+              "value": "trade_show",
+              "label": "Trade Show"
+            },
+            {
+              "value": "cold_call",
+              "label": "Cold Call"
+            },
+            {
+              "value": "email_campaign",
+              "label": "Email Campaign"
+            },
+            {
+              "value": "repeat",
+              "label": "Repeat Customer"
+            },
+            {
+              "value": "partner",
+              "label": "Partner"
             },
             {
               "value": "other",
@@ -31634,7 +31768,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -31786,12 +31928,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -32589,7 +32725,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -32795,12 +32939,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "type": [
             {
@@ -33849,7 +33987,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -34045,12 +34191,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "type": [
             {
@@ -34912,7 +35052,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -35082,12 +35230,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -35881,7 +36023,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -36041,12 +36191,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -36715,7 +36859,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -36833,12 +36985,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -39027,7 +39173,20 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {
+            "terms": "N30",
+            "price_level": "retail",
+            "dt_needed_days": 14,
+            "priority": "medium"
+          },
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -39653,12 +39812,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -40937,7 +41090,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -41372,12 +41533,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -42941,7 +43096,15 @@
           },
           "related": []
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -43274,12 +43437,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "kind": [
             {
@@ -44068,7 +44225,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -44210,12 +44375,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -44967,7 +45126,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -45125,12 +45292,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "source": [
             {
@@ -46002,7 +46163,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -46170,12 +46339,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -47105,7 +47268,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -47290,12 +47461,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "source": [
             {
@@ -48107,7 +48272,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -48253,12 +48426,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -49159,6 +49326,10 @@
                         {
                           "field": "domain",
                           "label": "domain"
+                        },
+                        {
+                          "field": "source_name",
+                          "label": "source_name"
                         }
                       ]
                     },
@@ -49464,7 +49635,17 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {
+            "terms": "N30"
+          },
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -49749,15 +49930,13 @@
           "attention_rep": {
             "type": "text",
             "label": "attention rep"
+          },
+          "source_name": {
+            "type": "select",
+            "label": "source_name"
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -49855,6 +50034,48 @@
             {
               "value": "manufacturing",
               "label": "Manufacturing"
+            },
+            {
+              "value": "other",
+              "label": "Other"
+            }
+          ],
+          "source_name": [
+            {
+              "value": "direct",
+              "label": "Direct"
+            },
+            {
+              "value": "referral",
+              "label": "Referral"
+            },
+            {
+              "value": "social_media",
+              "label": "Social Media"
+            },
+            {
+              "value": "website",
+              "label": "Website"
+            },
+            {
+              "value": "trade_show",
+              "label": "Trade Show"
+            },
+            {
+              "value": "cold_call",
+              "label": "Cold Call"
+            },
+            {
+              "value": "email_campaign",
+              "label": "Email Campaign"
+            },
+            {
+              "value": "repeat",
+              "label": "Repeat Customer"
+            },
+            {
+              "value": "partner",
+              "label": "Partner"
             },
             {
               "value": "other",
@@ -52399,7 +52620,20 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {
+            "terms": "N30",
+            "price_level": "retail",
+            "dt_needed_days": 14,
+            "priority": "medium"
+          },
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -53021,12 +53255,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -54255,7 +54483,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -54686,12 +54922,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -55715,6 +55945,10 @@
                         {
                           "field": "terms",
                           "label": "terms"
+                        },
+                        {
+                          "field": "source_name",
+                          "label": "source_name"
                         }
                       ]
                     },
@@ -55984,7 +56218,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -56265,15 +56507,13 @@
           "attention_rep": {
             "type": "text",
             "label": "attention rep"
+          },
+          "source_name": {
+            "type": "select",
+            "label": "source_name"
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -56359,6 +56599,48 @@
             {
               "value": "manufacturing",
               "label": "Manufacturing"
+            },
+            {
+              "value": "other",
+              "label": "Other"
+            }
+          ],
+          "source_name": [
+            {
+              "value": "direct",
+              "label": "Direct"
+            },
+            {
+              "value": "referral",
+              "label": "Referral"
+            },
+            {
+              "value": "social_media",
+              "label": "Social Media"
+            },
+            {
+              "value": "website",
+              "label": "Website"
+            },
+            {
+              "value": "trade_show",
+              "label": "Trade Show"
+            },
+            {
+              "value": "cold_call",
+              "label": "Cold Call"
+            },
+            {
+              "value": "email_campaign",
+              "label": "Email Campaign"
+            },
+            {
+              "value": "repeat",
+              "label": "Repeat Customer"
+            },
+            {
+              "value": "partner",
+              "label": "Partner"
             },
             {
               "value": "other",
@@ -57069,7 +57351,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -57155,12 +57445,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "purpose": [
             {
@@ -57962,7 +58246,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -58111,12 +58403,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -59175,7 +59461,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -59413,12 +59707,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -61844,7 +62132,20 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {
+            "terms": "N30",
+            "price_level": "retail",
+            "dt_needed_days": 14,
+            "priority": "medium"
+          },
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -62474,12 +62775,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -63697,7 +63992,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -64128,12 +64431,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -66009,7 +66306,20 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {
+            "terms": "N30",
+            "price_level": "retail",
+            "dt_needed_days": 14,
+            "priority": "medium"
+          },
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -66629,12 +66939,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -67818,7 +68122,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -68193,12 +68505,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -69036,7 +69342,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -69200,12 +69514,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -70632,7 +70940,20 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {
+            "terms": "N30",
+            "price_level": "retail",
+            "dt_needed_days": 14,
+            "priority": "medium"
+          },
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -70897,12 +71218,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -72050,7 +72365,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -72447,12 +72770,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -73436,6 +73753,10 @@
                         {
                           "field": "domain",
                           "label": "domain"
+                        },
+                        {
+                          "field": "source_name",
+                          "label": "source_name"
                         }
                       ]
                     },
@@ -73738,7 +74059,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -74023,15 +74352,13 @@
           "attention_rep": {
             "type": "text",
             "label": "attention rep"
+          },
+          "source_name": {
+            "type": "select",
+            "label": "source_name"
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -74121,6 +74448,48 @@
             {
               "value": "manufacturing",
               "label": "Manufacturing"
+            },
+            {
+              "value": "other",
+              "label": "Other"
+            }
+          ],
+          "source_name": [
+            {
+              "value": "direct",
+              "label": "Direct"
+            },
+            {
+              "value": "referral",
+              "label": "Referral"
+            },
+            {
+              "value": "social_media",
+              "label": "Social Media"
+            },
+            {
+              "value": "website",
+              "label": "Website"
+            },
+            {
+              "value": "trade_show",
+              "label": "Trade Show"
+            },
+            {
+              "value": "cold_call",
+              "label": "Cold Call"
+            },
+            {
+              "value": "email_campaign",
+              "label": "Email Campaign"
+            },
+            {
+              "value": "repeat",
+              "label": "Repeat Customer"
+            },
+            {
+              "value": "partner",
+              "label": "Partner"
             },
             {
               "value": "other",
@@ -75002,7 +75371,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -75234,12 +75611,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -76369,7 +76740,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -76503,12 +76882,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -77384,7 +77757,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -77753,12 +78134,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -78618,7 +78993,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -78785,12 +79168,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -79720,7 +80097,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -79872,12 +80257,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "scope": [
             {
@@ -80828,7 +81207,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -81011,12 +81398,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "ledger": [
             {
@@ -81840,7 +82221,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -82026,12 +82415,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "alert": [
             {
@@ -82795,7 +83178,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -82933,12 +83324,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -83687,7 +84072,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -83837,12 +84230,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -84657,7 +85044,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -84819,12 +85214,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -85707,7 +86096,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -85938,12 +86335,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -86794,7 +87185,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -86946,12 +87345,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -88080,6 +88473,10 @@
                         {
                           "field": "domain",
                           "label": "domain"
+                        },
+                        {
+                          "field": "source_name",
+                          "label": "source_name"
                         }
                       ]
                     },
@@ -88386,7 +88783,17 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {
+            "terms": "N30"
+          },
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -88671,15 +89078,13 @@
           "attention_rep": {
             "type": "text",
             "label": "attention rep"
+          },
+          "source_name": {
+            "type": "select",
+            "label": "source_name"
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -88777,6 +89182,48 @@
             {
               "value": "manufacturing",
               "label": "Manufacturing"
+            },
+            {
+              "value": "other",
+              "label": "Other"
+            }
+          ],
+          "source_name": [
+            {
+              "value": "direct",
+              "label": "Direct"
+            },
+            {
+              "value": "referral",
+              "label": "Referral"
+            },
+            {
+              "value": "social_media",
+              "label": "Social Media"
+            },
+            {
+              "value": "website",
+              "label": "Website"
+            },
+            {
+              "value": "trade_show",
+              "label": "Trade Show"
+            },
+            {
+              "value": "cold_call",
+              "label": "Cold Call"
+            },
+            {
+              "value": "email_campaign",
+              "label": "Email Campaign"
+            },
+            {
+              "value": "repeat",
+              "label": "Repeat Customer"
+            },
+            {
+              "value": "partner",
+              "label": "Partner"
             },
             {
               "value": "other",
@@ -89536,7 +89983,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -89692,12 +90147,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -90484,7 +90933,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -90636,12 +91093,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -92043,7 +92494,18 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {
+            "dt_needed_days": 14,
+            "priority": "medium"
+          },
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -92659,12 +93121,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "kind": [
             {
@@ -93869,7 +94325,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -94248,12 +94712,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -97597,7 +98055,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -97713,12 +98179,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "purpose": [
             {
@@ -98474,7 +98934,15 @@
             }
           }
         },
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -98626,12 +99094,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "purpose": [
             {
@@ -100019,6 +100481,52 @@
       }
     },
     {
+      "uuid": "1a8fccca-0091-4378-8114-65403214e8bd",
+      "ida": "defaults",
+      "name": "Defaults",
+      "scope": "system",
+      "purpose": "wc:console",
+      "parent_model": "",
+      "explanation": "Every model's defaults in one grid — what a new record is born with, and how it is formatted. Models down, fields across; a shared field that differs between models is marked. Each cell saves into that model's own definition.",
+      "config": {
+        "kind": "defaults",
+        "models": [
+          "quote",
+          "order",
+          "invoice",
+          "purchase",
+          "receipt",
+          "workorder",
+          "requisition",
+          "customer",
+          "vendor",
+          "manufacturer",
+          "rep",
+          "employee",
+          "other_org",
+          "contact",
+          "item",
+          "cash",
+          "action"
+        ],
+        "shared": [
+          "terms",
+          "price_level",
+          "dt_needed_days",
+          "priority",
+          "source_name"
+        ],
+        "sequence": 0,
+        "formatting": [
+          "currency",
+          "locale",
+          "date_format",
+          "number_precision"
+        ],
+        "description": "Every model's defaults in one grid — what a new record is born with, and how it is formatted. Models down, fields across; a shared field that differs between models is marked. Each cell saves into that model's own definition."
+      }
+    },
+    {
       "uuid": "03ac6f7f-bb88-4391-a367-1d86e2b035b2",
       "ida": "wc-model-specification",
       "name": "Specification Model Definition",
@@ -100611,7 +101119,15 @@
           "item_id",
           "name"
         ],
-        "defaults": {},
+        "defaults": {
+          "fields": {},
+          "formatting": {
+            "currency": "USD",
+            "locale": "en-US",
+            "date_format": "short",
+            "number_precision": 2
+          }
+        },
         "searches": [],
         "behaviors": {
           "id": {
@@ -100760,12 +101276,6 @@
           }
         },
         "enrichment": {},
-        "formatting": {
-          "locale": "en-US",
-          "currency": "USD",
-          "date_format": "short",
-          "number_precision": 2
-        },
         "selectlists": {
           "status": [
             {
@@ -100944,5 +101454,6 @@
         "related_ids": []
       }
     }
-  ]
+  ],
+  "settings_count": 95
 }

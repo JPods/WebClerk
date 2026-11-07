@@ -16,11 +16,10 @@ Config structure:
         "behaviors":    { field_name: { type, action, ... }, ... },
         "field_groups":  [ { key, label, fields }, ... ],
         "selectlists": { field: [ {value, label}, ... ] },   (purpose: the door enforces it)
-        "formatting":   { currency, locale, date_format, number_precision },
         "enrichment":   { panels: [ ... ] },
         "layout":       { list, column, detail, form, panel, card, tabs }  (apps/core/layouts)
         "searches":     [],
-        "defaults":     {},
+        "defaults":     { fields: {…}, formatting: {currency, locale, date_format, number_precision} },
     }
 
 Salvage strategy: reads existing records for each sub-purpose and merges
@@ -28,8 +27,10 @@ their config into the combined structure. Auto-generates what's missing.
 """
 from django.core.management.base import BaseCommand
 from apps.core import layouts
+from apps.core.services.defaults import shipped_defaults
 from apps.core.models.setting import Setting
 from apps.core.services import list_order
+from apps.core.services.select_lists import SOURCE_NAMES
 from apps.core.constants.model_registry import MODEL_REGISTRY, get_model_meta
 from apps.core.services.field_behaviors import (
     get_field_behaviors, get_field_groups, get_model_field_map, SEED_PURPOSES, USER_DEFINED_PURPOSE,
@@ -168,18 +169,15 @@ def build_model_config(model_key):
                for name, field in field_map.items()
                if getattr(field, 'choices', None) and any(c[0] not in (None, '') for c in field.choices)},
             **({'purpose': SEED_PURPOSES.get(model_key) or [USER_DEFINED_PURPOSE]} if 'purpose' in field_map else {}),
-        },
-        'formatting': salvaged.get('formatting') or {
-            'currency': 'USD',
-            'locale': 'en-US',
-            'date_format': 'short',
-            'number_precision': 2,
+            # One source list for every model that has the field (contacts, orgs, documents).
+            **({'source_name': [{'value': v, 'label': l} for v, l in SOURCE_NAMES]} if 'source_name' in field_map else {}),
         },
         'default_collapsed': salvaged.get('default_collapsed') or ['system', 'dates', 'json'],
         'enrichment': salvaged.get('enrichment', {}),
         'layout': layouts.build(model_key),
         'searches': [],
-        'defaults': salvaged.get('defaults', {}),
+        # Each model's own defaults, with its formatting (readme 106; core/services/defaults.py).
+        'defaults': shipped_defaults(model_key),
         # The order a list reads in, first guess (apps/core/services/list_order).
         'orderby': list(list_order.DEFAULT.get(model_key, [])),
     }

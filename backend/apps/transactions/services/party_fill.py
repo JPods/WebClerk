@@ -5,10 +5,12 @@ same payload carries, which is the person's; where the org has none, the model's
 default stays. One formula, on the server: the form saves the pick and reloads what the save
 returns (server is truth). The client-side fill (applyCustomerDefaults) is gone.
 
-A customer gives a sale its terms, price level, bill-to and ship-to blocks (addresses, emails,
+A customer gives a sale its terms, price level, source_name, bill-to and ship-to blocks (addresses, emails,
 phones — the org's own blocks, else its company and primary contact), attention, ship_via and
-sales tax (exempt, or the jurisdiction the org names, else the ship-to ZIP). A vendor gives a
-purchase or receipt its terms and its bill-to block; the ship-to stays the company's own.
+sales tax (exempt, or the jurisdiction the org names, else the ship-to ZIP), and whatever its own
+config.defaults.fields names (a carrier, a priority, days needed, a rep — what the org has no column
+for; the lead, readme 106). A vendor gives a purchase or receipt its terms, source and bill-to block;
+the ship-to stays the company's own.
 """
 from __future__ import annotations
 
@@ -16,7 +18,7 @@ import re
 from typing import Any, Dict, Optional
 
 #: What each party gives: the document fields and the org fields they come from.
-SCALARS = {'customer': ('terms', 'price_level'), 'vendor': ('terms',)}
+SCALARS = {'customer': ('terms', 'price_level', 'source_name'), 'vendor': ('terms', 'source_name')}
 ROLES = {'customer': ('bill_to', 'ship_to'), 'vendor': ('bill_to',)}
 ASPECTS = ('addresses', 'emails', 'phones')
 _ZIP = re.compile(r'\b(\d{5})(?:-\d{4})?\s*$')
@@ -38,6 +40,8 @@ def _take(obj, org, party: str, model_key: str, data: Dict[str, Any], names: set
         if field not in names or field in data:
             continue
         value = getattr(org, field, None) or company.get(field)
+        if field == 'source_name':
+            value = _listed(model_key, field, value)          # the document list's spelling, else none
         if value:
             setattr(obj, field, named_term(value) if field == 'terms' else value)
 
@@ -54,9 +58,17 @@ def _take(obj, org, party: str, model_key: str, data: Dict[str, Any], names: set
         setattr(obj, aspect, current)
     if 'attention' in names and 'attention' not in data:
         obj.attention = blocks['bill_to']['addresses']['attention']
-    if 'ship_via' in names and 'ship_via' not in data:      # the org's carrier, else the company's, else as it was
-        theirs = (org.config or {}).get('ship_via') if isinstance(org.config, dict) else None
-        obj.ship_via = _listed(model_key, 'ship_via', theirs) or company.get('ship_via') or obj.ship_via
+    # The org's own defaults for its documents (config.defaults.fields — what the org has no
+    # column for: a carrier, a priority, days needed, a rep), over the model's, under the payload.
+    from apps.core.services.defaults import org_defaults, resolve
+    for key, value in org_defaults(org).items():
+        field, value = resolve(key, value)
+        if field not in names or field in data:
+            continue
+        if field in ('ship_via', 'priority'):
+            value = _listed(model_key, field, value)         # the document list's spelling, else none
+        if value not in (None, ''):
+            setattr(obj, field, value)
     if party == 'customer' and 'finance' in names and 'finance' not in data:
         _tax(obj, org, blocks.get('ship_to', blocks['bill_to'])['addresses'].get('full_address', ''))
 

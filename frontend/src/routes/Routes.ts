@@ -40,6 +40,7 @@
   static readonly accountingDashboard: string = "/accounting";
   static readonly aliceTraining: string = "/training";
   static readonly flightSimulator: string = "/flight-simulator";
+  static readonly defaults: string = "/defaults";
   static readonly flightSim: string = "/flight-sim";
   static readonly flightSimInventory: string = "/flight-sim/inventory";
   static readonly modelWorkbench: string = "/model-workbench";

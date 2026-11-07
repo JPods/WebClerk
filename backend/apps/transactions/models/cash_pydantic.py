@@ -176,7 +176,7 @@ class DualPricingProjection(BaseModel):
 
 
 class CashSettingDefaults(BaseModel):
-    """Installation-level defaults for new Cash records."""
+    """What a new cash is born with when nobody says (config.defaults.fields; core/services/defaults.py)."""
     type: str = 'cash_out'
     method: str = ''
     category: str = ''
@@ -186,8 +186,7 @@ class CashSettingDefaults(BaseModel):
 
 
 class CashSettingPrefs(BaseModel):
-    """Full prefs structure for the cash field_access Setting."""
-    defaults: CashSettingDefaults = Field(default_factory=CashSettingDefaults)
+    """Full prefs structure for the cash field_access Setting (its defaults are config.defaults)."""
 
     class Config:
         extra = "forbid"

@@ -196,6 +196,10 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 		max_length=80, blank=True, default='',
 		db_index=True,
 		help_text="Empty=taxable. Certificate number=exempt. 'DoTax'=force taxable override.")
+	# Where the org came from, the same list as a contact's (Bill, 2026-11-07: every org, for
+	# consistency); a document takes it from its party like terms (party_fill).
+	source_name = models.CharField(max_length=80, blank=True, default='', db_index=True,
+		help_text="How this org originated: referral, website, trade show, … (the contact's list)")
 
 	class Meta:
 		indexes = [
@@ -409,7 +413,17 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 			)
 
 		self._org_type_from_proxy()
-		
+
+		# The org's own defaults for its documents (config.defaults; readme 106): the gate is the
+		# model's save, so every path obeys it.
+		if isinstance(self.config, dict) and 'defaults' in self.config:
+			from django.core.exceptions import ValidationError
+			from apps.core.services.defaults import checked_org_defaults
+			try:
+				self.config['defaults'] = checked_org_defaults(self.config['defaults'])
+			except ValueError as e:
+				raise ValidationError(str(e))
+
 		try:
 			# Try to validate aspects, but don't fail save if validation fails
 			if hasattr(self, 'validate_aspects'):

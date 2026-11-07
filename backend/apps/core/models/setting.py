@@ -126,6 +126,15 @@ class Setting(BaseModel):
                 except ValueError as e:
                     raise ValidationError(str(e))
 
+        # A model definition's defaults: the two blocks, fields the model has, listed values
+        # (core/services/defaults.checked_defaults; readme 106).
+        if self.purpose == 'wc:model' and isinstance(self.config, dict) and 'defaults' in self.config:
+            from apps.core.services.defaults import checked_defaults
+            try:
+                self.config['defaults'] = checked_defaults(self.parent_model or '', self.config['defaults'])
+            except ValueError as e:
+                raise ValidationError(str(e))
+
         result = super().save(*args, **kwargs)
         self._setting_create_authorized = False
         return result

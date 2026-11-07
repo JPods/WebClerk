@@ -104,14 +104,7 @@ COMPANY_PROFILE_CONFIG = {
             "order": "",                 # additional conditions text for order statements
         },
     },
-    # What a record starts with when neither the person nor the customer says (Bill, 2026-11-05).
-    "defaults": {
-        "terms": "N30",              # a Term ida — an order's terms when its customer has none
-        "order_new": {
-            "days": 14,              # dt_needed = the day the order is born + days
-            "priority": "medium",    # on the order's priority list: low, medium, high, urgent
-        },
-    },
+    # Defaults live in each model's own wc:model Setting (readme 106 A; core/services/defaults.py).
     "accounting": {
         "package": "",               # quickbooks, sage, xero, manual
         "export_format": "csv",      # csv, json, quickbooks_iif, tab

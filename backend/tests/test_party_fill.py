@@ -6,7 +6,6 @@ transactions/services/party_fill.py; the client-side applyCustomerDefaults is go
 import pytest
 
 from apps.core.models import Setting
-from apps.core.services.cache import cache_service
 from apps.core.services.door import Actor
 from apps.core.services.new import new_record
 from apps.core.services.save import save_record
@@ -23,16 +22,11 @@ def admin(django_user_model):
 
 
 @pytest.fixture
-def company(chart_of_accounts):
+def company(model_defaults):
+    """Each model's definition carries the shipped defaults (readme 106 A); N10 is a Term too."""
     from apps.accounts.models import Term
-    for ida in ('N30', 'N10'):
-        Term.objects.get_or_create(ida=ida, defaults={'name': ida, 'is_active': True})
-    setting = Setting.objects.get(purpose='wc:company_profile')
-    setting.config = {**(setting.config or {}),
-                      'defaults': {'terms': 'N30', 'order_new': {'days': 14, 'priority': 'medium'}}}
-    setting.save()
-    cache_service.invalidate_namespace('company_profile')
-    return setting
+    Term.objects.get_or_create(ida='N10', defaults={'name': 'N10', 'is_active': True})
+    return Setting.objects.get(purpose='wc:company_profile')
 
 
 def _as(user):
@@ -124,9 +118,43 @@ def test_a_ship_via_from_the_org_lands_in_the_lists_own_spelling(admin, company)
     lacks is not written: code writing an unlisted value is refused, and the fill is code."""
     from apps.core.services import select_lists
     select_lists.replace_list('quote', 'ship_via', [{'value': 'usps'}, {'value': 'ups'}], actor=_as(admin))
-    loud = Customer.objects.create(company='Loud Co', config={'ship_via': 'USPS'})
+    loud = Customer.objects.create(company='Loud Co', config={'defaults': {'fields': {'ship_via': 'USPS'}}})
+    assert loud.config['defaults']['fields']['ship_via'] == 'usps', "the org's save stores the lists' spelling"
     q = _pick(admin, _quote(admin), 'quote', 'customer', loud)
     assert q.ship_via == 'usps'
-    odd = Customer.objects.create(company='Odd Co', config={'ship_via': 'pony-express'})
-    q = _pick(admin, q, 'quote', 'customer', odd)
-    assert q.ship_via == 'usps', 'a carrier the list lacks is not written; where the org has none the value stays (rule 3)'
+    plain = Customer.objects.create(company='Plain Co')
+    q = _pick(admin, q, 'quote', 'customer', plain)
+    assert q.ship_via == 'usps', 'where the org has none the value stays (rule 3)'
+
+
+def test_an_orgs_own_defaults_hold_only_what_it_has_no_column_for(admin, company):
+    """The lead, readme 106: a column describes the org and party_fill copies it; config.defaults.fields
+    is for the document fields the org has no column for. Never a value in both."""
+    from django.core.exceptions import ValidationError
+    with pytest.raises(ValidationError, match='columns'):
+        Customer.objects.create(company='Twice Co', config={'defaults': {'fields': {'terms': 'N10'}}})
+    with pytest.raises(ValidationError, match='nothing else'):
+        Customer.objects.create(company='Loose Co', config={'defaults': {'ship_via': 'ups'}})
+    from apps.core.services.defaults import migrate_org_config
+    assert migrate_org_config({'ship_via': 'USPS'}) == {'defaults': {'fields': {'ship_via': 'usps'}, 'formatting': {}}}
+    assert migrate_org_config({'credit_limit': 5}) == {'credit_limit': 5}
+
+
+def test_an_orgs_priority_and_days_reach_its_quote_over_the_models(admin, company):
+    rush = Customer.objects.create(company='Rush Co', config={'defaults': {'fields': {'priority': 'urgent', 'dt_needed_days': 2}}})
+    q = _quote(admin)
+    born = q.dt_needed
+    q = _pick(admin, q, 'quote', 'customer', rush)
+    assert q.priority == 'urgent'
+    assert q.dt_needed < born, 'two days out, not the model\'s fourteen'
+    q = _pick(admin, q, 'quote', 'customer', rush, priority='low')
+    assert q.priority == 'low', 'the payload wins'
+
+
+def test_a_customers_source_name_reaches_the_quote(admin, company):
+    """Readme 106 B: source_name on every org, copied to a document like terms."""
+    from apps.core.services import select_lists
+    select_lists.replace_list('quote', 'source_name', [{'value': 'referral'}, {'value': 'website'}], actor=_as(admin))
+    fair = Customer.objects.create(company='Fair Co', source_name='Referral')
+    q = _pick(admin, _quote(admin), 'quote', 'customer', fair)
+    assert q.source_name == 'referral'

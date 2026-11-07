@@ -316,7 +316,8 @@ const FlightSimConsole: React.FC = () => {
   const [simsError, setSimsError] = useState<string | null>(null);
   useEffect(() => {
     getRecords('setting', { purpose: 'wc:console', is_active: true, limit: 100 }).then((res: any) => {
-      const list = (res?.results || []).map(consoleToSim).sort((a: SimulationDef, b: SimulationDef) => a.sequence - b.sequence);
+      // Only the simulations: the defaults console is a wc:console too (kind 'defaults').
+      const list = (res?.results || []).filter((rec: any) => (rec.config?.kind || 'sim') === 'sim').map(consoleToSim).sort((a: SimulationDef, b: SimulationDef) => a.sequence - b.sequence);
       setSims(list);
       if (!list.length) setSimsError('No consoles in this installation — a staff member runs: manage.py seed_consoles');
     }).catch((e: any) => setSimsError(`Could not read the consoles: ${e?.message || e}`));

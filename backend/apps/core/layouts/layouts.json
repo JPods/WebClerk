@@ -5733,6 +5733,10 @@
          {
           "field": "domain",
           "label": "domain"
+         },
+         {
+          "field": "source_name",
+          "label": "source_name"
          }
         ]
        },
@@ -7698,6 +7702,10 @@
          {
           "field": "domain",
           "label": "domain"
+         },
+         {
+          "field": "source_name",
+          "label": "source_name"
          }
         ]
        },
@@ -14535,6 +14543,10 @@
          {
           "field": "domain",
           "label": "domain"
+         },
+         {
+          "field": "source_name",
+          "label": "source_name"
          }
         ]
        },
@@ -16089,6 +16101,10 @@
          {
           "field": "terms",
           "label": "terms"
+         },
+         {
+          "field": "source_name",
+          "label": "source_name"
          }
         ]
        },
@@ -21185,6 +21201,10 @@
          {
           "field": "domain",
           "label": "domain"
+         },
+         {
+          "field": "source_name",
+          "label": "source_name"
          }
         ]
        },
@@ -26235,6 +26255,10 @@
          {
           "field": "domain",
           "label": "domain"
+         },
+         {
+          "field": "source_name",
+          "label": "source_name"
          }
         ]
        },

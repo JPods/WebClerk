@@ -1302,4 +1302,28 @@ def console_settings() -> List[Dict[str, Any]]:
                        'needs_item': c['needs_item'], 'first_model': c['first_model'],
                        'steps': scenario.get('steps', []), **extras},
         })
+    out.append(defaults_console())
     return out
+
+
+#: The models the defaults console lays down, in order: the documents, then the orgs, then the rest.
+DEFAULTS_CONSOLE_MODELS = ('quote', 'order', 'invoice', 'purchase', 'receipt', 'workorder', 'requisition',
+                           'customer', 'vendor', 'manufacturer', 'rep', 'employee', 'other_org',
+                           'contact', 'item', 'cash', 'action')
+
+
+def defaults_console() -> Dict[str, Any]:
+    """The defaults console (readme 106 A; Bill, 2026-11-07: "a default.console where all such
+    defaults can be seen compared and aligned"): every model's config.defaults in one grid,
+    models down, fields across, the shared fields marked where models disagree, each cell
+    edited through the door into that model's wc:model Setting (DefaultsConsole.tsx)."""
+    from apps.core.services.defaults import FORMATTING_KEYS, SHARED_FIELDS
+    description = ('Every model\'s defaults in one grid — what a new record is born with, and how it is '
+                   'formatted. Models down, fields across; a shared field that differs between models is '
+                   'marked. Each cell saves into that model\'s own definition.')
+    return {
+        'ida': 'defaults', 'name': 'Defaults', 'purpose': PURPOSE, 'explanation': description,
+        'config': {'sequence': 0, 'kind': 'defaults', 'description': description,
+                   'models': list(DEFAULTS_CONSOLE_MODELS), 'shared': list(SHARED_FIELDS),
+                   'formatting': list(FORMATTING_KEYS)},
+    }

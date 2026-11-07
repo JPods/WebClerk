@@ -12,6 +12,14 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
+#: Where a contact, an org or a document came from — one list for every model that has
+#: source_name (Bill, 2026-11-07: consistency). The seed gives it to each definition; a
+#: staff member edits a model's own copy (add_value, replace_list).
+SOURCE_NAMES = [('direct', 'Direct'), ('referral', 'Referral'), ('social_media', 'Social Media'),
+                ('website', 'Website'), ('trade_show', 'Trade Show'), ('cold_call', 'Cold Call'),
+                ('email_campaign', 'Email Campaign'), ('repeat', 'Repeat Customer'),
+                ('partner', 'Partner'), ('other', 'Other')]
+
 from django.db import transaction
 
 

@@ -10,7 +10,6 @@ import time
 import pytest
 
 from apps.core.models import Setting
-from apps.core.services.cache import cache_service
 from apps.core.services.door import Actor, Refused
 from apps.core.services.new import new_record
 from apps.core.services.save import save_record
@@ -30,17 +29,11 @@ def admin(django_user_model):
 
 
 @pytest.fixture
-def company(chart_of_accounts):
-    """The company profile with Bill's default section; N30 and N10 are Term records."""
+def company(model_defaults):
+    """Each model's definition carries the shipped defaults (readme 106 A); N10 is a Term too."""
     from apps.accounts.models import Term
-    for ida in ('N30', 'N10'):
-        Term.objects.get_or_create(ida=ida, defaults={'name': ida, 'is_active': True})
-    setting = Setting.objects.get(purpose='wc:company_profile')
-    setting.config = {**(setting.config or {}),
-                      'defaults': {'terms': 'N30', 'order_new': {'days': 14, 'priority': 'medium'}}}
-    setting.save()
-    cache_service.invalidate_namespace('company_profile')
-    return setting
+    Term.objects.get_or_create(ida='N10', defaults={'name': 'N10', 'is_active': True})
+    return Setting.objects.get(purpose='wc:company_profile')
 
 
 def _as(user):
@@ -114,13 +107,26 @@ def test_a_later_save_does_not_rewrite_the_defaults(admin, company):
     assert (order.terms, order.priority) == ('N30', 'low')
 
 
-def test_a_company_default_terms_that_is_no_term_is_refused_where_it_bites(admin, company):
-    company.config['defaults']['terms'] = 'net45'
-    company.save()
-    cache_service.invalidate_namespace('company_profile')
-    with pytest.raises(Refused) as refused:   # it bites at birth: the company's terms are the newborn's
+def test_a_default_terms_that_is_no_term_is_refused_where_it_is_set(admin, company, model_defaults):
+    """The gate is the definition's save (checked_defaults): a wrong term never reaches a birth."""
+    from django.core.exceptions import ValidationError
+    setting = model_defaults['order']
+    setting.config = {**setting.config, 'defaults': {'fields': {'terms': 'net45'}}}
+    setting._setting_create_authorized = True
+    with pytest.raises(ValidationError, match='default terms'):
+        setting.save()
+
+
+def test_a_definition_written_behind_the_gate_still_bites_at_birth(admin, company, model_defaults):
+    """A queryset update skips Setting.save: the newborn is refused with the valid idas, never
+    born with a term that does not exist (fail fast, never silent)."""
+    from apps.core.services import definition
+    Setting.objects.filter(pk=model_defaults['order'].pk).update(
+        config={**model_defaults['order'].config, 'defaults': {'fields': {'terms': 'net45'}, 'formatting': {}}})
+    definition.clear()
+    with pytest.raises(Refused) as refused:
         _born(admin)
-    assert refused.value.code == 'invalid_terms' and 'defaults.terms' in refused.value.message
+    assert refused.value.code == 'invalid_terms' and 'defaults.fields.terms' in refused.value.message
 
 
 @pytest.mark.parametrize('model_key,Model,expected', [

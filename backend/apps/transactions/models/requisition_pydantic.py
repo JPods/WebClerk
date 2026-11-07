@@ -35,3 +35,13 @@ class RequisitionRefs(RefsBase):
     tags: list[str] = Field(default_factory=list)
     keywords: list[str] = Field(default_factory=list)
     source: Optional[SourceRef] = None
+
+
+# -- Setting.config.defaults.fields (readme 106: each model's own defaults) ----
+
+class RequisitionSettingDefaults(BaseModel):
+    """What a new requisition is born with when nobody says (core/services/defaults.py)."""
+    status: str = ""
+
+    class Config:
+        extra = "forbid"

@@ -30,6 +30,7 @@ const CycleCountMobile = React.lazy(() => import("../apps/products/pages/CycleCo
 const CustomPageLoader = React.lazy(() => import("./CustomPageLoader"));
 const TokenBuilderPage = React.lazy(() => import("./TokenBuilderPage"));
 const FlightSimConsole = React.lazy(() => import("../pages/admin/FlightSimConsole"));
+const DefaultsConsole = React.lazy(() => import("../pages/admin/DefaultsConsole"));
 const ParadeOfReportsPage = React.lazy(() => import("../pages/admin/ParadeOfReportsPage"));
 const ParadeComponent = React.lazy(() => import("../pages/tools/ParadeComponent"));
 const LayoutWorkbench = React.lazy(() => import("../pages/tools/LayoutWorkbench"));
@@ -124,6 +125,7 @@ const Router: React.FC = () => {
           <Route path="kanban" element={<S><KanbanBoardPage /></S>} />
           <Route path="gantt" element={<S><UnifiedGanttPage /></S>} />
           <Route path="flight-simulator" element={<S><FlightSimConsole /></S>} />
+          <Route path="defaults" element={<S><DefaultsConsole /></S>} />
           <Route path="flight-sim" element={<S><FlightSimConsole /></S>} />
           <Route path="flight-sim/inventory" element={<S><FlightSimConsole /></S>} />
           <Route path="parade" element={<S><ParadeOfReportsPage /></S>} />

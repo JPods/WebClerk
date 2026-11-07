@@ -291,6 +291,32 @@ def wcapi(authenticated_client):
     return _WcapiNamespace(authenticated_client)
 
 
+@pytest.fixture
+def model_defaults(chart_of_accounts):
+    """Every document and org model has its definition with the shipped defaults block
+    (core/services/defaults.SHIPPED_FIELDS; readme 106 A) and N30 is a Term, so a record born
+    through the door gets terms, level, dt_needed and priority as wc_demo's would."""
+    from apps.accounts.models import Term
+    from apps.core.models import Setting
+    from apps.core.services import definition
+    from apps.core.services.defaults import SHIPPED_FIELDS, shipped_defaults
+    Term.objects.get_or_create(ida='N30', defaults={'name': 'N30', 'is_active': True})
+    made = {}
+    for model_key in SHIPPED_FIELDS:
+        setting = Setting.objects.filter(purpose='wc:model', parent_model=model_key).first()
+        if setting is None:
+            setting = make_setting(purpose='wc:model', parent_model=model_key, name=model_key,
+                                   config={'defaults': shipped_defaults(model_key)})
+        else:
+            setting.config = {**(setting.config or {}), 'defaults': shipped_defaults(model_key)}
+            setting._setting_create_authorized = True
+            setting.save()
+        made[model_key] = setting
+    definition.clear()
+    yield made
+    definition.clear()
+
+
 def make_setting(**kwargs):
     """Create a Setting in a test.
 

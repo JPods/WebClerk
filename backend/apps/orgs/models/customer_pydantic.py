@@ -47,8 +47,10 @@ class CustomerRefs(RefsBase):
 # ── Setting defaults ──────────────────────────────────────────────
 
 class CustomerSettingDefaults(BaseModel):
+    """What a new customer is born with when nobody says (core/services/defaults.py)."""
     terms: str = ""
     price_level: str = ""
+    source_name: str = ""
     is_active: bool = True
 
     class Config:
