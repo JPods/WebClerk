@@ -74737,6 +74737,7 @@
               "config.command",
               "config.confirm",
               "config.default_args",
+              "config.default_params",
               "config.download",
               "config.download_ext",
               "config.download_field",
@@ -74763,11 +74764,13 @@
               "config.parameters.type",
               "config.params",
               "config.relative_period",
+              "config.report_key",
               "config.request_filters",
               "config.request_keyword",
               "config.rows.cols",
               "config.rows.fields",
               "config.sample_data",
+              "config.screen_url",
               "config.search_fields",
               "config.statement",
               "config.subject",
@@ -107809,135 +107812,6 @@
           "pdf",
           "plain",
           "seed"
-        ],
-        "categories": [],
-        "depends_on": {},
-        "related_ids": []
-      },
-      "editor_type": "plain",
-      "content": "",
-      "script_before": "",
-      "script_during": "",
-      "script_after": ""
-    },
-    {
-      "uuid": "51557d1d-b3a7-4194-a62c-214d4f3c3627",
-      "ida": "journalize-inv-pay",
-      "name": "Journalize Invoice + Cash",
-      "description": "Post GL journal entries for this invoice and all linked cash. Locks both.",
-      "target_model": "invoice",
-      "record_id": "",
-      "output_type": "print",
-      "category": "operations",
-      "role_required": "",
-      "sort_order": 10,
-      "explanation": "",
-      "paths": {},
-      "config": {
-        "action": "journalize_invoice_and_cash_entries",
-        "confirm": "Post GL journals for this invoice AND all linked cash? This locks both.",
-        "params_from_record": {
-          "invoice_id": "id"
-        }
-      },
-      "metadata": {
-        "flow": {},
-        "temp": [],
-        "flags": {
-          "schema_rev": 1,
-          "keywords_pending": false
-        },
-        "access": {
-          "edit": [],
-          "view": []
-        },
-        "health": {
-          "rating": 0,
-          "accuracy": 0,
-          "freshness": 0,
-          "consistency": 0,
-          "completeness": 0
-        },
-        "images": {
-          "hr": false,
-          "md": false,
-          "tn": false,
-          "source": ""
-        },
-        "source": {},
-        "history": {
-          "synced": {
-            "dt": 0,
-            "contact_id": 0
-          },
-          "created": {
-            "dt": 1787425693682,
-            "contact_id": 0
-          },
-          "accessed": {
-            "dt": 1787425693681,
-            "contact_id": 0
-          },
-          "modified": {
-            "dt": 1787425693682,
-            "contact_id": 0
-          },
-          "verified": {
-            "dt": 0,
-            "contact_id": 0
-          }
-        },
-        "publish": "",
-        "version": "1.0",
-        "erosions": [],
-        "priority": "",
-        "security": "",
-        "documents": [],
-        "resources": {
-          "required": {},
-          "allocated": {}
-        },
-        "versioning": {
-          "size_activity": {},
-          "changed_fields": [],
-          "keywords_dt_refreshed": 1787426593935
-        },
-        "audit_trail": [],
-        "explanation": "",
-        "import_data": null,
-        "userdefined": {},
-        "small_stings": [],
-        "foundational": true
-      },
-      "prefs": {
-        "tags": [],
-        "pinned": false,
-        "search": [],
-        "userdefined": {}
-      },
-      "refs": {
-        "tags": [],
-        "links": {
-          "item": [],
-          "contact": []
-        },
-        "source": null,
-        "parents": [],
-        "keywords": [
-          "51557d1d-b3a7-4194-a62c-214d4f3c3627",
-          "both",
-          "entries",
-          "invoice",
-          "journal",
-          "journalize",
-          "journalize-inv-pay",
-          "linked",
-          "locks",
-          "operations",
-          "cash_entries",
-          "plain",
-          "post",
-          "print"
         ],
         "categories": [],
         "depends_on": {},

@@ -100,6 +100,9 @@ class ReportConfig(ConfigBase):
 
     # -- toolbar actions (DetailToolbar) --
     action: Optional[str] = None            # manage action name, open_url
+    report_key: Optional[str] = None        # report_registry: the executor this record runs
+    default_params: dict = Field(default_factory=dict)   # report_registry: what execute_report gets
+    screen_url: Optional[str] = None        # output_type screen: the page that is the report (ReportsDialog)
     url: Optional[str] = None
     confirm: Optional[str] = None
     params: dict = Field(default_factory=dict)

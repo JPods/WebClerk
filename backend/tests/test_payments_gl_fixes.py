@@ -121,15 +121,25 @@ def test_the_ar_ledger_follows_the_invoice_total(chart_of_accounts):
 
 
 @pytest.mark.django_db
-def test_journalize_invoice_and_cash_posts_nothing_when_the_invoice_fails(chart_of_accounts, monkeypatch):
-    """#6: no cash posting against an invoice that did not post."""
-    from apps.accounts.services import journalize as j
-    inv = _invoice(20.00)
-    Cash.objects.create(amount=Decimal("10.00"), invoice=inv)
-    monkeypatch.setattr(j, 'journalize_invoice', lambda *a, **k: {'created': 0, 'status': 'exception',
-                                                                   'error': 'Out of balance: residual=4.000'})
-    result = j.journalize_invoice_and_cash_entries(inv.pk)
-    assert result["status"] == "exception" and result["cash_entries"] == []
+def test_an_invoice_and_its_cash_post_through_the_one_door(chart_of_accounts, django_user_model):
+    """#6 restated (the lead, 2026-11-07): the combined poster is gone. Each record posts through
+    its own journalize command — the invoice first (complete and released), then the cash."""
+    from apps.accounts.models import Term
+    from apps.core.services.door import Actor
+    from apps.core.services.verbs import run_command
+    from apps.orgs.models import Customer
+    Term.objects.get_or_create(ida='N30', defaults={'name': 'N30', 'is_active': True})
+    buyer = Customer.objects.create(company='Door Buyer')
+    inv = _invoice(20.00, customer_id=buyer.pk, rate=0)
+    Invoice.objects.filter(pk=inv.pk).update(terms='N30', status='released')
+    cash = Cash.objects.create(amount=Decimal("10.00"), invoice=inv)
+    user = django_user_model.objects.create_superuser(email='door@example.com', password=None,
+                                                      name_first='Do', name_last='Or', username='')
+    admin = Actor(user=user, kind='user', source='wcapi')
+    run_command(admin, 'journalize', 'invoice', inv.pk, {})
+    run_command(admin, 'journalize', 'cash', cash.pk, {})
+    inv.refresh_from_db(); cash.refresh_from_db()
+    assert inv.dt_journaled and cash.dt_journaled
 
 
 @pytest.mark.django_db

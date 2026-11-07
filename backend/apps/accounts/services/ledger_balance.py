@@ -629,28 +629,6 @@ def _stage_cash_gl_accounts(cash) -> None:
         pass
 
 
-def post_staged_gl_entries(instance) -> int:
-    """Post an invoice or cash to the GL — USER-INITIATED ("Post to GL").
-
-    One GL engine (Bite 2 #8): this delegates to journalize_invoice / journalize_cash,
-    which post line revenue, tax, shipping, COGS and adjustments to their own accounts.
-    The staged metadata.gl_accounts is a preview only and is never posted.
-
-    Returns the number of GlJournal records created.
-    """
-    from apps.accounts.services.journalize import journalize_cash, journalize_invoice
-    model = instance._meta.model_name
-    if model == 'invoice':
-        result = journalize_invoice(instance.pk)
-    elif model == 'cash':
-        result = journalize_cash(instance.pk)
-    else:
-        raise ValueError(f"post_gl_entries: no GL rules for {model}")
-    if result.get('status') == 'exception':
-        raise ValueError(result.get('error') or 'GL posting out of balance')
-    return int(result.get('created') or 0)
-
-
 def reverse_gl_entries(instance, reason: str = '', event_id: str | None = None,
                        accounts=None) -> int:
     """Create contra entries that reverse the standing GL postings for an instance.

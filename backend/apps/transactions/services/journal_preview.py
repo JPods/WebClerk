@@ -1,6 +1,6 @@
 """The journal entry a document makes — before it posts, and after (Bill, 2026-10-27).
 
-POST /wcapi/<invoice|cash|receipt>/<id>/journal_preview/
+POST /wcapi/<invoice|cash|receipt|workorder>/<id>/journal_preview/
 
 The flight simulator teaches double entry: an invoice, its cash and a receipt each become a
 journal entry, every line an account debited or credited with its $. A teaching tool, not an
@@ -21,13 +21,13 @@ from typing import Any, Dict, List
 from django.db import transaction
 
 #: The documents the console journalizes, and the poster each one uses.
-JOURNAL_MODELS = ('invoice', 'cash', 'receipt')
+JOURNAL_MODELS = ('invoice', 'cash', 'receipt', 'workorder')
 
 
 def poster(model_key: str):
     from apps.accounts.services import journalize as posting
     return {'invoice': posting.journalize_invoice, 'cash': posting.journalize_cash,
-            'receipt': posting.journalize_receipt}[model_key]
+            'receipt': posting.journalize_receipt, 'workorder': posting.journalize_workorder}[model_key]
 
 
 def _entries(rows) -> List[Dict[str, Any]]:
@@ -46,9 +46,10 @@ def _standing(model_key: str, pk: int):
     return [r for r in rows.filter(reversal_of__isnull=True).order_by('pk') if r.pk not in reversed_ids]
 
 
-def journal_preview(ctx) -> Dict[str, Any]:
+def preview_for(model_key: str, pk: int) -> Dict[str, Any]:
+    """The entry ``model_key`` ``pk`` will post (the real posting, rolled back), or the rows that
+    stand if it posted already. The command below and the Journalize reports both read this."""
     from apps.accounts.models import GlJournal
-    model_key, pk = ctx.model_key, ctx.obj.pk
     standing = _standing(model_key, pk)
     if standing:
         entries, posted, note = _entries(standing), True, ''
@@ -67,6 +68,10 @@ def journal_preview(ctx) -> Dict[str, Any]:
     credits = sum((Decimal(str(e['credit'])) for e in entries), Decimal('0'))
     return {'posted': posted, 'entries': entries, 'debits': float(debits), 'credits': float(credits),
             'balanced': debits == credits, 'note': note}
+
+
+def journal_preview(ctx) -> Dict[str, Any]:
+    return preview_for(ctx.model_key, ctx.obj.pk)
 
 
 def register() -> None:

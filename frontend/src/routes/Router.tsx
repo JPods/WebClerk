@@ -31,6 +31,7 @@ const CustomPageLoader = React.lazy(() => import("./CustomPageLoader"));
 const TokenBuilderPage = React.lazy(() => import("./TokenBuilderPage"));
 const FlightSimConsole = React.lazy(() => import("../pages/admin/FlightSimConsole"));
 const DefaultsConsole = React.lazy(() => import("../pages/admin/DefaultsConsole"));
+const JournalizeReport = React.lazy(() => import("../pages/admin/JournalizeReport"));
 const ParadeOfReportsPage = React.lazy(() => import("../pages/admin/ParadeOfReportsPage"));
 const ParadeComponent = React.lazy(() => import("../pages/tools/ParadeComponent"));
 const LayoutWorkbench = React.lazy(() => import("../pages/tools/LayoutWorkbench"));
@@ -126,6 +127,7 @@ const Router: React.FC = () => {
           <Route path="gantt" element={<S><UnifiedGanttPage /></S>} />
           <Route path="flight-simulator" element={<S><FlightSimConsole /></S>} />
           <Route path="defaults" element={<S><DefaultsConsole /></S>} />
+          <Route path="journalize/:model" element={<S><JournalizeReport /></S>} />
           <Route path="flight-sim" element={<S><FlightSimConsole /></S>} />
           <Route path="flight-sim/inventory" element={<S><FlightSimConsole /></S>} />
           <Route path="parade" element={<S><ParadeOfReportsPage /></S>} />

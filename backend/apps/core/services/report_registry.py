@@ -46,6 +46,14 @@ EXECUTORS: dict[str, ReportExecutor] = {
     "inventory_yearly_summary": get_inventory_yearly_summary,
 }
 
+# The Journalize reports: one per model that posts to the GL, from one generator (Bill,
+# 2026-11-07: a report per model lists the unposted records; the person ticks and posts).
+from apps.accounts.services.journalize_report import LABELS as _JOURNALIZE_LABELS
+from apps.accounts.services.journalize_report import POSTING_MODELS as _POSTING_MODELS
+from apps.accounts.services.journalize_report import executor as _journalize_executor
+
+EXECUTORS.update({f"journalize_{m}": _journalize_executor(m) for m in _POSTING_MODELS})
+
 # The manage actions that run a report — used to decide what Alice observes.
 EXECUTOR_ACTIONS = frozenset(f"get_{key}" for key in EXECUTORS)
 
@@ -97,6 +105,19 @@ SHIPPED_REPORTS: tuple[RegistryEntry, ...] = (
         "description": "yearly inventory usage summary and valuation metrics",
         "default_params": {},
     },
+) + tuple(
+    {
+        "report_key": f"journalize_{m}",
+        "action": "execute_report",
+        "label": _JOURNALIZE_LABELS[m],
+        "description": f"the {m}s not yet posted to the GL: tick the ready ones, preview, post",
+        "default_params": {},
+        "target_model": m,            # listed in the model's own Reports dialog
+        "category": "function",
+        "output_type": "screen",
+        "screen_url": f"/journalize/{m}",
+    }
+    for m in _POSTING_MODELS
 )
 
 
@@ -163,21 +184,24 @@ def seed_shipped_reports() -> list[RegistryEntry]:
         uuid_val = report_uuid(report_key)
         if Report.objects.filter(uuid=uuid_val).exists():
             continue
+        config = {
+            "report_key": report_key,
+            "action": entry["action"],
+            "default_params": entry.get("default_params") or {},
+        }
+        if entry.get("screen_url"):
+            config["screen_url"] = entry["screen_url"]
         Report.objects.create(
             uuid=uuid_val,
             ida=report_key,
             name=entry["label"],
             description=entry["description"],
-            category="report",
+            category=entry.get("category") or "report",
             purpose=REPORT_PURPOSE_EXECUTABLE,
-            output_type="json",
-            target_model="report",
+            output_type=entry.get("output_type") or "json",
+            target_model=entry.get("target_model") or "report",
             sort_order=order,
-            config={
-                "report_key": report_key,
-                "action": entry["action"],
-                "default_params": entry.get("default_params") or {},
-            },
+            config=config,
             metadata={"foundational": True, "source": "shipped"},
         )
     return _reports_from_records(executable=True)

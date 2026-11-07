@@ -81,6 +81,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   "flight-simulator": Plane,
   "flight-sim": Plane,
   defaults: SlidersHorizontal,
+  journalize: ScrollText,
   databrowser: Database,
   json: Braces,
   "parade-print": FileText,
@@ -114,6 +115,7 @@ const ROUTE_MAP: Record<string, string> = {
   "flight-simulator": "/flight-simulator",
   "flight-sim": "/flight-simulator",
   defaults: "/defaults",
+  journalize: "/journalize/invoice",
   databrowser: "/databrowser",
   json: "/json-tree",
   adjust: "/inventory-adjust",
@@ -146,6 +148,7 @@ const DISPLAY_NAMES: Record<string, string> = {
   "flight-simulator": "Flight Sim",
   "flight-sim": "Flight Sim",
   defaults: "Defaults",
+  journalize: "Journalize",
   workorder: "Work Order",
   gantt: "Gantt",
   kanban: "Kanban",
@@ -194,7 +197,7 @@ const AppSidebar: React.FC = () => {
 
   // All available items — superset the user can pick from
   const ALL_MODELS = ['agenda', 'quote', 'order', 'invoice', 'purchase', 'receipt', 'requisition', 'workorder', 'cash', 'action', 'contact', 'customer', 'vendor', 'manufacturer', 'employee', 'rep', 'item', 'serial', 'setting'];
-  const ALL_DASHBOARDS = ['dashboard', 'products', 'transactions', 'orgs', 'administration', 'alice', 'kanban', 'gantt', 'databrowser', 'json', 'accounting', 'flight-simulator', 'defaults'];
+  const ALL_DASHBOARDS = ['dashboard', 'products', 'transactions', 'orgs', 'administration', 'alice', 'kanban', 'gantt', 'databrowser', 'json', 'accounting', 'flight-simulator', 'defaults', 'journalize'];
 
   const [editingSection, setEditingSection] = useState<'models' | 'dashboards' | null>(null);
   const [localModels, setLocalModels] = useState<string[]>([]);

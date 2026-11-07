@@ -1,3 +1,5 @@
+import time
+
 from django.db import models
 
 from common.models import BaseModel
@@ -56,4 +58,10 @@ class GlJournal(BaseModel):
         # is not an active GlAccount is refused, never stored.
         from apps.accounts.services.chart import require_account
         require_account(self.account, used_by=f'journal {self.ida or "(new)"} from {self.source_model or "?"} {self.source_id or ""}'.strip())
+        # A GL row is posted the moment it is written: the journal has no drafts (the preview
+        # writes nothing). dt_journaled stamps when; a row born with one (a seed's posting date)
+        # keeps it. The dashboard counts dt_journaled=0 as unposted (dashboard_pending) — wc_demo
+        # held 349 such rows on 2026-11-07, every posting ever made.
+        if not self.dt_journaled:
+            self.dt_journaled = int(time.time() * 1000)
         return super().save(*args, **kwargs)

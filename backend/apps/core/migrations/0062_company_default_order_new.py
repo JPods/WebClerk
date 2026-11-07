@@ -72,5 +72,5 @@ def forward(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-    dependencies = [('core', '0061_contact_id_is_a_lookup'), ('accounts', '__latest__')]
+    dependencies = [('core', '0061_contact_id_is_a_lookup'), ('accounts', '0019_ledger_contact_small_sting_accounts')]
     operations = [migrations.RunPython(forward, migrations.RunPython.noop)]

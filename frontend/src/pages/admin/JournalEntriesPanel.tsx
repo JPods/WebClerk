@@ -12,7 +12,7 @@ import apiClient from '@/api/axios';
 import { formatCurrency } from '@/utils/stringUtils';
 import { DbColumns, type DbColumnDef } from '@/apps/common/components/panels/DbColumns';
 
-export interface JournalDoc { model: 'invoice' | 'cash' | 'receipt'; id: number; ida: string }
+export interface JournalDoc { model: 'invoice' | 'cash' | 'receipt' | 'workorder'; id: number; ida: string }
 
 interface Entry { account: string; name: string; debit: number; credit: number; purpose: string }
 interface Preview { posted: boolean; entries: Entry[]; debits: number; credits: number; balanced: boolean; note: string }
@@ -56,7 +56,7 @@ function meaning(e: Entry): string {
 }
 
 function headline(doc: JournalDoc, p: Preview): string {
-  if (!p.entries.length) return `${doc.model === 'cash' ? 'Cash' : doc.model === 'invoice' ? 'Invoice' : 'Receipt'} ${doc.ida}`;
+  if (!p.entries.length) return `${doc.model.charAt(0).toUpperCase()}${doc.model.slice(1)} ${doc.ida}`;
   const sum = (r: string, side: 'debit' | 'credit') =>
     p.entries.filter((e) => role(e.account) === r).reduce((t, e) => t + e[side], 0);
   if (doc.model === 'invoice') {

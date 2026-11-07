@@ -50,7 +50,7 @@ GlJournal
 | `journalize_cash(id)` | Cash + AR |
 | `journalize_receipt(id)` | A received receipt: its layers' value (Inventory / Received Not Billed, per movement) and the payable (Received Not Billed / AP). A purchase posts nothing |
 | `journalize_adjustment(item_id, qty, cost, reason)` | Inventory ↔ COGS (positive = found, negative = lost/scrapped) |
-| `batch_journalize()` | All un-journalized documents in one pass |
+| Journalize reports (`journalize_report.unposted` / `post_selected`) | One report per posting model lists its unposted records, ready (with the entry) or waiting (with the reason); the person ticks and posts, each row through the door command `journalize`. Never automatic (Bill, 2026-11-07) |
 | `account_summary_by_period(year, month)` | $ by account code — the screen users retype |
 | `export_journals(year, month, format)` | CSV / JSON / Tab / QuickBooks IIF |
 | `tax_summary_by_period(year, month, months)` | Tax collected by jurisdiction for filing |

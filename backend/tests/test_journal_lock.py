@@ -104,7 +104,7 @@ def test_a_clone_of_a_journalized_invoice_is_not_journalized():
     assert Invoice.objects.get(pk=result['clone_id']).dt_journaled == 0
 
 
-def test_journalizing_cash_sets_its_mark_and_the_batch_selects_by_it():
+def test_journalizing_cash_sets_its_mark_and_the_report_selects_by_it():
     from apps.accounts.services.journalize import journalize_cash
     from apps.transactions.models import Cash
     cash = Cash.objects.create(amount=Decimal('0.00'), purpose='payment')

@@ -175,11 +175,11 @@ def test_a_released_invoice_posts(admin, terms, chart_of_accounts):
     assert doc.dt_journaled and doc.status == 'released'
 
 
-def test_the_batch_posts_only_released_invoices(terms, chart_of_accounts):
-    """The batch used to take every active unposted invoice whatever its status."""
-    from apps.accounts.services.journalize import batch_journalize
+def test_the_invoice_report_shows_a_planned_invoice_waiting_and_a_released_one_ready(terms, chart_of_accounts):
+    """The batch that took every unposted invoice is gone (Bill, 2026-11-07: never automatic); the
+    report shows what may post and why the rest waits."""
+    from apps.accounts.services.journalize_report import unposted
     planned, released = _document('invoice', status='planned'), _document('invoice', status='released')
-    result = batch_journalize(ida_prefix='zzz-')
-    planned.refresh_from_db(); released.refresh_from_db()
-    assert released.dt_journaled and not planned.dt_journaled
-    assert not result['exceptions']
+    rows = {r['id']: r for r in unposted('invoice')['rows']}
+    assert 'Release it first' in rows[planned.pk]['waiting'] and rows[planned.pk]['preview'] is None
+    assert rows[released.pk]['waiting'] == '' and rows[released.pk]['preview']['entries']

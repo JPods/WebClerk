@@ -29,12 +29,12 @@ class TestGLPosting:
 
     def test_invoice_gl_entries_created(self):
         """Invoice with lines → GlJournal records on explicit post."""
-        from apps.accounts.services.ledger_balance import post_staged_gl_entries
+        from apps.accounts.services.journalize import journalize_invoice
         from apps.accounts.models import GlJournal
 
         invoice = _invoice_with_line(1000.0)
 
-        count = post_staged_gl_entries(invoice)
+        count = journalize_invoice(invoice.pk)['created']
         assert count == 2
 
         entries = GlJournal.objects.filter(source_id=invoice.pk, source_model='invoice')
@@ -46,19 +46,19 @@ class TestGLPosting:
         assert totals['d'] == totals['c'] == 1000.0
 
     def test_no_double_posting(self):
-        """Second call to post_staged_gl_entries returns 0."""
-        from apps.accounts.services.ledger_balance import post_staged_gl_entries
+        """Posting a second time returns 0."""
+        from apps.accounts.services.journalize import journalize_invoice
         from apps.accounts.models import GlJournal
 
         invoice = _invoice_with_line(500.0)
 
-        assert post_staged_gl_entries(invoice) == 2
-        assert post_staged_gl_entries(invoice) == 0
+        assert journalize_invoice(invoice.pk)['created'] == 2
+        assert journalize_invoice(invoice.pk)['created'] == 0
         assert GlJournal.objects.filter(source_id=invoice.pk).count() == 2
 
     def test_cash_gl_entries(self):
         """Cash GL entries: debit Cash, credit AR."""
-        from apps.accounts.services.ledger_balance import post_staged_gl_entries
+        from apps.accounts.services.journalize import journalize_cash
         from apps.accounts.models import GlJournal
         from apps.transactions.models import Cash
         from apps.core.models import Contact
@@ -80,7 +80,7 @@ class TestGLPosting:
         cash.__class__.objects.filter(pk=cash.pk).update(metadata=cash.metadata)
         cash.refresh_from_db()
 
-        count = post_staged_gl_entries(cash)
+        count = journalize_cash(cash.pk)['created']
         assert count == 2
 
         entries = GlJournal.objects.filter(source_id=cash.pk, source_model='cash')

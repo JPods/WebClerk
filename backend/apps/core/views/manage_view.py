@@ -5,7 +5,7 @@ POST /wcapi/manage/
 Body: { "action": "<action_name>", "params": { ... } }
 
 Actions:
-  post_gl_entries            — post staged GL journal entries for invoice/cash; locks record
+  (a record posts to the GL through its own door: POST /wcapi/<model>/<id>/journalize/)
   generate_kanban_projects  — bulk-create Project records with sequential kanban dates
   get_receivable_aging      — return per-customer aging summary for open AR ledgers
     get_summary_by_period — return period totals across core transaction models
@@ -471,60 +471,6 @@ def _export_report(params: Dict[str, Any]) -> Dict[str, Any]:
     return export_report(params)
 
 
-def _post_gl_entries(params: dict) -> dict:
-    """Post staged GL journal entries for an invoice or cash.
-
-    User-initiated action — records stay editable until this is called.
-    After posting, the record is locked (dt_journaled set) to prevent
-    edits. Corrections require reversing transactions.
-
-    Params:
-        model_name: 'invoice' or 'cash'
-        id: record primary key
-    """
-    from django.apps import apps as dj_apps
-    from apps.accounts.services.ledger_balance import post_staged_gl_entries
-
-    model_name = params.get('model_name', '').lower()
-    record_id = params.get('id')
-    if not model_name or not record_id:
-        raise ValueError("model_name and id are required")
-    if model_name not in ('invoice', 'cash'):
-        raise ValueError("model_name must be 'invoice' or 'cash'")
-
-    # Resolve model
-    app_label = 'transactions'
-    Model = dj_apps.get_model(app_label, model_name.capitalize())
-    try:
-        instance = Model.objects.get(pk=record_id)
-    except Model.DoesNotExist:
-        raise ValueError(f"{model_name} #{record_id} not found")
-
-    # Check not already locked
-    if getattr(instance, 'dt_journaled', 0):
-        raise ValueError(f"{model_name} #{record_id} is already journalized (locked)")
-
-    # Post GL entries
-    count = post_staged_gl_entries(instance)
-    if count == 0:
-        return {
-            'posted': 0,
-            'message': f"No GL entries to post (already posted or no staged data)",
-        }
-
-    # Lock the record — no further edits without reversal
-    from apps.accounts.services.journalize import _now_ms
-    Model.objects.filter(pk=record_id).update(dt_journaled=_now_ms())
-
-    return {
-        'posted': count,
-        'model_name': model_name,
-        'id': record_id,
-        'locked': True,
-        'message': f"Posted {count} GL entries for {model_name} #{record_id}. Record is now locked.",
-    }
-
-
 def _run_training_flow(params: dict) -> dict:
     """Alice: run a training/health-check transaction cycle.
 
@@ -834,7 +780,6 @@ def _get_bootstrap_dt(params):
 
 
 _ACTION_DISPATCH = {
-    "post_gl_entries": _post_gl_entries,
     "run_training_flow": _run_training_flow,
     "cleanup_training": _cleanup_training,
     "get_training_activity": _get_training_activity,
@@ -970,8 +915,9 @@ _ACTION_DISPATCH = {
     "get_all_campaigns": lambda p: __import__('apps.transactions.services.campaign_report', fromlist=['get_all_campaigns']).get_all_campaigns(),
     "link_transaction_to_campaign": lambda p: __import__('apps.transactions.services.campaign_report', fromlist=['link_transaction_to_campaign']).link_transaction_to_campaign(p['model_name'], p['record_id'], p['campaign_id']),
     # ── Journalize: a record posts through its door command, POST /wcapi/<model>/<id>/journalize/
-    #    (journal_commands), which gates on completeness and release. Only the batch stays here. ──
-    "batch_journalize": lambda p: __import__('apps.accounts.services.journalize', fromlist=['batch_journalize']).batch_journalize(p.get('ida_prefix', 'zzz-')),
+    #    (journal_commands). The Journalize report's run posts the ticked rows, each through that
+    #    door on its own (Bill, 2026-11-07: never automatic — a person chooses and posts). ──
+    "journalize_selected": lambda p: __import__('apps.accounts.services.journalize_report', fromlist=['post_selected']).post_selected(_acting_actor(p), p['model'], p.get('ids') or []),
     # ── Cash Pending (One Path) ──
     "apply_cash_to_invoice": lambda p: __import__('apps.transactions.services.cash.cash_pending', fromlist=['apply_cash_to_invoice']).apply_cash_to_invoice(p['cash_id'], p['invoice_id'], p['amount'], p.get('reason', ''), p.get('contact_id'), acted_by=p.get('_acting_user_id')),
     "apply_pending_cash_entries": lambda p: __import__('apps.transactions.services.cash.cash_pending', fromlist=['apply_pending_for_invoice']).apply_pending_for_invoice(p['invoice_id']),

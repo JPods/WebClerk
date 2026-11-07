@@ -3,14 +3,11 @@ from common.models import BaseModel
 
 
 class JournalBatch(BaseModel):
-    """Header for a GL posting run — like Order is to OrderLine.
+    """The audit record of a posting run — like Order is to OrderLine.
 
-    Each batch_journalize() call creates one of these. Stores totals,
-    exception counts, and processing status. GlJournal records link
-    back via GlJournal.batch_id = JournalBatch.ida.
-
-    The dashboard queries this model to show posting history and
-    unresolved exceptions.
+    Each run of a Journalize report (journalize_report.post_selected: the person ticks rows
+    and posts) creates one: the model, the ids ticked, every row's answer (config), counts,
+    who ran it and when. The dashboard reads these for posting history and exceptions.
     """
 
     STATUS_PROCESSING = 'processing'
@@ -22,16 +19,16 @@ class JournalBatch(BaseModel):
         (STATUS_HAS_EXCEPTIONS, 'Has Exceptions'),
     ]
 
-    TYPE_CHOICES = [
-        ('full', 'Full Batch'),
-        ('invoice', 'Invoices Only'),
-        ('cash', 'Cash Only'),
-        ('purchase', 'Purchases Only'),
+    TYPE_CHOICES = [                     # one Journalize report per posting model
+        ('invoice', 'Invoices'),
+        ('cash', 'Cash'),
+        ('receipt', 'Receipts'),
+        ('workorder', 'Workorders'),
     ]
 
     # status — inherited from CoreModel
     batch_type = models.CharField(
-        max_length=32, choices=TYPE_CHOICES, default='full',
+        max_length=32, choices=TYPE_CHOICES, default='invoice',
     )
 
     # Period this batch covers (optional — null means all open)

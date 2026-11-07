@@ -25,17 +25,17 @@ def invoice_with_line(unit=500.0, qty=1, unit_cost=0.0):
 
 @pytest.mark.django_db
 @pytest.mark.usefixtures("chart_of_accounts")
-class TestPostStagedGlEntries:
-    """post_staged_gl_entries() — the one engine, posting from the record."""
+class TestJournalizeFromTheRecord:
+    """journalize_invoice / journalize_cash — the one engine, posting from the record."""
 
     def test_creates_entries_from_the_invoice(self):
         """An invoice's own lines and totals → GlJournal records."""
         from apps.accounts.services.chart import role_account
-        from apps.accounts.services.ledger_balance import post_staged_gl_entries
+        from apps.accounts.services.journalize import journalize_invoice
         from apps.accounts.models import GlJournal
 
         invoice = invoice_with_line(500.0)
-        count = post_staged_gl_entries(invoice)
+        count = journalize_invoice(invoice.pk)['created']
 
         assert count == 2
         entries = list(GlJournal.objects.filter(source_id=invoice.pk, source_model='invoice'))
@@ -55,13 +55,13 @@ class TestPostStagedGlEntries:
         assert credit_entry.debit is None
 
     def test_no_double_posting(self):
-        """Calling post_staged_gl_entries twice does not duplicate entries."""
-        from apps.accounts.services.ledger_balance import post_staged_gl_entries
+        """Posting twice does not duplicate entries."""
+        from apps.accounts.services.journalize import journalize_invoice
         from apps.accounts.models import GlJournal
 
         invoice = invoice_with_line(100.0)
-        count1 = post_staged_gl_entries(invoice)
-        count2 = post_staged_gl_entries(invoice)
+        count1 = journalize_invoice(invoice.pk)['created']
+        count2 = journalize_invoice(invoice.pk)['created']
 
         assert count1 == 2
         assert count2 == 0  # blocked by the already-journalized guard
@@ -69,12 +69,12 @@ class TestPostStagedGlEntries:
 
     def test_gl_entries_balance(self):
         """Sum of debits must equal sum of credits for each source."""
-        from apps.accounts.services.ledger_balance import post_staged_gl_entries
+        from apps.accounts.services.journalize import journalize_invoice
         from apps.accounts.models import GlJournal
         from django.db.models import Sum
 
         invoice = invoice_with_line(750.0, unit_cost=300.0)
-        post_staged_gl_entries(invoice)
+        journalize_invoice(invoice.pk)['created']
 
         totals = GlJournal.objects.filter(
             source_id=invoice.pk, source_model='invoice'
@@ -84,25 +84,25 @@ class TestPostStagedGlEntries:
 
     def test_zero_amount_skipped(self):
         """A line worth nothing posts nothing."""
-        from apps.accounts.services.ledger_balance import post_staged_gl_entries
+        from apps.accounts.services.journalize import journalize_invoice
         from apps.accounts.models import GlJournal
 
         invoice = invoice_with_line(0.0)
-        count = post_staged_gl_entries(invoice)
+        count = journalize_invoice(invoice.pk)['created']
         assert count == 0
         assert GlJournal.objects.filter(source_id=invoice.pk).count() == 0
 
     def test_invoice_without_lines_returns_zero(self):
         """An invoice with no lines has nothing to post."""
-        from apps.accounts.services.ledger_balance import post_staged_gl_entries
+        from apps.accounts.services.journalize import journalize_invoice
 
         invoice = InvoiceFactory()
-        count = post_staged_gl_entries(invoice)
+        count = journalize_invoice(invoice.pk)['created']
         assert count == 0
 
     def test_cash_gl_entries_type(self):
         """Cash postings get type='general' not 'sales'."""
-        from apps.accounts.services.ledger_balance import post_staged_gl_entries
+        from apps.accounts.services.journalize import journalize_cash
         from apps.accounts.models import GlJournal
         from apps.transactions.models import Cash
         from django.utils import timezone
@@ -121,7 +121,7 @@ class TestPostStagedGlEntries:
             dt_cash=timezone.now(),
         )
 
-        count = post_staged_gl_entries(cash)
+        count = journalize_cash(cash.pk)['created']
         assert count == 2
 
         entries = GlJournal.objects.filter(source_id=cash.pk, source_model='cash')
@@ -139,7 +139,7 @@ def test_tax_posts_to_the_account_its_jurisdiction_names():
     from apps.accounts.models import GlJournal
     from apps.accounts.models.tax_jurisdiction import TaxJurisdiction
     from apps.accounts.services.chart import role_account
-    from apps.accounts.services.ledger_balance import post_staged_gl_entries
+    from apps.accounts.services.journalize import journalize_invoice
     from apps.transactions.models import InvoiceLine
 
     own_account = role_account('other_income')        # any account the chart holds
@@ -153,7 +153,7 @@ def test_tax_posts_to_the_account_its_jurisdiction_names():
     invoice.refresh_from_db()
     assert float((invoice.totals or {}).get('tax') or 0) > 0, invoice.totals
 
-    post_staged_gl_entries(invoice)
+    journalize_invoice(invoice.pk)['created']
 
     tax = GlJournal.objects.get(source_id=invoice.pk, source_model='invoice', account=own_account)
     assert tax.credit == float(invoice.totals['tax'])

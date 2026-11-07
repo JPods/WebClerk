@@ -23,6 +23,7 @@ const HelpDashboard = React.lazy(() => import("../pages/admin/HelpDashboard"));
 const InventoryDashboard = React.lazy(() => import("../pages/admin/InventoryDashboard"));
 const FlightSimConsole = React.lazy(() => import("../pages/admin/FlightSimConsole"));
 const DefaultsConsole = React.lazy(() => import("../pages/admin/DefaultsConsole"));
+const JournalizeReport = React.lazy(() => import("../pages/admin/JournalizeReport"));
 const InventoryAdjust = React.lazy(() => import("../apps/products/pages/InventoryAdjust"));
 const CycleCountMobile = React.lazy(() => import("../apps/products/pages/CycleCountMobile"));
 const CustomPageLoader = React.lazy(() => import("./CustomPageLoader"));
@@ -163,6 +164,7 @@ export const protectedRoutesConfig = [
   { path: PageRoutes.flightSim, element: <S><FlightSimConsole /></S> },
   { path: PageRoutes.flightSimInventory, element: <S><FlightSimConsole /></S> },
   { path: PageRoutes.defaults, element: <S><DefaultsConsole /></S> },
+  { path: PageRoutes.journalize, element: <S><JournalizeReport /></S> },
   { path: PageRoutes.modelWorkbench, element: <AllModelsWorkbench /> },
   { path: PageRoutes.whitelist, element: <WhitelistTester /> },
   { path: PageRoutes.paradePrint, element: <ParadePrint /> },

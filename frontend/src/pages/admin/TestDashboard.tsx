@@ -7,7 +7,7 @@
  * Route: /test-dashboard
  */
 import { useCallback, useEffect, useState } from 'react';
-import { getRecords, getRecord, manageAction } from '@/api/wcapi';
+import { getRecords, getRecord } from '@/api/wcapi';
 import { formatDt } from '@/utils/fieldFormatters';
 import RecordLink from '@/components/common/RecordLink';
 import { formatCurrency } from '@/utils/stringUtils';
@@ -43,8 +43,6 @@ interface JournalEntry {
 
 function GLJournalSection() {
   const [glEntries, setGlEntries] = useState<any[]>([]);
-  const [journalResult, setJournalResult] = useState<any>(null);
-  const [running, setRunning] = useState(false);
 
   const loadGLEntries = useCallback(async () => {
     try {
@@ -55,48 +53,15 @@ function GLJournalSection() {
 
   useEffect(() => { loadGLEntries(); }, [loadGLEntries]);
 
-  const handleBatchJournalize = async () => {
-    setRunning(true);
-    try {
-      const res = await manageAction('batch_journalize', { ida_prefix: 'zzz-' });
-      setJournalResult(res);
-      await loadGLEntries();
-    } catch (e: any) {
-      setJournalResult({ error: e.message });
-    }
-    setRunning(false);
-  };
-
   return (
     <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-6">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-bold text-gray-700 dark:text-gray-300">GL Journal ({glEntries.length})</h2>
-        <button
-          onClick={handleBatchJournalize}
-          disabled={running}
-          className="px-3 py-1 text-xs font-bold rounded bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
-        >
-          {running ? 'Journalizing...' : 'Batch Journalize (zzz-)'}
-        </button>
+        <a href="/journalize/invoice" className="px-3 py-1 text-xs font-bold rounded bg-indigo-600 text-white hover:bg-indigo-700"
+           title="A person ticks the records to post and posts them; nothing posts by itself">
+          Journalize report
+        </a>
       </div>
-
-      {journalResult && (
-        <div className={`mb-3 p-2 rounded text-xs ${journalResult.error ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
-          {journalResult.error ? (
-            <span>Error: {journalResult.error}</span>
-          ) : (
-            <span>
-              Created {journalResult.total_created} journal entries —
-              {' '}{journalResult.invoices?.length || 0} invoices,
-              {' '}{journalResult.cash_entries?.length || 0} cash_entries,
-              {' '}{journalResult.receipts?.length || 0} receipts
-              {journalResult.errors?.length > 0 && (
-                <span className="text-orange-600"> | Errors: {journalResult.errors.join('; ')}</span>
-              )}
-            </span>
-          )}
-        </div>
-      )}
 
       {glEntries.length > 0 ? (
         <table className="w-full text-xs">
@@ -152,7 +117,7 @@ function GLJournalSection() {
           </tfoot>
         </table>
       ) : (
-        <div className="text-xs text-gray-400">No GL journal entries. Click "Batch Journalize" to post.</div>
+        <div className="text-xs text-gray-400">No GL journal entries. Post them from the Journalize report.</div>
       )}
     </div>
   );

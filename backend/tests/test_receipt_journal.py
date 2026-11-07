@@ -104,12 +104,16 @@ def test_unjournalize_reverses_and_unposts_the_movements_then_it_posts_again():
     assert _net(receipt, '1200-inventory') == 40.0
 
 
-def test_a_purchase_posts_nothing_and_the_batch_journalizes_receipts():
+def test_a_purchase_posts_nothing_and_the_receipt_report_lists_the_received_receipt():
+    """The Journalize report for receipts (Bill, 2026-11-07: a person ticks and posts; never a
+    batch) shows the received receipt ready, with the entry it will post; a purchase has no report."""
     from apps.accounts.models import GlJournal
-    from apps.accounts.services.journalize import batch_journalize
+    from apps.accounts.services.journalize_report import POSTING_MODELS, unposted
     item, receipt = _received_receipt(qty=3)
-    result = batch_journalize(ida_prefix='zzz-')
-    assert [r['receipt_ida'] for r in result['receipts']] == [receipt.ida]
+    report = unposted('receipt')
+    row = next(r for r in report['rows'] if r['id'] == receipt.pk)
+    assert row['waiting'] == '' and row['preview']['entries'] and row['preview']['balanced']
+    assert 'purchase' not in POSTING_MODELS
     assert not GlJournal.objects.filter(source_model='purchase').exists()
 
 

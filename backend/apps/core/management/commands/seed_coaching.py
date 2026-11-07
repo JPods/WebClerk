@@ -700,9 +700,9 @@ DELETE /wcapi/customer/42/
 ```
 
 ### POST /wcapi/_manage/
-Administrative actions (GL posting, executable reports, etc.).
+Administrative actions (executable reports, etc.). A record posts to the GL through its own door, `POST /wcapi/invoice/42/journalize/`; the Journalize report runs the ticked rows through it:
 ```json
-{"action": "post_gl", "model_name": "invoice", "id": 42}
+{"action": "journalize_selected", "params": {"model": "invoice", "ids": [42, 43]}}
 ```
 
 ### GET /wcapi/schema/

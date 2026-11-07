@@ -64,10 +64,11 @@ def test_a_document_too_long_to_journal_is_an_exception_result_not_a_crash():
 def test_a_reversal_carries_the_reference_of_the_line_it_reverses():
     """A reversal was created with no ida, so it fell back to its row id ("470")."""
     from apps.accounts.models import GlJournal
-    from apps.accounts.services.ledger_balance import post_staged_gl_entries, reverse_gl_entries
+    from apps.accounts.services.journalize import journalize_invoice
+    from apps.accounts.services.ledger_balance import reverse_gl_entries
 
     invoice = invoice_with_line(120.0)
-    post_staged_gl_entries(invoice)
+    journalize_invoice(invoice.pk)
     reverse_gl_entries(invoice)
 
     reversals = GlJournal.objects.filter(source_id=invoice.pk, source_model='invoice_reversal')
