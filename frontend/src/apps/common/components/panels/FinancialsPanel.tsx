@@ -16,6 +16,7 @@ import {
 import type { TransactionTotals } from "@/apps/transactions/types/transactionTypes";
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
 import { formatCurrency, formatPercent } from '@/utils/stringUtils';
+import { useFormatting } from '@/context/FormattingContext';
 
 interface FinancialsPanelProps {
   totals?: TransactionTotals | null;
@@ -65,6 +66,7 @@ const FinancialsPanel: React.FC<FinancialsPanelProps> = ({
   totals: totalsProp,
   currency = "USD",
 }) => {
+  const fmt = useFormatting();
   // A default parameter covers undefined, not null. Records carry null envelopes,
   // and reading a field off null crashed the whole purchase form.
   // totals is the only total (Bill, 2026-09-18) — the old sell envelope is gone, and so is
@@ -102,32 +104,32 @@ const FinancialsPanel: React.FC<FinancialsPanelProps> = ({
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <StatBox
             label="Subtotal"
-            value={formatCurrency(totals.amount)}
+            value={formatCurrency(totals.amount, fmt)}
             sublabel="Σ extended"
             mandatory
           />
           <StatBox
             label="Discount"
-            value={formatCurrency(totals.discount)}
+            value={formatCurrency(totals.discount, fmt)}
           />
           <StatBox
             label="Tax"
-            value={formatCurrency(totals.tax)}
+            value={formatCurrency(totals.tax, fmt)}
           />
           <StatBox
             label="Total"
-            value={formatCurrency(totals.total)}
+            value={formatCurrency(totals.total, fmt)}
             highlight
           />
         </div>
         <div className="grid grid-cols-2 md:grid-cols-2 gap-3 mt-3">
           <StatBox
             label="Shipping"
-            value={formatCurrency(totals.shipping)}
+            value={formatCurrency(totals.shipping, fmt)}
           />
           <StatBox
             label="Other"
-            value={formatCurrency(totals.other)}
+            value={formatCurrency(totals.other, fmt)}
           />
         </div>
       </div>
@@ -141,17 +143,17 @@ const FinancialsPanel: React.FC<FinancialsPanelProps> = ({
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <StatBox
             label="Grand Total"
-            value={formatCurrency(totals.total)}
+            value={formatCurrency(totals.total, fmt)}
             highlight
             mandatory
           />
           <StatBox
             label="Total Cost"
-            value={formatCurrency(totals.cost)}
+            value={formatCurrency(totals.cost, fmt)}
           />
           <StatBox
             label="Margin $"
-            value={formatCurrency(marginAmount)}
+            value={formatCurrency(marginAmount, fmt)}
             trend={marginTrend}
           />
           <StatBox
@@ -171,11 +173,11 @@ const FinancialsPanel: React.FC<FinancialsPanelProps> = ({
         <div className="grid grid-cols-2 md:grid-cols-2 gap-3">
           <StatBox
             label="Received"
-            value={formatCurrency(totals.received ?? 0)}
+            value={formatCurrency(totals.received ?? 0, fmt)}
           />
           <StatBox
             label="Balance"
-            value={formatCurrency(totals.balance ?? 0)}
+            value={formatCurrency(totals.balance ?? 0, fmt)}
             trend={(totals.balance ?? 0) <= 0 ? "up" : "down"}
           />
         </div>

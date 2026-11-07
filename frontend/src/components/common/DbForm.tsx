@@ -12,6 +12,8 @@
  * registered with the host), the flight simulator and a window. A workflow that converts
  * this document opens what it made, with the lines for review, here — every host, one path.
  */
+import { FormattingProvider } from '@/context/FormattingContext';
+import { resolveFormatting } from '@/utils/formatting';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
@@ -193,8 +195,11 @@ const DbFormView: React.FC<DbFormProps> = (props) => {
 
   const commSpec = form.comm.spec;
   const isCashIn = CASH_IN_MODELS.includes(modelName);
+  // The stored formatting: the model's definition, overlaid by the party org's (readme 106).
+  const formatting = resolveFormatting(activeLayout?.formatting ?? layout?.formatting, data?.customer_config);
 
   return (
+    <FormattingProvider value={formatting}>
     <div
       className="flex flex-col h-full overflow-hidden"
       data-wc={`${modelName}-detail`}
@@ -203,6 +208,7 @@ const DbFormView: React.FC<DbFormProps> = (props) => {
       data-record-id={data.id}
       data-record-ida={data.ida}
       data-layout-source={`Setting(purpose='wc:model', name='${modelName}') → config.layout.form`}
+      data-formatting={`${formatting.currency} ${formatting.locale} ${formatting.date_format} ${formatting.number_precision}`}
     >
       {/* Header bar */}
       <div className="flex items-center gap-2 px-4 py-1 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shrink-0 no-print">
@@ -367,6 +373,7 @@ const DbFormView: React.FC<DbFormProps> = (props) => {
         />
       )}
     </div>
+    </FormattingProvider>
   );
 };
 

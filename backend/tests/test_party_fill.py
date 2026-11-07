@@ -159,3 +159,24 @@ def test_a_customers_source_name_reaches_the_quote(admin, company):
     fair = Customer.objects.create(company='Fair Co', source_name='Referral')
     q = _pick(admin, _quote(admin), 'quote', 'customer', fair)
     assert q.source_name == 'referral'
+
+
+def test_an_orgs_defaults_are_served_to_a_role_that_may_see_it(admin, company):
+    """The org's config schema names its defaults block (OrgDefaults), so the definition's leaves
+    carry it and the projection serves it — before 2026-11-07 the leaf enumeration stopped at the
+    loose config.ship_via and an org's block came back as {} (core 0073 grows the stored sets)."""
+    from apps.core.models import Setting
+    from apps.core.services import field_leaves
+    from apps.core.services.access import default_access
+    from apps.core.services.field_projection import filter_response_data
+    from apps.core.services.record_serialize import to_dict
+    leaves = field_leaves.model_leaves('customer')['leaves']
+    assert {'source_name', 'config.defaults.fields.ship_via', 'config.defaults.formatting.currency'} <= set(leaves)
+    assert 'config.ship_via' not in leaves
+    setting = Setting.objects.get(purpose='wc:model', parent_model='customer')
+    setting.config = {**setting.config, 'access': default_access('customer')}
+    setting._setting_create_authorized = True
+    setting.save()
+    north = Customer.objects.create(company='North Co', config={'defaults': {'fields': {'ship_via': 'ups'}, 'formatting': {'currency': 'CAD'}}})
+    served = filter_response_data(_as(admin), 'customer', to_dict(north))
+    assert served['config']['defaults'] == {'fields': {'ship_via': 'ups'}, 'formatting': {'currency': 'CAD'}}

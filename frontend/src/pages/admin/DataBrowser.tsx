@@ -911,6 +911,7 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
               colWidths={{ ...db.specWidths, ...db.colWidths }}
               fieldSpecs={fieldSpecsMap}
               fieldBehaviors={db.fieldBehaviors}
+              formatting={db.modelFormatting}
               selectedId={db.selectedId}
               selectedRowIds={db.selectedRowIds}
               sort={db.sort}

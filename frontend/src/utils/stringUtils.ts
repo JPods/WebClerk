@@ -2,6 +2,7 @@
  * String utilities — ported from wc2 String_* methods.
  * Only the ones that aren't trivial JS built-ins.
  */
+import { SHIPPED_FORMATTING, money, type Formatting } from '@/utils/formatting';
 import { formatDt } from '@/utils/fieldFormatters';
 
 /** Capitalize first character: "hello world" → "Hello world" */
@@ -33,11 +34,8 @@ export const formatPhone = (s: string): string => {
 };
 
 /** Format currency: 1234.5 → "$1,234.50" */
-export const formatCurrency = (n: number | string | null | undefined, symbol = '$'): string => {
-  const num = typeof n === 'string' ? parseFloat(n) : n;
-  if (num == null || isNaN(num)) return '';
-  return `${symbol}${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-};
+export const formatCurrency = (n: number | string | null | undefined, fmt: Formatting = SHIPPED_FORMATTING): string =>
+  money(n, fmt);      // the stored formatting (utils/formatting): a screen under a form passes useFormatting()
 
 /** Format percent: 32.456 → "32.5%" (default 1 decimal) */
 export const formatPercent = (n: number | string | null | undefined, decimals = 1): string => {

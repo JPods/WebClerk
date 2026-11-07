@@ -687,6 +687,40 @@ class ActionsBase(BaseModel):
 # ConfigBase — model-specific structural data
 # ═══════════════════════════════════════════════════════════════════════
 
+class FormattingBlock(BaseModel):
+    """How money, numbers and dates look: a definition's config.defaults.formatting, and an
+    org's, overlaid on its documents (readme 106; core/services/defaults.FORMATTING_KEYS)."""
+    currency: Optional[str] = None
+    locale: Optional[str] = None
+    date_format: Optional[str] = None
+    number_precision: Optional[int] = None
+
+    class Config:
+        extra = 'forbid'
+
+
+class OrgDefaultFields(BaseModel):
+    """What an org's documents start with that the org has no column for (the lead, readme 106
+    "Orgs carry their own defaults"; core/services/defaults.ORG_DEFAULT_FIELDS). Terms, price
+    level and source are the org's own columns, never here."""
+    ship_via: Optional[str] = None
+    priority: Optional[str] = None
+    dt_needed_days: Optional[int] = None
+    rep_id: Optional[int] = None
+
+    class Config:
+        extra = 'forbid'
+
+
+class OrgDefaults(BaseModel):
+    """An org's config.defaults = {fields, formatting}, the same shape as a definition's."""
+    fields: OrgDefaultFields = Field(default_factory=OrgDefaultFields)
+    formatting: FormattingBlock = Field(default_factory=FormattingBlock)
+
+    class Config:
+        extra = 'forbid'
+
+
 class ConfigBase(BaseModel):
     """Base config — models with no specific config fields inherit this.
 

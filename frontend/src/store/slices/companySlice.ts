@@ -9,9 +9,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { apiClient } from '@/api/axios';
 
 export interface CompanyCurrency {
-  symbol: string;
-  code: string;
-  locale: string;
+  /** symbol, code and locale are the stored formatting's (utils/formatting), not the profile's */
   unit_price_precision: number;
   unit_cost_precision: number;
   total_precision: number;
@@ -37,9 +35,6 @@ export interface CompanyState {
 }
 
 const DEFAULT_CURRENCY: CompanyCurrency = {
-  symbol: '$',
-  code: 'USD',
-  locale: 'en-US',
   unit_price_precision: 2,
   unit_cost_precision: 5,
   total_precision: 2,

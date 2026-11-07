@@ -5,6 +5,7 @@
  * Print templates come from Report records (target_model + output_type='print').
  * Report.config.layout holds a PrintLayout JSON that UniversalPrint renders.
  */
+import { useFormatting } from '@/context/FormattingContext';
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { showToast } from '@/store/slices/toastSlice';
@@ -70,6 +71,7 @@ const DetailToolbar: React.FC<DetailToolbarProps> = ({
   className = '',
 }) => {
   const dispatch = useDispatch();
+  const formatting = useFormatting();
   const isEditing = modeProp ? modeProp !== 'view' : (isEditingProp ?? false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
 
@@ -131,10 +133,10 @@ const DetailToolbar: React.FC<DetailToolbarProps> = ({
     const printForm = config.form;
     if (printForm) {
       // Report has a form.json — use UniversalPrint
-      openUniversalPrint(rec, companyInfo, printForm as PrintLayout);
+      openUniversalPrint(rec, companyInfo, printForm as PrintLayout, { formatting });
     } else if (layout) {
       // Fallback to detail-layout-based HTML print
-      openPrintWindow(rec, companyInfo, logos, documentText, modelName, layout);
+      openPrintWindow(rec, companyInfo, logos, documentText, modelName, layout, formatting);
     } else {
       dispatch(showToast({ message: `${report.name || 'Report'}: no layout configured`, type: 'info' }));
     }

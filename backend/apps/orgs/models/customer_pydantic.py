@@ -8,15 +8,15 @@ from __future__ import annotations
 from typing import Optional
 from pydantic import BaseModel, Field
 
-from common.schemas.envelopes import ConfigBase, MetadataBase, RecordPrefsBase, RefsBase, SourceRef
+from common.schemas.envelopes import ConfigBase, OrgDefaults, MetadataBase, RecordPrefsBase, RefsBase, SourceRef
 
 
 # ── .config ────────────────────────────────────────────────────────
 
 class CustomerConfig(ConfigBase):
-    # Default carrier copied onto new transactions for this customer
-    # (party_fill reads config.ship_via). Customer has no ship_via column.
-    ship_via: Optional[str] = None
+    # The org's own defaults for its documents (readme 106): what it has no column for, and
+    # its formatting (party_fill, utils/formatting).
+    defaults: OrgDefaults = Field(default_factory=OrgDefaults)
 
 
 # ── .metadata (inherits MetadataBase) ─────────────────────────────

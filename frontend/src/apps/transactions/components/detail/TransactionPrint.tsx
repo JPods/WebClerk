@@ -3,6 +3,7 @@ import { getRecord } from '@/api/wcapi';
 import type { DetailLayout } from '@/hooks/useDetailLayout';
 import { formatDt } from '@/utils/fieldFormatters';
 import { formatCurrency } from '@/utils/stringUtils';
+import { SHIPPED_FORMATTING, number, type Formatting } from '@/utils/formatting';
 import { getActiveLines } from '../../services/lineItemService';
 
 /**
@@ -17,11 +18,42 @@ export async function openPrintWindow(
   documentText: any,
   modelName: string,
   layout?: DetailLayout | null,
+  fmt: Formatting = SHIPPED_FORMATTING,
 ): Promise<void> {
   const w = window.open('', '_blank', 'width=800,height=1000');
   if (!w) return;
   w.document.write('<html><body><p>Loading...</p></body></html>');
+  // Resolve conditions text from Setting by id
+  let conditionsText = '';
+  if (data.conditions_description) {
+    const parts = data.conditions_description.split('|');
+    if (parts.length >= 2) {
+      try {
+        const res = await getRecord('setting', Number(parts[1]));
+        const setting = res?.record || res;
+        conditionsText = setting?.config?.current?.text || parts[0];
+      } catch { conditionsText = parts[0]; }
+    } else {
+      conditionsText = parts[0];
+    }
+  }
+  w.document.open();
+  w.document.write(renderPrintHtml(data, companyInfo, documentText, modelName, layout, conditionsText, fmt));
+  w.document.close();
+  setTimeout(() => w.print(), 300);
+}
 
+/** The printed document as HTML: the data, the company, the layout's columns, and the stored
+ *  formatting (the model's, overlaid by the customer's — a CAD customer prints CA$). */
+export function renderPrintHtml(
+  data: any,
+  companyInfo: any,
+  documentText: any,
+  modelName: string,
+  layout: DetailLayout | null | undefined,
+  conditionsText: string,
+  fmt: Formatting = SHIPPED_FORMATTING,
+): string {
   const d = data;
   const co = companyInfo;
   // Deleted lines are excluded from print: a printed document must not carry
@@ -41,20 +73,6 @@ export async function openPrintWindow(
     { title: modelName.charAt(0).toUpperCase() + modelName.slice(1), fields: [] },
   ];
 
-  // Resolve conditions text from Setting by id
-  let conditionsText = '';
-  if (d.conditions_description) {
-    const parts = d.conditions_description.split('|');
-    if (parts.length >= 2) {
-      try {
-        const res = await getRecord('setting', Number(parts[1]));
-        const setting = res?.record || res;
-        conditionsText = setting?.config?.current?.text || parts[0];
-      } catch { conditionsText = parts[0]; }
-    } else {
-      conditionsText = parts[0];
-    }
-  }
 
   // Build header columns from layout
   const getFieldValue = (field: string): string => {
@@ -65,7 +83,7 @@ export async function openPrintWindow(
     const val = d?.[field];
     if (val == null) return '';
     if (typeof val === 'number' && (field.startsWith('dt_') || field.includes('date'))) {
-      return formatDt(val, 'date', field);
+      return formatDt(val, 'date', field, fmt);
     }
     // Strip pipe-delimited pointers (conditions)
     const s = String(val);
@@ -97,8 +115,8 @@ export async function openPrintWindow(
       <td style="text-align:right">${qty.active ?? ''}</td>
       <td style="text-align:right;font-style:italic">${qty.remaining ?? ''}</td>
       <td>${item.description || ''}</td>
-      <td style="text-align:right">${unitVal ? unitVal.toFixed(2) : ''}</td>
-      <td style="text-align:right;font-style:italic">${extVal ? extVal.toLocaleString('en-US', {minimumFractionDigits:2}) : ''}</td>
+      <td style="text-align:right">${unitVal ? number(unitVal, fmt, 2) : ''}</td>
+      <td style="text-align:right;font-style:italic">${extVal ? number(extVal, fmt) : ''}</td>
     </tr>`;
   }).join('');
 
@@ -111,8 +129,7 @@ export async function openPrintWindow(
 
   const printName = `${modelName.toUpperCase()}_${d.ida}_${(d.company || '').replace(/\s+/g, '_')}`;
 
-  w.document.open();
-  w.document.write(`<!DOCTYPE html><html><head><title>${printName}</title>
+  return `<!DOCTYPE html><html><head><title>${printName}</title>
     <style>body{font-family:-apple-system,system-ui,sans-serif;font-size:12px;color:#1a1a1a;margin:0.5in;line-height:1.4}
     table{width:100%;border-collapse:collapse}th,td{padding:4px 8px;border-bottom:1px solid #e2e8f0}
     th{text-align:left;font-size:11px;color:#64748b;border-bottom:2px solid #cbd5e1}
@@ -136,12 +153,10 @@ export async function openPrintWindow(
     <div class="hdr">${headerHtml}</div>
     <table><thead><tr><th>item</th><th style="text-align:right">qty</th><th style="text-align:right;font-style:italic">remain</th><th>description</th><th style="text-align:right">${priceLabel}</th><th style="text-align:right;font-style:italic">extended</th></tr></thead>
     <tbody>${lineRows}</tbody>
-    <tfoot><tr style="border-top:2px solid #cbd5e1;font-weight:700"><td></td><td style="text-align:right">${totalQty}</td><td></td><td></td><td></td><td style="text-align:right">${totalExt.toLocaleString('en-US', {minimumFractionDigits:2})}</td></tr></tfoot></table>
-    <div class="footer"><span>tax: ${formatCurrency(totals.tax ?? 0)}</span><span>ship: ${formatCurrency(totals.shipping ?? 0)}</span><span>|</span><span class="total">total: ${formatCurrency(totals.total ?? totalExt)}</span></div>
+    <tfoot><tr style="border-top:2px solid #cbd5e1;font-weight:700"><td></td><td style="text-align:right">${totalQty}</td><td></td><td></td><td></td><td style="text-align:right">${number(totalExt, fmt)}</td></tr></tfoot></table>
+    <div class="footer"><span>tax: ${formatCurrency(totals.tax ?? 0, fmt)}</span><span>ship: ${formatCurrency(totals.shipping ?? 0, fmt)}</span><span>|</span><span class="total">total: ${formatCurrency(totals.total ?? totalExt, fmt)}</span></div>
     ${d.comments?.public ? `<div class="terms"><strong>Notes:</strong> ${d.comments.public}</div>` : ''}
     ${d.conditions_description ? `<div class="terms"><strong>Conditions:</strong> <em>${d.conditions_description}</em><br>${conditionsText}</div>` : ''}
     ${d.terms || documentText?.invoice_comment ? `<div class="terms">${d.terms ? '<strong>Terms:</strong> ' + d.terms : ''}${documentText?.invoice_comment ? '<br>' + documentText.invoice_comment : ''}</div>` : ''}
-    </body></html>`);
-  w.document.close();
-  setTimeout(() => w.print(), 300);
+    </body></html>`;
 }

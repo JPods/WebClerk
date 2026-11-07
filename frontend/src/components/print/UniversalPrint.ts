@@ -8,6 +8,7 @@
  * Users tweak field mappings in the DataBrowser Setting editor.
  */
 import { formatDt } from '@/utils/fieldFormatters';
+import { SHIPPED_FORMATTING, documentFormatting, money, number, type Formatting } from '@/utils/formatting';
 import type {
   PrintLayout, PrintField,
   CompanyHeaderSection, AddressBlocksSection, MetaRowSection,
@@ -21,23 +22,27 @@ import type {
 // Formatters
 // ---------------------------------------------------------------------------
 
+/** The formatting of the document being rendered (generatePrintHtml sets it for its pass):
+ *  the model's definition overlaid by the customer's or vendor's (utils/formatting). */
+let current: Formatting = SHIPPED_FORMATTING;
+
 function fmtCurrency(v: unknown): string {
   if (v == null || v === '') return '';
   const n = typeof v === 'number' ? v : Number(v);
   if (isNaN(n)) return String(v);
-  return n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 });
+  return money(n, current);
 }
 
 function fmtDate(v: unknown): string {
   if (!v) return '';
-  return formatDt(v, 'date');
+  return formatDt(v, 'date', undefined, current);
 }
 
 function fmtNumber(v: unknown): string {
   if (v == null || v === '') return '';
   const n = typeof v === 'number' ? v : Number(v);
   if (isNaN(n)) return String(v);
-  return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return number(n, current);
 }
 
 function fmtPercent(v: unknown): string {
@@ -47,7 +52,8 @@ function fmtPercent(v: unknown): string {
   return (n * 100).toFixed(1) + '%';
 }
 
-function formatValue(v: unknown, format?: string): string {
+export function formatValue(v: unknown, format?: string, fmt?: Formatting): string {
+  if (fmt) current = fmt;
   if (format === 'currency') return fmtCurrency(v);
   if (format === 'date') return fmtDate(v);
   if (format === 'number') return fmtNumber(v);
@@ -433,7 +439,9 @@ export function generatePrintHtml(
   companyInfo: any,
   layout: PrintLayout,
   reportConfig?: Record<string, unknown>,
+  fmt: Formatting = SHIPPED_FORMATTING,
 ): string {
+  current = fmt;
   const title = layout.title || layout.model || 'Document';
   const isList = layout.sections.some(s => s.type === 'data_table');
   const ida = isList ? '' : (data?.ida || data?.id || '');
@@ -477,12 +485,15 @@ export async function openUniversalPrint(
   data: any,
   companyInfo: any,
   layout: PrintLayout,
-  options?: { autoprint?: boolean; reportConfig?: Record<string, unknown> },
+  options?: { autoprint?: boolean; reportConfig?: Record<string, unknown>; formatting?: Formatting },
 ): Promise<void> {
   const w = window.open('', '_blank', 'width=850,height=1000');
   if (!w) return;
 
-  const html = generatePrintHtml(data, companyInfo, layout, options?.reportConfig);
+  // The form hands its formatting along; a dialog with only the record resolves it here.
+  const fmt = options?.formatting ?? (layout.model && !Array.isArray(data?.rows)
+    ? await documentFormatting(layout.model, data) : SHIPPED_FORMATTING);
+  const html = generatePrintHtml(data, companyInfo, layout, options?.reportConfig, fmt);
 
   w.document.open();
   w.document.write(html);

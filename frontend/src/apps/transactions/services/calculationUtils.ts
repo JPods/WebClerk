@@ -48,6 +48,7 @@ export function toNumber(value: unknown, fallback = 0): number {
 // ============================================================================
 
 // Canonical formatters — re-exported from stringUtils
+import { SHIPPED_FORMATTING, type Formatting } from '@/utils/formatting';
 export { formatCurrency, formatPercent } from '@/utils/stringUtils';
 
 /**
@@ -56,9 +57,10 @@ export { formatCurrency, formatPercent } from '@/utils/stringUtils';
 export function formatNumber(
   value: number | null | undefined,
   decimals = 2,
+  fmt: Formatting = SHIPPED_FORMATTING,
 ): string {
   if (value === null || value === undefined) return '--';
-  return value.toLocaleString('en-US', {
+  return value.toLocaleString(fmt.locale, {
     minimumFractionDigits: 0,
     maximumFractionDigits: decimals,
   });

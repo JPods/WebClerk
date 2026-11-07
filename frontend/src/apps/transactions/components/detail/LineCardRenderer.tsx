@@ -19,6 +19,7 @@ import { getNextLineNumber } from '../../utils/lineHelpers';
 import type { LineCardSection } from '@/hooks/useDetailLayout';
 import type { TransactionLine } from '../../types/transactionTypes';
 import { formatCurrency } from '@/utils/stringUtils';
+import { useFormatting } from '@/context/FormattingContext';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -41,6 +42,7 @@ export interface LineCardRendererProps {
 
 /** Render the line card -- DataGrid with line card config, no LinesCard component */
 const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEditing, isLocked, onLinesChange, onEnterCash, modelName }) => {
+  const fmt = useFormatting();
   // Removed lines stay in the list — greyed out, struck through, zero qty —
   // until the save deletes the row. Escape a delete by closing the window.
   const lines = data?.lines || [];
@@ -312,17 +314,17 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
         {/* Reads as a sum: lines + tax + ship + other = total. "total" was the lines alone, so an
             invoice of $116.17 read $104.65 (1054-inv, Bill 2026-10-27). */}
         <span className="text-slate-400 dark:text-slate-500">lines:</span>
-        <span className="font-mono text-slate-600 dark:text-slate-300 w-16 text-right">{formatCurrency(footerExtended)}</span>
+        <span className="font-mono text-slate-600 dark:text-slate-300 w-16 text-right">{formatCurrency(footerExtended, fmt)}</span>
         <span className="text-slate-400 dark:text-slate-500">tax:</span>
-        <span className="font-mono text-slate-600 dark:text-slate-300 w-14 text-right">{formatCurrency(data?.totals?.tax ?? 0)}</span>
+        <span className="font-mono text-slate-600 dark:text-slate-300 w-14 text-right">{formatCurrency(data?.totals?.tax ?? 0, fmt)}</span>
         <span className="text-slate-400 dark:text-slate-500">ship:</span>
-        <span className="font-mono text-slate-600 dark:text-slate-300 w-14 text-right">{formatCurrency(data?.totals?.shipping ?? 0)}</span>
+        <span className="font-mono text-slate-600 dark:text-slate-300 w-14 text-right">{formatCurrency(data?.totals?.shipping ?? 0, fmt)}</span>
         <span className="text-slate-400 dark:text-slate-500">other:</span>
-        <span className="font-mono text-slate-600 dark:text-slate-300 w-14 text-right">{formatCurrency(data?.totals?.other ?? 0)}</span>
+        <span className="font-mono text-slate-600 dark:text-slate-300 w-14 text-right">{formatCurrency(data?.totals?.other ?? 0, fmt)}</span>
         {lc.showCommission && isStaff && (
           <>
             <span className="text-purple-400 dark:text-purple-300">comm:</span>
-            <span className="font-mono text-purple-600 dark:text-purple-300 w-14 text-right">{formatCurrency(data?.commission?.total ?? 0)}</span>
+            <span className="font-mono text-purple-600 dark:text-purple-300 w-14 text-right">{formatCurrency(data?.commission?.total ?? 0, fmt)}</span>
           </>
         )}
         <span className="text-slate-300 dark:text-slate-600 not-italic">|</span>
@@ -339,27 +341,27 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
             </button>
             <span
               className="font-mono text-green-700 dark:text-green-400 min-w-[4rem] whitespace-nowrap text-right not-italic cursor-default"
-              title={`Paid: ${formatCurrency(data?.totals?.received ?? 0)}\nBalance: ${formatCurrency(data?.totals?.balance ?? 0)}`}
+              title={`Paid: ${formatCurrency(data?.totals?.received ?? 0, fmt)}\nBalance: ${formatCurrency(data?.totals?.balance ?? 0, fmt)}`}
             >
               <span className="text-slate-400 dark:text-slate-500 italic mr-0.5" style={{ fontSize: '0.85em' }}>bal:</span>
-              {formatCurrency(data?.totals?.balance ?? 0)}
+              {formatCurrency(data?.totals?.balance ?? 0, fmt)}
             </span>
           </>
         ) : (
           <>
             <span className="text-slate-500 dark:text-slate-400">deposit:</span>
-            <span className="font-mono font-medium text-slate-800 dark:text-slate-200 w-16 text-right">{formatCurrency(data?.totals?.deposit ?? 0)}</span>
+            <span className="font-mono font-medium text-slate-800 dark:text-slate-200 w-16 text-right">{formatCurrency(data?.totals?.deposit ?? 0, fmt)}</span>
           </>
         )}
         {footerBacklog > 0 && (
           <>
             <span className="text-red-500 dark:text-red-400">backlog:</span>
-            <span className="font-mono font-medium text-red-600 dark:text-red-400 min-w-[4rem] whitespace-nowrap text-right">{formatCurrency(footerBacklog)}</span>
+            <span className="font-mono font-medium text-red-600 dark:text-red-400 min-w-[4rem] whitespace-nowrap text-right">{formatCurrency(footerBacklog, fmt)}</span>
           </>
         )}
         <span className="text-slate-700 dark:text-slate-200 not-italic font-semibold">total:</span>
         <span className="font-bold text-slate-900 dark:text-white w-24 text-right not-italic"
-              title="The document's total, as the server calculates it">{formatCurrency(data?.totals?.total ?? footerExtended)}</span>
+              title="The document's total, as the server calculates it">{formatCurrency(data?.totals?.total ?? footerExtended, fmt)}</span>
       </div>
     </div>
   );
@@ -433,7 +435,7 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
                 <div style={{ fontSize: '0.8em', color: 'var(--wc-text-muted, #6c757d)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.description}</div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: '0.85em' }}>
                   <span>qty: {r.qty}</span>
-                  <span style={{ fontWeight: 600 }}>{formatCurrency(r.amount)}</span>
+                  <span style={{ fontWeight: 600 }}>{formatCurrency(r.amount, fmt)}</span>
                 </div>
               </div>
             </div>
@@ -459,6 +461,7 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
           colWidths={lc.colWidths}
           colorRules={lc.colorRules}
           fieldBehaviors={lc.fieldBehaviors}
+      formatting={fmt}
           selectedId={lc.selectedId}
           selectedRowIds={lc.selectedLineIds}
           sort={null}
@@ -496,8 +499,8 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
             <div style={{ color: 'var(--wc-text-muted, #6c757d)', fontSize: '0.85em', marginTop: 2 }}>{selectedRec.description}</div>
             <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '2px 8px', fontSize: '0.85em' }}>
               <span style={{ color: 'var(--wc-text-muted)' }}>qty</span><span>{selectedRec.qty}</span>
-              <span style={{ color: 'var(--wc-text-muted)' }}>unit</span><span>{formatCurrency(isSellSide ? selectedRec.unit_price : selectedRec.unit_cost)}</span>
-              <span style={{ color: 'var(--wc-text-muted)' }}>amount</span><span style={{ fontWeight: 600 }}>{formatCurrency(selectedRec.amount)}</span>
+              <span style={{ color: 'var(--wc-text-muted)' }}>unit</span><span>{formatCurrency(isSellSide ? selectedRec.unit_price : selectedRec.unit_cost, fmt)}</span>
+              <span style={{ color: 'var(--wc-text-muted)' }}>amount</span><span style={{ fontWeight: 600 }}>{formatCurrency(selectedRec.amount, fmt)}</span>
               {isSellSide && selectedRec.discount_pct > 0 && (
                 <><span style={{ color: 'var(--wc-text-muted)' }}>disc</span><span>{selectedRec.discount_pct}%</span></>
               )}
@@ -519,6 +522,7 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
       colWidths={lc.colWidths}
       colorRules={lc.colorRules}
       fieldBehaviors={lc.fieldBehaviors}
+      formatting={fmt}
       selectedId={lc.selectedId}
       selectedRowIds={lc.selectedLineIds}
       sort={null}

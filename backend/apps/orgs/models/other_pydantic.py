@@ -10,12 +10,14 @@ from __future__ import annotations
 from typing import Optional
 from pydantic import BaseModel, Field
 
-from common.schemas.envelopes import ConfigBase, MetadataBase, RecordPrefsBase, RefsBase, SourceRef
+from common.schemas.envelopes import ConfigBase, OrgDefaults, MetadataBase, RecordPrefsBase, RefsBase, SourceRef
 
 
 # ── .config ────────────────────────────────────────────────────────
 
 class OtherOrgConfig(ConfigBase):
+    defaults: OrgDefaults = Field(default_factory=OrgDefaults)
+
     class Config:
         extra = 'allow'
 

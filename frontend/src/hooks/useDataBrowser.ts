@@ -6,6 +6,7 @@
  *
  * Reusable — any page that needs a model browser can call this hook.
  */
+import { SHIPPED_FORMATTING, formattingOf, type Formatting } from '@/utils/formatting';
 import { fieldBehaviorsOf } from '@/utils/fieldBehaviorsOf';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
@@ -367,6 +368,7 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
 
   // --- Field behaviors ---
   const [fieldBehaviors, setFieldBehaviors] = useState<Record<string, any>>({});
+  const [modelFormatting, setModelFormatting] = useState<Formatting>(SHIPPED_FORMATTING);
   // Calculated fields (the model's config.calculated): the server works them out; the list shows
   // them italic and never edits them.
   const [calculatedFields, setCalculatedFields] = useState<Record<string, unknown>>({});
@@ -690,6 +692,7 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
         const modelRes = await getRecords('setting', { parent_model: selectedModel, purpose: 'wc:model', limit: 1 }) as any;
         if (modelChangeRef.current !== fetchId) return;
         const modelRec = (modelRes?.results || [])[0];
+        setModelFormatting(formattingOf(modelRec?.config));
         wsId = modelRec?.id ?? null;
         const layout = modelRec?.config?.layout;
         if (layout) {
@@ -1244,6 +1247,7 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
   }, [selectedModel, workbenchSetting, colWidths, persistSetting, schemaFormats]);
 
   return {
+    modelFormatting,
     // Model
     modelNames, loadingModels, modelsError, selectedModel, modelLabel, modelParam,
     handleSelectModel,

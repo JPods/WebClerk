@@ -11,6 +11,8 @@
  * The server-side normalizers are authoritative; client provides instant feedback.
  */
 
+import { SHIPPED_FORMATTING, dateText, money, type Formatting } from '@/utils/formatting';
+
 // ── Master formatter — single entry point for all field display ──────
 // Users call formatField(value, type) and get the right format back.
 // No need to know which individual formatter to use.
@@ -21,15 +23,15 @@ export type FieldType =
   | 'phone' | 'email' | 'zip' | 'address'
   | 'boolean' | 'json';
 
-export function formatField(value: unknown, type: FieldType, field?: string): string {
+export function formatField(value: unknown, type: FieldType, field?: string, fmt: Formatting = SHIPPED_FORMATTING): string {
   if (value == null || value === '') return '—';
 
   switch (type) {
     case 'date':
-      return formatDt(value, 'date', field);
+      return formatDt(value, 'date', field, fmt);
     case 'datetime':
     case 'timestamp':
-      return formatDt(value, 'datetime', field);
+      return formatDt(value, 'datetime', field, fmt);
     case 'phone':
       return formatPhone(String(value));
     case 'email':
@@ -39,7 +41,7 @@ export function formatField(value: unknown, type: FieldType, field?: string): st
     case 'currency': {
       const n = Number(value);
       if (isNaN(n)) return String(value);
-      return '$' + n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return money(n, fmt);                       // the stored formatting: currency, locale, precision
     }
     case 'percent': {
       const n = Number(value);
@@ -49,7 +51,7 @@ export function formatField(value: unknown, type: FieldType, field?: string): st
     case 'number': {
       const n = Number(value);
       if (isNaN(n)) return String(value);
-      return n.toLocaleString();
+      return n.toLocaleString(fmt.locale);
     }
     case 'boolean':
       return value ? 'Yes' : 'No';
@@ -337,7 +339,7 @@ export function normalizeEpochMs(value: number): number {
  * @param mode    'date' = date only (M/D/YYYY), 'datetime' = date + time, 'iso' = YYYY-MM-DD
  * @param field   optional field name for heuristics (dt_ prefix, date_ prefix)
  */
-export function formatDt(value: unknown, mode?: 'date' | 'datetime' | 'datetime_tz' | 'iso', field?: string): string {
+export function formatDt(value: unknown, mode?: 'date' | 'datetime' | 'datetime_tz' | 'iso', field?: string, fmt: Formatting = SHIPPED_FORMATTING): string {
   if (value == null || value === 0 || value === '') return '—';
 
   let d: Date;
@@ -363,10 +365,7 @@ export function formatDt(value: unknown, mode?: 'date' | 'datetime' | 'datetime_
       // Local YYYY-MM-DD (for <input type="date">)
       return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     case 'datetime':
-      return d.toLocaleString(undefined, {
-        year: 'numeric', month: 'short', day: 'numeric',
-        hour: '2-digit', minute: '2-digit',
-      });
+      return dateText(d, fmt, true);
     case 'datetime_tz':
       // A displayed dt that is stored as text (a comment's stamp): local, with its zone,
       // so it reads unambiguously anywhere — "Sep 24, 2026, 05:05 PM EDT".
@@ -376,7 +375,7 @@ export function formatDt(value: unknown, mode?: 'date' | 'datetime' | 'datetime_
       });
     case 'date':
     default:
-      return d.toLocaleDateString();
+      return dateText(d, fmt);
   }
 }
 

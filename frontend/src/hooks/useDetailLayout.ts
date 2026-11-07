@@ -5,6 +5,7 @@
  * Single source of truth: config.layout.form.default on the wc:model Setting.
  * No separate wc:detail_layout records.
  */
+import { formattingOf, type Formatting } from '@/utils/formatting';
 import { fieldBehaviorsOf } from '@/utils/fieldBehaviorsOf';
 import { useState, useEffect, useCallback } from 'react';
 import { getRecords } from '@/api/wcapi';
@@ -68,6 +69,8 @@ export interface DetailLayout {
   edit_rules: EditRules;
   card?: Record<string, any>;
   behaviors?: Record<string, any>;
+  /** config.defaults.formatting of the definition (utils/formatting). */
+  formatting?: Formatting;
 }
 
 // Cache layouts by model name
@@ -111,6 +114,7 @@ export function useDetailLayout(modelName: string) {
           const parsed = formLayout as DetailLayout;
           // Attach behaviors from Setting — drives label styles and select options
           parsed.behaviors = fieldBehaviorsOf(setting?.config);
+          parsed.formatting = formattingOf(setting?.config);
           layoutCache.set(modelName, parsed);
           setLayout(parsed);
         } else {

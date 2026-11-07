@@ -15,6 +15,7 @@
  * Replaces the inline table in DataBrowser.
  * Reusable in any page that needs a data table.
  */
+import type { Formatting } from '@/utils/formatting';
 import { EDIT_IN_LIST_HELP, LIST_HELP, useListGestures } from '@/hooks/useListGestures';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { parseFragments, matchesFragments } from '@/utils/searchFragments';
@@ -68,6 +69,8 @@ export interface DataGridProps {
   colWidths?: Record<string, number>;
   fieldSpecs?: Record<string, import('@/hooks/useDataBrowser').FieldSpec>;  // per-field formatting
   fieldBehaviors?: Record<string, any>;
+  /** The stored formatting (the model's, overlaid by the party's): locale and precision for the cells. */
+  formatting?: Formatting;
   selectedId?: number | null;
   selectedRowIds?: Set<number>;
   sort?: { field: string; direction: 'asc' | 'desc' } | null;
@@ -320,6 +323,7 @@ export default function DataGrid(props: DataGridProps) {
   const richColumns = props.richColumns ?? mappedColumns?.richColumns;
   const colWidths = props.colWidths ?? mappedColumns?.colWidths ?? {};
   const fieldBehaviors = props.fieldBehaviors ?? {};
+  const formatting = props.formatting;
   const fieldSpecs = props.fieldSpecs ?? {};
   const numId = props.numId ?? _numId;
   const fontSize = props.fontSize ?? 13;
@@ -690,7 +694,7 @@ export default function DataGrid(props: DataGridProps) {
       headerStyle: headerStyle(fieldBehaviors[f]?.type),
       render: rich?.cell
         ? (rec: any) => rich.cell!(rec)
-        : (rec: any) => formatCell(rich?.selector ? rich.selector(rec) : valueAt(rec, f), f, cellType(f)),
+        : (rec: any) => formatCell(rich?.selector ? rich.selector(rec) : valueAt(rec, f), f, cellType(f), formatting),
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [columns, richColMap, fieldSpecs, fieldBehaviors, effectiveColWidths, records]);
@@ -964,7 +968,7 @@ export default function DataGrid(props: DataGridProps) {
                   if (!t_data) return <td key={f} className="dg-tfoot-empty" />;
                   const shown = t_data.kind === 'count' ? String(t_data.value)
                     : formatCell(t_data.value, f, { ...cellType(f), type: (fieldBehaviors[f]?.type === 'currency' || fieldSpecs[f]?.format === 'currency') ? 'currency' : 'number',
-                                                     precision: t_data.kind === 'average' ? 2 : cellType(f).precision });
+                                                     precision: t_data.kind === 'average' ? 2 : cellType(f).precision }, formatting);
                   return <td key={f} className="dg-tfoot-cell" style={{ textAlign: 'right' }}
                     title={t_data.kind === 'sum' ? 'Sum of the rows shown' : t_data.kind === 'average' ? 'Average of the rows shown' : 'Count of the rows shown'}>
                     {t_data.kind === 'sum' ? shown : `${t_data.kind === 'average' ? 'avg' : 'n'} ${shown}`}</td>;

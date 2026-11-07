@@ -6,6 +6,7 @@
  * A list shows what the server sent (Bill: the screen shows what the server calculates) — this
  * only formats it.
  */
+import { SHIPPED_FORMATTING, type Formatting } from '@/utils/formatting';
 import type React from 'react';
 import { formatDt, formatEmail, formatPhone, formatZip, formatAddress } from '@/utils/fieldFormatters';
 import type { AddressComponents } from '@/utils/fieldFormatters';
@@ -65,7 +66,7 @@ export function readable(val: unknown): string | null {
 }
 
 /** The text a cell shows. Empty is blank: a missing value should not look like a value. */
-export function formatCell(value: unknown, field: string, t: CellType = {}): string {
+export function formatCell(value: unknown, field: string, t: CellType = {}, fmt: Formatting = SHIPPED_FORMATTING): string {
   if (value == null || value === '') return '';
   // A column saved as currency is money however the behavior typed it (cash.available was a
   // 'number' and 115.50 showed as 116). Bill, 2026-11-03: money entered or applied shows .00.
@@ -82,8 +83,8 @@ export function formatCell(value: unknown, field: string, t: CellType = {}): str
     case 'currency': {
       const v = typeof value === 'number' ? value : Number(value);
       if (isNaN(v)) return String(value);
-      const dp = t.precision ?? 2;
-      return v.toLocaleString(undefined, { minimumFractionDigits: dp, maximumFractionDigits: dp });
+      const dp = t.precision ?? fmt.number_precision;      // the stored formatting's precision and locale
+      return v.toLocaleString(fmt.locale, { minimumFractionDigits: dp, maximumFractionDigits: dp });
     }
     case 'percent': {
       const v = typeof value === 'number' ? value : Number(value);
@@ -92,10 +93,10 @@ export function formatCell(value: unknown, field: string, t: CellType = {}): str
     case 'number': {
       if (isNaN(n)) return String(value);
       const dp = t.precision ?? 0;
-      return n.toLocaleString(undefined, { minimumFractionDigits: dp, maximumFractionDigits: dp });
+      return n.toLocaleString(fmt.locale, { minimumFractionDigits: dp, maximumFractionDigits: dp });
     }
     case 'date': case 'datetime': case 'timestamp':
-      return formatDt(value, 'date', field);
+      return formatDt(value, 'date', field, fmt);
     case 'phone':
       return String(value).replace(/\D/g, '').length >= 7 ? formatPhone(String(value)) : String(value);
     case 'email':
@@ -103,7 +104,7 @@ export function formatCell(value: unknown, field: string, t: CellType = {}): str
     case 'zip':
       return formatZip(String(value));
   }
-  if (typeof value === 'number' && /(^|\.)dt_/.test(field) && value > 1e12) return formatDt(value, 'date', field);
+  if (typeof value === 'number' && /(^|\.)dt_/.test(field) && value > 1e12) return formatDt(value, 'date', field, fmt);
   return String(value);
 }
 
