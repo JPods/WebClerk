@@ -65,6 +65,10 @@ class Command(BaseCommand):
                 continue
             if Model._meta.model_name in HISTORY_MODELS:
                 continue
+            if Model._meta.proxy or not Model._meta.managed:
+                continue                         # a proxy shares its concrete model's table
+                                                 # (OrgBase would be counted six times); an
+                                                 # unmanaged model has no table Django owns
             if not router.allow_migrate_model(DEFAULT_DB_ALIAS, Model):
                 continue                         # lives in another database (webserving)
             for pk, refs in Model.objects.exclude(refs={}).values_list('pk', 'refs'):

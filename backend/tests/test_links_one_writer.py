@@ -58,6 +58,28 @@ def test_normalize_reports_and_writes_nothing_yet():
 
 
 @pytest.mark.django_db
+def test_normalize_walks_each_table_once_and_only_tables_django_owns():
+    """OrgBase has five proxies (Customer, Vendor…) on the same table, and a test-only
+    model with managed=False has no table at all: the walk skips both (cohort 1 failed on
+    core_tempmodel from test_base_model_pydantic)."""
+    from django.db import models as dj
+    from apps.core.management.commands.normalize_links import Command
+    from common.models import BaseModel
+
+    class NoTableModel(BaseModel):
+        class Meta:
+            app_label = 'core'
+            managed = False
+
+    from apps.orgs.models import OrgBase
+    org = OrgBase.objects.create(company='Once Co', org_type='customer', is_active=True)
+    OrgBase.objects.filter(pk=org.pk).update(refs={'links': {'contact': [10 ** 9]}})
+    out = StringIO()
+    Command(stdout=out).handle()
+    assert 'Would rewrite 1 link lists on 1 records' in out.getvalue(), out.getvalue()
+
+
+@pytest.mark.django_db
 def test_a_bare_int_org_link_still_counts_for_access():
     """The deleted every-save step used to turn bare ints into dicts; role_filter read only
     dicts, so a contact linked by an old writer would have lost its customer's scope."""
