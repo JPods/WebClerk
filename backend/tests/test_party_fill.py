@@ -117,3 +117,16 @@ def test_a_later_save_without_the_party_takes_nothing(admin, company):
     save_record(_as(admin), {'id': q.pk, 'version': q.version, 'comments': {'public': 'later'}}, model_key='quote')
     q.refresh_from_db()
     assert q.terms == 'N10', 'the party fires on the pick, not on every save'
+
+
+def test_a_ship_via_from_the_org_lands_in_the_lists_own_spelling(admin, company):
+    """Riverside Supplies' config said 'USPS'; the quote list says 'usps'. A spelling the list
+    lacks is not written: code writing an unlisted value is refused, and the fill is code."""
+    from apps.core.services import select_lists
+    select_lists.replace_list('quote', 'ship_via', [{'value': 'usps'}, {'value': 'ups'}], actor=_as(admin))
+    loud = Customer.objects.create(company='Loud Co', config={'ship_via': 'USPS'})
+    q = _pick(admin, _quote(admin), 'quote', 'customer', loud)
+    assert q.ship_via == 'usps'
+    odd = Customer.objects.create(company='Odd Co', config={'ship_via': 'pony-express'})
+    q = _pick(admin, q, 'quote', 'customer', odd)
+    assert q.ship_via == '', "a carrier the list lacks is not written, and the last customer's does not linger"

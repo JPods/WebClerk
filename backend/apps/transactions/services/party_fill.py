@@ -54,11 +54,24 @@ def _take(obj, org, party: str, model_key: str, data: Dict[str, Any], names: set
         setattr(obj, aspect, current)
     if 'attention' in names and 'attention' not in data:
         obj.attention = blocks['bill_to']['addresses']['attention']
-    ship_via = (org.config or {}).get('ship_via') if isinstance(org.config, dict) else None
-    if ship_via and 'ship_via' in names and 'ship_via' not in data:
-        obj.ship_via = ship_via
+    if 'ship_via' in names and 'ship_via' not in data:      # the org's carrier, else the company's, else none
+        theirs = (org.config or {}).get('ship_via') if isinstance(org.config, dict) else None
+        obj.ship_via = _listed(model_key, 'ship_via', theirs) or company.get('ship_via') or ''
     if party == 'customer' and 'finance' in names and 'finance' not in data:
         _tax(obj, org, blocks.get('ship_to', blocks['bill_to'])['addresses'].get('full_address', ''))
+
+
+def _listed(model_key: str, field: str, value: Any) -> Optional[str]:
+    """An org's value in the document list's own spelling (Riverside's config said 'USPS', the
+    quote list says 'usps'); none when the list lacks it — the door refuses code writing an
+    unlisted value (Bill, 2026-11-04), and a party fill is code. The sweep repairs the org."""
+    if not value:
+        return None
+    from apps.core.services import select_lists
+    listed = select_lists.lists(model_key).get(field)
+    if not listed:
+        return str(value)
+    return next((str(v) for v in listed if str(v).lower() == str(value).lower()), None)
 
 
 def _block(org, role: str, snapshot: Dict[str, Any], fallback: Optional[Dict[str, Dict]] = None) -> Dict[str, Dict]:
