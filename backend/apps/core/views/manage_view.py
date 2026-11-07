@@ -969,11 +969,8 @@ _ACTION_DISPATCH = {
     "calculate_campaign_roi": lambda p: __import__('apps.transactions.services.campaign_report', fromlist=['calculate_campaign_roi']).calculate_campaign_roi(p['campaign_id']),
     "get_all_campaigns": lambda p: __import__('apps.transactions.services.campaign_report', fromlist=['get_all_campaigns']).get_all_campaigns(),
     "link_transaction_to_campaign": lambda p: __import__('apps.transactions.services.campaign_report', fromlist=['link_transaction_to_campaign']).link_transaction_to_campaign(p['model_name'], p['record_id'], p['campaign_id']),
-    # ── Journalize (GL Posting) ──
-    "journalize_invoice": lambda p: __import__('apps.accounts.services.journalize', fromlist=['journalize_invoice']).journalize_invoice(p['invoice_id'], p.get('ida_prefix', '')),
-    "journalize_invoice_and_cash_entries": lambda p: __import__('apps.accounts.services.journalize', fromlist=['journalize_invoice_and_cash_entries']).journalize_invoice_and_cash_entries(p['invoice_id'], p.get('ida_prefix', '')),
-    "journalize_cash": lambda p: __import__('apps.accounts.services.journalize', fromlist=['journalize_cash']).journalize_cash(p['cash_id'], p.get('ida_prefix', '')),
-    "journalize_receipt": lambda p: __import__('apps.accounts.services.journalize', fromlist=['journalize_receipt']).journalize_receipt(p['receipt_id'], p.get('ida_prefix', '')),
+    # ── Journalize: a record posts through its door command, POST /wcapi/<model>/<id>/journalize/
+    #    (journal_commands), which gates on completeness and release. Only the batch stays here. ──
     "batch_journalize": lambda p: __import__('apps.accounts.services.journalize', fromlist=['batch_journalize']).batch_journalize(p.get('ida_prefix', 'zzz-')),
     # ── Cash Pending (One Path) ──
     "apply_cash_to_invoice": lambda p: __import__('apps.transactions.services.cash.cash_pending', fromlist=['apply_cash_to_invoice']).apply_cash_to_invoice(p['cash_id'], p['invoice_id'], p['amount'], p.get('reason', ''), p.get('contact_id'), acted_by=p.get('_acting_user_id')),

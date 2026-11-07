@@ -26,7 +26,9 @@ def _invoice(unit=100.0):
     buyer = OrgBase.objects.create(company='Journal Buyer', org_type='customer', is_active=True)
     from apps.accounts.models import Term
     Term.objects.get_or_create(ida='N30', defaults={'name': 'N30', 'is_active': True})
-    inv = Invoice.objects.create(customer_id=buyer.pk, terms='N30', finance={'sales_tax_rate': 0})   # complete: journalize refuses an invoice without terms (2026-11-06)
+    # complete and released: journalize refuses an invoice without terms (2026-11-06) or not yet
+    # released (2026-11-07, validate_status.JOURNALIZE_FROM)
+    inv = Invoice.objects.create(customer_id=buyer.pk, terms='N30', status='released', finance={'sales_tax_rate': 0})
     InvoiceLine.objects.create(invoice=inv, quantity={'active': 1},
                                price={'unit': unit, 'precision': 2}, cost={'unit': 0})
     recalculate_totals(inv.pk, 'invoice')

@@ -204,6 +204,13 @@ REQUIRES = {
 #: customer and terms the invoice bills on. Receiving is goods arriving: a vendor and lines; the terms
 #: bind at the bill, not at the dock (the lead, 2026-11-06). Other converts are planning steps and free.
 CONVERT_REQUIRES = {'invoice': ('customer', 'terms', 'lines'), 'receipt': ('vendor', 'lines')}
+#: Posting is the last money step. An invoice posts to the GL only once it is released (the goods
+#: left, the bill went out) or further along; a planned, signoff_request or on_hold invoice is refused
+#: with coaching. Once posted no status moves (validate_transition), so posting a planned invoice
+#: would freeze it at planned — wc_demo held eleven such rows on 2026-11-07, posted through the
+#: form's gate-less manage action and the batch. Cash completes itself when it posts, a receipt's
+#: gate is receiving, a workorder posts events: none needs a row here.
+JOURNALIZE_FROM = {'invoice': ('released', 'in_progress', 'complete', 'partially_paid', 'paid')}
 _LINE_MODELS = {'quote': 'QuoteLine', 'order': 'OrderLine', 'invoice': 'InvoiceLine', 'purchase': 'PurchaseLine',
                 'receipt': 'ReceiptLine', 'workorder': 'WorkOrderLine', 'requisition': 'RequisitionLine'}
 
@@ -226,6 +233,20 @@ def incomplete(instance, model_type: str, payload_lines=None, needs=None) -> lis
         elif not getattr(instance, f'{need}_id', None):
             missing.append(need)
     return missing
+
+
+def may_post(instance, model_type: str) -> bool:
+    """Whether ``instance`` is far enough along to post to the GL (JOURNALIZE_FROM); a model
+    without a row posts whatever its status."""
+    allowed = JOURNALIZE_FROM.get(model_type)
+    return allowed is None or (getattr(instance, 'status', '') or '') in allowed
+
+
+def not_released_coaching(model_type: str, status: str) -> str:
+    article = 'An' if model_type[:1] in 'aeiou' else 'A'
+    return (f"{article} {model_type} posts to the GL only after release; this one is "
+            f"'{status or 'blank'}'. Release it first, then journalize — once posted, "
+            f"its status cannot move.")
 
 
 def incomplete_coaching(model_type: str, step: str, missing: list, needs=None) -> str:

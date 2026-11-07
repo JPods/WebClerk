@@ -1273,7 +1273,8 @@ def batch_journalize(ida_prefix: str = 'zzz-', run_by_id: int = None) -> dict:
             results['exceptions'].append(result)
 
     # Find un-journalized records — dt_journaled=0 means not yet posted
-    invoices = Invoice.objects.filter(dt_journaled=0, is_active=True)
+    from apps.transactions.services.validate_status import JOURNALIZE_FROM
+    invoices = Invoice.objects.filter(dt_journaled=0, is_active=True, status__in=JOURNALIZE_FROM['invoice'])
     for inv in invoices:
         _classify(journalize_invoice(inv.pk, ida_prefix=ida_prefix), 'invoices', inv.ida)
 

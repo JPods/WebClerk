@@ -40,12 +40,10 @@ const ACTION_CONFIGS: Record<string, ActionDef[]> = {
     { key: 'link_transaction_to_campaign', label: 'Link Campaign', needsDialog: true },
   ],
   invoice: [
-    { key: 'journalize_invoice', label: 'Journalize Invoice',
-      confirm: 'Post GL journal entries + accrue commission? This locks the invoice.',
-      params: (r) => ({ invoice_id: r.id, ida_prefix: '' }) },
-    { key: 'journalize_invoice_and_cash_entries', label: 'Journalize Invoice + Cash',
-      confirm: 'Post GL journals for this invoice AND all linked cash? This locks both.',
-      params: (r) => ({ invoice_id: r.id, ida_prefix: '' }) },
+    // One door: the journalize command refuses an incomplete or unreleased invoice with coaching.
+    { key: 'journalize', label: 'Journalize', command: 'journalize',
+      confirm: 'Post this invoice to the GL (revenue, tax, COGS) and accrue its commission? This locks the invoice.',
+      params: () => ({}) },
     { key: 'assign_serial_on_ship', label: 'Assign Serial', needsDialog: true },
     { key: 'clone_record', label: 'Clone',
       confirm: 'Duplicate this invoice with fresh dates?',
@@ -81,9 +79,9 @@ const ACTION_CONFIGS: Record<string, ActionDef[]> = {
       params: () => ({}) },
   ],
   cash: [
-    { key: 'journalize_cash', label: 'Journalize',
-      confirm: 'Post GL journal entries for this cash? This locks the cash.',
-      params: (r) => ({ cash_id: r.id, ida_prefix: '' }) },
+    { key: 'journalize', label: 'Journalize', command: 'journalize',
+      confirm: 'Post this cash to the GL? This locks the cash.',
+      params: () => ({}) },
   ],
   workorder: [
     { key: 'record_production_action', label: 'Add Production Note', needsDialog: true },

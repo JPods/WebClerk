@@ -75,6 +75,10 @@ def journalize(ctx) -> Dict[str, Any]:
         raise Refused(409, 'incomplete_document',
                       validate_status.incomplete_coaching(ctx.model_key, 'journalize', missing),
                       {'missing': missing})
+    if not validate_status.may_post(ctx.obj, ctx.model_key):   # released first (JOURNALIZE_FROM)
+        raise Refused(409, 'not_released',
+                      validate_status.not_released_coaching(ctx.model_key, ctx.obj.status),
+                      {'status': ctx.obj.status})
     post = {'invoice': posting.journalize_invoice, 'cash': posting.journalize_cash,
             'receipt': posting.journalize_receipt,
             'workorder': posting.journalize_workorder}[ctx.model_key]

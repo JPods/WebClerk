@@ -152,3 +152,34 @@ def test_journalize_refuses_an_incomplete_document(admin, terms, chart_of_accoun
     assert refused.status == 409 and refused.code == 'incomplete_document'
     doc.refresh_from_db()
     assert not doc.dt_journaled
+
+
+# ── journalize: an invoice posts only once released (validate_status.JOURNALIZE_FROM) ──
+
+@pytest.mark.parametrize('status', ['planned', 'signoff_request', 'on_hold'])
+def test_journalize_refuses_an_invoice_that_is_not_released(admin, terms, chart_of_accounts, status):
+    """Once posted no status moves (validate_transition), so a planned invoice posted would be
+    planned forever — wc_demo held eleven such rows on 2026-11-07."""
+    doc = _document('invoice', status=status)
+    refused = _refused(lambda: run_command(admin, 'journalize', 'invoice', doc.pk, {}))
+    assert refused.status == 409 and refused.code == 'not_released'
+    assert status in refused.message and 'Release it first' in refused.message
+    doc.refresh_from_db()
+    assert not doc.dt_journaled and doc.status == status
+
+
+def test_a_released_invoice_posts(admin, terms, chart_of_accounts):
+    doc = _document('invoice', status='released')
+    run_command(admin, 'journalize', 'invoice', doc.pk, {})
+    doc.refresh_from_db()
+    assert doc.dt_journaled and doc.status == 'released'
+
+
+def test_the_batch_posts_only_released_invoices(terms, chart_of_accounts):
+    """The batch used to take every active unposted invoice whatever its status."""
+    from apps.accounts.services.journalize import batch_journalize
+    planned, released = _document('invoice', status='planned'), _document('invoice', status='released')
+    result = batch_journalize(ida_prefix='zzz-')
+    planned.refresh_from_db(); released.refresh_from_db()
+    assert released.dt_journaled and not planned.dt_journaled
+    assert not result['exceptions']
