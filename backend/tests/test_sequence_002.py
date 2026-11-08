@@ -28,17 +28,6 @@ def _now_ms():
     return int(time.time() * 1000)
 
 
-def _save_reviewed(model_key, header_id, lines):
-    """Conversions create the header only and return lines for review.
-    Saving the reviewed document is the step that creates the lines."""
-    from tests.utils import save_document
-    return save_document(
-        model_key=model_key,
-        header_data={'id': header_id},
-        lines_data=lines,
-    )
-
-
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.usefixtures('chart_of_accounts')
 class TestSequence002(TestCase):
@@ -171,9 +160,8 @@ class TestSequence002(TestCase):
         self.assertTrue(order.commission.get('reps'), 'Order should have commission reps')
         self.assertGreater(order.commission.get('total', 0), 0, 'Order commission total > 0')
 
-        # Save the reviewed order — order lines become children of the quote lines
-        self.assertEqual(result['lines_for_review'], 2)
-        _save_reviewed('order', result['order_id'], result['lines'])
+        # The order is saved with its lines — children of the quote lines (Bill, 2026-11-08)
+        self.assertEqual(result['lines_saved'], 2)
         OrderLine = apps.get_model('transactions', 'OrderLine')
         QuoteLine = apps.get_model('transactions', 'QuoteLine')
         order_lines = list(OrderLine.objects.filter(order=order))
@@ -202,7 +190,6 @@ class TestSequence002(TestCase):
         invoice = Invoice.objects.get(pk=result['invoice_id'])
         self.assertTrue(invoice.commission.get('reps'), 'Invoice should have commission')
 
-        _save_reviewed('invoice', result['invoice_id'], result['lines'])
         InvoiceLine = apps.get_model('transactions', 'InvoiceLine')
         OrderLine = apps.get_model('transactions', 'OrderLine')
         order_line_ids = set(OrderLine.objects.filter(order_id=self.order_id).values_list('pk', flat=True))
@@ -330,7 +317,7 @@ class TestSequence002(TestCase):
         self.assertNotIn('error', result, f'Conversion failed: {result.get("error")}')
         self.assertGreater(result['purchase_id'], 0)
 
-        print(f'  ✓ Order → Purchase {result["purchase_ida"]}: {result["lines_for_review"]} lines for review')
+        print(f'  ✓ Order → Purchase {result["purchase_ida"]}: {result["lines_saved"]} lines saved')
 
     def test_10_conversion_history(self):
         """Trace the full conversion chain."""
@@ -370,15 +357,13 @@ class TestSequence002(TestCase):
         order_result = convert_quote_to_order(self.quote.pk, contact_id=self.contact_id)
         assert 'error' not in order_result, order_result.get('error')
         self.order_id = order_result['order_id']
-        _save_reviewed('order', self.order_id, order_result['lines'])
-        print(f'  ✓ Quote → Order: {order_result["lines_for_review"]} lines')
+        print(f'  ✓ Quote → Order: {order_result["lines_saved"]} lines')
 
         # Convert order → invoice
         inv_result = convert_order_to_invoice(self.order_id, contact_id=self.contact_id)
         assert 'error' not in inv_result, inv_result.get('error')
         self.invoice_id = inv_result['invoice_id']
-        _save_reviewed('invoice', self.invoice_id, inv_result['lines'])
-        print(f'  ✓ Order → Invoice: {inv_result["lines_for_review"]} lines')
+        print(f'  ✓ Order → Invoice: {inv_result["lines_saved"]} lines')
 
         # Journalize
         gl_result = journalize_invoice(self.invoice_id, ida_prefix='zzz-')

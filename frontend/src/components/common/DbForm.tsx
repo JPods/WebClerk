@@ -67,8 +67,6 @@ export interface DbFormProps {
   /** In a list: hand over unsaved edits before the list moves on; take them back on Undo. */
   onRegisterDraft?: (get: DraftGetter) => void;
   draft?: Record<string, any> | null;
-  /** Lines a conversion made, for review before the first save. */
-  initialLines?: any[] | null;
   onWorkflowComplete?: (result?: any) => void;
   onNavigate?: (model: string, id: number) => void;
   [key: string]: unknown;   // a host's extra props (DataBrowser: modeProp, id, dataProp, hideBreadcrumb)
@@ -83,7 +81,7 @@ const badge = (tone: 'amber' | 'red' | 'slate', text: string, title?: string) =>
 
 const DbFormView: React.FC<DbFormProps> = (props) => {
   const { modelName: propModel, recordId: propId, onClose, inline, onRegisterActions, onEditStateChange,
-          onCancelInline, onSaved, onAfterSave, onRegisterDraft, draft, initialLines, onWorkflowComplete, onNavigate } = props;
+          onCancelInline, onSaved, onAfterSave, onRegisterDraft, draft, onWorkflowComplete, onNavigate } = props;
   const params = useParams<{ model?: string; id?: string }>();
   const modelName = propModel || params.model || '';
   const recordId = propId || (params.id ? Number(params.id) : 0);
@@ -111,7 +109,7 @@ const DbFormView: React.FC<DbFormProps> = (props) => {
   const form = useRecordForm({
     modelName, recordId, layout: activeLayout,
     autoEdit: authUser?.prefs?.layout?.detail?.auto_edit === true,
-    initialLines, draft, onRegisterDraft, onRegisterActions, onEditStateChange, onAfterSave: afterSave,
+    draft, onRegisterDraft, onRegisterActions, onEditStateChange, onAfterSave: afterSave,
   });
   const { data, currentData, isEditing } = form;
   const custSearch = useCustomerSearch(form.setField, partyOf(modelName));
@@ -390,7 +388,7 @@ const DbForm: React.FC<DbFormProps> = (props) => {
   const [opened, setOpened] = useState<ConvertedTarget | null>(null);
 
   // The host moved to another record: show that one. (A host following our own jump
-  // through onNavigate lands on the record already opened, and keeps its lines.)
+  // through onNavigate lands on the record already opened.)
   useEffect(() => {
     setOpened((o) => (o && o.model === hostModel && o.id === hostId ? o : null));
   }, [hostModel, hostId]);
@@ -411,7 +409,6 @@ const DbForm: React.FC<DbFormProps> = (props) => {
       {...props}
       modelName={opened.model}
       recordId={opened.id}
-      initialLines={opened.lines}
       onWorkflowComplete={onWorkflowComplete}
     />
   );

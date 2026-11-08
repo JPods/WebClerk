@@ -3,7 +3,6 @@ import pytest
 from apps.transactions.models import Quote, QuoteLine, Order, OrderLine
 from apps.core.services.door import Refused
 from apps.transactions.services.convert.convert import convert_quote_to_order
-from tests.utils import save_document
 
 
 @pytest.mark.django_db
@@ -228,15 +227,6 @@ pytest -xvs tests/test_quote_totals.py
 - Tests: `tests/test_quote_totals.py`
 
 '''
-def _save_reviewed_order(result):
-    """Save the lines a conversion returned for review — the step that creates lines."""
-    return save_document(
-        model_key="order",
-        header_data={"id": result["order_id"]},
-        lines_data=result["lines"],
-    )
-
-
 @pytest.fixture(autouse=True)
 def _no_pending_dispatch(monkeypatch):
     monkeypatch.setattr(
@@ -249,9 +239,8 @@ def _no_pending_dispatch(monkeypatch):
 class TestQuoteToOrderTransfer:
     """Test quote to order transfer functionality.
 
-    Conversion creates the order header and returns lines for review; lines are
-    created when the reviewed order is saved. Each order line is a child of its
-    quote line (parent_line_id); the quote line's remaining is recomputed.
+    Conversion saves the order with its lines (Bill, 2026-11-08). Each order line is a
+    child of its quote line (parent_line_id); the quote line's remaining is recomputed.
     """
 
     def test_transfer_all_lines_success(self):
@@ -272,17 +261,11 @@ class TestQuoteToOrderTransfer:
 
         result = convert_quote_to_order(quote.id)
 
-        assert result['lines_for_review'] == 2
-        source_ids = {ln['refs']['source']['quote_line_id'] for ln in result['lines']}
-        assert source_ids == {line1.id, line2.id}
+        assert result['lines_saved'] == 2
 
         order = Order.objects.get(id=result['order_id'])
         assert order.status == 'planned' and order.parent_id == quote.id
         assert order.refs['source']['quote_id'] == quote.id
-        # Header only — no lines until the reviewed order is saved
-        assert OrderLine.objects.filter(order=order).count() == 0
-
-        _save_reviewed_order(result)
 
         order_lines = OrderLine.objects.filter(order=order)
         assert order_lines.count() == 2
@@ -316,13 +299,10 @@ class TestQuoteToOrderTransfer:
 
         result = convert_quote_to_order(quote.id, line_ids=[line1.id, line3.id])
 
-        assert result['lines_for_review'] == 2
-        source_ids = {ln['refs']['source']['quote_line_id'] for ln in result['lines']}
-        assert source_ids == {line1.id, line3.id}
-
-        _save_reviewed_order(result)
+        assert result['lines_saved'] == 2
         order = Order.objects.get(id=result['order_id'])
-        assert OrderLine.objects.filter(order=order).count() == 2
+        source_ids = {ln.refs['source']['quote_line_id'] for ln in OrderLine.objects.filter(order=order)}
+        assert source_ids == {line1.id, line3.id}
 
         line1.refresh_from_db()
         line3.refresh_from_db()
@@ -358,11 +338,6 @@ class TestQuoteToOrderTransfer:
         )
 
         result = convert_quote_to_order(quote.id)
-        reviewed = result['lines'][0]['quantity']
-        assert reviewed['active'] == 3
-        assert reviewed['staged'] == 3
-
-        _save_reviewed_order(result)
         order = Order.objects.get(id=result['order_id'])
         order_line = OrderLine.objects.filter(order=order).first()
         assert order_line is not None, "Expected the saved order to have a line"

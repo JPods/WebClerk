@@ -96,8 +96,9 @@ class OrderToPurchaseServiceTest(TestCase):
         )
 
     def test_transfer_order_to_purchase_basic(self):
-        """One purchase from an order, its lines back for review (the one engine, plan
-        §14a.4: the old vendor grouping and customer link were dropped deliberately)."""
+        """One purchase from an order, saved with its lines (the one engine, plan §14a.4:
+        the old vendor grouping and customer link were dropped deliberately; Bill 2026-11-08:
+        saved with lines)."""
         OrderLine.objects.create(
             order=self.order,
             item={'description': 'Item 1'},
@@ -112,6 +113,6 @@ class OrderToPurchaseServiceTest(TestCase):
         self.assertEqual(po.status, "planned")
         self.assertEqual((po.parent_model, po.parent_id), ("order", self.order.id))
         self.assertEqual(po.vendor_id, self.vendor.id)
-        self.assertEqual(result['lines_for_review'], 1)
-        self.assertEqual(result['lines'][0]['quantity']['active'], 2)
-        self.assertEqual(po.lines.count(), 0, "lines are created when the reviewed PO is saved")
+        self.assertEqual(result['lines_saved'], 1)
+        self.assertEqual(po.lines.count(), 1, "the purchase is saved with its lines")
+        self.assertEqual(po.lines.first().quantity['active'], 2)

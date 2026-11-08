@@ -140,7 +140,9 @@ const DocEntry: React.FC<{ doc: JournalDoc; explain: boolean; onPosted: () => vo
           footer={
             <tr className="dg-tfoot-row">
               <td />
-              <td colSpan={2}>{preview.balanced ? 'Balanced' : 'OUT OF BALANCE'}</td>
+              {/* The footer sums every debit and every credit (AR + COGS on a sale), not the
+                  document's total: Bill read $182.34 as the invoice total of 1056-inv, 2026-11-08. */}
+              <td colSpan={2}>{preview.balanced ? 'Balanced — total debits / total credits' : 'OUT OF BALANCE — total debits / total credits'}</td>
               <td style={{ textAlign: 'right' }}>{formatCurrency(preview.debits)}</td>
               <td style={{ textAlign: 'right' }}>{formatCurrency(preview.credits)}</td>
             </tr>

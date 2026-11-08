@@ -144,7 +144,9 @@ const WorkflowSelect: React.FC<WorkflowSelectProps> = ({ modelName, record, onCo
       const result = action.command
         ? await callCommand(modelName, record.id, action.command, params)
         : await callManage(action.key, params);
-      dispatch(showToast({ message: `${action.label} completed`, type: 'success' }));
+      // The server's coaching rides on the result (a purchase born without a vendor, 2026-11-08).
+      const notes = Array.isArray(result?.messages) ? result.messages.filter(Boolean) : [];
+      dispatch(showToast({ message: [`${action.label} completed`, ...notes].join('. '), type: 'success' }));
       onComplete?.({ ...result, _action: action.key });
     } catch (err: any) {
       dispatch(showToast({ message: err?.response?.data?.message || err?.message || `${action.label} failed`, type: 'error' }));

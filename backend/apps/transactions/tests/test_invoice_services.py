@@ -103,10 +103,10 @@ class OrderToInvoiceServiceTest(TestCase):
         self.assertEqual(invoice.parent_id, self.order.id)
         self.assertEqual(invoice.refs['source']['order_id'], self.order.id)
 
-        # Lines are returned for React, not saved server-side
-        self.assertEqual(result['lines_for_review'], 1)
-        self.assertEqual(len(result['lines']), 1)
-        self.assertEqual(result['lines'][0]['quantity']['active'], 2)
+        # The invoice is saved with its lines (Bill, 2026-11-08)
+        self.assertEqual(result['lines_saved'], 1)
+        self.assertEqual(invoice.lines.count(), 1)
+        self.assertEqual(invoice.lines.first().quantity['active'], 2)
 
     def test_transfer_order_to_invoice_partial(self):
         """Test partial order to invoice transfer."""
@@ -129,4 +129,4 @@ class OrderToInvoiceServiceTest(TestCase):
         result = convert_order_to_invoice(self.order.pk)
 
         # is_complete forces remaining=0, so only one line transferred
-        self.assertEqual(result['lines_for_review'], 1)
+        self.assertEqual(result['lines_saved'], 1)

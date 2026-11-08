@@ -56,8 +56,6 @@ export interface RecordFormOptions {
   layout: DetailLayout | null;
   /** The person's prefs.layout.detail.auto_edit: open straight into edit. */
   autoEdit?: boolean;
-  /** Lines a conversion made, for review before the first save (a converted document). */
-  initialLines?: TransactionLine[] | null;
   /** In a list: hand over unsaved edits before the list moves on; take them back on Undo. */
   draft?: Record<string, any> | null;
   onRegisterDraft?: (get: DraftGetter) => void;
@@ -138,7 +136,7 @@ export function hasLineCard(layout: DetailLayout | null): boolean {
 }
 
 export function useRecordForm(opts: RecordFormOptions) {
-  const { modelName, recordId, layout, autoEdit, initialLines, draft, onRegisterDraft,
+  const { modelName, recordId, layout, autoEdit, draft, onRegisterDraft,
           onRegisterActions, onEditStateChange, onAfterSave } = opts;
   const dispatch = useDispatch();
   const windowManager = useWindowManager();
@@ -189,15 +187,6 @@ export function useRecordForm(opts: RecordFormOptions) {
   }, [modelName, recordId, withLines, dispatch]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
-
-  // Lines a conversion made: on the edit copy, dirty, so the first save takes the lines path.
-  useEffect(() => {
-    if (initialLines && Array.isArray(initialLines) && initialLines.length > 0 && data) {
-      const marked = initialLines.map((l: any) => ({ ...l, _dirty: true }));
-      setEditData((prev: any) => prev ? { ...prev, lines: marked } : prev);
-      setIsEditing(true);
-    }
-  }, [initialLines, data]);
 
   // ── Edit tier, hold, auto-edit ───────────────────────────────────
   const editTier = useMemo(() => editTierOf(data, layout), [data, layout]);

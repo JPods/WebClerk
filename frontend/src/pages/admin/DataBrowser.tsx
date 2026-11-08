@@ -1066,7 +1066,6 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
                   id={detailId}
                   modelName={detailModel}
                   dataProp={converted ? undefined : db.selectedRecord}
-                  initialLines={converted?.lines ?? undefined}
                   hideBreadcrumb
                   inline
                   onSaved={() => db.fetchRecords()}

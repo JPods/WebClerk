@@ -14,8 +14,13 @@ readmes/assessments/2026-09-24-one-route-per-verb.md §14, §14a.
 The target is saved through the save door as the caller — their create rights and scope
 decide, the target's own hooks run — with its header built here from the source and passed
 as ``server_set``, so a role that may not type lineage, tax setup or commission still
-carries them forward. Lines come back for review; the reviewed save creates them (or the
-caller passes them, as shipping does, and the target is saved once with them).
+carries them forward. The target is saved WITH its lines in the same unit: everything the
+source has left, or the lines the caller names (``lines: [{line_id, qty?}]``, as shipping does).
+Bill, 2026-11-08: "Save with lines" — the person reviews and edits a saved planned document, so
+nothing is lost by navigating away; this replaces his 2026-09-27 "review before save" for
+conversions (an unsaved review left a header-only purchase, 1028-po, and re-seeded stale lines
+onto a saved invoice, 1056-inv). A purchase born without a vendor is saved and coached: pick a
+vendor before release (validate_status refuses the release until then).
 
 Design rules (from Bill):
   1. Commission populates at the earliest chain point and flows forward.
@@ -69,7 +74,7 @@ _HEADER_COPY_FIELDS_SELL = (
 _HEADER_COPY_FIELDS_BUY = (
     "config", "source",
     # A receipt is from its purchase's vendor and carries its need; an order has no vendor_id, so
-    # order → purchase copies nothing here and the person names the vendor in review.
+    # order → purchase copies nothing here and the person names the vendor on the saved purchase.
     "vendor_id", "source_name", "priority", "dt_needed",
 )
 
@@ -226,9 +231,9 @@ def _header(source, source_type: str, target_type: str, is_sell_side: bool,
     return header
 
 
-def _review_lines(source_lines, source_type: str, target_type: str,
+def _target_lines(source_lines, source_type: str, target_type: str,
                   is_sell_side: bool) -> List[Dict[str, Any]]:
-    """What the target's lines would be — returned for review, not saved here."""
+    """The target's lines, built from the source's: what the target is saved with."""
     from apps.core.services.door import resolve_model
     line_model = resolve_model(target_type)[0].lines.rel.related_model
     target_fields = {f.name for f in line_model._meta.get_fields()} | {
@@ -323,18 +328,18 @@ def _take_named(lines_named, source_type: str) -> Callable[[List[dict]], List[di
                               f'Line {row["line_id"]}: convert a quantity above 0 ({qty:g} was asked).')
         wanted[int(row["line_id"])] = None if qty in (None, "") else qty
 
-    def take(review_lines):
+    def take(built_lines):
         kept = []
-        for review in review_lines:
-            source_line_id = (((review.get("refs") or {}).get("source") or {}).get(f"{source_type}_line_id")
-                              or review.get("parent_line_id"))
+        for line in built_lines:
+            source_line_id = (((line.get("refs") or {}).get("source") or {}).get(f"{source_type}_line_id")
+                              or line.get("parent_line_id"))
             if source_line_id not in wanted:
                 continue
             qty = wanted[source_line_id]
             if qty is not None:
-                review["quantity"] = {**review["quantity"], "active": qty, "staged": qty,
+                line["quantity"] = {**line["quantity"], "active": qty, "staged": qty,
                                       "remaining": qty}
-            kept.append(review)
+            kept.append(line)
         return kept
     return take
 
@@ -347,10 +352,11 @@ def convert_record(actor, source_type: str, source_id: int, target_type: str, *,
                    stamp: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """Convert ``source_type`` #``source_id`` to a new ``target_type``, as ``actor``.
 
-    Without ``take`` the lines come back for review. With it, ``take(review_lines)`` names
-    the lines to keep and the target is saved once with them — one save, its hooks once,
-    the transfer check in the same unit (shipping). ``stamp`` is more of the header the
-    server authors (a shipping record), carried like the rest.
+    The target is saved once with its lines — one save, its hooks once, the transfer check in
+    the same unit. Without ``take`` every line the source has left goes; with it,
+    ``take(built_lines)`` names the lines to keep and their quantities (shipping, the named
+    path). ``stamp`` is more of the header the server authors (a shipping record), carried
+    like the rest.
     """
     from apps.core.services.save import save_record
 
@@ -379,51 +385,52 @@ def convert_record(actor, source_type: str, source_id: int, target_type: str, *,
     else:
         header_extra = {}
     if target_type == "purchase" and vendor_id is None:
-        vendor_id = getattr(source, "vendor_id", None)     # the user may set it in review
+        vendor_id = getattr(source, "vendor_id", None)     # the person may set it on the saved purchase
     header = _header(source, source_type, target_type, is_sell_side, contact_id, vendor_id)
-    review = _review_lines(source_lines, source_type, target_type, is_sell_side)
-    if not review:
+    built = _target_lines(source_lines, source_type, target_type, is_sell_side)
+    if not built:
         raise _refuse("nothing_to_convert", "No convertible lines (every line has remaining 0).")
 
     header.update(header_extra)
     header.update(copy.deepcopy(stamp or {}))
-    payload = {"lines": take(copy.deepcopy(review))} if take is not None else {}
+    lines = (take or list)(copy.deepcopy(built))
     if target_type == "receipt":
         # A planned receipt holds its goods as staged: nothing is on the shelf until the receipt's
         # receive command (Bill, 2026-09-30), so the layer is born at the receipt's final cost.
-        for line in payload.get("lines") or []:
+        for line in lines:
             planned = float((line.get("quantity") or {}).get("active") or 0)
             line["quantity"] = {**line["quantity"], "active": 0, "staged": planned, "remaining": 0}
-    result = save_record(actor, payload, model_key=target_type, server_set=header)
+    # The lines are the server's too, built from the source: they ride with the header past the
+    # role's field filter, so a role that may convert but may not type a line's fields still
+    # gets its document whole (a USER's convert was refused on lines.item.id_num, 2026-11-08).
+    header["lines"] = lines
+    result = save_record(actor, {}, model_key=target_type, server_set=header)
 
     forwarded = 0
     if (source_type, target_type) == ("order", "invoice"):
         from apps.transactions.services.cash.cash_door import relink_deposits
         forwarded = relink_deposits(source, result.obj)
 
-    # Lines come back for review only when the target was saved without them. Saved with
-    # them (a receipt; lines named), returning them too had the screen add each a second time.
-    for_review = review if take is None else []
+    messages = list(result.messages or [])
+    if target_type == "purchase" and not getattr(result.obj, "vendor_id", None):
+        # Saved all the same (Bill, 2026-11-08: never a silent empty purchase); the release
+        # gate (validate_status.REQUIRES) keeps refusing until a vendor is named.
+        messages.append("Pick a vendor before this purchase is released.")
     return {
         f"{target_type}_id": result.obj_id,
         f"{target_type}_ida": getattr(result.obj, "ida", ""),
-        "lines_for_review": len(for_review),
-        "lines": for_review,
-        "lines_saved": len(payload.get("lines") or []),
+        "lines_saved": len(lines),
         "cash_entries_forwarded": forwarded,
+        "messages": messages,
     }
-
-
-#: Pairs whose target is saved with its lines when no lines are named: a receipt is the review
-#: (the user edits the planned receipt before journalizing — Bill, 2026-09-27).
-SAVES_ALL_LINES = frozenset({("purchase", "receipt")})
 
 
 def convert_command(ctx) -> Dict[str, Any]:
     """POST /wcapi/<source>/<id>/convert/ {to, lines?: [{line_id, qty?}], vendor_id?, contact_id?}.
 
     ``lines`` names the source lines affected (Bill, 2026-09-27); the target is saved with
-    exactly those. Without it, everything left comes back for review, or, for a receipt, is saved.
+    exactly those. Without it, the target is saved with everything the source has left
+    (Bill, 2026-11-08).
     """
     to = (ctx.data.get("to") or "").lower()
     if not to:
@@ -443,8 +450,6 @@ def convert_command(ctx) -> Dict[str, Any]:
             raise _refuse("lines_required", 'Name the lines affected: "lines": [{"line_id", "qty"?}].')
         take = _take_named(named, ctx.model_key)
         line_ids = [int(row["line_id"]) for row in named]
-    elif (ctx.model_key, to) in SAVES_ALL_LINES:
-        take = list
     return convert_record(ctx.actor, ctx.model_key, ctx.obj.pk, to,
                           line_ids=line_ids, contact_id=ctx.data.get("contact_id"),
                           vendor_id=ctx.data.get("vendor_id"), take=take)

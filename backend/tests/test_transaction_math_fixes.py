@@ -73,7 +73,7 @@ def test_conversion_keeps_line_type_and_tax_rate():
     order = Order.objects.get(pk=result["order_id"])
     assert order.finance.get("sales_tax_rate") == 0.05
     # the discount line became allocations on the quote; it carries as a percent, not a line
-    assert [l["line_type"] for l in result["lines"]] == ["product"]
+    assert [l.line_type for l in order.lines.all()] == ["product"]
     assert order.allocations["discount_percent"] == pytest.approx(10.0)   # $10 of $100
 
 

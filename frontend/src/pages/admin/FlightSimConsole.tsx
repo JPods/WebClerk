@@ -988,7 +988,7 @@ const FlightSimConsole: React.FC = () => {
                 recordId={rightRecordId}
                 onNavigate={(model: string, id: number) => { setRightModel(model); setRightRecordId(id); refreshArray(); }}
                 onAfterSave={() => refreshArray()}
-                // The form opens what a workflow converts to, with its lines for review, and
+                // The form opens what a workflow converts to (saved with its lines) and
                 // tells us through onNavigate; here we only refresh the quantities.
                 onWorkflowComplete={() => refreshArray()}
               />
