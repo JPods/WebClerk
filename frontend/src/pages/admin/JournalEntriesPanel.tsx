@@ -9,6 +9,7 @@
  */
 import React, { useCallback, useEffect, useState } from 'react';
 import apiClient from '@/api/axios';
+import { getRecords } from '@/api/wcapi';
 import { formatCurrency } from '@/utils/stringUtils';
 import { DbColumns, type DbColumnDef } from '@/apps/common/components/panels/DbColumns';
 
@@ -75,6 +76,19 @@ function headline(doc: JournalDoc, p: Preview): string {
 async function command(doc: JournalDoc, verb: 'journal_preview' | 'journalize') {
   const res = await apiClient.post(`/wcapi/${doc.model}/${doc.id}/${verb}/`, {});
   return res.data?.data?.result;
+}
+
+/** The cash applied to an invoice — payments, discounts, write-offs — read through the cash
+ *  records' invoice link, the same reader the invoice's Cash panel uses. No new store
+ *  (Bill, 2026-11-08: "The journal entries should also show the payments"). */
+async function appliedCash(invoiceId: number): Promise<JournalDoc[]> {
+  try {
+    const res: any = await getRecords('cash', { invoice: invoiceId, limit: 100 });
+    const rows: any[] = res?.results || res?.data?.results || [];
+    return rows.filter((c) => c?.id).map((c) => ({ model: 'cash' as const, id: Number(c.id), ida: c.ida || `#${c.id}` }));
+  } catch {
+    return [];
+  }
 }
 
 const DocEntry: React.FC<{ doc: JournalDoc; explain: boolean; onPosted: () => void }> = ({ doc, explain, onPosted }) => {
@@ -161,14 +175,36 @@ const JournalEntriesPanel: React.FC<{ docs: JournalDoc[]; onPosted: () => void }
     setExplain(on);
     try { localStorage.setItem(EXPLAIN_KEY, on ? 'explain' : 'table'); } catch { /* per-viewer convenience only */ }
   };
+  // Each invoice's applied cash sits under the invoice's own entry; a cash doc the caller also
+  // listed on its own is shown once, under its invoice.
+  const [applied, setApplied] = useState<Record<number, JournalDoc[]>>({});
+  const invoiceIds = docs.filter((d) => d.model === 'invoice').map((d) => d.id).join(',');
+  useEffect(() => {
+    let stale = false;
+    (async () => {
+      const pairs = await Promise.all(invoiceIds.split(',').filter(Boolean)
+        .map(async (id) => [Number(id), await appliedCash(Number(id))] as const));
+      if (!stale) setApplied(Object.fromEntries(pairs));
+    })();
+    return () => { stale = true; };
+  }, [invoiceIds, onPosted]);
+  const nestedIds = new Set(Object.values(applied).flat().map((c) => c.id));
+  const shown = docs.filter((d) => !(d.model === 'cash' && nestedIds.has(d.id)));
   return (
     <>
       <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, padding: '4px 8px' }}>
         <input type="checkbox" checked={explain} onChange={(e) => toggle(e.target.checked)} />
         Explain — plain words instead of the ledger table
       </label>
-      {docs.length ? docs.map((d) => (
-        <DocEntry key={`${d.model}:${d.id}`} doc={d} explain={explain} onPosted={onPosted} />
+      {shown.length ? shown.map((d) => (
+        <React.Fragment key={`${d.model}:${d.id}`}>
+          <DocEntry doc={d} explain={explain} onPosted={onPosted} />
+          {d.model === 'invoice' && (applied[d.id] || []).map((c) => (
+            <div key={`cash:${c.id}`} style={{ paddingLeft: 16 }} data-wc="journal-applied-cash" title={`Applied to invoice ${d.ida}`}>
+              <DocEntry doc={c} explain={explain} onPosted={onPosted} />
+            </div>
+          ))}
+        </React.Fragment>
       )) : <div className="fs-section-empty">No invoice, cash or receipt yet</div>}
     </>
   );

@@ -111,6 +111,10 @@ const AddCashDialog: React.FC<AddCashDialogProps> = ({
     if (result?.written_off) {
       dispatch(showToast({ message: `${formatCurrency(result.written_off.amount)} written off`, type: 'success' }));
     }
+    // The server's coaching (a payment on a planned invoice: release it — Bill, 2026-11-08).
+    for (const note of (Array.isArray(result?.messages) ? result.messages : [])) {
+      dispatch(showToast({ message: String(note), type: 'info' }));
+    }
     onDone?.();
   };
 

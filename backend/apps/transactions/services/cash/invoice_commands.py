@@ -257,9 +257,16 @@ def add_cash(ctx) -> Dict[str, Any]:
             written_off = {'cash_id': written_off['cash_id'], 'amount': float(rest)}
             doc.refresh_from_db()
     t = doc.totals or {}
+    messages = []
+    if model_key == 'invoice' and doc.status == 'planned':
+        # Allowed, and coached (Bill, 2026-11-08: "our job is to accurately account for values,
+        # not police user behaviors. We can guide but not create barriers").
+        messages.append(f'Invoice {doc.ida or doc.pk} is still planned: release it so the payment '
+                        f'counts against a billed invoice.')
     return {'cash_id': cash.pk, 'cash_amount': float(cash.amount), 'applied': applied,
             'written_off': written_off, 'deposit': side['apply'] is None,
-            'balance': t.get('balance'), 'received': t.get('received'), 'paid': t.get('paid')}
+            'balance': t.get('balance'), 'received': t.get('received'), 'paid': t.get('paid'),
+            'messages': messages}
 
 
 def register() -> None:

@@ -36,7 +36,7 @@ import type { TransactionLine } from '@/apps/transactions/types/transactionTypes
 const PREVIEW_HEADER_KEYS = ['finance', 'tax', 'allocations', 'ship_via', 'customer_id'] as const;
 
 /** Keys the screen shows but the document does not store; never sent on save. */
-export const DISPLAY_ONLY_KEYS = ['customer_config', 'customer_company'] as const;
+export const DISPLAY_ONLY_KEYS = ['customer_config', 'customer_company', 'parent_summary'] as const;
 
 /** Orgs whose primary contact's name, email, phone and address they show (PrimaryContactCard). */
 export const ORGS_WITH_CONTACTS = ['customer', 'vendor', 'manufacturer', 'rep'];

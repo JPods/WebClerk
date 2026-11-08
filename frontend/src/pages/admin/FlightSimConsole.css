@@ -851,9 +851,16 @@
 }
 
 /* The simulation's steps (wc:console Setting) */
-.fs-steps { border-bottom: 1px solid var(--db-border, #334155); background: var(--db-surface, #1e293b); }
-.fs-steps-bar { display: flex; align-items: center; gap: 8px; padding: 4px 10px; font-size: 12px; }
-.fs-steps-title { font-weight: 600; color: var(--db-text, #e2e8f0); }
+/* The step, floating (FloatingSteps.tsx): dragged by its bar, hidden to a pill. */
+.fs-float { position: fixed; z-index: 60; border: 1px solid var(--db-border, #334155); border-radius: 6px;
+  background: var(--db-surface, #1e293b); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); max-width: calc(100vw - 16px); }
+.fs-float--closed { padding: 2px; cursor: grab; }
+.fs-float-bar { display: flex; align-items: center; gap: 8px; padding: 4px 8px; font-size: 12px; cursor: grab;
+  border-bottom: 1px solid var(--db-border, #334155); user-select: none; }
+.fs-float-bar:active { cursor: grabbing; }
+.fs-float-pick { max-width: 200px; font-size: 12px; background: var(--db-surface-alt, #0f172a); color: var(--db-text, #e2e8f0);
+  border: 1px solid var(--db-border, #334155); border-radius: 3px; padding: 1px 4px; }
+.fs-float-body { padding: 6px 10px 8px; max-height: 50vh; overflow: auto; }
 .fs-steps-model { font-family: ui-monospace, monospace; font-size: 10px; color: var(--db-text-dim, #94a3b8); border: 1px solid var(--db-border, #334155); border-radius: 3px; padding: 0 4px; }
 .fs-steps-spacer { flex: 1; }
 .fs-steps-body { padding: 4px 10px 8px; }

@@ -22,6 +22,7 @@ import { formatCurrency } from "@/utils/stringUtils";
 const DbForm = React.lazy(() => import("../../components/common/DbForm"));
 import { getRecords } from "@/api/wcapi";
 import JournalEntriesPanel, { type JournalDoc } from "./JournalEntriesPanel";
+import FloatingSteps from "./FloatingSteps";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -323,7 +324,6 @@ const FlightSimConsole: React.FC = () => {
     }).catch((e: any) => setSimsError(`Could not read the consoles: ${e?.message || e}`));
   }, []);
   const [stepIndex, setStepIndex] = useState(0);
-  const [stepOpen, setStepOpen] = useState(true);
   const [rightRecordId, setRightRecordId] = useState<number>(0);
 
   const splitRef = useRef<HTMLDivElement>(null);
@@ -769,30 +769,9 @@ const FlightSimConsole: React.FC = () => {
         )}
       </div>
 
-      {/* The simulation's steps (its wc:console Setting): what to do, then why */}
-      {activeSim.steps.length > 0 && (() => {
-        const step = activeSim.steps[Math.min(stepIndex, activeSim.steps.length - 1)];
-        return (
-          <div className="fs-steps" data-wc="fs-steps">
-            <div className="fs-steps-bar">
-              <button className="fs-btn" onClick={() => setStepOpen((o) => !o)} title={stepOpen ? 'Hide the step' : 'Show the step'}>
-                {stepOpen ? '▾' : '▸'} Step {step.step} of {activeSim.steps.length}
-              </button>
-              <span className="fs-steps-title">{step.title}</span>
-              {step.model && <span className="fs-steps-model">{step.model}</span>}
-              <span className="fs-steps-spacer" />
-              <button className="fs-btn" disabled={stepIndex === 0} onClick={() => setStepIndex((i) => Math.max(0, i - 1))}>← Prev</button>
-              <button className="fs-btn" disabled={stepIndex >= activeSim.steps.length - 1} onClick={() => setStepIndex((i) => Math.min(activeSim.steps.length - 1, i + 1))}>Next →</button>
-            </div>
-            {stepOpen && (
-              <div className="fs-steps-body">
-                <pre className="fs-steps-instruction">{step.instruction}</pre>
-                {step.explanation && <details className="fs-steps-why"><summary>Why</summary><pre>{step.explanation}</pre></details>}
-              </div>
-            )}
-          </div>
-        );
-      })()}
+      {/* The simulation's steps (its wc:console Setting): what to do, then why — in a floating
+          panel the person drags, hides and shows, so the forms get the height (Bill, 2026-11-08). */}
+      <FloatingSteps steps={activeSim.steps} index={stepIndex} onIndex={setStepIndex} />
 
       {showItemPicker && (
         <SimItemPicker

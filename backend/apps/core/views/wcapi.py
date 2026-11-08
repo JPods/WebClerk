@@ -1111,6 +1111,11 @@ class WCAPIGetView(APIView):
                 except Exception:
                     payload["refs"] = getattr(obj, "refs", {}) or {}
             
+            if hasattr(obj, "parent_model") and hasattr(obj, "parent_id"):
+                # A document's parent: its value and what is left on it, labelled as the
+                # parent's on the child's Financials (Bill, 2026-11-08). Served, never stored.
+                from apps.transactions.services.parent_summary import parent_summary
+                payload["parent_summary"] = parent_summary(obj)
             return api_response(data={"model_name": model_key, "record": payload}, status_code=status.HTTP_200_OK)
 
         # List retrieval with filters, search, and pagination. visible_queryset applies the

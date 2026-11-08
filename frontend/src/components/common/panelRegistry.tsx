@@ -292,6 +292,8 @@ const registry: Record<string, PanelRenderer> = {
     return wrap(createElement(FinancialsPanel, {
       totals: ctx.data.totals,
       currency: ctx.data.currency,
+      // The parent's value and what is left on it, labelled as the parent's (Bill, 2026-11-08).
+      parent: ctx.data.parent_summary ?? null,
     }));
   },
 

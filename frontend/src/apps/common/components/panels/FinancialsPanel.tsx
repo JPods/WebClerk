@@ -18,9 +18,18 @@ import { withDevIdentifier } from '@/components/common/DevIdentifier';
 import { formatCurrency, formatPercent } from '@/utils/stringUtils';
 import { useFormatting } from '@/context/FormattingContext';
 
+/** The parent document's value and what is left unfilled on it — served by the GET as
+ *  parent_summary (Bill, 2026-11-08: "it is ok to have in financials the order value and unfilled
+ *  value of the remaining order. But the totals ... should be just for this specific invoice"). */
+export interface ParentSummary {
+  model: string; id: number; ida: string; status: string;
+  amount: number; total: number; unfilled: number;
+}
+
 interface FinancialsPanelProps {
   totals?: TransactionTotals | null;
   currency?: string;
+  parent?: ParentSummary | null;
 }
 
 
@@ -65,6 +74,7 @@ const StatBox: React.FC<{
 const FinancialsPanel: React.FC<FinancialsPanelProps> = ({
   totals: totalsProp,
   currency = "USD",
+  parent = null,
 }) => {
   const fmt = useFormatting();
   // A default parameter covers undefined, not null. Records carry null envelopes,
@@ -166,7 +176,7 @@ const FinancialsPanel: React.FC<FinancialsPanelProps> = ({
       </div>
 
       {/* ── Cash status ────────────────────────────────────── */}
-      <div className="p-4 db-bg-surface-alt">
+      <div className={`p-4 db-bg-surface-alt${parent ? ' border-b db-border-color' : ''}`}>
         <h4 className="db-font-xs font-semibold uppercase tracking-wide mb-3 db-text-muted">
           Cash Status
         </h4>
@@ -182,6 +192,28 @@ const FinancialsPanel: React.FC<FinancialsPanelProps> = ({
           />
         </div>
       </div>
+
+      {/* ── The parent document — its figures, not this one's ───────── */}
+      {parent && (
+        <div className="p-4" data-wc="financials-parent">
+          <h4 className="db-font-xs font-semibold uppercase tracking-wide mb-3 db-text-muted">
+            {parent.model} {parent.ida} — the parent, not this document
+          </h4>
+          <div className="grid grid-cols-2 md:grid-cols-2 gap-3">
+            <StatBox
+              label={`${parent.model} value`}
+              value={formatCurrency(parent.total, fmt)}
+              sublabel={`${parent.model} total incl. tax and shipping`}
+            />
+            <StatBox
+              label="Unfilled"
+              value={formatCurrency(parent.unfilled, fmt)}
+              sublabel={`lines still open on the ${parent.model}`}
+              trend={parent.unfilled > 0 ? "down" : "up"}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
