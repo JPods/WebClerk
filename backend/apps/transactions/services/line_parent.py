@@ -2,11 +2,16 @@
 
 Definitions: readmes/transactions/line-quantity.md
 
-Parent-child exists for two pairs only:
-    quote_line -> order_line
+Parent-child exists for the pairs whose child consumes the parent's quantity:
+    quote_line    -> order_line
+    quote_line    -> invoice_line   (over the counter; the lead, 2026-11-08: the quote's
+                                      remaining misstated the books while this was missing)
     order_line    -> invoice_line
+    purchase_line -> receipt_line
 
-The child stores parent_line_id; the child's model names the parent table.
+The child stores parent_line_id; which parent table it names is read from the key its
+refs.source carries (an invoice line's ``order_line_id`` or ``quote_line_id``). A child with
+one possible parent needs no key (a receipt line).
 The parent's remaining is always recomputed from its children, never decremented:
 
     parent.remaining = parent.active − Σ child.active
@@ -28,21 +33,36 @@ from django.db.models.functions import Cast
 
 logger = logging.getLogger(__name__)
 
-#: child line model -> (parent line model, refs.source key naming the parent line)
-PARENT_OF: Dict[str, Tuple[str, str]] = {
-    'orderline': ('QuoteLine', 'quote_line_id'),
-    'invoiceline': ('OrderLine', 'order_line_id'),
+#: child line model -> the parents it may consume, each (parent line model, refs.source key
+#: naming the parent line), in the order the key is looked for.
+PARENT_OF: Dict[str, Tuple[Tuple[str, str], ...]] = {
+    'orderline': (('QuoteLine', 'quote_line_id'),),
+    'invoiceline': (('OrderLine', 'order_line_id'), ('QuoteLine', 'quote_line_id')),
     # The buy chain works like the sell chain (Bill, 2026-09-19): receiving a purchase
     # line reduces its remaining through the one writer, never through a 'received' hint.
-    'receiptline': ('PurchaseLine', 'purchase_line_id'),
+    'receiptline': (('PurchaseLine', 'purchase_line_id'),),
 }
 
-#: parent line model -> child line model
-CHILD_OF: Dict[str, str] = {
-    'quoteline': 'OrderLine',
-    'orderline': 'InvoiceLine',
-    'purchaseline': 'ReceiptLine',
+#: parent line model -> the children that consume it, each (child line model, refs.source key).
+CHILD_OF: Dict[str, Tuple[Tuple[str, str], ...]] = {
+    'quoteline': (('OrderLine', 'quote_line_id'), ('InvoiceLine', 'quote_line_id')),
+    'orderline': (('InvoiceLine', 'order_line_id'),),
+    'purchaseline': (('ReceiptLine', 'purchase_line_id'),),
 }
+
+
+def parent_spec(line: Any) -> Optional[Tuple[str, str]]:
+    """(parent line model, refs.source key) for this child — the one its refs name, else the
+    only one it may have; None for a line that consumes nothing."""
+    specs = PARENT_OF.get(line._meta.model_name)
+    if not specs:
+        return None
+    refs = line.refs if isinstance(getattr(line, 'refs', None), dict) else {}
+    source = refs.get('source') if isinstance(refs.get('source'), dict) else {}
+    for spec in specs:
+        if source.get(spec[1]) not in (None, '', 0, '0'):
+            return spec
+    return specs[0] if len(specs) == 1 else None
 
 TRANSFERRED = 'transferred'
 
@@ -53,12 +73,11 @@ def _model(name: str):
 
 def parent_line_id_from_refs(line: Any) -> Optional[int]:
     """The parent line id named in refs.source for this child model, or None."""
-    spec = PARENT_OF.get(line._meta.model_name)
+    spec = parent_spec(line)
     if spec is None:
         return None
-    refs = line.refs if isinstance(line.refs, dict) else {}
-    source = refs.get('source') if isinstance(refs.get('source'), dict) else {}
-    raw = source.get(spec[1])
+    source = (line.refs or {}).get('source') if isinstance(line.refs, dict) else None
+    raw = (source or {}).get(spec[1]) if isinstance(source, dict) else None
     try:
         return int(raw) if raw not in (None, '', 0, '0') else None
     except (TypeError, ValueError):
@@ -66,15 +85,24 @@ def parent_line_id_from_refs(line: Any) -> Optional[int]:
 
 
 def _aggregate_children(parent_model_name: str, parent_pk: int) -> Tuple[float, int]:
-    Child = _model(CHILD_OF[parent_model_name])
     # A deleted child consumes nothing: deleting an invoice or receipt line gives the
     # parent line its remaining back (found 2026-09-19, latent — no such rows in wc_demo yet).
-    agg = Child.objects.filter(parent_line_id=parent_pk).aggregate(
-        total=Sum(Cast(KeyTextTransform('active', 'quantity'),
-                       DecimalField(max_digits=20, decimal_places=6))),
-        count=Count('pk'),
-    )
-    return float(agg['total'] or 0), int(agg['count'] or 0)
+    total, count = 0.0, 0
+    for child_name, key in CHILD_OF[parent_model_name]:
+        Child = _model(child_name)
+        qs = Child.objects.filter(parent_line_id=parent_pk)
+        if len(PARENT_OF.get(child_name.lower(), ())) > 1:
+            # A child that may consume either of two parents says which in refs.source; the
+            # bare id could name a line of the other table.
+            qs = qs.filter(**{f'refs__source__{key}': parent_pk})
+        agg = qs.aggregate(
+            total=Sum(Cast(KeyTextTransform('active', 'quantity'),
+                           DecimalField(max_digits=20, decimal_places=6))),
+            count=Count('pk'),
+        )
+        total += float(agg['total'] or 0)
+        count += int(agg['count'] or 0)
+    return total, count
 
 
 def children_active_sum(line: Any) -> Optional[float]:
@@ -138,24 +166,31 @@ def apply_transferred_status(line: Any) -> bool:
     return True
 
 
-def refresh_parent_line(child_model_name: str, parent_line_id: Optional[int]) -> bool:
+def refresh_parent_line(child_model_name: str, parent_line_id: Optional[int],
+                        parent_model_name: Optional[str] = None) -> bool:
     """Recompute one parent line from its children. Saves only when something changed.
 
+    ``parent_model_name`` says which parent table when the child may consume either
+    (an invoice line: OrderLine or QuoteLine); a child with one parent needs none.
     Obtains the parent line under lock — a child is never edited against a parent
     it has not obtained. Returns True when the parent was saved.
     """
-    spec = PARENT_OF.get(child_model_name)
-    if spec is None or not parent_line_id:
+    specs = PARENT_OF.get(child_model_name)
+    if not specs or not parent_line_id:
+        return False
+    parent_name = parent_model_name or (specs[0][0] if len(specs) == 1 else None)
+    if parent_name is None:
+        logger.warning("[line_parent] %s child #%s: which parent? none named", child_model_name, parent_line_id)
         return False
 
     from apps.transactions.models.base_line_model import normalize_quantity_map
 
-    Parent = _model(spec[0])
+    Parent = _model(parent_name)
     with transaction.atomic():
         parent = Parent.objects.select_for_update().filter(pk=parent_line_id).first()
         if parent is None:
             logger.warning("[line_parent] %s #%s not found for %s child",
-                           spec[0], parent_line_id, child_model_name)
+                           parent_name, parent_line_id, child_model_name)
             return False
 
         stored = parent.quantity if isinstance(parent.quantity, dict) else {}
@@ -190,7 +225,7 @@ def parent_quantities(child: Any) -> Optional[Dict[str, float]]:
 
     Never stored on the child. None for a line with no parent line.
     """
-    spec = PARENT_OF.get(child._meta.model_name)
+    spec = parent_spec(child)
     if spec is None or not child.parent_line_id:
         return None
     parent = _model(spec[0]).objects.filter(pk=child.parent_line_id).only('quantity').first()
@@ -217,7 +252,7 @@ def prorate_flat_discount(child: Any) -> None:
     so the children's discounts always add up to the parent's. A child whose
     discount no longer equals the parent's (the user typed one) is left alone.
     """
-    spec = PARENT_OF.get(child._meta.model_name)
+    spec = parent_spec(child)
     if spec is None or not child.parent_line_id:
         return
     cprice = child.price if isinstance(getattr(child, 'price', None), dict) else None

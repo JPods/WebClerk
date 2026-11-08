@@ -40,7 +40,8 @@ def check_transfer(model_key: str, parent_model: str, lines: List[Dict[str, Any]
     """Refuse new lines that take more than their source has left, or more stock than
     there is.
 
-    1. Parent-child pairs only (quote→order, order→invoice; ``line_parent.PARENT_OF``):
+    1. Parent-child pairs only (quote→order, quote→invoice, order→invoice, purchase→receipt;
+       ``line_parent.PARENT_OF``):
        the quantity asked of each source line, summed, may not exceed its remaining in
        the same direction. A transfer the other way (a return, a credit) adds backlog —
        the user is in control of that (Bill, 2026-09-17). Every other conversion is
@@ -51,8 +52,8 @@ def check_transfer(model_key: str, parent_model: str, lines: List[Dict[str, Any]
     from apps.core.utils import registry
     from apps.transactions.services.line_parent import PARENT_OF
 
-    parent_line = PARENT_OF.get(f'{model_key}line')
-    check_remaining = bool(parent_line) and parent_line[0].lower() == f'{parent_model}line'
+    check_remaining = any(parent.lower() == f'{parent_model}line'
+                          for parent, _key in PARENT_OF.get(f'{model_key}line', ()))
     check_stock = model_key == 'invoice'
     if not (check_remaining or check_stock):
         return

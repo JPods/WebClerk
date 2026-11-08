@@ -297,8 +297,8 @@ def test_order_to_purchase_still_takes_the_item_cost(admin_client):
     r = admin_client.post(f'/wcapi/order/{order.pk}/convert/', {'to': 'purchase'},
                           content_type='application/json')
     assert r.status_code == 200, r.content
-    (review,) = _data(r)['lines']
-    assert review['cost']['unit'] == 3.0, 'a purchase pays the item cost, not the sell estimate'
+    (saved,) = PurchaseLine.objects.filter(purchase_id=_data(r)['purchase_id'])
+    assert saved.cost['unit'] == 3.0, 'a purchase pays the item cost, not the sell estimate'
 
 
 # ── the line engine refuses what it cannot write (found building R3, 2026-09-27) ─────────

@@ -293,9 +293,14 @@ register_line_totals_signals(ReceiptLine, 'receipt')
 # inventory pending, not about the parent's backlog.
 
 def register_line_parent_signals(line_model):
-    from apps.transactions.services.line_parent import refresh_parent_line
+    from apps.transactions.services.line_parent import parent_spec, refresh_parent_line
 
     model_name = line_model._meta.model_name
+
+    def parent_name(instance):
+        # Which parent table this child consumes (an invoice line: order or quote), from its refs.
+        spec = parent_spec(instance)
+        return spec[0] if spec else None
 
     @receiver(post_save, sender=line_model)
     def refresh_parent_on_save(sender, instance, created, **kwargs):
@@ -304,16 +309,16 @@ def register_line_parent_signals(line_model):
         loaded = getattr(instance, '_loaded', None)   # re-taken by save() after this runs
 
         if created or loaded is None:
-            refresh_parent_line(model_name, current_pid)
+            refresh_parent_line(model_name, current_pid, parent_name(instance))
         elif loaded['parent_line_id'] != current_pid:
-            refresh_parent_line(model_name, loaded['parent_line_id'])
-            refresh_parent_line(model_name, current_pid)
+            refresh_parent_line(model_name, loaded['parent_line_id'], parent_name(instance))
+            refresh_parent_line(model_name, current_pid, parent_name(instance))
         elif loaded['active'] != current_active:
-            refresh_parent_line(model_name, current_pid)
+            refresh_parent_line(model_name, current_pid, parent_name(instance))
 
     @receiver(post_delete, sender=line_model)
     def refresh_parent_on_delete(sender, instance, **kwargs):
-        refresh_parent_line(model_name, instance.parent_line_id)
+        refresh_parent_line(model_name, instance.parent_line_id, parent_name(instance))
 
 
 register_line_parent_signals(OrderLine)

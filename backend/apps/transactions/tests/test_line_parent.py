@@ -147,8 +147,10 @@ class TestQuoteToOrder:
 
 
 @pytest.mark.django_db
-class TestOnlyTwoPairs:
-    def test_invoice_from_quote_is_not_a_child(self, item):
+class TestConsumingPairs:
+    def test_invoice_from_quote_is_a_child(self, item):
+        """Over the counter, quote → invoice: the invoice line consumes the quote line (the lead,
+        2026-11-08 — a quote left at full remaining misstated the books)."""
         quote = Quote.objects.create(status="draft")
         pl = QuoteLine.objects.create(quote=quote, item_fk=item, quantity={"active": 5})
         invoice = Invoice.objects.create(status="draft")
@@ -156,8 +158,9 @@ class TestOnlyTwoPairs:
             invoice=invoice, item_fk=item, quantity={"active": 5},
             refs={"source": {"quote_line_id": pl.pk}},
         )
-        assert inv.parent_line_id is None
-        assert _q(pl)["remaining"] == 5
+        assert inv.parent_line_id == pl.pk
+        assert _q(pl)["remaining"] == 0
+        assert QuoteLine.objects.get(pk=pl.pk).status == "transferred"
 
     def test_purchase_from_order_is_not_a_child(self, item, order_line):
         purchase = Purchase.objects.create(status="draft")

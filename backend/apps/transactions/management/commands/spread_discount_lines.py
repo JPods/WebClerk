@@ -37,7 +37,7 @@ class Command(BaseCommand):
         # 1. Children converted as products from a discount parent.
         repaired = []
         for Child in (OrderLine, InvoiceLine):
-            parent_name = PARENT_OF[Child._meta.model_name][0]
+          for parent_name, key in PARENT_OF[Child._meta.model_name]:
             Parent = dj_apps.get_model('transactions', parent_name)
             discount_parents = set(Parent.objects.filter(line_type='discount').values_list('pk', flat=True))
             for child in Child.objects.filter(parent_line_id__in=discount_parents).exclude(line_type='discount'):

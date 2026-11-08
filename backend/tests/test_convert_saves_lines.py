@@ -58,10 +58,9 @@ PAIRS = {
     ('order', 'purchase'): (_order, convert_order_to_purchase, Purchase, PurchaseLine, 'purchase'),
 }
 #: The pairs whose child line consumes the source line (line_parent.PARENT_OF): a quote line by
-#: order lines, an order line by invoice lines. A purchase does not consume the order it buys
-#: for; an over-the-counter invoice names its quote line in refs.source but PARENT_OF has no
-#: quoteline → invoiceline entry, so the quote's remaining does not follow it (noted 2026-11-08).
-CONSUMING = [('quote', 'order'), ('order', 'invoice')]
+#: order lines and, over the counter, by invoice lines; an order line by invoice lines. A purchase
+#: does not consume the order it buys for.
+CONSUMING = [('quote', 'order'), ('quote', 'invoice'), ('order', 'invoice')]
 
 
 @pytest.mark.django_db
@@ -153,3 +152,52 @@ def test_a_second_save_of_the_converted_document_does_not_duplicate_its_lines(cu
                   lines_data=[{'id': l.pk, 'quantity': l.quantity, 'price': l.price, '_dirty': True} for l in lines])
     save_document(model_key='order', header_data={'id': order.pk, 'priority': 'high'}, lines_data=[])
     assert list(order.lines.order_by('pk').values_list('pk', flat=True)) == [l.pk for l in lines]
+
+
+@pytest.mark.django_db
+def test_a_quote_line_is_consumed_by_its_order_lines_and_its_invoice_lines_together(customer):
+    """quote 10 → order 6 and, over the counter, invoice 3: the quote line has 1 left."""
+    quote, (ql,) = _quote(customer, quantities=(10,))
+    from apps.transactions.services.convert.convert import _take_named
+    convert_quote_to_order(quote.pk, line_ids=[ql.pk])          # takes all 10 ...
+    order_line = OrderLine.objects.get(parent_line_id=ql.pk)
+    save_document(model_key='order', header_data={'id': order_line.order_id},
+                  lines_data=[{'id': order_line.pk, 'quantity': {**order_line.quantity, 'active': 6, 'staged': 6},
+                               '_dirty': True}])                    # ... trimmed to 6
+    ql.refresh_from_db(); assert ql.quantity['remaining'] == 4
+    from apps.transactions.services.convert.convert import convert_record, _system
+    convert_record(_system(), 'quote', quote.pk, 'invoice', line_ids=[ql.pk],
+                   take=_take_named([{'line_id': ql.pk, 'qty': 3}], 'quote'))
+    ql.refresh_from_db(); assert ql.quantity['remaining'] == 1
+    inv_line = InvoiceLine.objects.get(parent_line_id=ql.pk, refs__source__quote_line_id=ql.pk)
+    assert inv_line.quantity['active'] == 3
+
+
+@pytest.mark.django_db
+def test_an_invoice_line_from_an_order_does_not_count_against_a_quote_line_with_the_same_id(customer):
+    """parent_line_id alone is ambiguous for an invoice line (order line or quote line); the
+    refs.source key says which, and the aggregate reads it."""
+    order, (ol,) = _order(customer, quantities=(5,))
+    quote, (ql,) = _quote(customer, quantities=(7,))
+    convert_order_to_invoice(order.pk)                         # invoice line → order line
+    inv_line = InvoiceLine.objects.get(parent_line_id=ol.pk)
+    # Force the id collision the aggregate must see through.
+    InvoiceLine.objects.filter(pk=inv_line.pk).update(parent_line_id=ql.pk)
+    from apps.transactions.services.line_parent import _aggregate_children
+    assert _aggregate_children('quoteline', ql.pk) == (0.0, 0)
+    ol.refresh_from_db(); assert ol.quantity['remaining'] == 0
+
+
+@pytest.mark.django_db
+def test_a_named_quantity_above_the_source_remaining_is_refused(customer):
+    """The caller only names line ids and a qty; the transfer check in the same unit caps the
+    qty at the source line's remaining, so nobody converts 50 of a remaining 3."""
+    from apps.core.services.door import Refused
+    from apps.transactions.services.convert.convert import convert_record, _system, _take_named
+    quote, (ql,) = _quote(customer, quantities=(3,))
+    with pytest.raises(Refused) as exc:
+        convert_record(_system(), 'quote', quote.pk, 'order', line_ids=[ql.pk],
+                       take=_take_named([{'line_id': ql.pk, 'qty': 50}], 'quote'))
+    assert exc.value.code == 'transfer_exceeds_remaining'
+    assert Order.objects.filter(parent_id=quote.pk).count() == 0
+    ql.refresh_from_db(); assert ql.quantity['remaining'] == 3
