@@ -75,8 +75,8 @@ def primary_contacts_of(org):
 def rename_contacts(actor, org) -> dict:
     """Renaming an org renames its contacts (Bill, 2026-11-08: "On saving the Customer, the
     Company name in the contact should update to the Customer saved value"): every contact whose
-    primary affiliation is this org, and its primary contact when that one has no such link, take
-    the org's company; each is versioned as an edit. A contact another person holds is left for
+    primary affiliation is this org, and its primary contact when that one belongs to no org by a
+    role FK, take the org's company; each is versioned as an edit. A contact another person holds is left for
     them and named. Returns {renamed: [ids], held: [{id, held_by}]}."""
     from django.db.models import F, Q
     from django.utils import timezone
@@ -86,7 +86,9 @@ def rename_contacts(actor, org) -> dict:
         return {'renamed': [], 'held': []}
     who = Q(pk__in=primary_contacts_of(org).values('pk'))
     if getattr(org, 'contact_id', None):
-        who |= Q(pk=org.contact_id)
+        # The primary contact only when it belongs to no org by a role FK: one linked to another
+        # org shows that org's name (Contact.save), and the two rules would fight over it.
+        who |= Q(pk=org.contact_id, **{f'{r}__isnull': True for r in CONTACT_ROLES})
     stale = list(Contact.objects.filter(who).exclude(company=company).values_list('pk', flat=True))
     held, renamed = [], []
     for pk in stale:

@@ -127,6 +127,30 @@ def test_a_contact_that_belongs_first_to_a_customer_keeps_that_name_when_its_ven
     assert both.company == customer.company
 
 
+def test_the_primary_contact_of_a_vendor_that_belongs_to_a_customer_keeps_the_customers_name():
+    """The lead's case: the contact's customer FK points to A; it is also vendor B's primary
+    contact. Renaming B leaves it — Contact.save would set A's name back, and the two rules would
+    fight. The primary contact is renamed only when no role FK links it to any org."""
+    client, _ = _client()
+    a = _customer_with(client, _contact('Ann'))
+    eve = _contact('Eve', customer_id=a.id)
+    b = _post(client, 'vendor', {'_company': 'Que Supply'})
+    OrgBase.objects.filter(pk=b.pk).update(contact_id=eve.pk)
+    b.refresh_from_db()
+    before = (eve.version, eve.dt_modified)
+    body = _put(client, 'vendor', b, {'company': 'Que Supply Ltd'})
+    eve.refresh_from_db()
+    assert eve.company == a.company and (eve.version, eve.dt_modified) == before
+    assert not any('renamed' in str(m) for m in _messages(body)), body
+
+    unlinked = _contact('Uma')                              # no role FK: the primary contact follows
+    OrgBase.objects.filter(pk=b.pk).update(contact_id=unlinked.pk)
+    b.refresh_from_db()
+    _put(client, 'vendor', b, {'company': 'Que Supply Group'})
+    unlinked.refresh_from_db()
+    assert unlinked.company == 'Que Supply Group'
+
+
 def test_a_save_that_does_not_change_the_name_writes_no_contact():
     client, _ = _client()
     susy, tom = _contact('Susy'), _contact('Tom')
