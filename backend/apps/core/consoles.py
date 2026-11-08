@@ -28,7 +28,11 @@ CONSOLES: List[Dict[str, Any]] = [
      'description': 'Create an Item with price ($10), cost ($6), GL accounts, and 100 units opening inventory'},
     {'id': 'first-sale', 'label': '3. Your First Sale', 'needs_item': True, 'first_model': 'quote',
      'description': 'Create a Quote for 15 units, convert 9 to an Order — watch on_qt and on_so change'},
-    {'id': 'inventory', 'label': '4. Inventory Quantity Tracking', 'needs_item': True, 'first_model': 'quote',
+    {'id': 'defaults-walk', 'label': '4. Defaults — the customer first', 'needs_item': False, 'first_model': 'customer',
+     'description': 'Watch defaults fill: a customer from its Setting, a quote from the company, then the customer\'s '
+                    'values replace them and reprice the lines; carry them to the invoice; see every model\'s defaults '
+                    'side by side; post the invoice from the Journalize report'},
+    {'id': 'inventory', 'label': '5. Inventory Quantity Tracking', 'needs_item': True, 'first_model': 'quote',
      'description': 'Quote → Order → Invoice → Purchase → Receive — watch on_hand, on_so, on_po, pending, and GL change at each step'},
     {'id': 'cash', 'label': 'Cash Flow Tracking', 'needs_item': True, 'first_model': 'invoice',
      'description': 'Invoice → Cash → Discount → Write-off — watch cash, AR, and bank reconciliation'},
@@ -480,8 +484,9 @@ def get_first_sale_scenario() -> Dict[str, Any]:
                     'You created a quote for 15 units, converted 9 to an order. '
                     'The customer has 9 units committed (on_so=9), 6 still quoted (on_qt=6), '
                     'and 91 units available for other customers.\n\n'
-                    'Next: run the "Inventory Quantity Tracking" flight sim to continue '
-                    'this order through invoicing, purchasing, and receiving.'
+                    'Next: run "Defaults — the customer first" to see what a record is born '
+                    'with, then "Inventory Quantity Tracking" to continue this order through '
+                    'invoicing, purchasing, and receiving.'
                 ),
             },
             'explanation': (
@@ -510,6 +515,286 @@ def get_first_sale_scenario() -> Dict[str, Any]:
         'steps': steps,
         'models_used': ['quote', 'order'],
         'prerequisite': 'first-item',
+        'next_sim': 'defaults-walk',
+    }
+
+
+# ── Sim 4: Defaults — the customer first ────────────────────────────────
+
+def get_defaults_walk_scenario() -> Dict[str, Any]:
+    """Defaults — the customer first (readme 106; Bill's walk of d30338b, 2026-11-08: "Have Alice
+    add this to her sequence of teach new users").
+
+    What a record is born with, and who gets to say: the model's Setting, then the customer or
+    vendor, then the person. Ends at the Journalize report, where posting is the person's choice.
+    The simulator turns on training mode, so every record made here is a qq record and never
+    tallies.
+    """
+    steps = [
+        {
+            'step': 1,
+            'title': 'A new customer is born with its defaults',
+            'instruction': (
+                'Open the right panel form (Customer). Fill in only:\n'
+                '• Display name: Defaults Walk Co\n\n'
+                'Save. Then look at the fields you did not fill:\n'
+                '• Terms: N30\n'
+                '• Price level: retail\n'
+                '• Source: filled when the Customer definition names one'
+            ),
+            'action': 'create_customer',
+            'model': 'customer',
+            'expected_fields': {
+                'terms': 'N30',
+                'price_level': 'retail',
+            },
+            'explanation': (
+                'Every model has a definition — a Setting with purpose wc:model — and the '
+                'definition carries config.defaults: what a new record of that model is born '
+                'with. The Customer definition ships terms N30 and price_level retail.\n\n'
+                'The moment is the ida. The save that first names a record (here, the customer\'s '
+                'number) fills its blank fields from its definition. A value you typed in the same '
+                'save is yours and wins. A later save never fills again — a default is a starting '
+                'value you are free to edit, not a rule.\n\n'
+                'source_name (where this customer came from) is a column on every org and on '
+                'Contact. The shipped Customer definition leaves it blank; give it a value in the '
+                'defaults console (step 6) and the next customer is born with it.\n\n'
+                'The server does the filling, not the form. What you see after the save is what '
+                'is stored.'
+            ),
+        },
+        {
+            'step': 2,
+            'title': 'A quote with no customer takes the company\'s defaults',
+            'instruction': (
+                'Open the right panel form (Quote). Do not pick a customer. Save the header.\n\n'
+                'Look at what filled:\n'
+                '• Terms: N30\n'
+                '• Price level: retail\n'
+                '• Priority: medium\n'
+                '• Needed: 14 days from today\n\n'
+                'Click the Needed date to open the date popup — the default is a real date you '
+                'can move.'
+            ),
+            'action': 'create_quote',
+            'model': 'quote',
+            'expected_fields': {
+                'terms': 'N30',
+                'price_level': 'retail',
+                'priority': 'medium',
+                'dt_needed': 'today + 14 days',
+            },
+            'explanation': (
+                'With no customer to ask, the quote takes its own definition\'s defaults: terms, '
+                'price_level, priority, and dt_needed_days.\n\n'
+                'dt_needed_days is a rule, not a date — "14" means the save computes a date 14 '
+                'days out and stores it in dt_needed, in UTC like every datetime. The date popup '
+                'shows the stored value in your local time and writes back what you choose.\n\n'
+                'These are the same four fields on quote, order, invoice and purchase. The '
+                'defaults console (step 6) shows them side by side and marks where the models '
+                'disagree.'
+            ),
+        },
+        {
+            'step': 3,
+            'title': 'Add a retail line, then assign a wholesale customer',
+            'instruction': (
+                'On the quote, add a line:\n'
+                '• Item: qqBB200 (Training Widget)\n'
+                '• Quantity: 5\n'
+                '• Price: fills at retail ($10.00)\n'
+                'Save.\n\n'
+                'Now set the customer to Riverside Supplies 80 (a wholesale customer) and save.\n\n'
+                'The quote reloads. Look at:\n'
+                '• Terms and Price level: now the customer\'s (N30, wholesale)\n'
+                '• Bill to and Ship to: the customer\'s blocks\n'
+                '• The line\'s price: repriced to wholesale\n'
+                '• The message under the form: "1 line repriced to wholesale"'
+            ),
+            'action': 'assign_customer',
+            'model': 'quote',
+            'expected_fields': {
+                'price_level': 'wholesale',
+                'terms': 'N30 (the customer\'s)',
+                'bill_to': 'Riverside Supplies 80',
+                'ship_to': 'Riverside Supplies 80',
+            },
+            'explanation': (
+                'Transactions take the org first (Bill, 2026-11-07). Assigning or changing the '
+                'customer replaces the defaulted fields with the customer\'s values — not only the '
+                'blanks — except a field you typed in the same save. Where the customer has no '
+                'value, the company\'s stays. The form saves and reloads what the server returns: '
+                'the server is truth, the browser only previews.\n\n'
+                'The lines are repriced in the same save because the price_level changed. Each '
+                'line\'s price is resolved again at the new level, and the save answers with the '
+                'detail: which lines moved, from what to what, and which were kept.\n\n'
+                'Why a hand-priced line keeps its price: a price you typed is marked fixed '
+                '(price.is_fixed). Repricing is the system finishing your sentence, not '
+                'overruling it — a fixed price is your decision, and it stays until you change it. '
+                'The same holds for a line already shipped or invoiced: a price that has been '
+                'acted on is history, not a quote. The message counts those as "kept" and names '
+                'why.\n\n'
+                'Price levels are what makes "the customer first" matter: the same item sells at '
+                'retail to one customer and wholesale to another, and the customer record is where '
+                'that is decided — once.'
+            ),
+        },
+        {
+            'step': 4,
+            'title': 'Quote → Order → Invoice: the values carry through',
+            'instruction': (
+                'On the quote, open the workflow menu and choose To Order. Accept the full '
+                'quantity.\n\n'
+                'On the new order, choose To Invoice. Accept the full quantity.\n\n'
+                'On the invoice, check:\n'
+                '• Customer: Riverside Supplies 80\n'
+                '• Terms: N30 · Price level: wholesale · Priority: medium\n'
+                '• Needed: the date from the quote\n'
+                '• Source: the quote\'s source_name\n\n'
+                'Leave the invoice as it is for now — it is born planned.'
+            ),
+            'action': 'convert_to_invoice',
+            'model': 'invoice',
+            'expected_fields': {
+                'price_level': 'wholesale',
+                'terms': 'N30',
+                'priority': 'medium',
+                'dt_needed': 'the quote\'s',
+                'source_name': 'the quote\'s',
+                'status': 'planned',
+            },
+            'explanation': (
+                'A conversion copies the header fields the next document needs — customer, '
+                'terms, price_level, source_name, priority, dt_needed, bill-to and ship-to — and '
+                'the lines with their prices. Nothing is defaulted again: the lines come priced '
+                'from the source, and the defaults do not fire on a record born from a parent.\n\n'
+                'That is the point of filling once, at birth: every later document inherits a '
+                'decision made on the first one. Fix the customer and every new quote is right; '
+                'fix the quote and its order and invoice follow.\n\n'
+                'The invoice is born planned. Invoicing is the money step — it bills on the '
+                'customer and terms the source carried — but it does not reach the general ledger '
+                'until you release it and post it (step 7).'
+            ),
+        },
+        {
+            'step': 5,
+            'title': 'A purchase takes its vendor\'s terms',
+            'instruction': (
+                'Open the right panel form (Purchase). Save the header with no vendor — it takes '
+                'the company\'s defaults (terms N30, priority medium, Needed 14 days out).\n\n'
+                'Now pick a vendor — Pinnacle Systems 52 — and save.\n\n'
+                'The purchase reloads with the vendor\'s terms and bill-to. A vendor that carries '
+                'a ship_via default fills Ship via as well; the demo\'s vendors carry none yet, so '
+                'Ship via stays as you left it.'
+            ),
+            'action': 'assign_vendor',
+            'model': 'purchase',
+            'expected_fields': {
+                'terms': 'N30 (the vendor\'s)',
+                'bill_to': 'Pinnacle Systems 52',
+            },
+            'explanation': (
+                'The same chain, buy side: the Purchase definition, then the vendor, then you. A '
+                'vendor hands a purchase its terms, source_name and bill-to block as columns, and '
+                'what has no column — ship_via, priority, dt_needed_days, rep — from its own '
+                'config.defaults.\n\n'
+                'An org carries its own defaults the same way a model definition does: '
+                '{fields: {…}, formatting: {…}}. The formatting half is why a customer\'s documents '
+                'can print in its currency and locale: the model\'s formatting is overlaid by the '
+                'party\'s.\n\n'
+                'The rule that keeps this honest: a value describing the org itself is a column '
+                '(terms, price_level, source_name), and the document copies it; the org\'s '
+                'config.defaults holds only what has no column. Never both.'
+            ),
+        },
+        {
+            'step': 6,
+            'title': 'The defaults console — every model side by side',
+            'instruction': (
+                'Open Defaults from the sidebar (/defaults).\n\n'
+                'Read the grid: models down, fields across. Find:\n'
+                '• terms, price_level, dt_needed_days, priority on quote, order, invoice, purchase\n'
+                '• the customer row: terms and price_level, source_name blank\n'
+                '• a cell marked because its model disagrees with the others\n\n'
+                'Change one cell — give the customer row a source_name — and save it. '
+                'Then open a new Customer form, save it, and see the value arrive.'
+            ),
+            'action': 'review_defaults',
+            'model': 'setting',
+            'explanation': (
+                'Storage per model, comparison in one place (readme 106 A). Each model\'s defaults '
+                'live in its own definition — nothing leaks from one model to another, and there '
+                'is no override chain to reason about. The console reads all of them and lays them '
+                'out so uniformity and completeness are visible at a glance.\n\n'
+                'A shared field (terms, price_level, dt_needed_days, priority, source_name) is '
+                'marked where models disagree. Disagreement is not an error — a purchase may well '
+                'need a different lead time than a quote — but it should be a decision you can '
+                'see, not an accident you cannot.\n\n'
+                'Each cell saves through the door into that model\'s Setting. A default naming a '
+                'field the model lacks, or a value off the field\'s list, is refused with coaching '
+                '— fail fast, never silent. Formatting (currency, locale, date format, precision) '
+                'sits beside the fields in the same console.'
+            ),
+        },
+        {
+            'step': 7,
+            'title': 'The Journalize report — posting is your choice',
+            'instruction': (
+                'Open Journalize from the sidebar (/journalize/invoice).\n\n'
+                'Read the two kinds of rows:\n'
+                '• Ready rows have a tick box and a Preview that shows the entries posting would '
+                'write.\n'
+                '• Waiting rows have no tick box and say why: no customer, no terms, no line, or '
+                'not yet released.\n\n'
+                'Your invoice from step 4 is waiting — it is still planned. Open it, set its '
+                'status to released, save, and reload the report. It is ready now.\n\n'
+                'Tick it, read the Preview, and click Post. The answer names the run — '
+                '"Run <batch>: 1 posted, 0 refused" — and the invoice shows its journal entries '
+                'and the date it posted.'
+            ),
+            'action': 'journalize_invoice',
+            'model': 'invoice',
+            'expected_fields': {
+                'status': 'released',
+                'dt_journaled': 'set by the post',
+            },
+            'exit_point': {
+                'name': 'Defaults Walk Complete',
+                'summary': (
+                    'You watched defaults fill from three sources in order — the model\'s '
+                    'definition, the customer or vendor, and you — carry through quote, order '
+                    'and invoice, and sit side by side in the defaults console. Then you posted '
+                    'the invoice yourself from the Journalize report.\n\n'
+                    'Next: run "Inventory Quantity Tracking" to follow quantities and the GL '
+                    'through order, invoice, purchase and receipt.'
+                ),
+            },
+            'explanation': (
+                'Posting to the general ledger is a person\'s choice and never automatic (Bill, '
+                '2026-11-07). No save, status change or conversion writes a GL row. There is one '
+                'posting path — the journalize command on the record — and the Journalize report '
+                'is a list of what has not posted yet, per model, with that one command behind '
+                'each tick box.\n\n'
+                'A waiting row is not a failure; it is coaching. The report asks the same two '
+                'questions the command would — is the document complete, and is it released — '
+                'and says what is missing in the command\'s own words, so what you fix on the '
+                'record is what the report asked for.\n\n'
+                'Once posted, the invoice is locked: its status cannot move, its lines cannot '
+                'change, and its dt_journaled records the moment. The run is recorded as a '
+                'JournalBatch — who posted, which records, how many posted and how many were '
+                'refused — the audit record of a choice someone made.\n\n'
+                'Training records (the qq idas the simulator makes) never tally: no report, '
+                'dashboard or GL balance counts them. Walk this as many times as you like.'
+            ),
+        },
+    ]
+
+    return {
+        'id': 'defaults-walk',
+        'label': 'Defaults — the customer first',
+        'steps': steps,
+        'models_used': ['customer', 'quote', 'order', 'invoice', 'purchase', 'setting'],
+        'prerequisite': 'first-sale',
         'next_sim': 'inventory',
     }
 
@@ -1275,6 +1560,7 @@ SCENARIOS = {
     'first-customer': get_first_customer_scenario,
     'first-item': get_first_item_scenario,
     'first-sale': get_first_sale_scenario,
+    'defaults-walk': get_defaults_walk_scenario,
     'inventory': get_flight_scenario,
     'cash-lifecycle': get_cash_flight_scenario,
 }
