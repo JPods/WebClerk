@@ -84,6 +84,16 @@ def parent_line_id_from_refs(line: Any) -> Optional[int]:
         return None
 
 
+def _children_of(parent, parent_model_name: str):
+    """The saved child lines consuming ``parent``, from every child model that may, each filtered
+    on its refs key when it could name either of two parents."""
+    for child_name, key in CHILD_OF[parent_model_name]:
+        qs = _model(child_name).objects.filter(parent_line_id=parent.pk)
+        if len(PARENT_OF.get(child_name.lower(), ())) > 1:
+            qs = qs.filter(**{f'refs__source__{key}': parent.pk})
+        yield from qs.only('price', 'quantity', 'refs') if hasattr(_model(child_name), 'price') else qs.only('quantity', 'refs')
+
+
 def _aggregate_children(parent_model_name: str, parent_pk: int) -> Tuple[float, int]:
     # A deleted child consumes nothing: deleting an invoice or receipt line gives the
     # parent line its remaining back (found 2026-09-19, latent — no such rows in wc_demo yet).
@@ -274,10 +284,11 @@ def prorate_flat_discount(child: Any) -> None:
 
     carried = Decimal(0)
     converted = Decimal(0)
-    Child = _model(CHILD_OF[spec[0].lower()])
-    for sib in Child.objects.filter(parent_line_id=parent.pk).only('price', 'quantity'):
-        carried += Decimal(str((sib.price or {}).get('discount_amount') or 0))
-        converted += Decimal(str((sib.quantity or {}).get('active') or 0))
+    # Every sibling already carrying a share, across all the child models that consume this
+    # parent (a quote line's order lines and over-the-counter invoice lines alike).
+    for sibling in _children_of(parent, spec[0].lower()):
+        carried += Decimal(str((getattr(sibling, 'price', None) or {}).get('discount_amount') or 0))
+        converted += Decimal(str((sibling.quantity or {}).get('active') or 0))
     left = max(flat - carried, Decimal(0))
 
     if child_active >= parent_active - converted:
