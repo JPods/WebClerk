@@ -204,13 +204,16 @@ REQUIRES = {
 #: customer and terms the invoice bills on. Receiving is goods arriving: a vendor and lines; the terms
 #: bind at the bill, not at the dock (the lead, 2026-11-06). Other converts are planning steps and free.
 CONVERT_REQUIRES = {'invoice': ('customer', 'terms', 'lines'), 'receipt': ('vendor', 'lines')}
-#: Posting is the last money step. An invoice posts to the GL only once it is released (the goods
-#: left, the bill went out) or further along; a planned, signoff_request or on_hold invoice is refused
-#: with coaching. Once posted no status moves (validate_transition), so posting a planned invoice
-#: would freeze it at planned — wc_demo held eleven such rows on 2026-11-07, posted through the
-#: form's gate-less manage action and the batch. Cash completes itself when it posts, a receipt's
-#: gate is receiving, a workorder posts events: none needs a row here.
+#: Posting is the last money step. An invoice posts to the GL released (the goods left, the bill
+#: went out) or further along. Once posted no status moves (validate_transition), so a planned
+#: invoice posted as it is would freeze at planned — wc_demo held eleven such rows on 2026-11-07.
+#: Bill, 2026-11-08 ("we can guide but not create barriers"): posting a planned or signoff_request
+#: invoice releases it in the same act and says so (RELEASES_ON_POST); the GL never holds an entry
+#: for a document still marked planned, and the person meets no refusal. An invoice on hold is the
+#: person's own stop and is still refused: take the hold off, then post. Cash completes itself when
+#: it posts, a receipt's gate is receiving, a workorder posts events: none needs a row here.
 JOURNALIZE_FROM = {'invoice': ('released', 'in_progress', 'complete', 'partially_paid', 'paid')}
+RELEASES_ON_POST = {'invoice': ('planned', 'signoff_request')}
 _LINE_MODELS = {'quote': 'QuoteLine', 'order': 'OrderLine', 'invoice': 'InvoiceLine', 'purchase': 'PurchaseLine',
                 'receipt': 'ReceiptLine', 'workorder': 'WorkOrderLine', 'requisition': 'RequisitionLine'}
 
@@ -242,9 +245,18 @@ def may_post(instance, model_type: str) -> bool:
     return allowed is None or (getattr(instance, 'status', '') or '') in allowed
 
 
+def releases_on_post(instance, model_type: str) -> bool:
+    """Whether posting ``instance`` releases it in the same act (RELEASES_ON_POST)."""
+    return (getattr(instance, 'status', '') or '') in RELEASES_ON_POST.get(model_type, ())
+
+
+def release_on_post_note(model_type: str, status: str) -> str:
+    return f"Posting releases this {status or 'blank'} {model_type} in the same act."
+
+
 def not_released_coaching(model_type: str, status: str) -> str:
     return (f"{_article(model_type)} {model_type} posts to the GL only after release; this one is "
-            f"'{status or 'blank'}'. Release it first, then journalize — once posted, "
+            f"'{status or 'blank'}'. Take it off hold and release it, then journalize — once posted, "
             f"its status cannot move.")
 
 

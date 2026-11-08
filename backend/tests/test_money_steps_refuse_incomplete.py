@@ -154,18 +154,37 @@ def test_journalize_refuses_an_incomplete_document(admin, terms, chart_of_accoun
     assert not doc.dt_journaled
 
 
-# ── journalize: an invoice posts only once released (validate_status.JOURNALIZE_FROM) ──
+# ── journalize: an invoice posts released; a planned one is released by the post (RELEASES_ON_POST) ──
 
-@pytest.mark.parametrize('status', ['planned', 'signoff_request', 'on_hold'])
-def test_journalize_refuses_an_invoice_that_is_not_released(admin, terms, chart_of_accounts, status):
-    """Once posted no status moves (validate_transition), so a planned invoice posted would be
-    planned forever — wc_demo held eleven such rows on 2026-11-07."""
+@pytest.mark.parametrize('status', ['planned', 'signoff_request'])
+def test_journalize_releases_a_planned_invoice_in_the_same_act(admin, terms, chart_of_accounts, status):
+    """Bill, 2026-11-08: a coached post, not a barrier. Once posted no status moves, so the post
+    releases first; the GL never holds an entry for a document still marked planned, and the
+    answer names both acts."""
     doc = _document('invoice', status=status)
+    result = run_command(admin, 'journalize', 'invoice', doc.pk, {})
+    doc.refresh_from_db()
+    assert doc.dt_journaled and doc.status == 'released'
+    assert any(status in m and 'released and posted' in m for m in result['messages']), result['messages']
+
+
+def test_journalize_still_refuses_an_invoice_on_hold(admin, terms, chart_of_accounts):
+    """A hold is the person's own stop; posting does not lift it for them."""
+    doc = _document('invoice', status='on_hold')
     refused = _refused(lambda: run_command(admin, 'journalize', 'invoice', doc.pk, {}))
     assert refused.status == 409 and refused.code == 'not_released'
-    assert status in refused.message and 'Release it first' in refused.message
+    assert 'on_hold' in refused.message and 'hold' in refused.message
     doc.refresh_from_db()
-    assert not doc.dt_journaled and doc.status == status
+    assert not doc.dt_journaled and doc.status == 'on_hold'
+
+
+def test_an_incomplete_planned_invoice_is_still_refused_not_released(admin, terms, chart_of_accounts):
+    """REQUIRES stands in front of the release-and-post: no customer, no post, no status change."""
+    doc = _document('invoice', status='planned', party=False)
+    refused = _refused(lambda: run_command(admin, 'journalize', 'invoice', doc.pk, {}))
+    assert refused.code == 'incomplete_document'
+    doc.refresh_from_db()
+    assert not doc.dt_journaled and doc.status == 'planned'
 
 
 def test_a_released_invoice_posts(admin, terms, chart_of_accounts):
@@ -175,11 +194,14 @@ def test_a_released_invoice_posts(admin, terms, chart_of_accounts):
     assert doc.dt_journaled and doc.status == 'released'
 
 
-def test_the_invoice_report_shows_a_planned_invoice_waiting_and_a_released_one_ready(terms, chart_of_accounts):
+def test_the_invoice_report_shows_a_planned_invoice_postable_with_a_note_and_a_held_one_waiting(terms, chart_of_accounts):
     """The batch that took every unposted invoice is gone (Bill, 2026-11-07: never automatic); the
-    report shows what may post and why the rest waits."""
+    report shows what may post, what the post will also do, and why the rest waits."""
     from apps.accounts.services.journalize_report import unposted
-    planned, released = _document('invoice', status='planned'), _document('invoice', status='released')
+    planned, held = _document('invoice', status='planned'), _document('invoice', status='on_hold')
+    released = _document('invoice', status='released')
     rows = {r['id']: r for r in unposted('invoice')['rows']}
-    assert 'Release it first' in rows[planned.pk]['waiting'] and rows[planned.pk]['preview'] is None
-    assert rows[released.pk]['waiting'] == '' and rows[released.pk]['preview']['entries']
+    assert rows[planned.pk]['waiting'] == '' and rows[planned.pk]['preview']['entries']
+    assert 'releases this planned invoice' in rows[planned.pk]['note']
+    assert 'hold' in rows[held.pk]['waiting'] and rows[held.pk]['preview'] is None
+    assert rows[released.pk]['waiting'] == '' and rows[released.pk]['note'] == ''

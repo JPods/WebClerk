@@ -37,15 +37,24 @@ def _model(model_key: str):
 
 
 def waiting(obj, model_key: str) -> str:
-    """Why the door would refuse to post ``obj`` — incomplete, or an invoice not yet released — in
-    the command's own words (journal_commands.journalize uses the same two checks); '' otherwise.
-    What the poster itself would refuse (nothing received, on hold) comes from the preview."""
+    """Why the door would refuse to post ``obj`` — incomplete, or an invoice on hold — in the
+    command's own words (journal_commands.journalize uses the same two checks); '' otherwise. A
+    planned invoice is postable: the post releases it (note()). What the poster itself would
+    refuse (nothing received, on hold) comes from the preview."""
     from apps.transactions.services import validate_status
     missing = validate_status.incomplete(obj, model_key)
     if missing:
         return validate_status.incomplete_coaching(model_key, 'journalize', missing)
-    if not validate_status.may_post(obj, model_key):
+    if not validate_status.may_post(obj, model_key) and not validate_status.releases_on_post(obj, model_key):
         return validate_status.not_released_coaching(model_key, obj.status)
+    return ''
+
+
+def note(obj, model_key: str) -> str:
+    """What posting this ready row also does — releases a planned invoice (Bill, 2026-11-08)."""
+    from apps.transactions.services import validate_status
+    if validate_status.releases_on_post(obj, model_key):
+        return validate_status.release_on_post_note(model_key, obj.status)
     return ''
 
 
@@ -80,6 +89,7 @@ def unposted(model_key: str, limit: int = 200) -> Dict[str, Any]:
                 why = preview['note'] or 'Nothing to post.'
         rows.append({'id': obj.pk, 'ida': obj.ida, 'status': obj.status or '', 'party': _party(obj),
                      'total': _total(obj), 'dt_created': obj.dt_created, 'waiting': why,
+                     'note': note(obj, model_key) if not why else '',
                      'preview': preview if not why else None})
     ready = sum(1 for r in rows if not r['waiting'])
     return {'model': model_key, 'rows': rows, 'ready': ready, 'waiting': len(rows) - ready,
@@ -115,7 +125,8 @@ def post_selected(actor, model_key: str, ids) -> Dict[str, Any]:
             continue
         try:
             result = run_command(actor, 'journalize', model_key, pk, {})
-            posted.append({**row, 'created': int((result or {}).get('created') or 0)})
+            posted.append({**row, 'created': int((result or {}).get('created') or 0),
+                           'messages': list((result or {}).get('messages') or [])})
         except Refused as e:                       # this row's own refusal; the next row still runs
             refused.append({**row, 'code': e.code, 'message': e.message})
     batch.count_posted, batch.count_exceptions = len(posted), len(refused)

@@ -95,6 +95,7 @@ const DocEntry: React.FC<{ doc: JournalDoc; explain: boolean; onPosted: () => vo
   const [preview, setPreview] = useState<Preview | null>(null);
   const [error, setError] = useState('');
   const [posting, setPosting] = useState(false);
+  const [notes, setNotes] = useState<string[]>([]);   // what the post also did ("released and posted")
 
   const load = useCallback(async () => {
     setError('');
@@ -106,7 +107,11 @@ const DocEntry: React.FC<{ doc: JournalDoc; explain: boolean; onPosted: () => vo
   const post = async () => {
     setPosting(true);
     setError('');
-    try { await command(doc, 'journalize'); await load(); onPosted(); }
+    try {
+      const result = await command(doc, 'journalize');
+      setNotes(Array.isArray(result?.messages) ? result.messages : []);
+      await load(); onPosted();
+    }
     catch (e: any) { setError(e?.response?.data?.message || e?.message || 'Post failed'); }
     finally { setPosting(false); }
   };
@@ -129,6 +134,7 @@ const DocEntry: React.FC<{ doc: JournalDoc; explain: boolean; onPosted: () => vo
         )}
       </div>
       {error && <div style={{ color: 'var(--db-accent-red, #c92a2a)', fontSize: 11 }}>{error}</div>}
+      {notes.map((n, i) => <div key={i} style={{ fontSize: 11, opacity: 0.85 }} data-wc="journal-post-note">{n}</div>)}
       {preview && !preview.entries.length && <div style={{ fontSize: 11, opacity: 0.7 }}>{preview.note}</div>}
       {preview && preview.entries.length > 0 && (explain ? (
         <div style={{ fontFamily: 'ui-monospace, monospace', fontSize: 11, marginTop: 4 }}>

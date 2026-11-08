@@ -59,9 +59,10 @@ def test_the_report_lists_ready_and_waiting_rows_and_never_a_training_row(terms,
     rows = {r['id']: r for r in report['rows']}
     assert training.pk not in rows
     assert rows[ready.pk]['waiting'] == '' and rows[ready.pk]['preview']['entries']
-    assert 'Release it first' in rows[planned.pk]['waiting']
+    # A planned invoice is postable: the post releases it (Bill, 2026-11-08), and the row says so.
+    assert rows[planned.pk]['waiting'] == '' and 'releases this planned invoice' in rows[planned.pk]['note']
     assert 'no line' in rows[hollow.pk]['waiting']
-    assert report['ready'] == 1 and report['waiting'] == 2 and report['total'] == 3
+    assert report['ready'] == 2 and report['waiting'] == 1 and report['total'] == 3
 
 
 def test_a_waiting_cash_carries_the_posters_own_words(chart_of_accounts):
@@ -77,14 +78,16 @@ def test_posting_the_ticked_rows_answers_per_row_and_records_the_run(admin, term
     from apps.accounts.services.journalize_report import post_selected
     ready, planned = _invoice('released'), _invoice('planned')
     out = post_selected(admin, 'invoice', [planned.pk, ready.pk, 999999])
-    assert [p['id'] for p in out['posted']] == [ready.pk]
-    assert {r['id']: r['code'] for r in out['refused']} == {planned.pk: 'not_released', 999999: 'not_found'}
+    assert [p['id'] for p in out['posted']] == [planned.pk, ready.pk]
+    assert {r['id']: r['code'] for r in out['refused']} == {999999: 'not_found'}
+    planned_row = next(p for p in out['posted'] if p['id'] == planned.pk)
+    assert any('released and posted' in m for m in planned_row['messages'])
     ready.refresh_from_db(); planned.refresh_from_db()
-    assert ready.dt_journaled and not planned.dt_journaled
+    assert ready.dt_journaled and planned.dt_journaled and planned.status == 'released'
     batch = JournalBatch.objects.get(ida=out['batch'])
-    assert batch.batch_type == 'invoice' and batch.count_posted == 1 and batch.count_exceptions == 2
+    assert batch.batch_type == 'invoice' and batch.count_posted == 2 and batch.count_exceptions == 1
     assert batch.status == JournalBatch.STATUS_HAS_EXCEPTIONS and batch.run_by_id == admin.user.pk
-    assert batch.config['refused'][0]['code'] == 'not_released'
+    assert batch.config['refused'][0]['code'] == 'not_found'
     # the posted row has left the report
     from apps.accounts.services.journalize_report import unposted
     assert ready.pk not in {r['id'] for r in unposted('invoice')['rows']}

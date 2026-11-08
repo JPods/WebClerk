@@ -75,10 +75,20 @@ def journalize(ctx) -> Dict[str, Any]:
         raise Refused(409, 'incomplete_document',
                       validate_status.incomplete_coaching(ctx.model_key, 'journalize', missing),
                       {'missing': missing})
+    released_here = ''
     if not validate_status.may_post(ctx.obj, ctx.model_key):   # released first (JOURNALIZE_FROM)
-        raise Refused(409, 'not_released',
-                      validate_status.not_released_coaching(ctx.model_key, ctx.obj.status),
-                      {'status': ctx.obj.status})
+        if not validate_status.releases_on_post(ctx.obj, ctx.model_key):
+            raise Refused(409, 'not_released',
+                          validate_status.not_released_coaching(ctx.model_key, ctx.obj.status),
+                          {'status': ctx.obj.status})
+        # A coached post, not a barrier (Bill, 2026-11-08): the post releases the document in the
+        # same act, through the save door as the person (its release gate and hooks run), and the
+        # answer names both acts. The GL never holds an entry for a document still marked planned.
+        from apps.core.services.save import save_record
+        was = ctx.obj.status
+        save_record(ctx.actor, {'id': ctx.obj.pk, 'status': 'released'}, model_key=ctx.model_key)
+        ctx.obj.refresh_from_db()
+        released_here = f"{ctx.obj.ida or ctx.obj.pk} was {was}: released and posted."
     post = {'invoice': posting.journalize_invoice, 'cash': posting.journalize_cash,
             'receipt': posting.journalize_receipt,
             'workorder': posting.journalize_workorder}[ctx.model_key]
@@ -89,6 +99,7 @@ def journalize(ctx) -> Dict[str, Any]:
                 'nothing_received' if error.startswith('Nothing received') else
                 'nothing_to_journalize' if error.startswith('Nothing to journalize') else 'journalize_failed')
         raise Refused(400 if code == 'journalize_failed' else 409, code, error, ctx.obj.pk)
+    result['messages'] = ([released_here] if released_here else []) + list(result.get('messages') or [])
     return result
 
 

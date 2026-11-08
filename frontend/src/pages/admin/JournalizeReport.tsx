@@ -25,9 +25,11 @@ interface Preview { posted: boolean; entries: Entry[]; debits: number; credits: 
 export interface ReportRow {
   id: number; ida: string; status: string; party: string; total: number | null; dt_created: number;
   waiting: string; preview: Preview | null;
+  /** What posting this ready row also does — releases a planned invoice (Bill, 2026-11-08). */
+  note?: string;
 }
 interface Report { model: string; rows: ReportRow[]; ready: number; waiting: number; total: number; limit: number }
-interface RowAnswer { id: number; ida: string; created?: number; code?: string; message?: string }
+interface RowAnswer { id: number; ida: string; created?: number; code?: string; message?: string; messages?: string[] }
 interface RunAnswer { model: string; posted: RowAnswer[]; refused: RowAnswer[]; batch: string }
 
 /** The ids a Post may send: the ticked rows that are ready. */
@@ -162,7 +164,9 @@ const JournalizeReport: React.FC = () => {
                         {open.has(r.id) ? 'Hide entry' : `Ready — ${r.preview?.entries.length ?? 0} lines`}
                       </button>
                     )}
-                    {a && <div style={{ fontSize: 11, color: a.ok ? 'var(--db-accent-green, #2b8a3e)' : 'var(--db-accent-red, #c92a2a)' }}>{a.ok ? `Posted ${a.created} lines` : a.message}</div>}
+                    {!r.waiting && r.note && <div style={{ fontSize: 11, opacity: 0.8 }} data-wc="journalize-note">{r.note}</div>}
+                    {a && <div style={{ fontSize: 11, color: a.ok ? 'var(--db-accent-green, #2b8a3e)' : 'var(--db-accent-red, #c92a2a)' }}>
+                      {a.ok ? [`Posted ${a.created} lines`, ...(a.messages || [])].join('. ') : a.message}</div>}
                   </td>
                 </tr>
                 {open.has(r.id) && r.preview && (
