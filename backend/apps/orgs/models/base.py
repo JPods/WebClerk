@@ -404,14 +404,6 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 	
 	def save(self, *args, **kwargs):
 		"""Override save to ensure org_type is set correctly for proxy models."""
-		previous_company = None
-		if self.pk:
-			previous_company = (
-				OrgBase.objects.filter(pk=self.pk)
-				.values_list("company", flat=True)
-				.first()
-			)
-
 		self._org_type_from_proxy()
 
 		# The org's own defaults for its documents (config.defaults; readme 106): the gate is the
@@ -443,26 +435,3 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 
 		super().save(*args, **kwargs)
 
-		# Keep contact.company aligned with the customer org company.
-		if (
-			(self.org_type or "").lower() == "customer"
-			and self.pk
-			and self.company
-			and previous_company != self.company
-		):
-			try:
-				from apps.core.models import Contact
-				from apps.orgs.services.contact_linking import contacts_of
-				now_ms = int(timezone.now().timestamp() * 1000)
-				linked_contact_ids = list(contacts_of(self).values_list('id', flat=True))
-				if linked_contact_ids:
-					Contact.objects.filter(id__in=linked_contact_ids).exclude(company=self.company).update(
-						company=self.company,
-						dt_modified=now_ms,
-					)
-			except Exception as e:
-				logger.warning(
-					"Failed syncing Contact.company for customer org %s: %s",
-					self.pk,
-					e,
-				)

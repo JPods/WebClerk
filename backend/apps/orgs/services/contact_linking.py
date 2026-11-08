@@ -57,3 +57,46 @@ def follow_contact(contact_id) -> int:
     for k, v in values.items():
         stale |= ~Q(**{k: v}) if v is not None else Q(**{f'{k}__isnull': False})
     return OrgBase.objects.filter(contact_id=contact_id).filter(stale).update(**values)
+
+
+# ── Bill, 2026-11-08: the org's contacts follow its name ─────────────────────────────────────────
+
+def primary_contacts_of(org):
+    """The contacts whose primary affiliation is this org — the first of customer > vendor >
+    manufacturer > rep that is set (the order Contact.save takes its company from): a contact
+    that belongs to another customer and to this vendor shows the customer's name, not ours."""
+    role = contact_role(org)
+    if role is None or not getattr(org, 'pk', None):
+        return Contact.objects.none()
+    earlier = {f'{r}__isnull': True for r in CONTACT_ROLES[:CONTACT_ROLES.index(role)]}
+    return Contact.objects.filter(**{f'{role}_id': org.pk}, **earlier)
+
+
+def rename_contacts(actor, org) -> dict:
+    """Renaming an org renames its contacts (Bill, 2026-11-08: "On saving the Customer, the
+    Company name in the contact should update to the Customer saved value"): every contact whose
+    primary affiliation is this org, and its primary contact when that one has no such link, take
+    the org's company; each is versioned as an edit. A contact another person holds is left for
+    them and named. Returns {renamed: [ids], held: [{id, held_by}]}."""
+    from django.db.models import F, Q
+    from django.utils import timezone
+    from apps.core.services.edit_hold import holder
+    company = (org.company or '').strip()
+    if not company:
+        return {'renamed': [], 'held': []}
+    who = Q(pk__in=primary_contacts_of(org).values('pk'))
+    if getattr(org, 'contact_id', None):
+        who |= Q(pk=org.contact_id)
+    stale = list(Contact.objects.filter(who).exclude(company=company).values_list('pk', flat=True))
+    held, renamed = [], []
+    for pk in stale:
+        hold = holder('contact', pk)
+        if hold and hold['contact_id'] != getattr(actor, 'user_id', None):
+            held.append({'id': pk, 'held_by': hold['name']})
+        else:
+            renamed.append(pk)
+    if renamed:
+        Contact.objects.filter(pk__in=renamed).update(
+            company=company, version=F('version') + 1,
+            dt_modified=int(timezone.now().timestamp() * 1000))
+    return {'renamed': renamed, 'held': held}

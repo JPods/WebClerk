@@ -1,6 +1,7 @@
 """The orgs' code hooks (core/services/behaviours.py): one branch for every org model."""
 from apps.core.services.behaviours import HookContext, ModelBehaviour, register
-from apps.orgs.services.contact_linking import CONTACT_ROLES, contact_values, contacts_of
+from apps.orgs.services.contact_linking import (
+    CONTACT_ROLES, contact_values, contacts_of, rename_contacts)
 
 ORG_MODELS = ('customer', 'vendor', 'employee', 'manufacturer', 'rep', 'other_org')
 
@@ -18,6 +19,7 @@ class OrgBehaviour(ModelBehaviour):
             source = _source_contact(ctx)
             if source is not None:
                 _populate_from_contact(ctx.obj, source, ctx.data.get('_company'))
+                _take_source_name(ctx, source.source_name)
         if source is None:
             _follow_primary_contact(ctx)
         # A new org is saved before anyone names it, and an org must have a company
@@ -26,6 +28,8 @@ class OrgBehaviour(ModelBehaviour):
             ctx.obj.company = f'New {type(ctx.obj)._meta.verbose_name}'
 
     def after_save(self, ctx: HookContext) -> None:
+        if ctx.is_update and 'company' in ctx.changed:    # at birth the contact's own save takes the name
+            _rename_contacts(ctx)
         source = getattr(ctx.obj, '_from_contact', None)
         if source is None:
             return
@@ -54,6 +58,9 @@ def _follow_primary_contact(ctx: HookContext) -> None:
                           f'add it in the Contacts panel first.', {'contact_id': org.contact_id})
         for k, v in contact_values(org.contact_id).items():
             setattr(org, k, v)
+        from apps.core.models import Contact
+        _take_source_name(ctx, Contact.objects.filter(pk=org.contact_id)
+                          .values_list('source_name', flat=True).first())
         return
     typed = sorted(k for k in ('attention', 'email') if k in ctx.changed)
     if typed and org.contact_id:
@@ -61,6 +68,26 @@ def _follow_primary_contact(ctx: HookContext) -> None:
                       f'{", ".join(typed)} {"is" if len(typed) == 1 else "are"} copied from contact '
                       f'#{org.contact_id}: change {"it" if len(typed) == 1 else "them"} on the contact, '
                       f'or choose another primary contact.', {'fields': typed, 'contact_id': org.contact_id})
+
+
+def _take_source_name(ctx: HookContext, source_name) -> None:
+    """An org made from, or given, a contact takes the contact's source_name when its own is
+    blank (Bill, 2026-11-08: "it should transfer the source_name from the contact if one is
+    assigned") — the blanks-only rule defaults follow: a source_name in the same payload wins."""
+    if source_name and 'source_name' not in ctx.data and not (ctx.obj.source_name or '').strip():
+        ctx.obj.source_name = source_name
+
+
+def _rename_contacts(ctx: HookContext) -> None:
+    """The org's name changed: its contacts follow (contact_linking.rename_contacts). Only a
+    save that changed `company` pays for it."""
+    result = rename_contacts(ctx.actor, ctx.obj)
+    if result['renamed']:
+        n = len(result['renamed'])
+        ctx.messages.append(f'{n} contact{"" if n == 1 else "s"} renamed to {ctx.obj.company}')
+    for held in result['held']:
+        ctx.messages.append(f'contact #{held["id"]} is being edited by {held["held_by"]}: '
+                            f'not renamed — save it again when they leave it')
 
 
 def _source_contact(ctx: HookContext):
