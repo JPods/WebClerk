@@ -33,10 +33,6 @@ class TransactionsConfig(AppConfig):
         from .services import receive_commands
         receive_commands.register()
 
-        # Totals: what the screen's unsaved edits will total (services/totals_preview.py).
-        from .services import totals_preview
-        totals_preview.register()
-
         # The journal entry a document makes, before and after it posts (journal_preview.py).
         from .services import journal_preview
         journal_preview.register()
