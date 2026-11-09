@@ -1,0 +1,5623 @@
+{
+ "generated_by": "backend/tests/test_totals_fixture.py (WC_TOTALS_FIXTURE_WRITE=1)",
+ "cases": [
+  {
+   "name": "half_up_8575_drift",
+   "model": "order",
+   "header": {
+    "finance": {
+     "sales_tax_rate": 10
+    },
+    "tax": {},
+    "allocations": {},
+    "ship_via": "",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": {
+      "unit": 8.575,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 0,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    }
+   ],
+   "context": {
+    "tax_policy": {},
+    "shipping_services": [],
+    "customer_exempt": false,
+    "settlement": {
+     "received": 0,
+     "adjusted": 0,
+     "settled": 0
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": 8.58,
+     "discount": 0.0,
+     "taxable": 8.58,
+     "tax": 0.86,
+     "shipping": 0.0,
+     "other": 0.0,
+     "finance_charge": 0.0,
+     "cost": 0.0,
+     "margin": 8.58,
+     "total": 9.44,
+     "margin_pc": 100.0,
+     "received": 0.0,
+     "adjusted": 0.0,
+     "balance": 9.44,
+     "cash_state": ""
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 8.58,
+      "amount": 8.58,
+      "discount": 0.0,
+      "taxable": 8.58,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 0.86,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 0.0,
+      "margin": 8.58,
+      "total": 9.44
+     }
+    ]
+   }
+  },
+  {
+   "name": "half_up_boundaries",
+   "model": "order",
+   "header": {
+    "finance": {
+     "sales_tax_rate": 10
+    },
+    "tax": {},
+    "allocations": {},
+    "ship_via": "",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": {
+      "unit": 1.005,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 0,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    },
+    {
+     "id": 102,
+     "line_number": 2,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": {
+      "unit": 2.675,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 0,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    },
+    {
+     "id": 103,
+     "line_number": 3,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": {
+      "unit": 1.045,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 0,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    },
+    {
+     "id": 104,
+     "line_number": 4,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": {
+      "unit": 0.125,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 0,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    }
+   ],
+   "context": {
+    "tax_policy": {},
+    "shipping_services": [],
+    "customer_exempt": false,
+    "settlement": {
+     "received": 0,
+     "adjusted": 0,
+     "settled": 0
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": 4.87,
+     "discount": 0.0,
+     "taxable": 4.87,
+     "tax": 0.49,
+     "shipping": 0.0,
+     "other": 0.0,
+     "finance_charge": 0.0,
+     "cost": 0.0,
+     "margin": 4.87,
+     "total": 5.36,
+     "margin_pc": 100.0,
+     "received": 0.0,
+     "adjusted": 0.0,
+     "balance": 5.36,
+     "cash_state": ""
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 1.01,
+      "amount": 1.01,
+      "discount": 0.0,
+      "taxable": 1.01,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 0.1,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 0.0,
+      "margin": 1.01,
+      "total": 1.11
+     },
+     {
+      "discounted_unit": 2.68,
+      "amount": 2.68,
+      "discount": 0.0,
+      "taxable": 2.68,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 0.27,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 0.0,
+      "margin": 2.68,
+      "total": 2.95
+     },
+     {
+      "discounted_unit": 1.05,
+      "amount": 1.05,
+      "discount": 0.0,
+      "taxable": 1.05,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 0.11,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 0.0,
+      "margin": 1.05,
+      "total": 1.16
+     },
+     {
+      "discounted_unit": 0.13,
+      "amount": 0.13,
+      "discount": 0.0,
+      "taxable": 0.13,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 0.01,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 0.0,
+      "margin": 0.13,
+      "total": 0.14
+     }
+    ]
+   }
+  },
+  {
+   "name": "qty_six_places",
+   "model": "quote",
+   "header": {
+    "finance": {
+     "sales_tax_rate": 10
+    },
+    "tax": {},
+    "allocations": {},
+    "ship_via": "",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": 2.123456
+     },
+     "price": {
+      "unit": 12.71,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 8.97,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    },
+    {
+     "id": 102,
+     "line_number": 2,
+     "line_type": "product",
+     "quantity": {
+      "active": 1e-06
+     },
+     "price": {
+      "unit": 1000000,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 0,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    }
+   ],
+   "context": {
+    "tax_policy": {},
+    "shipping_services": [],
+    "customer_exempt": false,
+    "settlement": {
+     "received": 0,
+     "adjusted": 0,
+     "settled": 0
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": 27.99,
+     "discount": 0.0,
+     "taxable": 27.99,
+     "tax": 2.8,
+     "shipping": 0.0,
+     "other": 0.0,
+     "finance_charge": 0.0,
+     "cost": 19.05,
+     "margin": 8.94,
+     "total": 30.79,
+     "margin_pc": 31.94,
+     "received": 0.0,
+     "adjusted": 0.0,
+     "balance": 30.79,
+     "cash_state": ""
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 12.71,
+      "amount": 26.99,
+      "discount": 0.0,
+      "taxable": 26.99,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 2.7,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 19.05,
+      "margin": 7.94,
+      "total": 29.69
+     },
+     {
+      "discounted_unit": 1000000.0,
+      "amount": 1.0,
+      "discount": 0.0,
+      "taxable": 1.0,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 0.1,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 0.0,
+      "margin": 1.0,
+      "total": 1.1
+     }
+    ]
+   }
+  },
+  {
+   "name": "precision_three_and_zero",
+   "model": "order",
+   "header": {
+    "finance": {
+     "sales_tax_rate": 10
+    },
+    "tax": {},
+    "allocations": {},
+    "ship_via": "",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": 3
+     },
+     "price": {
+      "unit": 33.333,
+      "precision": 3,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 10,
+      "precision": 0,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    },
+    {
+     "id": 102,
+     "line_number": 2,
+     "line_type": "product",
+     "quantity": {
+      "active": 7
+     },
+     "price": {
+      "unit": 8.975,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 7.777,
+      "precision": 0,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    }
+   ],
+   "context": {
+    "tax_policy": {},
+    "shipping_services": [],
+    "customer_exempt": false,
+    "settlement": {
+     "received": 0,
+     "adjusted": 0,
+     "settled": 0
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": 162.86,
+     "discount": -0.03,
+     "taxable": 162.86,
+     "tax": 16.29,
+     "shipping": 0.0,
+     "other": 0.0,
+     "finance_charge": 0.0,
+     "cost": 84.46,
+     "margin": 78.4,
+     "total": 179.15,
+     "margin_pc": 48.14,
+     "received": 0.0,
+     "adjusted": 0.0,
+     "balance": 179.15,
+     "cash_state": ""
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 33.333,
+      "amount": 100.0,
+      "discount": 0.0,
+      "taxable": 100.0,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 10.0,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 30.0,
+      "margin": 70.0,
+      "total": 110.0
+     },
+     {
+      "discounted_unit": 8.98,
+      "amount": 62.86,
+      "discount": -0.03,
+      "taxable": 62.86,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 6.29,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 54.46,
+      "margin": 8.4,
+      "total": 69.15
+     }
+    ]
+   }
+  },
+  {
+   "name": "line_pct_vs_flat_larger_wins",
+   "model": "order",
+   "header": {
+    "finance": {
+     "sales_tax_rate": 10
+    },
+    "tax": {},
+    "allocations": {},
+    "ship_via": "",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": 10
+     },
+     "price": {
+      "unit": 100,
+      "precision": 2,
+      "discount_percent": 10,
+      "discount_amount": 50
+     },
+     "cost": {
+      "unit": 60,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    },
+    {
+     "id": 102,
+     "line_number": 2,
+     "line_type": "product",
+     "quantity": {
+      "active": 5
+     },
+     "price": {
+      "unit": 200,
+      "precision": 2,
+      "discount_percent": 10,
+      "discount_amount": 150
+     },
+     "cost": {
+      "unit": 80,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    },
+    {
+     "id": 103,
+     "line_number": 3,
+     "line_type": "product",
+     "quantity": {
+      "active": 3
+     },
+     "price": {
+      "unit": 9.99,
+      "precision": 2,
+      "discount_percent": 12.5,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 4.44,
+      "precision": 2,
+      "discount_percent": 5,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    }
+   ],
+   "context": {
+    "tax_policy": {},
+    "shipping_services": [],
+    "customer_exempt": false,
+    "settlement": {
+     "received": 0,
+     "adjusted": 0,
+     "settled": 0
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": 1776.22,
+     "discount": 253.75,
+     "taxable": 1776.22,
+     "tax": 177.62,
+     "shipping": 0.0,
+     "other": 0.0,
+     "finance_charge": 0.0,
+     "cost": 1012.66,
+     "margin": 763.56,
+     "total": 1953.84,
+     "margin_pc": 42.99,
+     "received": 0.0,
+     "adjusted": 0.0,
+     "balance": 1953.84,
+     "cash_state": ""
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 90.0,
+      "amount": 900.0,
+      "discount": 100.0,
+      "taxable": 900.0,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 90.0,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 600.0,
+      "margin": 300.0,
+      "total": 990.0
+     },
+     {
+      "discounted_unit": 170.0,
+      "amount": 850.0,
+      "discount": 150.0,
+      "taxable": 850.0,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 85.0,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 400.0,
+      "margin": 450.0,
+      "total": 935.0
+     },
+     {
+      "discounted_unit": 8.74,
+      "amount": 26.22,
+      "discount": 3.75,
+      "taxable": 26.22,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 2.62,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 12.66,
+      "margin": 13.56,
+      "total": 28.84
+     }
+    ]
+   }
+  },
+  {
+   "name": "flat_discount_per_unit_rounds",
+   "model": "invoice",
+   "header": {
+    "finance": {
+     "sales_tax_rate": 10
+    },
+    "tax": {},
+    "allocations": {},
+    "ship_via": "",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": 3
+     },
+     "price": {
+      "unit": 10,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 1
+     },
+     "cost": {
+      "unit": 5,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    }
+   ],
+   "context": {
+    "tax_policy": {},
+    "shipping_services": [],
+    "customer_exempt": false,
+    "settlement": {
+     "received": 0,
+     "adjusted": 0,
+     "settled": 0
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": 29.01,
+     "discount": 0.99,
+     "taxable": 29.01,
+     "tax": 2.9,
+     "shipping": 0.0,
+     "other": 0.0,
+     "finance_charge": 0.0,
+     "cost": 15.0,
+     "margin": 14.01,
+     "total": 31.91,
+     "margin_pc": 48.29,
+     "received": 0.0,
+     "adjusted": 0.0,
+     "balance": 31.91,
+     "cash_state": "open"
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 9.67,
+      "amount": 29.01,
+      "discount": 0.99,
+      "taxable": 29.01,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 2.9,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 15.0,
+      "margin": 14.01,
+      "total": 31.91
+     }
+    ]
+   }
+  },
+  {
+   "name": "zero_quantity_line",
+   "model": "order",
+   "header": {
+    "finance": {
+     "sales_tax_rate": 10
+    },
+    "tax": {},
+    "allocations": {},
+    "ship_via": "",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": 0
+     },
+     "price": {
+      "unit": 100,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 5
+     },
+     "cost": {
+      "unit": 50,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    },
+    {
+     "id": 102,
+     "line_number": 2,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": {
+      "unit": 10,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 0,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    }
+   ],
+   "context": {
+    "tax_policy": {},
+    "shipping_services": [],
+    "customer_exempt": false,
+    "settlement": {
+     "received": 0,
+     "adjusted": 0,
+     "settled": 0
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": 10.0,
+     "discount": 0.0,
+     "taxable": 10.0,
+     "tax": 1.0,
+     "shipping": 0.0,
+     "other": 0.0,
+     "finance_charge": 0.0,
+     "cost": 0.0,
+     "margin": 10.0,
+     "total": 11.0,
+     "margin_pc": 100.0,
+     "received": 0.0,
+     "adjusted": 0.0,
+     "balance": 11.0,
+     "cash_state": ""
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 100.0,
+      "amount": 0.0,
+      "discount": 0.0,
+      "taxable": 0.0,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 0.0,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 0.0,
+      "margin": 0.0,
+      "total": 0.0
+     },
+     {
+      "discounted_unit": 10.0,
+      "amount": 10.0,
+      "discount": 0.0,
+      "taxable": 10.0,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 1.0,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 0.0,
+      "margin": 10.0,
+      "total": 11.0
+     }
+    ]
+   }
+  },
+  {
+   "name": "doc_discount_percent",
+   "model": "order",
+   "header": {
+    "finance": {
+     "sales_tax_rate": 10
+    },
+    "tax": {},
+    "allocations": {
+     "discount_percent": 7.5
+    },
+    "ship_via": "",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": 2
+     },
+     "price": {
+      "unit": 19.99,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 9,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    },
+    {
+     "id": 102,
+     "line_number": 2,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": {
+      "unit": 5.55,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 3,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    }
+   ],
+   "context": {
+    "tax_policy": {},
+    "shipping_services": [],
+    "customer_exempt": false,
+    "settlement": {
+     "received": 0,
+     "adjusted": 0,
+     "settled": 0
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": 42.11,
+     "discount": 3.42,
+     "taxable": 42.11,
+     "tax": 4.21,
+     "shipping": 0.0,
+     "other": 0.0,
+     "finance_charge": 0.0,
+     "cost": 21.0,
+     "margin": 21.11,
+     "total": 46.32,
+     "margin_pc": 50.13,
+     "received": 0.0,
+     "adjusted": 0.0,
+     "balance": 46.32,
+     "cash_state": ""
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 18.49,
+      "amount": 36.98,
+      "discount": 3.0,
+      "taxable": 36.98,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 3.7,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 18.0,
+      "margin": 18.98,
+      "total": 40.68
+     },
+     {
+      "discounted_unit": 5.13,
+      "amount": 5.13,
+      "discount": 0.42,
+      "taxable": 5.13,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 0.51,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 3.0,
+      "margin": 2.13,
+      "total": 5.64
+     }
+    ]
+   }
+  },
+  {
+   "name": "doc_discount_flat_remainder_last_line",
+   "model": "order",
+   "header": {
+    "finance": {
+     "sales_tax_rate": 10
+    },
+    "tax": {},
+    "allocations": {
+     "discount_amount": 1
+    },
+    "ship_via": "",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": {
+      "unit": 10,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 4,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    },
+    {
+     "id": 102,
+     "line_number": 2,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": {
+      "unit": 10,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 4,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    },
+    {
+     "id": 103,
+     "line_number": 3,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": {
+      "unit": 10,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 4,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    }
+   ],
+   "context": {
+    "tax_policy": {},
+    "shipping_services": [],
+    "customer_exempt": false,
+    "settlement": {
+     "received": 0,
+     "adjusted": 0,
+     "settled": 0
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": 29.0,
+     "discount": 1.0,
+     "taxable": 29.0,
+     "tax": 2.91,
+     "shipping": 0.0,
+     "other": 0.0,
+     "finance_charge": 0.0,
+     "cost": 12.0,
+     "margin": 17.0,
+     "total": 31.91,
+     "margin_pc": 58.62,
+     "received": 0.0,
+     "adjusted": 0.0,
+     "balance": 31.91,
+     "cash_state": ""
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 9.67,
+      "amount": 9.67,
+      "discount": 0.33,
+      "taxable": 9.67,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 0.97,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 4.0,
+      "margin": 5.67,
+      "total": 10.64
+     },
+     {
+      "discounted_unit": 9.67,
+      "amount": 9.67,
+      "discount": 0.33,
+      "taxable": 9.67,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 0.97,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 4.0,
+      "margin": 5.67,
+      "total": 10.64
+     },
+     {
+      "discounted_unit": 9.66,
+      "amount": 9.66,
+      "discount": 0.34,
+      "taxable": 9.66,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 0.97,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 4.0,
+      "margin": 5.66,
+      "total": 10.63
+     }
+    ]
+   }
+  },
+  {
+   "name": "doc_discount_both_larger_applies",
+   "model": "order",
+   "header": {
+    "finance": {
+     "sales_tax_rate": 10
+    },
+    "tax": {},
+    "allocations": {
+     "discount_percent": 10,
+     "discount_amount": 15
+    },
+    "ship_via": "",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": 4
+     },
+     "price": {
+      "unit": 25,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 10,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    },
+    {
+     "id": 102,
+     "line_number": 2,
+     "line_type": "product",
+     "quantity": {
+      "active": 2
+     },
+     "price": {
+      "unit": 50,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 20,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    }
+   ],
+   "context": {
+    "tax_policy": {},
+    "shipping_services": [],
+    "customer_exempt": false,
+    "settlement": {
+     "received": 0,
+     "adjusted": 0,
+     "settled": 0
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": 180.0,
+     "discount": 20.0,
+     "taxable": 180.0,
+     "tax": 18.0,
+     "shipping": 0.0,
+     "other": 0.0,
+     "finance_charge": 0.0,
+     "cost": 80.0,
+     "margin": 100.0,
+     "total": 198.0,
+     "margin_pc": 55.56,
+     "received": 0.0,
+     "adjusted": 0.0,
+     "balance": 198.0,
+     "cash_state": ""
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 22.5,
+      "amount": 90.0,
+      "discount": 10.0,
+      "taxable": 90.0,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 9.0,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 40.0,
+      "margin": 50.0,
+      "total": 99.0
+     },
+     {
+      "discounted_unit": 45.0,
+      "amount": 90.0,
+      "discount": 10.0,
+      "taxable": 90.0,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 9.0,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 40.0,
+      "margin": 50.0,
+      "total": 99.0
+     }
+    ]
+   }
+  },
+  {
+   "name": "doc_discount_both_pct_wins",
+   "model": "order",
+   "header": {
+    "finance": {
+     "sales_tax_rate": 10
+    },
+    "tax": {},
+    "allocations": {
+     "discount_percent": 10,
+     "discount_amount": 5
+    },
+    "ship_via": "",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": 4
+     },
+     "price": {
+      "unit": 25,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 10,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    },
+    {
+     "id": 102,
+     "line_number": 2,
+     "line_type": "product",
+     "quantity": {
+      "active": 2
+     },
+     "price": {
+      "unit": 50,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 20,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    }
+   ],
+   "context": {
+    "tax_policy": {},
+    "shipping_services": [],
+    "customer_exempt": false,
+    "settlement": {
+     "received": 0,
+     "adjusted": 0,
+     "settled": 0
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": 180.0,
+     "discount": 20.0,
+     "taxable": 180.0,
+     "tax": 18.0,
+     "shipping": 0.0,
+     "other": 0.0,
+     "finance_charge": 0.0,
+     "cost": 80.0,
+     "margin": 100.0,
+     "total": 198.0,
+     "margin_pc": 55.56,
+     "received": 0.0,
+     "adjusted": 0.0,
+     "balance": 198.0,
+     "cash_state": ""
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 22.5,
+      "amount": 90.0,
+      "discount": 10.0,
+      "taxable": 90.0,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 9.0,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 40.0,
+      "margin": 50.0,
+      "total": 99.0
+     },
+     {
+      "discounted_unit": 45.0,
+      "amount": 90.0,
+      "discount": 10.0,
+      "taxable": 90.0,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 9.0,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 40.0,
+      "margin": 50.0,
+      "total": 99.0
+     }
+    ]
+   }
+  },
+  {
+   "name": "shipping_other_remainders",
+   "model": "order",
+   "header": {
+    "finance": {
+     "sales_tax_rate": 10
+    },
+    "tax": {},
+    "allocations": {
+     "shipping": 10,
+     "other": 0.02
+    },
+    "ship_via": "",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": {
+      "unit": 10,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 0,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    },
+    {
+     "id": 102,
+     "line_number": 2,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": {
+      "unit": 10,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 0,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    },
+    {
+     "id": 103,
+     "line_number": 3,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": {
+      "unit": 10,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 0,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    }
+   ],
+   "context": {
+    "tax_policy": {},
+    "shipping_services": [],
+    "customer_exempt": false,
+    "settlement": {
+     "received": 0,
+     "adjusted": 0,
+     "settled": 0
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": 30.0,
+     "discount": 0.0,
+     "taxable": 30.0,
+     "tax": 3.0,
+     "shipping": 10.0,
+     "other": 0.02,
+     "finance_charge": 0.0,
+     "cost": 0.0,
+     "margin": 30.0,
+     "total": 43.02,
+     "margin_pc": 100.0,
+     "received": 0.0,
+     "adjusted": 0.0,
+     "balance": 43.02,
+     "cash_state": ""
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 10.0,
+      "amount": 10.0,
+      "discount": 0.0,
+      "taxable": 10.0,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 1.0,
+      "shipping": 3.33,
+      "other": 0.01,
+      "finance_charge": 0.0,
+      "cost": 0.0,
+      "margin": 10.0,
+      "total": 14.34
+     },
+     {
+      "discounted_unit": 10.0,
+      "amount": 10.0,
+      "discount": 0.0,
+      "taxable": 10.0,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 1.0,
+      "shipping": 3.33,
+      "other": 0.01,
+      "finance_charge": 0.0,
+      "cost": 0.0,
+      "margin": 10.0,
+      "total": 14.34
+     },
+     {
+      "discounted_unit": 10.0,
+      "amount": 10.0,
+      "discount": 0.0,
+      "taxable": 10.0,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 1.0,
+      "shipping": 3.34,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 0.0,
+      "margin": 10.0,
+      "total": 14.34
+     }
+    ]
+   }
+  },
+  {
+   "name": "ship_via_percent_of_goods",
+   "model": "invoice",
+   "header": {
+    "finance": {
+     "sales_tax_rate": 10
+    },
+    "tax": {},
+    "allocations": {
+     "shipping": 5
+    },
+    "ship_via": "ups",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": 3
+     },
+     "price": {
+      "unit": 12.71,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 8.97,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    },
+    {
+     "id": 102,
+     "line_number": 2,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": {
+      "unit": 0.37,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 0,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    }
+   ],
+   "context": {
+    "tax_policy": {},
+    "shipping_services": [
+     {
+      "name": "UPS Ground",
+      "carrier_code": "UPSG",
+      "aliases": [
+       "ups"
+      ],
+      "rate_method": "percent_of_goods",
+      "rate_percent": 4
+     },
+     {
+      "name": "Pickup",
+      "rate_method": "flat",
+      "rate_percent": 0
+     }
+    ],
+    "customer_exempt": false,
+    "settlement": {
+     "received": 0,
+     "adjusted": 0,
+     "settled": 0
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": 38.5,
+     "discount": 0.0,
+     "taxable": 38.5,
+     "tax": 3.85,
+     "shipping": 6.54,
+     "other": 0.0,
+     "finance_charge": 0.0,
+     "cost": 26.91,
+     "margin": 11.59,
+     "total": 48.89,
+     "margin_pc": 30.1,
+     "received": 0.0,
+     "adjusted": 0.0,
+     "balance": 48.89,
+     "cash_state": "open"
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 12.71,
+      "amount": 38.13,
+      "discount": 0.0,
+      "taxable": 38.13,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 3.81,
+      "shipping": 6.48,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 26.91,
+      "margin": 11.22,
+      "total": 48.42
+     },
+     {
+      "discounted_unit": 0.37,
+      "amount": 0.37,
+      "discount": 0.0,
+      "taxable": 0.37,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 0.04,
+      "shipping": 0.06,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 0.0,
+      "margin": 0.37,
+      "total": 0.47
+     }
+    ]
+   }
+  },
+  {
+   "name": "ship_via_not_percent",
+   "model": "invoice",
+   "header": {
+    "finance": {
+     "sales_tax_rate": 10
+    },
+    "tax": {},
+    "allocations": {},
+    "ship_via": "Pickup",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": 3
+     },
+     "price": {
+      "unit": 12.71,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 0,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    }
+   ],
+   "context": {
+    "tax_policy": {},
+    "shipping_services": [
+     {
+      "name": "UPS Ground",
+      "carrier_code": "UPSG",
+      "aliases": [
+       "ups"
+      ],
+      "rate_method": "percent_of_goods",
+      "rate_percent": 4
+     },
+     {
+      "name": "Pickup",
+      "rate_method": "flat",
+      "rate_percent": 0
+     }
+    ],
+    "customer_exempt": false,
+    "settlement": {
+     "received": 0,
+     "adjusted": 0,
+     "settled": 0
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": 38.13,
+     "discount": 0.0,
+     "taxable": 38.13,
+     "tax": 3.81,
+     "shipping": 0.0,
+     "other": 0.0,
+     "finance_charge": 0.0,
+     "cost": 0.0,
+     "margin": 38.13,
+     "total": 41.94,
+     "margin_pc": 100.0,
+     "received": 0.0,
+     "adjusted": 0.0,
+     "balance": 41.94,
+     "cash_state": "open"
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 12.71,
+      "amount": 38.13,
+      "discount": 0.0,
+      "taxable": 38.13,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 3.81,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 0.0,
+      "margin": 38.13,
+      "total": 41.94
+     }
+    ]
+   }
+  },
+  {
+   "name": "line_shipping_and_handling_envelope",
+   "model": "order",
+   "header": {
+    "finance": {
+     "sales_tax_rate": 10
+    },
+    "tax": {},
+    "allocations": {},
+    "ship_via": "",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": 2
+     },
+     "price": {
+      "unit": 10,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 0,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 3.5,
+      "handling": 1.25
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    }
+   ],
+   "context": {
+    "tax_policy": {},
+    "shipping_services": [],
+    "customer_exempt": false,
+    "settlement": {
+     "received": 0,
+     "adjusted": 0,
+     "settled": 0
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": 20.0,
+     "discount": 0.0,
+     "taxable": 20.0,
+     "tax": 2.0,
+     "shipping": 4.75,
+     "other": 0.0,
+     "finance_charge": 0.0,
+     "cost": 0.0,
+     "margin": 20.0,
+     "total": 26.75,
+     "margin_pc": 100.0,
+     "received": 0.0,
+     "adjusted": 0.0,
+     "balance": 26.75,
+     "cash_state": ""
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 10.0,
+      "amount": 20.0,
+      "discount": 0.0,
+      "taxable": 20.0,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 2.0,
+      "shipping": 4.75,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 0.0,
+      "margin": 20.0,
+      "total": 26.75
+     }
+    ]
+   }
+  },
+  {
+   "name": "tax_header_rate_as_fraction",
+   "model": "order",
+   "header": {
+    "finance": {
+     "sales_tax_rate": 0.0825
+    },
+    "tax": {},
+    "allocations": {},
+    "ship_via": "",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": {
+      "unit": 100,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 0,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    }
+   ],
+   "context": {
+    "tax_policy": {},
+    "shipping_services": [],
+    "customer_exempt": false,
+    "settlement": {
+     "received": 0,
+     "adjusted": 0,
+     "settled": 0
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": 100.0,
+     "discount": 0.0,
+     "taxable": 100.0,
+     "tax": 8.25,
+     "shipping": 0.0,
+     "other": 0.0,
+     "finance_charge": 0.0,
+     "cost": 0.0,
+     "margin": 100.0,
+     "total": 108.25,
+     "margin_pc": 100.0,
+     "received": 0.0,
+     "adjusted": 0.0,
+     "balance": 108.25,
+     "cash_state": ""
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 100.0,
+      "amount": 100.0,
+      "discount": 0.0,
+      "taxable": 100.0,
+      "tax_rate": 0.0825,
+      "rate_source": "header",
+      "tax": 8.25,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 0.0,
+      "margin": 100.0,
+      "total": 108.25
+     }
+    ]
+   }
+  },
+  {
+   "name": "tax_header_rate_as_percent",
+   "model": "order",
+   "header": {
+    "finance": {
+     "sales_tax_rate": 8.25
+    },
+    "tax": {},
+    "allocations": {},
+    "ship_via": "",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": {
+      "unit": 100,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 0,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    }
+   ],
+   "context": {
+    "tax_policy": {},
+    "shipping_services": [],
+    "customer_exempt": false,
+    "settlement": {
+     "received": 0,
+     "adjusted": 0,
+     "settled": 0
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": 100.0,
+     "discount": 0.0,
+     "taxable": 100.0,
+     "tax": 8.25,
+     "shipping": 0.0,
+     "other": 0.0,
+     "finance_charge": 0.0,
+     "cost": 0.0,
+     "margin": 100.0,
+     "total": 108.25,
+     "margin_pc": 100.0,
+     "received": 0.0,
+     "adjusted": 0.0,
+     "balance": 108.25,
+     "cash_state": ""
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 100.0,
+      "amount": 100.0,
+      "discount": 0.0,
+      "taxable": 100.0,
+      "tax_rate": 0.0825,
+      "rate_source": "header",
+      "tax": 8.25,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 0.0,
+      "margin": 100.0,
+      "total": 108.25
+     }
+    ]
+   }
+  },
+  {
+   "name": "tax_typed_on_line",
+   "model": "order",
+   "header": {
+    "finance": {
+     "sales_tax_rate": 10
+    },
+    "tax": {},
+    "allocations": {},
+    "ship_via": "",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": {
+      "unit": 100,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 0,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": {
+      "sales_rate": 5,
+      "rate_source": "line"
+     },
+     "physical": null,
+     "is_active": true
+    },
+    {
+     "id": 102,
+     "line_number": 2,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": {
+      "unit": 100,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 0,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": {
+      "sales_rate": 0.02,
+      "rate_source": "line"
+     },
+     "physical": null,
+     "is_active": true
+    },
+    {
+     "id": 103,
+     "line_number": 3,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": {
+      "unit": 100,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 0,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    }
+   ],
+   "context": {
+    "tax_policy": {},
+    "shipping_services": [],
+    "customer_exempt": false,
+    "settlement": {
+     "received": 0,
+     "adjusted": 0,
+     "settled": 0
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": 300.0,
+     "discount": 0.0,
+     "taxable": 300.0,
+     "tax": 17.0,
+     "shipping": 0.0,
+     "other": 0.0,
+     "finance_charge": 0.0,
+     "cost": 0.0,
+     "margin": 300.0,
+     "total": 317.0,
+     "margin_pc": 100.0,
+     "received": 0.0,
+     "adjusted": 0.0,
+     "balance": 317.0,
+     "cash_state": ""
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 100.0,
+      "amount": 100.0,
+      "discount": 0.0,
+      "taxable": 100.0,
+      "tax_rate": 0.05,
+      "rate_source": "line",
+      "tax": 5.0,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 0.0,
+      "margin": 100.0,
+      "total": 105.0
+     },
+     {
+      "discounted_unit": 100.0,
+      "amount": 100.0,
+      "discount": 0.0,
+      "taxable": 100.0,
+      "tax_rate": 0.02,
+      "rate_source": "line",
+      "tax": 2.0,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 0.0,
+      "margin": 100.0,
+      "total": 102.0
+     },
+     {
+      "discounted_unit": 100.0,
+      "amount": 100.0,
+      "discount": 0.0,
+      "taxable": 100.0,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 10.0,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 0.0,
+      "margin": 100.0,
+      "total": 110.0
+     }
+    ]
+   }
+  },
+  {
+   "name": "tax_item_exempt_code",
+   "model": "order",
+   "header": {
+    "finance": {
+     "sales_tax_rate": 10
+    },
+    "tax": {},
+    "allocations": {},
+    "ship_via": "",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": {
+      "unit": 100,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 0,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0,
+      "tax_code": "exempt"
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    },
+    {
+     "id": 102,
+     "line_number": 2,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": {
+      "unit": 100,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 0,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0,
+      "tax_code": "NON-TAXABLE"
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    },
+    {
+     "id": 103,
+     "line_number": 3,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": {
+      "unit": 100,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 0,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    }
+   ],
+   "context": {
+    "tax_policy": {},
+    "shipping_services": [],
+    "customer_exempt": false,
+    "settlement": {
+     "received": 0,
+     "adjusted": 0,
+     "settled": 0
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": 300.0,
+     "discount": 0.0,
+     "taxable": 100.0,
+     "tax": 10.0,
+     "shipping": 0.0,
+     "other": 0.0,
+     "finance_charge": 0.0,
+     "cost": 0.0,
+     "margin": 300.0,
+     "total": 310.0,
+     "margin_pc": 100.0,
+     "received": 0.0,
+     "adjusted": 0.0,
+     "balance": 310.0,
+     "cash_state": ""
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 100.0,
+      "amount": 100.0,
+      "discount": 0.0,
+      "taxable": 0.0,
+      "tax_rate": 0.0,
+      "rate_source": "item_exempt",
+      "tax": 0.0,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 0.0,
+      "margin": 100.0,
+      "total": 100.0
+     },
+     {
+      "discounted_unit": 100.0,
+      "amount": 100.0,
+      "discount": 0.0,
+      "taxable": 0.0,
+      "tax_rate": 0.0,
+      "rate_source": "item_exempt",
+      "tax": 0.0,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 0.0,
+      "margin": 100.0,
+      "total": 100.0
+     },
+     {
+      "discounted_unit": 100.0,
+      "amount": 100.0,
+      "discount": 0.0,
+      "taxable": 100.0,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 10.0,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 0.0,
+      "margin": 100.0,
+      "total": 110.0
+     }
+    ]
+   }
+  },
+  {
+   "name": "tax_exempt_customer_overrides_typed_rate",
+   "model": "invoice",
+   "header": {
+    "finance": {
+     "sales_tax_rate": 10
+    },
+    "tax": {},
+    "allocations": {},
+    "ship_via": "",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": {
+      "unit": 100,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 0,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": {
+      "sales_rate": 5,
+      "rate_source": "line"
+     },
+     "physical": null,
+     "is_active": true
+    }
+   ],
+   "context": {
+    "tax_policy": {},
+    "shipping_services": [],
+    "customer_exempt": true,
+    "settlement": {
+     "received": 0,
+     "adjusted": 0,
+     "settled": 0
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": 100.0,
+     "discount": 0.0,
+     "taxable": 0.0,
+     "tax": 0.0,
+     "shipping": 0.0,
+     "other": 0.0,
+     "finance_charge": 0.0,
+     "cost": 0.0,
+     "margin": 100.0,
+     "total": 100.0,
+     "margin_pc": 100.0,
+     "received": 0.0,
+     "adjusted": 0.0,
+     "balance": 100.0,
+     "cash_state": "open"
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 100.0,
+      "amount": 100.0,
+      "discount": 0.0,
+      "taxable": 0.0,
+      "tax_rate": 0.0,
+      "rate_source": "exempt",
+      "tax": 0.0,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 0.0,
+      "margin": 100.0,
+      "total": 100.0
+     }
+    ]
+   }
+  },
+  {
+   "name": "tax_exempt_code_on_header",
+   "model": "invoice",
+   "header": {
+    "finance": {
+     "sales_tax_rate": 10
+    },
+    "tax": {
+     "exempt_code": "RESALE"
+    },
+    "allocations": {},
+    "ship_via": "",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": {
+      "unit": 100,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 0,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    }
+   ],
+   "context": {
+    "tax_policy": {},
+    "shipping_services": [],
+    "customer_exempt": false,
+    "settlement": {
+     "received": 0,
+     "adjusted": 0,
+     "settled": 0
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": 100.0,
+     "discount": 0.0,
+     "taxable": 0.0,
+     "tax": 0.0,
+     "shipping": 0.0,
+     "other": 0.0,
+     "finance_charge": 0.0,
+     "cost": 0.0,
+     "margin": 100.0,
+     "total": 100.0,
+     "margin_pc": 100.0,
+     "received": 0.0,
+     "adjusted": 0.0,
+     "balance": 100.0,
+     "cash_state": "open"
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 100.0,
+      "amount": 100.0,
+      "discount": 0.0,
+      "taxable": 0.0,
+      "tax_rate": 0.0,
+      "rate_source": "exempt",
+      "tax": 0.0,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 0.0,
+      "margin": 100.0,
+      "total": 100.0
+     }
+    ]
+   }
+  },
+  {
+   "name": "tax_costs_not_taxed_on_purchase",
+   "model": "purchase",
+   "header": {
+    "finance": {
+     "sales_tax_rate": 10
+    },
+    "tax": {},
+    "allocations": {},
+    "ship_via": "",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": 2
+     },
+     "price": null,
+     "cost": {
+      "unit": 8.97,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    }
+   ],
+   "context": {
+    "tax_policy": {},
+    "shipping_services": [],
+    "customer_exempt": false,
+    "settlement": {
+     "received": 0,
+     "adjusted": 0,
+     "settled": 0
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": 17.94,
+     "discount": 0.0,
+     "taxable": 0.0,
+     "tax": 0.0,
+     "shipping": 0.0,
+     "other": 0.0,
+     "finance_charge": 0.0,
+     "cost": 17.94,
+     "margin": 0.0,
+     "total": 17.94,
+     "margin_pc": 0.0,
+     "received": 0.0,
+     "adjusted": 0.0,
+     "balance": 17.94,
+     "cash_state": ""
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 8.97,
+      "amount": 17.94,
+      "discount": 0.0,
+      "taxable": 0.0,
+      "tax_rate": 0.0,
+      "rate_source": "costs_not_taxed",
+      "tax": 0.0,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 17.94,
+      "margin": 0.0,
+      "total": 17.94
+     }
+    ]
+   }
+  },
+  {
+   "name": "tax_on_costs_when_policy_says",
+   "model": "purchase",
+   "header": {
+    "finance": {
+     "sales_tax_rate": 10
+    },
+    "tax": {},
+    "allocations": {},
+    "ship_via": "",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": 2
+     },
+     "price": null,
+     "cost": {
+      "unit": 8.97,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    }
+   ],
+   "context": {
+    "tax_policy": {
+     "tax_on_costs": true
+    },
+    "shipping_services": [],
+    "customer_exempt": false,
+    "settlement": {
+     "received": 0,
+     "adjusted": 0,
+     "settled": 0
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": 17.94,
+     "discount": 0.0,
+     "taxable": 17.94,
+     "tax": 1.79,
+     "shipping": 0.0,
+     "other": 0.0,
+     "finance_charge": 0.0,
+     "cost": 17.94,
+     "margin": 0.0,
+     "total": 19.73,
+     "margin_pc": 0.0,
+     "received": 0.0,
+     "adjusted": 0.0,
+     "balance": 19.73,
+     "cash_state": ""
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 8.97,
+      "amount": 17.94,
+      "discount": 0.0,
+      "taxable": 17.94,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 1.79,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 17.94,
+      "margin": 0.0,
+      "total": 19.73
+     }
+    ]
+   }
+  },
+  {
+   "name": "tax_on_shipping_when_policy_says",
+   "model": "order",
+   "header": {
+    "finance": {
+     "sales_tax_rate": 10
+    },
+    "tax": {
+     "shipping": 6
+    },
+    "allocations": {
+     "shipping": 9.99
+    },
+    "ship_via": "",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": {
+      "unit": 100,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 0,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    },
+    {
+     "id": 102,
+     "line_number": 2,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": {
+      "unit": 50,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 0,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    }
+   ],
+   "context": {
+    "tax_policy": {
+     "tax_on_shipping": true
+    },
+    "shipping_services": [],
+    "customer_exempt": false,
+    "settlement": {
+     "received": 0,
+     "adjusted": 0,
+     "settled": 0
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": 150.0,
+     "discount": 0.0,
+     "taxable": 159.99,
+     "tax": 15.6,
+     "shipping": 9.99,
+     "other": 0.0,
+     "finance_charge": 0.0,
+     "cost": 0.0,
+     "margin": 150.0,
+     "total": 175.59,
+     "margin_pc": 100.0,
+     "received": 0.0,
+     "adjusted": 0.0,
+     "balance": 175.59,
+     "cash_state": ""
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 100.0,
+      "amount": 100.0,
+      "discount": 0.0,
+      "taxable": 106.66,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 10.4,
+      "shipping": 6.66,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 0.0,
+      "margin": 100.0,
+      "total": 117.06
+     },
+     {
+      "discounted_unit": 50.0,
+      "amount": 50.0,
+      "discount": 0.0,
+      "taxable": 53.33,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 5.2,
+      "shipping": 3.33,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 0.0,
+      "margin": 50.0,
+      "total": 58.53
+     }
+    ]
+   }
+  },
+  {
+   "name": "tax_on_shipping_off_by_default",
+   "model": "order",
+   "header": {
+    "finance": {
+     "sales_tax_rate": 10
+    },
+    "tax": {
+     "shipping": 6
+    },
+    "allocations": {
+     "shipping": 9.99
+    },
+    "ship_via": "",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": {
+      "unit": 100,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 0,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    }
+   ],
+   "context": {
+    "tax_policy": {},
+    "shipping_services": [],
+    "customer_exempt": false,
+    "settlement": {
+     "received": 0,
+     "adjusted": 0,
+     "settled": 0
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": 100.0,
+     "discount": 0.0,
+     "taxable": 100.0,
+     "tax": 10.0,
+     "shipping": 9.99,
+     "other": 0.0,
+     "finance_charge": 0.0,
+     "cost": 0.0,
+     "margin": 100.0,
+     "total": 119.99,
+     "margin_pc": 100.0,
+     "received": 0.0,
+     "adjusted": 0.0,
+     "balance": 119.99,
+     "cash_state": ""
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 100.0,
+      "amount": 100.0,
+      "discount": 0.0,
+      "taxable": 100.0,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 10.0,
+      "shipping": 9.99,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 0.0,
+      "margin": 100.0,
+      "total": 119.99
+     }
+    ]
+   }
+  },
+  {
+   "name": "header_rate_changed_lines_carry_stale_totals",
+   "model": "order",
+   "header": {
+    "finance": {
+     "sales_tax_rate": 7
+    },
+    "tax": {},
+    "allocations": {},
+    "ship_via": "",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": 2
+     },
+     "price": {
+      "unit": 10,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 0,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true,
+     "totals": {
+      "tax": 99,
+      "amount": 99,
+      "total": 999
+     }
+    }
+   ],
+   "context": {
+    "tax_policy": {},
+    "shipping_services": [],
+    "customer_exempt": false,
+    "settlement": {
+     "received": 0,
+     "adjusted": 0,
+     "settled": 0
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": 20.0,
+     "discount": 0.0,
+     "taxable": 20.0,
+     "tax": 1.4,
+     "shipping": 0.0,
+     "other": 0.0,
+     "finance_charge": 0.0,
+     "cost": 0.0,
+     "margin": 20.0,
+     "total": 21.4,
+     "margin_pc": 100.0,
+     "received": 0.0,
+     "adjusted": 0.0,
+     "balance": 21.4,
+     "cash_state": ""
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 10.0,
+      "amount": 20.0,
+      "discount": 0.0,
+      "taxable": 20.0,
+      "tax_rate": 0.07,
+      "rate_source": "header",
+      "tax": 1.4,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 0.0,
+      "margin": 20.0,
+      "total": 21.4
+     }
+    ]
+   }
+  },
+  {
+   "name": "non_product_lines",
+   "model": "invoice",
+   "header": {
+    "finance": {
+     "sales_tax_rate": 10
+    },
+    "tax": {},
+    "allocations": {},
+    "ship_via": "",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": {
+      "unit": 100,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 40,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    },
+    {
+     "id": 102,
+     "line_number": 2,
+     "line_type": "tax",
+     "quantity": {
+      "active": 1
+     },
+     "price": {
+      "unit": 7.5,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 0,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    },
+    {
+     "id": 103,
+     "line_number": 3,
+     "line_type": "shipping",
+     "quantity": {
+      "active": 1
+     },
+     "price": {
+      "unit": 12,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 0,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    },
+    {
+     "id": 104,
+     "line_number": 4,
+     "line_type": "finance_charge",
+     "quantity": {
+      "active": 1
+     },
+     "price": {
+      "unit": 2.5,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 0,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    },
+    {
+     "id": 105,
+     "line_number": 5,
+     "line_type": "discount",
+     "quantity": {
+      "active": 1
+     },
+     "price": {
+      "unit": 3,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 0,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    }
+   ],
+   "context": {
+    "tax_policy": {},
+    "shipping_services": [],
+    "customer_exempt": false,
+    "settlement": {
+     "received": 0,
+     "adjusted": 0,
+     "settled": 0
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": 97.0,
+     "discount": 3.0,
+     "taxable": 100.0,
+     "tax": 17.5,
+     "shipping": 12.0,
+     "other": 0.0,
+     "finance_charge": 2.5,
+     "cost": 40.0,
+     "margin": 57.0,
+     "total": 129.0,
+     "margin_pc": 58.76,
+     "received": 0.0,
+     "adjusted": 0.0,
+     "balance": 129.0,
+     "cash_state": "open"
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 100.0,
+      "amount": 100.0,
+      "discount": 0.0,
+      "taxable": 100.0,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 10.0,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 40.0,
+      "margin": 60.0,
+      "total": 110.0
+     },
+     {
+      "amount": 0.0,
+      "discount": 0.0,
+      "taxable": 0.0,
+      "tax": 7.5,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 0.0,
+      "margin": 0.0,
+      "total": 7.5
+     },
+     {
+      "amount": 0.0,
+      "discount": 0.0,
+      "taxable": 0.0,
+      "tax": 0.0,
+      "shipping": 12.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 0.0,
+      "margin": 0.0,
+      "total": 12.0
+     },
+     {
+      "amount": 0.0,
+      "discount": 0.0,
+      "taxable": 0.0,
+      "tax": 0.0,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 2.5,
+      "cost": 0.0,
+      "margin": 0.0,
+      "total": 2.5
+     },
+     {
+      "amount": -3.0,
+      "discount": 3.0,
+      "taxable": 0.0,
+      "tax": 0.0,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 0.0,
+      "margin": -3.0,
+      "total": -3.0
+     }
+    ]
+   }
+  },
+  {
+   "name": "discount_line_on_buy_side_is_nothing",
+   "model": "purchase",
+   "header": {
+    "finance": {},
+    "tax": {},
+    "allocations": {},
+    "ship_via": "",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": null,
+     "cost": {
+      "unit": 100,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    },
+    {
+     "id": 102,
+     "line_number": 2,
+     "line_type": "discount",
+     "quantity": {
+      "active": 1
+     },
+     "price": null,
+     "cost": {
+      "unit": 3,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    }
+   ],
+   "context": {
+    "tax_policy": {},
+    "shipping_services": [],
+    "customer_exempt": false,
+    "settlement": {
+     "received": 0,
+     "adjusted": 0,
+     "settled": 0
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": 100.0,
+     "discount": 0.0,
+     "taxable": 0.0,
+     "tax": 0.0,
+     "shipping": 0.0,
+     "other": 0.0,
+     "finance_charge": 0.0,
+     "cost": 100.0,
+     "margin": 0.0,
+     "total": 100.0,
+     "margin_pc": 0.0,
+     "received": 0.0,
+     "adjusted": 0.0,
+     "balance": 100.0,
+     "cash_state": ""
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 100.0,
+      "amount": 100.0,
+      "discount": 0.0,
+      "taxable": 0.0,
+      "tax_rate": 0.0,
+      "rate_source": "costs_not_taxed",
+      "tax": 0.0,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 100.0,
+      "margin": 0.0,
+      "total": 100.0
+     },
+     {
+      "amount": 0.0,
+      "discount": 0.0,
+      "taxable": 0.0,
+      "tax": 0.0,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 0.0,
+      "margin": 0.0,
+      "total": 0.0
+     }
+    ]
+   }
+  },
+  {
+   "name": "inactive_line_excluded",
+   "model": "order",
+   "header": {
+    "finance": {
+     "sales_tax_rate": 10
+    },
+    "tax": {},
+    "allocations": {},
+    "ship_via": "",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": {
+      "unit": 100,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 0,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    },
+    {
+     "id": 102,
+     "line_number": 2,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": {
+      "unit": 50,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 0,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": false
+    },
+    {
+     "id": 103,
+     "line_number": 3,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": {
+      "unit": 25,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 0,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    }
+   ],
+   "context": {
+    "tax_policy": {},
+    "shipping_services": [],
+    "customer_exempt": false,
+    "settlement": {
+     "received": 0,
+     "adjusted": 0,
+     "settled": 0
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": 125.0,
+     "discount": 0.0,
+     "taxable": 125.0,
+     "tax": 12.5,
+     "shipping": 0.0,
+     "other": 0.0,
+     "finance_charge": 0.0,
+     "cost": 0.0,
+     "margin": 125.0,
+     "total": 137.5,
+     "margin_pc": 100.0,
+     "received": 0.0,
+     "adjusted": 0.0,
+     "balance": 137.5,
+     "cash_state": ""
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 100.0,
+      "amount": 100.0,
+      "discount": 0.0,
+      "taxable": 100.0,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 10.0,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 0.0,
+      "margin": 100.0,
+      "total": 110.0
+     },
+     null,
+     {
+      "discounted_unit": 25.0,
+      "amount": 25.0,
+      "discount": 0.0,
+      "taxable": 25.0,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 2.5,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 0.0,
+      "margin": 25.0,
+      "total": 27.5
+     }
+    ]
+   }
+  },
+  {
+   "name": "invoice_partial_payment",
+   "model": "invoice",
+   "header": {
+    "finance": {
+     "sales_tax_rate": 10
+    },
+    "tax": {},
+    "allocations": {},
+    "ship_via": "",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": {
+      "unit": 100,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 40,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    }
+   ],
+   "context": {
+    "tax_policy": {},
+    "shipping_services": [],
+    "customer_exempt": false,
+    "settlement": {
+     "received": 60,
+     "adjusted": 0.5,
+     "settled": 60
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": 100.0,
+     "discount": 0.0,
+     "taxable": 100.0,
+     "tax": 10.0,
+     "shipping": 0.0,
+     "other": 0.0,
+     "finance_charge": 0.0,
+     "cost": 40.0,
+     "margin": 60.0,
+     "total": 110.0,
+     "margin_pc": 60.0,
+     "received": 60.0,
+     "adjusted": 0.5,
+     "balance": 49.5,
+     "cash_state": "partial"
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 100.0,
+      "amount": 100.0,
+      "discount": 0.0,
+      "taxable": 100.0,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 10.0,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 40.0,
+      "margin": 60.0,
+      "total": 110.0
+     }
+    ]
+   }
+  },
+  {
+   "name": "invoice_paid",
+   "model": "invoice",
+   "header": {
+    "finance": {
+     "sales_tax_rate": 10
+    },
+    "tax": {},
+    "allocations": {},
+    "ship_via": "",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": {
+      "unit": 100,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 0,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    }
+   ],
+   "context": {
+    "tax_policy": {},
+    "shipping_services": [],
+    "customer_exempt": false,
+    "settlement": {
+     "received": 110,
+     "adjusted": 0,
+     "settled": 110
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": 100.0,
+     "discount": 0.0,
+     "taxable": 100.0,
+     "tax": 10.0,
+     "shipping": 0.0,
+     "other": 0.0,
+     "finance_charge": 0.0,
+     "cost": 0.0,
+     "margin": 100.0,
+     "total": 110.0,
+     "margin_pc": 100.0,
+     "received": 110.0,
+     "adjusted": 0.0,
+     "balance": 0.0,
+     "cash_state": "paid"
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 100.0,
+      "amount": 100.0,
+      "discount": 0.0,
+      "taxable": 100.0,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 10.0,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 0.0,
+      "margin": 100.0,
+      "total": 110.0
+     }
+    ]
+   }
+  },
+  {
+   "name": "invoice_over_paid",
+   "model": "invoice",
+   "header": {
+    "finance": {
+     "sales_tax_rate": 10
+    },
+    "tax": {},
+    "allocations": {},
+    "ship_via": "",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": {
+      "unit": 100,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 0,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    }
+   ],
+   "context": {
+    "tax_policy": {},
+    "shipping_services": [],
+    "customer_exempt": false,
+    "settlement": {
+     "received": 120,
+     "adjusted": 0,
+     "settled": 120
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": 100.0,
+     "discount": 0.0,
+     "taxable": 100.0,
+     "tax": 10.0,
+     "shipping": 0.0,
+     "other": 0.0,
+     "finance_charge": 0.0,
+     "cost": 0.0,
+     "margin": 100.0,
+     "total": 110.0,
+     "margin_pc": 100.0,
+     "received": 120.0,
+     "adjusted": 0.0,
+     "balance": -10.0,
+     "cash_state": "over"
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 100.0,
+      "amount": 100.0,
+      "discount": 0.0,
+      "taxable": 100.0,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 10.0,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 0.0,
+      "margin": 100.0,
+      "total": 110.0
+     }
+    ]
+   }
+  },
+  {
+   "name": "credit_memo_negative",
+   "model": "invoice",
+   "header": {
+    "finance": {
+     "sales_tax_rate": 10
+    },
+    "tax": {},
+    "allocations": {},
+    "ship_via": "",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": -2
+     },
+     "price": {
+      "unit": 12.71,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 8.97,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    },
+    {
+     "id": 102,
+     "line_number": 2,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": {
+      "unit": 0.37,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 0,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    }
+   ],
+   "context": {
+    "tax_policy": {},
+    "shipping_services": [],
+    "customer_exempt": false,
+    "settlement": {
+     "received": 0,
+     "adjusted": 0,
+     "settled": 0
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": -25.05,
+     "discount": 0.0,
+     "taxable": -25.05,
+     "tax": -2.5,
+     "shipping": 0.0,
+     "other": 0.0,
+     "finance_charge": 0.0,
+     "cost": -17.94,
+     "margin": -7.11,
+     "total": -27.55,
+     "margin_pc": 0.0,
+     "received": 0.0,
+     "adjusted": 0.0,
+     "balance": -27.55,
+     "cash_state": "credit"
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 12.71,
+      "amount": -25.42,
+      "discount": 0.0,
+      "taxable": -25.42,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": -2.54,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": -17.94,
+      "margin": -7.48,
+      "total": -27.96
+     },
+     {
+      "discounted_unit": 0.37,
+      "amount": 0.37,
+      "discount": 0.0,
+      "taxable": 0.37,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 0.04,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 0.0,
+      "margin": 0.37,
+      "total": 0.41
+     }
+    ]
+   }
+  },
+  {
+   "name": "credit_memo_with_credit_state",
+   "model": "invoice",
+   "header": {
+    "finance": {},
+    "tax": {},
+    "allocations": {},
+    "ship_via": "",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": -1
+     },
+     "price": {
+      "unit": 50,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 0,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    }
+   ],
+   "context": {
+    "tax_policy": {},
+    "shipping_services": [],
+    "customer_exempt": false,
+    "settlement": {
+     "received": 0,
+     "adjusted": 0,
+     "settled": 0
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": -50.0,
+     "discount": 0.0,
+     "taxable": 0.0,
+     "tax": 0.0,
+     "shipping": 0.0,
+     "other": 0.0,
+     "finance_charge": 0.0,
+     "cost": 0.0,
+     "margin": -50.0,
+     "total": -50.0,
+     "margin_pc": 0.0,
+     "received": 0.0,
+     "adjusted": 0.0,
+     "balance": -50.0,
+     "cash_state": "credit"
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 50.0,
+      "amount": -50.0,
+      "discount": 0.0,
+      "taxable": 0.0,
+      "tax_rate": 0.0,
+      "rate_source": "header",
+      "tax": 0.0,
+      "shipping": 0.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 0.0,
+      "margin": -50.0,
+      "total": -50.0
+     }
+    ]
+   }
+  },
+  {
+   "name": "landed_by_value_default",
+   "model": "receipt",
+   "header": {
+    "finance": {},
+    "tax": {},
+    "allocations": {
+     "freight": 10,
+     "duty": 2.5,
+     "handling": 0.03,
+     "vat": 0
+    },
+    "ship_via": "",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": 3
+     },
+     "price": null,
+     "cost": {
+      "unit": 10,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    },
+    {
+     "id": 102,
+     "line_number": 2,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": null,
+     "cost": {
+      "unit": 5,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    },
+    {
+     "id": 103,
+     "line_number": 3,
+     "line_type": "product",
+     "quantity": {
+      "active": 2
+     },
+     "price": null,
+     "cost": {
+      "unit": 7.5,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    }
+   ],
+   "context": {
+    "tax_policy": {},
+    "shipping_services": [],
+    "customer_exempt": false,
+    "settlement": {
+     "received": 0,
+     "adjusted": 0,
+     "settled": 0
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": 50.0,
+     "discount": 0.0,
+     "taxable": 0.0,
+     "tax": 0.0,
+     "shipping": 10.0,
+     "other": 2.53,
+     "finance_charge": 0.0,
+     "cost": 50.0,
+     "margin": 0.0,
+     "total": 62.53,
+     "margin_pc": 0.0,
+     "received": 0.0,
+     "adjusted": 0.0,
+     "balance": 62.53,
+     "cash_state": "",
+     "freight": 10.0,
+     "duty": 2.5,
+     "handling": 0.03,
+     "vat": 0.0,
+     "paid": 0.0
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 10.0,
+      "amount": 30.0,
+      "discount": 0.0,
+      "taxable": 0.0,
+      "tax_rate": 0.0,
+      "rate_source": "costs_not_taxed",
+      "tax": 0.0,
+      "shipping": 6.0,
+      "other": 1.52,
+      "finance_charge": 0.0,
+      "cost": 30.0,
+      "landed": {
+       "freight": 6.0,
+       "duty": 1.5,
+       "handling": 0.02,
+       "vat": 0.0
+      },
+      "margin": 0.0,
+      "total": 37.52
+     },
+     {
+      "discounted_unit": 5.0,
+      "amount": 5.0,
+      "discount": 0.0,
+      "taxable": 0.0,
+      "tax_rate": 0.0,
+      "rate_source": "costs_not_taxed",
+      "tax": 0.0,
+      "shipping": 1.0,
+      "other": 0.25,
+      "finance_charge": 0.0,
+      "cost": 5.0,
+      "landed": {
+       "freight": 1.0,
+       "duty": 0.25,
+       "handling": 0.0,
+       "vat": 0.0
+      },
+      "margin": 0.0,
+      "total": 6.25
+     },
+     {
+      "discounted_unit": 7.5,
+      "amount": 15.0,
+      "discount": 0.0,
+      "taxable": 0.0,
+      "tax_rate": 0.0,
+      "rate_source": "costs_not_taxed",
+      "tax": 0.0,
+      "shipping": 3.0,
+      "other": 0.76,
+      "finance_charge": 0.0,
+      "cost": 15.0,
+      "landed": {
+       "freight": 3.0,
+       "duty": 0.75,
+       "handling": 0.01,
+       "vat": 0.0
+      },
+      "margin": 0.0,
+      "total": 18.76
+     }
+    ]
+   }
+  },
+  {
+   "name": "landed_by_weight_mixed_units",
+   "model": "receipt",
+   "header": {
+    "finance": {},
+    "tax": {},
+    "allocations": {
+     "freight": 25,
+     "method": {
+      "freight": "weight"
+     }
+    },
+    "ship_via": "",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": 2
+     },
+     "price": null,
+     "cost": {
+      "unit": 10,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": {
+      "weight": {
+       "value": 1.5,
+       "unit": "kg"
+      }
+     },
+     "is_active": true
+    },
+    {
+     "id": 102,
+     "line_number": 2,
+     "line_type": "product",
+     "quantity": {
+      "active": 4
+     },
+     "price": null,
+     "cost": {
+      "unit": 5,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": {
+      "weight": {
+       "value": 12,
+       "unit": "oz"
+      }
+     },
+     "is_active": true
+    },
+    {
+     "id": 103,
+     "line_number": 3,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": null,
+     "cost": {
+      "unit": 7.5,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": {
+      "weight": {
+       "value": 3.3,
+       "unit": "lb"
+      }
+     },
+     "is_active": true
+    }
+   ],
+   "context": {
+    "tax_policy": {},
+    "shipping_services": [],
+    "customer_exempt": false,
+    "settlement": {
+     "received": 0,
+     "adjusted": 0,
+     "settled": 0
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": 47.5,
+     "discount": 0.0,
+     "taxable": 0.0,
+     "tax": 0.0,
+     "shipping": 25.0,
+     "other": 0.0,
+     "finance_charge": 0.0,
+     "cost": 47.5,
+     "margin": 0.0,
+     "total": 72.5,
+     "margin_pc": 0.0,
+     "received": 0.0,
+     "adjusted": 0.0,
+     "balance": 72.5,
+     "cash_state": "",
+     "freight": 25.0,
+     "duty": 0.0,
+     "handling": 0.0,
+     "vat": 0.0,
+     "paid": 0.0
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 10.0,
+      "amount": 20.0,
+      "discount": 0.0,
+      "taxable": 0.0,
+      "tax_rate": 0.0,
+      "rate_source": "costs_not_taxed",
+      "tax": 0.0,
+      "shipping": 12.8,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 20.0,
+      "landed": {
+       "freight": 12.8,
+       "duty": 0.0,
+       "handling": 0.0,
+       "vat": 0.0
+      },
+      "margin": 0.0,
+      "total": 32.8
+     },
+     {
+      "discounted_unit": 5.0,
+      "amount": 20.0,
+      "discount": 0.0,
+      "taxable": 0.0,
+      "tax_rate": 0.0,
+      "rate_source": "costs_not_taxed",
+      "tax": 0.0,
+      "shipping": 5.81,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 20.0,
+      "landed": {
+       "freight": 5.81,
+       "duty": 0.0,
+       "handling": 0.0,
+       "vat": 0.0
+      },
+      "margin": 0.0,
+      "total": 25.81
+     },
+     {
+      "discounted_unit": 7.5,
+      "amount": 7.5,
+      "discount": 0.0,
+      "taxable": 0.0,
+      "tax_rate": 0.0,
+      "rate_source": "costs_not_taxed",
+      "tax": 0.0,
+      "shipping": 6.39,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 7.5,
+      "landed": {
+       "freight": 6.39,
+       "duty": 0.0,
+       "handling": 0.0,
+       "vat": 0.0
+      },
+      "margin": 0.0,
+      "total": 13.89
+     }
+    ]
+   }
+  },
+  {
+   "name": "landed_by_weight_missing_falls_to_value",
+   "model": "receipt",
+   "header": {
+    "finance": {},
+    "tax": {},
+    "allocations": {
+     "freight": 25,
+     "method": {
+      "freight": "weight"
+     }
+    },
+    "ship_via": "",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": 2
+     },
+     "price": null,
+     "cost": {
+      "unit": 10,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": {
+      "weight": {
+       "value": 1.5,
+       "unit": "kg"
+      }
+     },
+     "is_active": true
+    },
+    {
+     "id": 102,
+     "line_number": 2,
+     "line_type": "product",
+     "quantity": {
+      "active": 4
+     },
+     "price": null,
+     "cost": {
+      "unit": 5,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    }
+   ],
+   "context": {
+    "tax_policy": {},
+    "shipping_services": [],
+    "customer_exempt": false,
+    "settlement": {
+     "received": 0,
+     "adjusted": 0,
+     "settled": 0
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": 40.0,
+     "discount": 0.0,
+     "taxable": 0.0,
+     "tax": 0.0,
+     "shipping": 25.0,
+     "other": 0.0,
+     "finance_charge": 0.0,
+     "cost": 40.0,
+     "margin": 0.0,
+     "total": 65.0,
+     "margin_pc": 0.0,
+     "received": 0.0,
+     "adjusted": 0.0,
+     "balance": 65.0,
+     "cash_state": "",
+     "freight": 25.0,
+     "duty": 0.0,
+     "handling": 0.0,
+     "vat": 0.0,
+     "paid": 0.0
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 10.0,
+      "amount": 20.0,
+      "discount": 0.0,
+      "taxable": 0.0,
+      "tax_rate": 0.0,
+      "rate_source": "costs_not_taxed",
+      "tax": 0.0,
+      "shipping": 12.5,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 20.0,
+      "landed": {
+       "freight": 12.5,
+       "duty": 0.0,
+       "handling": 0.0,
+       "vat": 0.0
+      },
+      "margin": 0.0,
+      "total": 32.5
+     },
+     {
+      "discounted_unit": 5.0,
+      "amount": 20.0,
+      "discount": 0.0,
+      "taxable": 0.0,
+      "tax_rate": 0.0,
+      "rate_source": "costs_not_taxed",
+      "tax": 0.0,
+      "shipping": 12.5,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 20.0,
+      "landed": {
+       "freight": 12.5,
+       "duty": 0.0,
+       "handling": 0.0,
+       "vat": 0.0
+      },
+      "margin": 0.0,
+      "total": 32.5
+     }
+    ]
+   }
+  },
+  {
+   "name": "landed_by_quantity",
+   "model": "receipt",
+   "header": {
+    "finance": {},
+    "tax": {},
+    "allocations": {
+     "duty": 10,
+     "method": {
+      "duty": "quantity"
+     }
+    },
+    "ship_via": "",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": 3
+     },
+     "price": null,
+     "cost": {
+      "unit": 10,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    },
+    {
+     "id": 102,
+     "line_number": 2,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": null,
+     "cost": {
+      "unit": 5,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    },
+    {
+     "id": 103,
+     "line_number": 3,
+     "line_type": "product",
+     "quantity": {
+      "active": 2
+     },
+     "price": null,
+     "cost": {
+      "unit": 7.5,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    }
+   ],
+   "context": {
+    "tax_policy": {},
+    "shipping_services": [],
+    "customer_exempt": false,
+    "settlement": {
+     "received": 0,
+     "adjusted": 0,
+     "settled": 0
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": 50.0,
+     "discount": 0.0,
+     "taxable": 0.0,
+     "tax": 0.0,
+     "shipping": 0.0,
+     "other": 10.0,
+     "finance_charge": 0.0,
+     "cost": 50.0,
+     "margin": 0.0,
+     "total": 60.0,
+     "margin_pc": 0.0,
+     "received": 0.0,
+     "adjusted": 0.0,
+     "balance": 60.0,
+     "cash_state": "",
+     "freight": 0.0,
+     "duty": 10.0,
+     "handling": 0.0,
+     "vat": 0.0,
+     "paid": 0.0
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 10.0,
+      "amount": 30.0,
+      "discount": 0.0,
+      "taxable": 0.0,
+      "tax_rate": 0.0,
+      "rate_source": "costs_not_taxed",
+      "tax": 0.0,
+      "shipping": 0.0,
+      "other": 5.0,
+      "finance_charge": 0.0,
+      "cost": 30.0,
+      "landed": {
+       "freight": 0.0,
+       "duty": 5.0,
+       "handling": 0.0,
+       "vat": 0.0
+      },
+      "margin": 0.0,
+      "total": 35.0
+     },
+     {
+      "discounted_unit": 5.0,
+      "amount": 5.0,
+      "discount": 0.0,
+      "taxable": 0.0,
+      "tax_rate": 0.0,
+      "rate_source": "costs_not_taxed",
+      "tax": 0.0,
+      "shipping": 0.0,
+      "other": 1.67,
+      "finance_charge": 0.0,
+      "cost": 5.0,
+      "landed": {
+       "freight": 0.0,
+       "duty": 1.67,
+       "handling": 0.0,
+       "vat": 0.0
+      },
+      "margin": 0.0,
+      "total": 6.67
+     },
+     {
+      "discounted_unit": 7.5,
+      "amount": 15.0,
+      "discount": 0.0,
+      "taxable": 0.0,
+      "tax_rate": 0.0,
+      "rate_source": "costs_not_taxed",
+      "tax": 0.0,
+      "shipping": 0.0,
+      "other": 3.33,
+      "finance_charge": 0.0,
+      "cost": 15.0,
+      "landed": {
+       "freight": 0.0,
+       "duty": 3.33,
+       "handling": 0.0,
+       "vat": 0.0
+      },
+      "margin": 0.0,
+      "total": 18.33
+     }
+    ]
+   }
+  },
+  {
+   "name": "landed_pins_one_line_rest_spreads",
+   "model": "receipt",
+   "header": {
+    "finance": {},
+    "tax": {},
+    "allocations": {
+     "freight": 10,
+     "method": {
+      "freight": "value"
+     }
+    },
+    "ship_via": "",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": 3
+     },
+     "price": null,
+     "cost": {
+      "unit": 10,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0,
+      "landed_override": {
+       "freight": 4
+      }
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    },
+    {
+     "id": 102,
+     "line_number": 2,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": null,
+     "cost": {
+      "unit": 5,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    },
+    {
+     "id": 103,
+     "line_number": 3,
+     "line_type": "product",
+     "quantity": {
+      "active": 2
+     },
+     "price": null,
+     "cost": {
+      "unit": 7.5,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    }
+   ],
+   "context": {
+    "tax_policy": {},
+    "shipping_services": [],
+    "customer_exempt": false,
+    "settlement": {
+     "received": 0,
+     "adjusted": 0,
+     "settled": 0
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": 50.0,
+     "discount": 0.0,
+     "taxable": 0.0,
+     "tax": 0.0,
+     "shipping": 10.0,
+     "other": 0.0,
+     "finance_charge": 0.0,
+     "cost": 50.0,
+     "margin": 0.0,
+     "total": 60.0,
+     "margin_pc": 0.0,
+     "received": 0.0,
+     "adjusted": 0.0,
+     "balance": 60.0,
+     "cash_state": "",
+     "freight": 10.0,
+     "duty": 0.0,
+     "handling": 0.0,
+     "vat": 0.0,
+     "paid": 0.0
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 10.0,
+      "amount": 30.0,
+      "discount": 0.0,
+      "taxable": 0.0,
+      "tax_rate": 0.0,
+      "rate_source": "costs_not_taxed",
+      "tax": 0.0,
+      "shipping": 4.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 30.0,
+      "landed": {
+       "freight": 4.0,
+       "duty": 0.0,
+       "handling": 0.0,
+       "vat": 0.0
+      },
+      "margin": 0.0,
+      "total": 34.0
+     },
+     {
+      "discounted_unit": 5.0,
+      "amount": 5.0,
+      "discount": 0.0,
+      "taxable": 0.0,
+      "tax_rate": 0.0,
+      "rate_source": "costs_not_taxed",
+      "tax": 0.0,
+      "shipping": 1.5,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 5.0,
+      "landed": {
+       "freight": 1.5,
+       "duty": 0.0,
+       "handling": 0.0,
+       "vat": 0.0
+      },
+      "margin": 0.0,
+      "total": 6.5
+     },
+     {
+      "discounted_unit": 7.5,
+      "amount": 15.0,
+      "discount": 0.0,
+      "taxable": 0.0,
+      "tax_rate": 0.0,
+      "rate_source": "costs_not_taxed",
+      "tax": 0.0,
+      "shipping": 4.5,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 15.0,
+      "landed": {
+       "freight": 4.5,
+       "duty": 0.0,
+       "handling": 0.0,
+       "vat": 0.0
+      },
+      "margin": 0.0,
+      "total": 19.5
+     }
+    ]
+   }
+  },
+  {
+   "name": "landed_all_pinned_adding_up",
+   "model": "receipt",
+   "header": {
+    "finance": {},
+    "tax": {},
+    "allocations": {
+     "duty": 2
+    },
+    "ship_via": "",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": null,
+     "cost": {
+      "unit": 10,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0,
+      "landed_override": {
+       "duty": 1.5
+      }
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    },
+    {
+     "id": 102,
+     "line_number": 2,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": null,
+     "cost": {
+      "unit": 5,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0,
+      "landed_override": {
+       "duty": 0.5
+      }
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    }
+   ],
+   "context": {
+    "tax_policy": {},
+    "shipping_services": [],
+    "customer_exempt": false,
+    "settlement": {
+     "received": 0,
+     "adjusted": 0,
+     "settled": 0
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": 15.0,
+     "discount": 0.0,
+     "taxable": 0.0,
+     "tax": 0.0,
+     "shipping": 0.0,
+     "other": 2.0,
+     "finance_charge": 0.0,
+     "cost": 15.0,
+     "margin": 0.0,
+     "total": 17.0,
+     "margin_pc": 0.0,
+     "received": 0.0,
+     "adjusted": 0.0,
+     "balance": 17.0,
+     "cash_state": "",
+     "freight": 0.0,
+     "duty": 2.0,
+     "handling": 0.0,
+     "vat": 0.0,
+     "paid": 0.0
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 10.0,
+      "amount": 10.0,
+      "discount": 0.0,
+      "taxable": 0.0,
+      "tax_rate": 0.0,
+      "rate_source": "costs_not_taxed",
+      "tax": 0.0,
+      "shipping": 0.0,
+      "other": 1.5,
+      "finance_charge": 0.0,
+      "cost": 10.0,
+      "landed": {
+       "freight": 0.0,
+       "duty": 1.5,
+       "handling": 0.0,
+       "vat": 0.0
+      },
+      "margin": 0.0,
+      "total": 11.5
+     },
+     {
+      "discounted_unit": 5.0,
+      "amount": 5.0,
+      "discount": 0.0,
+      "taxable": 0.0,
+      "tax_rate": 0.0,
+      "rate_source": "costs_not_taxed",
+      "tax": 0.0,
+      "shipping": 0.0,
+      "other": 0.5,
+      "finance_charge": 0.0,
+      "cost": 5.0,
+      "landed": {
+       "freight": 0.0,
+       "duty": 0.5,
+       "handling": 0.0,
+       "vat": 0.0
+      },
+      "margin": 0.0,
+      "total": 5.5
+     }
+    ]
+   }
+  },
+  {
+   "name": "landed_remainder_cent_on_last_line",
+   "model": "receipt",
+   "header": {
+    "finance": {},
+    "tax": {},
+    "allocations": {
+     "freight": 10,
+     "vat": 0.01
+    },
+    "ship_via": "",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": null,
+     "cost": {
+      "unit": 10,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    },
+    {
+     "id": 102,
+     "line_number": 2,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": null,
+     "cost": {
+      "unit": 10,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    },
+    {
+     "id": 103,
+     "line_number": 3,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": null,
+     "cost": {
+      "unit": 10,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    }
+   ],
+   "context": {
+    "tax_policy": {},
+    "shipping_services": [],
+    "customer_exempt": false,
+    "settlement": {
+     "received": 0,
+     "adjusted": 0,
+     "settled": 0
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": 30.0,
+     "discount": 0.0,
+     "taxable": 0.0,
+     "tax": 0.0,
+     "shipping": 10.0,
+     "other": 0.01,
+     "finance_charge": 0.0,
+     "cost": 30.0,
+     "margin": 0.0,
+     "total": 40.01,
+     "margin_pc": 0.0,
+     "received": 0.0,
+     "adjusted": 0.0,
+     "balance": 40.01,
+     "cash_state": "",
+     "freight": 10.0,
+     "duty": 0.0,
+     "handling": 0.0,
+     "vat": 0.01,
+     "paid": 0.0
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 10.0,
+      "amount": 10.0,
+      "discount": 0.0,
+      "taxable": 0.0,
+      "tax_rate": 0.0,
+      "rate_source": "costs_not_taxed",
+      "tax": 0.0,
+      "shipping": 3.33,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 10.0,
+      "landed": {
+       "freight": 3.33,
+       "duty": 0.0,
+       "handling": 0.0,
+       "vat": 0.0
+      },
+      "margin": 0.0,
+      "total": 13.33
+     },
+     {
+      "discounted_unit": 10.0,
+      "amount": 10.0,
+      "discount": 0.0,
+      "taxable": 0.0,
+      "tax_rate": 0.0,
+      "rate_source": "costs_not_taxed",
+      "tax": 0.0,
+      "shipping": 3.33,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 10.0,
+      "landed": {
+       "freight": 3.33,
+       "duty": 0.0,
+       "handling": 0.0,
+       "vat": 0.0
+      },
+      "margin": 0.0,
+      "total": 13.33
+     },
+     {
+      "discounted_unit": 10.0,
+      "amount": 10.0,
+      "discount": 0.0,
+      "taxable": 0.0,
+      "tax_rate": 0.0,
+      "rate_source": "costs_not_taxed",
+      "tax": 0.0,
+      "shipping": 3.34,
+      "other": 0.01,
+      "finance_charge": 0.0,
+      "cost": 10.0,
+      "landed": {
+       "freight": 3.34,
+       "duty": 0.0,
+       "handling": 0.0,
+       "vat": 0.01
+      },
+      "margin": 0.0,
+      "total": 13.35
+     }
+    ]
+   }
+  },
+  {
+   "name": "landed_each_component_by_its_own_basis",
+   "model": "receipt",
+   "header": {
+    "finance": {},
+    "tax": {},
+    "allocations": {
+     "freight": 6,
+     "duty": 6,
+     "handling": 6,
+     "vat": 6,
+     "method": {
+      "freight": "weight",
+      "duty": "value",
+      "handling": "quantity"
+     }
+    },
+    "ship_via": "",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": 2
+     },
+     "price": null,
+     "cost": {
+      "unit": 10,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": {
+      "weight": {
+       "value": 1,
+       "unit": "kg"
+      }
+     },
+     "is_active": true
+    },
+    {
+     "id": 102,
+     "line_number": 2,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": null,
+     "cost": {
+      "unit": 30,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": {
+      "weight": {
+       "value": 4,
+       "unit": "kg"
+      }
+     },
+     "is_active": true
+    }
+   ],
+   "context": {
+    "tax_policy": {},
+    "shipping_services": [],
+    "customer_exempt": false,
+    "settlement": {
+     "received": 0,
+     "adjusted": 1.25,
+     "settled": 20
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": 50.0,
+     "discount": 0.0,
+     "taxable": 0.0,
+     "tax": 0.0,
+     "shipping": 6.0,
+     "other": 18.0,
+     "finance_charge": 0.0,
+     "cost": 50.0,
+     "margin": 0.0,
+     "total": 74.0,
+     "margin_pc": 0.0,
+     "received": 0.0,
+     "adjusted": 1.25,
+     "balance": 52.75,
+     "cash_state": "",
+     "freight": 6.0,
+     "duty": 6.0,
+     "handling": 6.0,
+     "vat": 6.0,
+     "paid": 20.0
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 10.0,
+      "amount": 20.0,
+      "discount": 0.0,
+      "taxable": 0.0,
+      "tax_rate": 0.0,
+      "rate_source": "costs_not_taxed",
+      "tax": 0.0,
+      "shipping": 2.0,
+      "other": 8.8,
+      "finance_charge": 0.0,
+      "cost": 20.0,
+      "landed": {
+       "freight": 2.0,
+       "duty": 2.4,
+       "handling": 4.0,
+       "vat": 2.4
+      },
+      "margin": 0.0,
+      "total": 30.8
+     },
+     {
+      "discounted_unit": 30.0,
+      "amount": 30.0,
+      "discount": 0.0,
+      "taxable": 0.0,
+      "tax_rate": 0.0,
+      "rate_source": "costs_not_taxed",
+      "tax": 0.0,
+      "shipping": 4.0,
+      "other": 9.2,
+      "finance_charge": 0.0,
+      "cost": 30.0,
+      "landed": {
+       "freight": 4.0,
+       "duty": 3.6,
+       "handling": 2.0,
+       "vat": 3.6
+      },
+      "margin": 0.0,
+      "total": 43.2
+     }
+    ]
+   }
+  },
+  {
+   "name": "receipt_with_line_discounts_and_tax_on_costs",
+   "model": "receipt",
+   "header": {
+    "finance": {
+     "sales_tax_rate": 10
+    },
+    "tax": {},
+    "allocations": {
+     "freight": 7.77
+    },
+    "ship_via": "",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": 10
+     },
+     "price": null,
+     "cost": {
+      "unit": 8.975,
+      "precision": 2,
+      "discount_percent": 10,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    },
+    {
+     "id": 102,
+     "line_number": 2,
+     "line_type": "product",
+     "quantity": {
+      "active": 2
+     },
+     "price": null,
+     "cost": {
+      "unit": 100,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 15,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    }
+   ],
+   "context": {
+    "tax_policy": {
+     "tax_on_costs": true
+    },
+    "shipping_services": [],
+    "customer_exempt": false,
+    "settlement": {
+     "received": 0,
+     "adjusted": 0,
+     "settled": 0
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": 265.8,
+     "discount": 0.0,
+     "taxable": 265.8,
+     "tax": 26.58,
+     "shipping": 7.77,
+     "other": 0.0,
+     "finance_charge": 0.0,
+     "cost": 265.8,
+     "margin": 0.0,
+     "total": 300.15,
+     "margin_pc": 0.0,
+     "received": 0.0,
+     "adjusted": 0.0,
+     "balance": 300.15,
+     "cash_state": "",
+     "freight": 7.77,
+     "duty": 0.0,
+     "handling": 0.0,
+     "vat": 0.0,
+     "paid": 0.0
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 8.08,
+      "amount": 80.8,
+      "discount": 0.0,
+      "taxable": 80.8,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 8.08,
+      "shipping": 2.36,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 80.8,
+      "landed": {
+       "freight": 2.36,
+       "duty": 0.0,
+       "handling": 0.0,
+       "vat": 0.0
+      },
+      "margin": 0.0,
+      "total": 91.24
+     },
+     {
+      "discounted_unit": 92.5,
+      "amount": 185.0,
+      "discount": 0.0,
+      "taxable": 185.0,
+      "tax_rate": 0.1,
+      "rate_source": "header",
+      "tax": 18.5,
+      "shipping": 5.41,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 185.0,
+      "landed": {
+       "freight": 5.41,
+       "duty": 0.0,
+       "handling": 0.0,
+       "vat": 0.0
+      },
+      "margin": 0.0,
+      "total": 208.91
+     }
+    ]
+   }
+  }
+ ]
+}

@@ -1,155 +1,95 @@
-/* LastChecked: 2026-03-14 | WhereUsed: TODO(wc3-schema-audit) | WhoCreated: Unknown */
 /**
- * WC3 Calculation Alignment Tests
+ * The browser's totals equal the server's (Bill, 2026-11-08; readme 107).
  *
- * Verifies that the React2025 frontend calculation utilities produce
- * identical results to the WC3 Django backend services.
+ * fixtures/totals_cases.json is written by the server: backend/tests/test_totals_fixture.py
+ * runs compute_totals on every case and records its figures. This test replays the same cases
+ * through the browser engine and expects the same figures, exactly — rounding, precision,
+ * remainders and all. Do not edit the fixture by hand: regenerate it with
+ * WC_TOTALS_FIXTURE_WRITE=1 pytest tests/test_totals_fixture.py.
  *
- * Backend reference:
- *   apps/transactions/models/base_line_model.py      — _calculate_extended_price()
- *
- * @see webClerk3/readmes/topics/transactions/transactions-totals.md
+ * The first case is the drift that opened this work: 8.575 was 8.57 in the browser's float
+ * round() and 8.58 on the server.
  */
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, it, expect } from 'vitest';
-import { round, toNumber, formatCurrency, formatPercent } from '../calculationUtils';
-import { LineItemService, isSalesTransaction, isExecTransaction } from '../lineItemService';
-import type { TransactionLine } from '../../types/transactionTypes';
+import { Dec, dec } from '../dec';
+import { computeTotals, settlementOf } from '../totalsCompute';
 
-// ============================================================================
-// calculationUtils
-// ============================================================================
+interface Case {
+  name: string; model: string; header: any; lines: any[];
+  context: { tax_policy: any; shipping_services: any[]; customer_exempt: boolean;
+             settlement: { received: number; adjusted: number; settled: number } };
+  expect: { totals: Record<string, number | string>; line_totals: (Record<string, any> | null)[] };
+}
 
-describe('round()', () => {
-  it('rounds to 2dp by default', () => {
-    expect(round(1.005)).toBe(1.01);
-    expect(round(1.004)).toBe(1);
-    expect(round(100.555)).toBe(100.56);
-  });
-  it('rounds to custom precision', () => {
-    expect(round(1.2345, 3)).toBe(1.235);
-    expect(round(1.2345, 0)).toBe(1);
-  });
-  it('handles non-finite', () => {
-    expect(round(NaN)).toBe(0);
-    expect(round(Infinity)).toBe(0);
-  });
-});
+const fixture = JSON.parse(readFileSync(join(__dirname, 'fixtures', 'totals_cases.json'), 'utf8'));
+const cases: Case[] = fixture.cases;
 
-describe('toNumber()', () => {
-  it('coerces various types', () => {
-    expect(toNumber('42.5')).toBe(42.5);
-    expect(toNumber(null)).toBe(0);
-    expect(toNumber(undefined)).toBe(0);
-    expect(toNumber('')).toBe(0);
-    expect(toNumber('abc')).toBe(0);
-    expect(toNumber(0)).toBe(0);
+describe('dec — Decimal arithmetic, half-up', () => {
+  it('rounds half away from zero like safe_decimal', () => {
+    expect(dec(8.575).toNumber()).toBe(8.58);
+    expect(dec(1.005).toNumber()).toBe(1.01);
+    expect(dec(2.675).toNumber()).toBe(2.68);
+    expect(dec(-1.005).toNumber()).toBe(-1.01);
+    expect(dec(1.2345, 3).toNumber()).toBe(1.235);
+    expect(dec(1.2345, 0).toNumber()).toBe(1);
   });
-  it('uses fallback', () => {
-    expect(toNumber(null, 99)).toBe(99);
+  it('multiplies exactly where floats do not', () => {
+    expect(dec(3, 6).mul(dec(12.345, 6)).toString()).toBe('37.035');
+    expect(dec(0.1).add(dec(0.2)).toString()).toBe('0.3');
+    expect(dec(7, 6).mul(dec(8.975, 6)).quantize(2).toNumber()).toBe(62.83);
   });
-});
-
-describe('formatCurrency()', () => {
-  it('formats USD', () => {
-    expect(formatCurrency(1234.5)).toBe('$1,234.50');
+  it('rounds half to even where the server does (percent-of-goods shipping)', () => {
+    expect(dec('0.125', -1).quantizeHalfEven(2).toNumber()).toBe(0.12);
+    expect(dec('0.135', -1).quantizeHalfEven(2).toNumber()).toBe(0.14);
+    expect(dec('0.125', -1).quantize(2).toNumber()).toBe(0.13);
   });
-  it('returns empty string for null/undefined', () => {
-    expect(formatCurrency(null)).toBe('');
-    expect(formatCurrency(undefined)).toBe('');
+  it('coerces as Decimal(str(value)) and answers 0 for nonsense', () => {
+    expect(dec('42.5').toNumber()).toBe(42.5);
+    expect(dec(1e-7, 8).toString()).toBe('0.0000001');
+    expect(dec(null).toNumber()).toBe(0);
+    expect(dec('abc').toNumber()).toBe(0);
+    expect(dec('').toNumber()).toBe(0);
+    expect(Object.is(dec(-0.001).toNumber(), 0)).toBe(true);   // never -0
+    expect(Dec.zero.toString()).toBe('0');
   });
 });
 
-describe('formatPercent()', () => {
-  it('formats to 1dp by default', () => {
-    expect(formatPercent(32)).toBe('32.0%');
-  });
-  it('returns empty string for null', () => {
-    expect(formatPercent(null)).toBe('');
-  });
-});
-
-// ============================================================================
-// LineItemService — mirrors _calculate_extended_price()
-// ============================================================================
-
-describe('LineItemService.calculateLine()', () => {
-  const svc = new LineItemService({ transactionType: 'order' });
-
-  it('computes extended = qty × unit − discount (price & cost)', () => {
-    const line: Partial<TransactionLine> = {
-      quantity: { staged: 10 },
-      price: { unit: 100, discount_percent: 10, precision: 2 },
-      cost: { unit: 60, precision: 2 },
-    };
-    const calc = svc.calculateLine(line as TransactionLine);
-
-    // price: gross = 10 × 100 = 1000, discount = 1000 × 0.10 = 100, ext = 900
-    expect(calc.gross).toBe(1000);
-    expect(calc.discountAmount).toBe(100);
-    expect(calc.extended).toBe(900);
-
-    // cost: gross = 10 × 60 = 600, no discount, ext = 600
-    expect(calc.grossCost).toBe(600);
-    expect(calc.costExtended).toBe(600);
-
-    // margin = 900 − 600 = 300, margin% = 300/900 × 100 = 33.33
-    expect(calc.margin).toBe(300);
-    expect(calc.marginPc).toBe(33.33);
+describe('computeTotals replays the server fixture exactly', () => {
+  it('has the drift case first', () => {
+    expect(cases[0].name).toBe('half_up_8575_drift');
+    expect(cases[0].expect.line_totals[0]!.discounted_unit).toBe(8.58);
   });
 
-  it('prefers explicit discount_amount over percent (WC3 rule)', () => {
-    const line: Partial<TransactionLine> = {
-      quantity: { staged: 5 },
-      price: { unit: 200, discount_percent: 10, discount_amount: 50, precision: 2 },
-      cost: { unit: 80, precision: 2 },
-    };
-    const calc = svc.calculateLine(line as TransactionLine);
-
-    // explicit amount 50, not gross × 10% = 100
-    expect(calc.discountAmount).toBe(50);
-    expect(calc.extended).toBe(950); // 1000 − 50
-  });
-
-  it('uses line precision from envelope', () => {
-    const line: Partial<TransactionLine> = {
-      quantity: { staged: 3 },
-      price: { unit: 33.333, precision: 3 },
-      cost: { unit: 10, precision: 0 },
-    };
-    const calc = svc.calculateLine(line as TransactionLine);
-
-    // price: 3 × 33.333 = 99.999, rounded to 3dp = 99.999
-    expect(calc.gross).toBe(99.999);
-    // cost: 3 × 10 = 30, rounded to 0dp = 30
-    expect(calc.grossCost).toBe(30);
-  });
-
-  it('handles zero quantity', () => {
-    const line: Partial<TransactionLine> = {
-      quantity: { staged: 0 },
-      price: { unit: 100, precision: 2 },
-      cost: { unit: 50, precision: 2 },
-    };
-    const calc = svc.calculateLine(line as TransactionLine);
-    expect(calc.extended).toBe(0);
-    expect(calc.costExtended).toBe(0);
-    expect(calc.marginPc).toBe(0);
+  it.each(cases.map((c) => [c.name, c] as const))('%s', (_name, c) => {
+    const got = computeTotals(c.header, c.lines, c.model, c.context);
+    // Through JSON, as the fixture is: the same keys, the same numbers, nothing extra.
+    expect(JSON.parse(JSON.stringify(got.lineTotals))).toEqual(c.expect.line_totals);
+    expect(JSON.parse(JSON.stringify(got.totals))).toEqual(c.expect.totals);
   });
 });
 
-
-
-// ============================================================================
-// Transaction type helpers
-// ============================================================================
-
-describe('isSalesTransaction / isExecTransaction', () => {
-  it.each(['order', 'quote', 'invoice'])('%s is sales', (type) => {
-    expect(isSalesTransaction(type)).toBe(true);
-    expect(isExecTransaction(type)).toBe(false);
+describe('settlementOf — the journal facts the record carries', () => {
+  it('reads an invoice and a receipt by their own keys', () => {
+    expect(settlementOf({ totals: { received: 60, adjusted: 0.5, paid: 1 } }, 'invoice'))
+      .toEqual({ received: 60, adjusted: 0.5, settled: 60 });
+    expect(settlementOf({ totals: { received: 0, adjusted: 1.25, paid: 20 } }, 'receipt'))
+      .toEqual({ received: 0, adjusted: 1.25, settled: 20 });
+    expect(settlementOf({}, 'order')).toEqual({ received: 0, adjusted: 0, settled: 0 });
   });
-  it.each(['purchase', 'workorder'])('%s is exec', (type) => {
-    expect(isSalesTransaction(type)).toBe(false);
-    expect(isExecTransaction(type)).toBe(true);
+});
+
+describe('computeTotals refuses what the server refuses', () => {
+  it('an allocation with no product line to carry it', () => {
+    const header = { allocations: { shipping: 5 } };
+    expect(() => computeTotals(header, [], 'order', { settlement: { received: 0, adjusted: 0, settled: 0 } }))
+      .toThrow(/no product line to carry it/);
+  });
+  it('a weight unit it does not know', () => {
+    const header = { allocations: { freight: 5, method: { freight: 'weight' } } };
+    const lines = [{ id: 1, line_number: 1, quantity: { active: 1 }, cost: { unit: 10 }, physical: { weight: { value: 2, unit: 'stone' } } }];
+    expect(() => computeTotals(header, lines, 'receipt', { settlement: { received: 0, adjusted: 0, settled: 0 } }))
+      .toThrow(/weight unit 'stone'/);
   });
 });
