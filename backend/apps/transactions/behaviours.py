@@ -21,6 +21,7 @@ from apps.core.services.behaviours import HookContext, ModelBehaviour, register
 from apps.core.services.door import Refused
 from apps.transactions.services.party_fill import take_party
 from apps.transactions.services.reprice import reprice_lines
+from apps.transactions.services.browser_totals import check_preview
 
 logger = logging.getLogger(__name__)
 
@@ -140,9 +141,14 @@ class DocumentBehaviour(ModelBehaviour):
                               validate_status.incomplete_coaching(ctx.model_key, 'release', missing),
                               {'missing': missing})
 
+    #: The figures the browser showed while editing (readme 107); compared after the save.
+    SIGNALS = {'_totals_preview': dict}
+
     def after_save(self, ctx: HookContext) -> None:
-        """A sell document whose party or price level changed reprices its lines (106 rule 5)."""
+        """A sell document whose party or price level changed reprices its lines (106 rule 5);
+        the browser's preview, if sent, is checked against what was saved."""
         reprice_lines(ctx)
+        check_preview(ctx)
 
 
 class OrderBehaviour(DocumentBehaviour):
@@ -270,11 +276,14 @@ class ReceiptBehaviour(ModelBehaviour):
     transfer check; after the save, each purchase line received past its active is flagged.
     It takes its vendor's terms and bill-to like every document (party_fill)."""
 
+    SIGNALS = {'_totals_preview': dict}
+
     def before_save(self, ctx: HookContext) -> None:
         take_party(ctx)
 
     def after_save(self, ctx: HookContext) -> None:
         flag_over_receipts(ctx.obj)
+        check_preview(ctx)
 
 
 def flag_over_receipts(receipt) -> None:

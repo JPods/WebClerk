@@ -25,6 +25,8 @@ import { heldNotice } from '@/hooks/useEditHold';
 import { useDetailLayout, type DetailLayout } from '@/hooks/useDetailLayout';
 import { useRecordForm, ORGS_WITH_CONTACTS, refusalMessage, type RecordFormActions } from '@/hooks/useRecordForm';
 import type { DraftGetter } from '@/hooks/useFormDraft';
+import { stashClosedDraft } from '@/hooks/closedDrafts';
+import { registerToastAction } from '@/utils/toastActions';
 import { COMMUNICATION_FIELDS, communicationField } from '@/utils/communicationFields';
 import { selectCompanyInfo, selectLogos } from '@/store/slices/companySlice';
 import { convertedTarget, type ConvertedTarget } from '@/apps/transactions/utils/convertedTarget';
@@ -176,6 +178,16 @@ const DbFormView: React.FC<DbFormProps> = (props) => {
   const [showAddCash, setShowAddCash] = useState(false);
   const handleClose = () => {
     if (inline && onCancelInline) { onCancelInline(); return; }
+    // Unsaved edits are set aside, not refused (guide, not barriers): the toast offers Undo,
+    // which reopens the record with them (readme 107, closedDrafts).
+    if (form.hasChanges && form.editData && recordId) {
+      stashClosedDraft(modelName, recordId, form.editData);
+      const label = `${modelName} ${data?.ida || `#${recordId}`}`;
+      const path = `/${modelName}/${recordId}`;
+      const action = registerToastAction(() => windowManager.ensureWindow(path, label));
+      dispatch(showToast({ message: `Edits to ${label} were not saved`, type: 'warning', duration: 8000,
+                           action: { id: action, label: 'Undo' } }));
+    }
     if (onClose) { onClose(); return; }
     windowManager.closeWindow(`/${modelName}/${recordId || ''}`);
   };
@@ -214,7 +226,7 @@ const DbFormView: React.FC<DbFormProps> = (props) => {
         <span className="text-sm font-mono text-slate-600 dark:text-slate-400">{data.ida || `#${data.id}`}</span>
         {data.status && badge('slate', data.status)}
         {form.isPendMode && badge('amber', 'journalized — changes pend')}
-        {isEditing && form.previewError && badge('amber', `totals as saved — ${form.previewError}`, form.previewError)}
+        {isEditing && form.previewError && badge('amber', `totals not computed — ${form.previewError}`, form.previewError)}
         {form.editTier === 'closed' && badge('red', 'closed')}
         {form.hold && <span data-wc="edit-hold-notice">{badge('amber', heldNotice(form.hold))}</span>}
         {designMode && badge('amber', 'DESIGN')}

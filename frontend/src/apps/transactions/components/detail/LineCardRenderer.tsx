@@ -155,7 +155,6 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
       quantity: { active: effectiveQty, remaining: effectiveQty, staged: effectiveQty },
       price: { unit: unitPrice, discount_percent: 0 },
       cost: { unit: unitCost },
-      totals: { amount: unitPrice * effectiveQty, cost: unitCost * effectiveQty },
       // The item's standing line comment: comments.<channel> is a list of messages.
       ...(lineComment ? { comments: { process: [{ mgs: lineComment }] } } : {}),
       _dirty: true,
@@ -361,7 +360,7 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
         )}
         <span className="text-slate-700 dark:text-slate-200 not-italic font-semibold">total:</span>
         <span className="font-bold text-slate-900 dark:text-white w-24 text-right not-italic"
-              title="The document's total, as the server calculates it">{formatCurrency(data?.totals?.total ?? footerExtended, fmt)}</span>
+              title="The document's total — the server's as saved; while editing, the browser's by the same rule">{formatCurrency(data?.totals?.total ?? footerExtended, fmt)}</span>
       </div>
     </div>
   );

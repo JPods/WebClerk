@@ -6,13 +6,12 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 
 const api = {
   getRecord: vi.fn(), saveRecord: vi.fn(), saveTransactionWithLines: vi.fn(),
-  previewTotals: vi.fn(), newRecord: vi.fn(),
+  newRecord: vi.fn(),
 };
 vi.mock('@/api/wcapi', () => ({
   getRecord: (...a: any[]) => api.getRecord(...a),
   saveRecord: (...a: any[]) => api.saveRecord(...a),
   saveTransactionWithLines: (...a: any[]) => api.saveTransactionWithLines(...a),
-  previewTotals: (...a: any[]) => api.previewTotals(...a),
   newRecord: (...a: any[]) => api.newRecord(...a),
 }));
 const toasts: any[] = [];
@@ -110,6 +109,49 @@ describe('useRecordForm', () => {
     ]);
     expect(payload).not.toHaveProperty('totals');
     expect(api.saveRecord).not.toHaveBeenCalled();
+  });
+
+  // ── Totals while editing: the browser's engine (readme 107) ──
+  const priced = { id: 30, version: 1, status: 'planned', finance: { sales_tax_rate: 10 },
+    totals: { total: 0, amount: 0, received: 0, adjusted: 0 }, calc_context: { tax_policy: {}, shipping_services: [], customer_exempt: false },
+    lines: [{ id: 1, line_number: 1, line_type: 'product', quantity: { active: 1 }, price: { unit: 8.575, precision: 2 }, cost: { unit: 1 } }] };
+
+  it('computes the totals it shows while editing, half-up, without asking the server', async () => {
+    const { result } = await load('order', priced, orderLayout);
+    act(() => result.current.startEdit());
+    expect(result.current.currentData.totals.amount).toBe(8.58);    // the 8.575 drift, the server's way
+    expect(result.current.currentData.totals.tax).toBe(0.86);
+    expect(result.current.currentData.totals.total).toBe(9.44);
+    expect(result.current.currentData.lines[0].totals.discounted_unit).toBe(8.58);
+    expect(result.current.previewError).toBeNull();
+    expect(api.getRecord).toHaveBeenCalledTimes(1);                 // the record, nothing else
+    act(() => result.current.setLines([{ ...priced.lines[0], quantity: { active: 3 }, _dirty: true } as any]));
+    expect(result.current.currentData.totals.amount).toBe(25.74);
+    expect(result.current.editData.totals).toEqual(priced.totals);  // the preview never enters the edit copy
+  });
+
+  it('reports the figures it showed as _totals_preview and says what the server answered', async () => {
+    api.saveTransactionWithLines.mockResolvedValue({ messages: ['The total shown while editing was 9.44; the save computed 9.50. The saved figures stand.'] });
+    const { result } = await load('order', priced, orderLayout);
+    act(() => result.current.startEdit());
+    act(() => result.current.setLines([{ ...priced.lines[0], _dirty: true } as any]));
+    await act(() => result.current.save());
+    const [, payload] = api.saveTransactionWithLines.mock.calls[0];
+    expect(payload._totals_preview).toEqual({ amount: 8.58, tax: 0.86, shipping: 0, other: 0, total: 9.44 });
+    expect(payload).not.toHaveProperty('totals');
+    expect(payload).not.toHaveProperty('calc_context');
+    expect(toasts[toasts.length - 1].message).toContain('the save computed 9.50');
+  });
+
+  it('knows when it holds unsaved edits (what a close or reload would lose)', async () => {
+    const { result } = await load('order', priced, orderLayout);
+    expect(result.current.hasChanges).toBe(false);
+    act(() => result.current.startEdit());
+    expect(result.current.hasChanges).toBe(false);
+    act(() => result.current.setField('notes', 'call first'));
+    expect(result.current.hasChanges).toBe(true);
+    act(() => result.current.cancel());
+    expect(result.current.hasChanges).toBe(false);
   });
 
   it('reads the edit tier from the layout rules and the journal', () => {

@@ -1116,6 +1116,11 @@ class WCAPIGetView(APIView):
                 # parent's on the child's Financials (Bill, 2026-11-08). Served, never stored.
                 from apps.transactions.services.parent_summary import parent_summary
                 payload["parent_summary"] = parent_summary(obj)
+            from apps.transactions.services.browser_totals import TOTALS_MODELS, calc_context
+            if self._normalize_model_key(model_key) in TOTALS_MODELS:
+                # What the browser's totals engine reads from outside the document (readme 107):
+                # tax policy, shipping services, the customer's exemption. Served, never stored.
+                payload["calc_context"] = calc_context(obj)
             return api_response(data={"model_name": model_key, "record": payload}, status_code=status.HTTP_200_OK)
 
         # List retrieval with filters, search, and pagination. visible_queryset applies the

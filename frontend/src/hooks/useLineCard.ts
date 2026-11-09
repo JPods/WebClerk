@@ -20,22 +20,6 @@ import { lineKey } from '@/apps/transactions/utils/lineHelpers';
 import type { RichColumn } from '@/components/common/DataGrid';
 import { useItemImagePopup } from '@/components/common/ItemImagePopup';
 import { useItemCard } from '@/components/common/ItemCard';
-import { round } from '@/apps/transactions/services/calculationUtils';
-
-/** Preview of a line's totals while it is edited, by the server's rule (Bill 2026-09-19):
- *  the discounted unit first, in cents; amount = qty × that unit; discount = gross − amount.
- *  The server's line.totals replaces it on save (it also spreads any document discount). */
-export function previewLineTotals(line: any, isSellSide: boolean): Record<string, number> {
-  const qty = Number(line.quantity?.active ?? 0);
-  const env = (isSellSide ? line.price : line.cost) ?? {};
-  const unit = Number(env.unit ?? 0);
-  const pct = Number(env.discount_percent ?? 0);
-  const flat = Number(env.discount_amount ?? 0);
-  // Both set: the larger discount applies (Bill, 2026-09-19)
-  const discountedUnit = round(unit - Math.max(unit * pct / 100, qty ? flat / qty : 0, 0));
-  const amount = round(qty * discountedUnit);
-  return { ...(line.totals ?? {}), discounted_unit: discountedUnit, amount, discount: round(round(qty * unit) - amount) };
-}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -98,7 +82,7 @@ const linesTheme = {
 
 
 /** Extract a flat record from a nested line for DataGrid consumption. */
-function flattenLine(line: any, idx: number, isSellSide: boolean): any {
+function flattenLine(line: any, idx: number): any {
   const lineRecord = line as unknown as Record<string, unknown>;
   const itemCode = String(lineRecord.ida_item ?? line.item?.ida_item ?? "--");
   const tnUrl = itemCode && itemCode !== '--' ? `/wcapi/_image/item/${encodeURIComponent(itemCode)}/tn.jpg` : '';
@@ -116,11 +100,10 @@ function flattenLine(line: any, idx: number, isSellSide: boolean): any {
   const costRecord = lineRecord.cost as Record<string, unknown> | undefined;
   const unitCost = Number(costRecord?.unit ?? line.cost?.unit ?? 0);
 
-  const preview = previewLineTotals(line, isSellSide);
-  const discountedUnit = Number(line.totals?.discounted_unit ?? preview.discounted_unit);
-  // line.totals is the server's (totals_preview while editing); an edit sets the local preview
-  // there at once, and the server's answer replaces it a moment later.
-  const extended = Number(line.totals?.amount ?? preview.amount);
+  // line.totals is the server's as saved; while editing, the browser engine's by the same rule
+  // (useRecordForm.currentData, readme 107) — one formula, never a local one here.
+  const discountedUnit = Number(line.totals?.discounted_unit ?? 0);
+  const extended = Number(line.totals?.amount ?? 0);
 
   const weight = Number(line.physical?.weight ?? 0);
 
@@ -204,8 +187,8 @@ export function useLineCard(options: UseLineCardOptions) {
 
   // ── Flatten lines ────────────────────────────────────────────────
   const records = useMemo(
-    () => lines.map((l, i) => flattenLine(l, i, isSellSide)),
-    [lines, isSellSide]
+    () => lines.map((l, i) => flattenLine(l, i)),
+    [lines]
   );
 
   // ── Field update ─────────────────────────────────────────────────
@@ -216,9 +199,7 @@ export function useLineCard(options: UseLineCardOptions) {
         const newQty = Number(value);
         const isComplete = updated.quantity?.is_complete;
         const remaining = isComplete ? 0 : newQty;
-        const result: any = { ...updated, quantity: { ...updated.quantity, active: newQty, staged: newQty, remaining } };
-        result.totals = previewLineTotals(result, isSellSide);
-        return result;
+        return { ...updated, quantity: { ...updated.quantity, active: newQty, staged: newQty, remaining } };
       }
       case "planned":
         // The plan only: received (active) is the Receive command's.
@@ -226,12 +207,10 @@ export function useLineCard(options: UseLineCardOptions) {
       case "description":
         return { ...updated, item: { ...updated.item, description: String(value) } };
       case "unit_price": {
-        const result = { ...updated, price: { ...updated.price, unit: Number(value) } };
-        return { ...result, totals: previewLineTotals(result, isSellSide) };
+        return { ...updated, price: { ...updated.price, unit: Number(value) } };
       }
       case "discount_pct": {
-        const result = { ...updated, price: { ...updated.price, discount_percent: Number(value) } };
-        return { ...result, totals: previewLineTotals(result, isSellSide) };
+        return { ...updated, price: { ...updated.price, discount_percent: Number(value) } };
       }
       case "is_complete": {
         const complete = Boolean(value);
@@ -244,8 +223,7 @@ export function useLineCard(options: UseLineCardOptions) {
         return { ...updated, quantity: newQuantity };
       }
       case "unit_cost": {
-        const result = { ...updated, cost: { ...updated.cost, unit: Number(value) } };
-        return { ...result, totals: previewLineTotals(result, isSellSide) };
+        return { ...updated, cost: { ...updated.cost, unit: Number(value) } };
       }
       case "tax_rate": {
         const newRate = Number(value);

@@ -5,7 +5,7 @@
  * ModelDetailPage and TransactionDetail each held on their own — the record and its edit copy,
  * the edit tier from the layout's edit_rules and the journal, the edit hold, the draft a list
  * hands over, changed-fields save (lines included, identified by `_delete`), the refused-save
- * sentence, the totals preview the server computes while editing, the communication cards a
+ * sentence, the totals the browser computes while editing (readme 107), the communication cards a
  * contact's phone and address are edited in, the window-channel refresh, and the host contract
  * DataBrowser's inline pane uses. db.form draws on it; db.detail (step 5) will too.
  *
@@ -15,8 +15,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { getRecord, newRecord, previewTotals, saveRecord, saveTransactionWithLines } from '@/api/wcapi';
-import type { TotalsPreview } from '@/api/wcapi';
+import { getRecord, newRecord, saveRecord, saveTransactionWithLines } from '@/api/wcapi';
 import { showToast } from '@/store/slices/toastSlice';
 import { useWindowManager } from '@/context/WindowManagerContext';
 import { useEditHold, type HeldBy } from '@/hooks/useEditHold';
@@ -29,14 +28,16 @@ import { COMMUNICATION_FIELDS, communicationField, communicationValue, showsComm
 import { windowChannel } from '@/utils/windowChannel';
 import { partyOf } from '@/apps/transactions/components/detail/CustomerSearch';
 import { getActiveLines, getRemovedLines, isPersistedLine } from '@/apps/transactions/services/lineItemService';
+import { computeTotals, settlementOf, type LineTotals } from '@/apps/transactions/services/totalsCompute';
+import { takeClosedDraft } from '@/hooks/closedDrafts';
 import type { TransactionLine } from '@/apps/transactions/types/transactionTypes';
 
-/** The header values compute_totals reads — what totals_preview needs from the screen
- *  (backend PREVIEW_HEADER_KEYS, apps/transactions/views/transaction_views.py). */
-const PREVIEW_HEADER_KEYS = ['finance', 'tax', 'allocations', 'ship_via', 'customer_id'] as const;
-
 /** Keys the screen shows but the document does not store; never sent on save. */
-export const DISPLAY_ONLY_KEYS = ['customer_config', 'customer_company', 'parent_summary'] as const;
+export const DISPLAY_ONLY_KEYS = ['customer_config', 'customer_company', 'parent_summary', 'calc_context'] as const;
+
+/** What the browser reports of its preview at save; the server says if what it saved differs
+ *  (browser_totals.check_preview). */
+const PREVIEW_REPORT_KEYS = ['amount', 'tax', 'shipping', 'other', 'total'] as const;
 
 /** Orgs whose primary contact's name, email, phone and address they show (PrimaryContactCard). */
 export const ORGS_WITH_CONTACTS = ['customer', 'vendor', 'manufacturer', 'rep'];
@@ -148,7 +149,10 @@ export function useRecordForm(opts: RecordFormOptions) {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  useFormDraft({ recordId, data, editData, setEditData, setIsEditing, draft, onRegisterDraft });
+  // A window closed with edits set them aside (closedDrafts); Undo reopens it and takes them back.
+  const closedDraft = useRef<Record<string, any> | null | undefined>(undefined);
+  if (closedDraft.current === undefined) closedDraft.current = recordId ? takeClosedDraft(modelName, recordId) : null;
+  useFormDraft({ recordId, data, editData, setEditData, setIsEditing, draft: draft ?? closedDraft.current, onRegisterDraft });
 
   // ── Fetch ────────────────────────────────────────────────────────
   const fetchData = useCallback(async () => {
@@ -238,6 +242,42 @@ export function useRecordForm(opts: RecordFormOptions) {
     });
   }, []);
 
+  // ── Totals while editing: the browser's engine on the unsaved values (readme 107) ──
+  // Display only: the computed totals never enter editData, so the save never sends totals.
+  // It sends `_totals_preview`, and the server says if what it saved differs. The engine is
+  // compute_totals' mirror, held to it by the pytest-written fixture; what it cannot read from
+  // the document comes with the record as calc_context, and the settlement figures are the
+  // loaded record's (journal facts, not arithmetic).
+  const computed = useMemo((): { preview: { totals: Record<string, any>; byLine: Map<any, LineTotals | null> } | null; error: string | null } => {
+    if (!withLines || !isEditing || !editData || !('totals' in editData)) return { preview: null, error: null };
+    const active = getActiveLines(editData.lines || []);
+    try {
+      const out = computeTotals(editData, active, modelName,
+                                { ...(editData.calc_context || {}), settlement: settlementOf(data, modelName) });
+      return { preview: { totals: out.totals, byLine: new Map(active.map((l, i) => [l, out.lineTotals[i]])) }, error: null };
+    } catch (err: any) {
+      return { preview: null, error: err?.message || 'Totals could not be calculated' };
+    }
+  }, [withLines, isEditing, editData, data, modelName]);
+  const preview = computed.preview;
+  const previewError = computed.error;
+
+  // ── Unsaved edits: what a close or a reload would lose ──
+  const hasChanges = useMemo(() => {
+    if (!isEditing || !editData) return false;
+    const header: Record<string, any> = { ...editData };
+    for (const k of ["lines", ...DISPLAY_ONLY_KEYS]) delete header[k];
+    if (Object.keys(changedFields(data, header)).some((k) => k !== 'id' && k !== 'version')) return true;
+    return (editData.lines || []).some((l: any) => l._dirty || l._new || (l._removed && isPersistedLine(l)));
+  }, [isEditing, editData, data]);
+  useEffect(() => {
+    if (!hasChanges) return;
+    const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [hasChanges]);
+
+
   // ── Save: only what changed, lines identified ───────────────────
   // Save is off, with the reason beside it, while the edit would break a size limit.
   const [limitsReady, setLimitsReady] = useState(!!jsonLimitsLoaded());
@@ -248,7 +288,7 @@ export function useRecordForm(opts: RecordFormOptions) {
     return problems.length ? describeJsonLimitProblems(problems) : undefined;
   }, [limitsReady, isEditing, editData, data, modelName]);
 
-  const save = useCallback(async (opts?: { keepEditing?: boolean; message?: string }) => {
+  const save = useCallback(async (opts?: { keepEditing?: boolean; message?: string; report?: boolean }) => {
     if (!editData || saveBlocked) return;
     setSaving(true);
     try {
@@ -263,18 +303,22 @@ export function useRecordForm(opts: RecordFormOptions) {
       // the lines the person touched. The door accepts the fields the role's enumeration
       // names and refuses the rest, so echoing the whole record back refused every save
       // with lines from 2026-09-20 to 2026-10-25 (wc3).
-      const { lines: _lines, ...editedHeader } = editData;
-      for (const k of DISPLAY_ONLY_KEYS) delete (editedHeader as any)[k];
+      const editedHeader: Record<string, any> = { ...editData };
+      for (const k of ["lines", ...DISPLAY_ONLY_KEYS]) delete editedHeader[k];
       const loadedById = new Map<number, any>((data?.lines || []).map((l: any) => [l.id, l]));
       const linesToSend = dirtyLines.map((l: any) => isPersistedLine(l)
         ? { ...changedFields(loadedById.get(l.id), l), _dirty: true }
         : withoutEmpties(l));
-      const header = changedFields(data, editedHeader);
+      const header: Record<string, any> = changedFields(data, editedHeader);
+      // The figures the person saw: the server compares them with what it saved and says so.
+      // Not on the party pick: its save reprices the lines, so the figures change by right.
+      if (preview && opts?.report !== false) header._totals_preview = Object.fromEntries(PREVIEW_REPORT_KEYS.map((k) => [k, preview.totals[k]]));
       const saved = (linesToSend.length || deletions.length)
         ? await saveTransactionWithLines(modelName, { ...header, lines: [...linesToSend, ...deletions] })
         : await saveRecord(modelName, header);
       const repriced = repriceNote(saved?.messages);
-      dispatch(showToast({ message: [opts?.message || `${modelName} saved`, repriced].filter(Boolean).join('. '), type: 'success' }));
+      const said = (Array.isArray(saved?.messages) ? saved.messages : []).filter((m: unknown) => typeof m === 'string');
+      dispatch(showToast({ message: [opts?.message || `${modelName} saved`, repriced, ...said].filter(Boolean).join('. '), type: 'success' }));
       if (opts?.keepEditing !== true) setIsEditing(false);
       fetchData();
       onAfterSave?.();
@@ -283,14 +327,14 @@ export function useRecordForm(opts: RecordFormOptions) {
     } finally {
       setSaving(false);
     }
-  }, [editData, data, saveBlocked, modelName, dispatch, fetchData, onAfterSave]);
+  }, [editData, data, saveBlocked, modelName, dispatch, fetchData, onAfterSave, preview]);
 
   // The party pick is on the edit copy now: save it and stay in edit on the reloaded record.
   useEffect(() => {
     if (!partyPicked.current || !editData) return;
     const party = partyPicked.current;
     partyPicked.current = null;
-    save({ keepEditing: true, message: `${party === 'vendor' ? 'Vendor' : 'Customer'} applied` });
+    save({ keepEditing: true, report: false, message: `${party === 'vendor' ? 'Vendor' : 'Customer'} applied` });
   }, [editData, save]);
 
   const addNew = useCallback(async () => {
@@ -301,37 +345,6 @@ export function useRecordForm(opts: RecordFormOptions) {
       dispatch(showToast({ message: `Failed to create ${modelName}`, type: 'error' }));
     }
   }, [modelName, windowManager, dispatch]);
-
-  // ── Totals while editing: the server's own compute_totals on the unsaved values ──
-  // Display only; the preview never enters editData, so the save never sends totals.
-  const [preview, setPreview] = useState<TotalsPreview | null>(null);
-  const [previewError, setPreviewError] = useState<string | null>(null);
-  // A reload is the server's own answer: drop the preview (a payment changes no header or
-  // line input, so no new preview is asked, and the old one kept showing the old balance).
-  useEffect(() => { setPreview(null); }, [data]);
-  const previewInputs = useMemo(() => {
-    if (!withLines || !isEditing || !editData?.id || !('totals' in editData)) return null;
-    const header = Object.fromEntries(PREVIEW_HEADER_KEYS.filter((k) => k in editData).map((k) => [k, editData[k]]));
-    const lines = getActiveLines(editData.lines || []).map((l: any) => ({
-      id: l.id, line_type: l.line_type, line_number: l.line_number,
-      quantity: l.quantity, price: l.price, cost: l.cost, tax: l.tax,
-    }));
-    return JSON.stringify({ id: editData.id, header, lines });
-  }, [withLines, isEditing, editData]);
-  useEffect(() => {
-    if (!previewInputs) { setPreview(null); setPreviewError(null); return; }
-    let stale = false;
-    const timer = setTimeout(async () => {
-      const { id, header, lines } = JSON.parse(previewInputs);
-      try {
-        const answer = await previewTotals(modelName, id, header, lines);
-        if (!stale) { setPreview(answer); setPreviewError(null); }
-      } catch (err: any) {
-        if (!stale) { setPreview(null); setPreviewError(err?.message || 'Totals could not be calculated'); }
-      }
-    }, 400);
-    return () => { stale = true; clearTimeout(timer); };
-  }, [previewInputs, modelName]);
 
   // ── Communications: a phone, address or domain is edited in its own record's card ──
   const [commCard, setCommCard] = useState<{ field: string; anchor: DOMRect } | null>(null);
@@ -371,7 +384,7 @@ export function useRecordForm(opts: RecordFormOptions) {
       ...withCache(editData),
       totals: preview.totals,
       lines: (editData.lines || []).map((l: any) => {
-        const t = preview.line_totals[String(l.id)];
+        const t = preview.byLine.get(l);
         return t ? { ...l, totals: t } : l;
       }),
     };
@@ -387,7 +400,7 @@ export function useRecordForm(opts: RecordFormOptions) {
   useEffect(() => { onEditStateChange?.(isEditing); }, [isEditing, onEditStateChange]);
 
   return {
-    data, editData, currentData, isEditing, loading, saving, saveBlocked,
+    data, editData, currentData, isEditing, loading, saving, saveBlocked, hasChanges,
     editTier, canEdit, isPendMode: editTier === 'pend', hold: hold.heldBy as HeldBy | null,
     withLines, preview, previewError,
     fetchData, startEdit, cancel, setField, setLines, save, addNew, setData, setEditData,

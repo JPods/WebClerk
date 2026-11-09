@@ -3,6 +3,7 @@
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "../../store";
 import { hideToast } from "../../store/slices/toastSlice";
+import { runToastAction } from "../../utils/toastActions";
 import { useEffect } from "react";
 
 const toastColors = {
@@ -14,7 +15,7 @@ const toastColors = {
 };
 
 const Toster = () => {
-  const { message, type, open, duration } = useSelector((state: RootState) => state.toast);
+  const { message, type, open, duration, action } = useSelector((state: RootState) => state.toast);
   const dispatch = useDispatch();
   
   useEffect(() => {
@@ -41,6 +42,14 @@ const Toster = () => {
       }}
     >
       {message}
+      {action && (
+        <button type="button" data-wc="toast-action"
+          onClick={() => { runToastAction(action.id); dispatch(hideToast()); }}
+          style={{ marginLeft: 16, padding: "2px 10px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.7)",
+                   background: "transparent", color: "#fff", fontWeight: 600, cursor: "pointer" }}>
+          {action.label}
+        </button>
+      )}
     </div>
   );
   // return (
