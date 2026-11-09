@@ -84,3 +84,28 @@ def test_a_preview_that_differs_is_logged_and_said_not_refused(admin, caplog):
     order.refresh_from_db()
     assert order.conditions_description == 'drifted'           # saved all the same
     assert order.totals['total'] == 33.0      # the server's figure stands
+
+
+@pytest.mark.django_db
+def test_a_line_change_with_its_matching_preview_in_one_payload_says_nothing(admin, caplog):
+    """The real case: the person changed a quantity, the browser showed the new figure, and the
+    save carries both. The check runs after the recompute, so the figures agree."""
+    order = _order()
+    line = order.lines.get()
+    with caplog.at_level(logging.WARNING, logger='apps.transactions.services.browser_totals'):
+        result = save_record(Actor(user=admin), {
+            'id': order.pk,
+            'lines': [{'id': line.pk, 'quantity': {**line.quantity, 'active': 7}, '_dirty': True}],
+            '_totals_preview': {'amount': 70, 'tax': 7, 'shipping': 0, 'other': 0, 'total': 77},
+        }, model_key='order')
+    assert not [m for m in result.messages if 'shown while editing' in m]
+    assert not [r for r in caplog.records if r.name == 'apps.transactions.services.browser_totals']
+    order.refresh_from_db()
+    assert order.totals['amount'] == 70.0 and order.totals['total'] == 77.0
+    # The stale figure (the totals before the change) would have been reported.
+    result = save_record(Actor(user=admin), {
+        'id': order.pk,
+        'lines': [{'id': line.pk, 'quantity': {**line.quantity, 'active': 8}, '_dirty': True}],
+        '_totals_preview': {'total': 77},
+    }, model_key='order')
+    assert result.messages[-1] == 'The total shown while editing was 77.00; the save computed 88.00. The saved figures stand.'

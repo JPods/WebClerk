@@ -145,10 +145,14 @@ def _not_enumerated(actor, model_name: str, payload: dict, prefix: str = "") -> 
     accepted = frozenset(field_leaves.collections(model_name))
     offered = {f"{prefix}{p}"
                for p in _leaf_paths(payload, collections=accepted) - _NOT_A_FIELD}
+    # An underscore key is a signal (common/schemas/carrier.py), admitted or refused by the
+    # carrier and the behaviour's SIGNALS, never by the field enumeration: _totals_preview
+    # is a dict, and its leaves are not fields of the record (readme 107).
     return sorted(p for p in offered
                   if p not in allowed
                   and p.rsplit(".", 1)[-1] not in _NOT_A_FIELD
-                  and p.split(".")[0] not in _NOT_A_FIELD)
+                  and p.split(".")[0] not in _NOT_A_FIELD
+                  and not p.split(".")[0].startswith("_"))
 
 
 def _transaction_save_denial(actor, model_key: str, record_data: dict, lines_data: list):

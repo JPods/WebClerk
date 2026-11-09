@@ -49,7 +49,11 @@ def check_preview(ctx) -> None:
     preview = ctx.data.get('_totals_preview')
     if not isinstance(preview, dict):
         return
-    stored = getattr(ctx.obj, 'totals', None) or {}
+    # The totals as the database holds them now: the recompute ran before the after hooks
+    # (save.py: _post_persist, then refresh_from_db), and a reprice in this same hook saves
+    # lines through their own instances, so the row is read, not the object in hand.
+    stored = (type(ctx.obj).objects.filter(pk=ctx.obj.pk).values_list('totals', flat=True).first()
+              or getattr(ctx.obj, 'totals', None) or {})
     diffs = [(k, _d(preview[k]), _d(stored.get(k, 0)))
              for k in PREVIEW_KEYS if k in preview and _d(preview[k]) != _d(stored.get(k, 0))]
     if not diffs:
