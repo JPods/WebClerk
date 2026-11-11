@@ -102170,7 +102170,7 @@
       {
         "id": 10630,
         "uuid": "9c9543e5-adae-42bd-8c65-aaeaa4718e3a",
-        "ida": "qq_1",
+        "ida": "1",
         "dt_created": 1785693356913,
         "dt_modified": 1787806884680,
         "version": 1,
@@ -102331,7 +102331,7 @@
       {
         "id": 10631,
         "uuid": "9321804b-8d4c-4ce6-a330-f7e77556f23d",
-        "ida": "qq_2",
+        "ida": "2",
         "dt_created": 1785693357004,
         "dt_modified": 1787806997672,
         "version": 1,
@@ -102492,7 +102492,7 @@
       {
         "id": 10632,
         "uuid": "19f78d45-b9f7-4fab-9f8f-737b6c6ca181",
-        "ida": "qq_3",
+        "ida": "3",
         "dt_created": 1785693357023,
         "dt_modified": 1787806982369,
         "version": 2,
@@ -102655,7 +102655,7 @@
       {
         "id": 10633,
         "uuid": "07f12056-3d4f-4a14-a62d-41ef9d4b7346",
-        "ida": "qq_4",
+        "ida": "4",
         "dt_created": 1785693357040,
         "dt_modified": 1786640678439,
         "version": 1,
@@ -103438,7 +103438,7 @@
       {
         "id": 10641,
         "uuid": "b953a769-ede6-4c1d-acb2-ce8085ade2b0",
-        "ida": "qq_s1",
+        "ida": "s1",
         "dt_created": 1786642937485,
         "dt_modified": 1786642937485,
         "version": 1,
@@ -103583,7 +103583,7 @@
       {
         "id": 10642,
         "uuid": "c0c9090c-c4b9-434e-84ed-4ddc67593ee6",
-        "ida": "qq_s2",
+        "ida": "s2",
         "dt_created": 1786642937536,
         "dt_modified": 1786642937536,
         "version": 1,
@@ -103728,7 +103728,7 @@
       {
         "id": 10643,
         "uuid": "7987e9a3-2ac3-4fc5-85d1-53f37dcc0b41",
-        "ida": "qq_s3",
+        "ida": "s3",
         "dt_created": 1786642937559,
         "dt_modified": 1786642937559,
         "version": 1,
@@ -103873,7 +103873,7 @@
       {
         "id": 10644,
         "uuid": "5b4b9e88-1fce-4215-9b8c-18f01d7cb58f",
-        "ida": "qq_s4",
+        "ida": "s4",
         "dt_created": 1786642937581,
         "dt_modified": 1786642937581,
         "version": 1,
@@ -104018,7 +104018,7 @@
       {
         "id": 10693,
         "uuid": "52bbf685-6c8f-4b42-8913-854dc2d65b03",
-        "ida": "qq-10693",
+        "ida": "10693",
         "dt_created": 1787550111324,
         "dt_modified": 1787806875350,
         "version": 1,
@@ -104166,7 +104166,7 @@
       {
         "id": 10695,
         "uuid": "0d98ace7-f982-4056-ae7c-5e2dcf63476a",
-        "ida": "qq-10695",
+        "ida": "10695",
         "dt_created": 1787550111687,
         "dt_modified": 1787550111687,
         "version": 1,
@@ -104314,7 +104314,7 @@
       {
         "id": 10697,
         "uuid": "b809ebd4-a61b-466f-8a0e-94e7d7517f88",
-        "ida": "qq-10697",
+        "ida": "10697",
         "dt_created": 1787550141110,
         "dt_modified": 1788371403457,
         "version": 3,
@@ -104464,7 +104464,7 @@
       {
         "id": 10698,
         "uuid": "bbcc305f-be92-42b0-af9a-fdabd9c39cea",
-        "ida": "qq-10698",
+        "ida": "10698",
         "dt_created": 1787550141272,
         "dt_modified": 1787806967452,
         "version": 1,
@@ -104612,7 +104612,7 @@
       {
         "id": 10699,
         "uuid": "beb7ee87-16dd-49c9-8d27-c5692e6757ff",
-        "ida": "qq-10699",
+        "ida": "10699",
         "dt_created": 1787550141440,
         "dt_modified": 1787806937560,
         "version": 1,
@@ -105355,7 +105355,7 @@
       {
         "id": 10714,
         "uuid": "f3f344f0-aa7c-4b80-b887-6598c2ed7231",
-        "ida": "qq-vendor-behr",
+        "ida": "vendor-behr",
         "dt_created": 1788126956996,
         "dt_modified": 1788126956996,
         "version": 1,
@@ -105482,7 +105482,7 @@
       {
         "id": 10715,
         "uuid": "274a7113-4cf8-4319-9018-72462c1a852a",
-        "ida": "qq-vendor-stanley",
+        "ida": "vendor-stanley",
         "dt_created": 1788126957002,
         "dt_modified": 1788126957002,
         "version": 1,
@@ -105609,7 +105609,7 @@
       {
         "id": 10716,
         "uuid": "300293f1-a5d7-4d58-9da4-757f046d5260",
-        "ida": "qq-vendor-spl",
+        "ida": "vendor-spl",
         "dt_created": 1788126957004,
         "dt_modified": 1788126957004,
         "version": 1,
@@ -105736,7 +105736,7 @@
       {
         "id": 10717,
         "uuid": "857a8d74-ebd6-42cb-a3d1-dd71e610610b",
-        "ida": "qq-vendor-diamond",
+        "ida": "vendor-diamond",
         "dt_created": 1788126957005,
         "dt_modified": 1788126957005,
         "version": 1,
@@ -106657,7 +106657,7 @@
       {
         "id": 15013,
         "uuid": "492c0f80-f571-44b6-90aa-5e5d5283d1a7",
-        "ida": "qq-15013",
+        "ida": "15013",
         "dt_created": 1787550111449,
         "dt_modified": 1787550111449,
         "version": 1,
@@ -106750,7 +106750,7 @@
           "keywords": [
             "492c0f80-f571-44b6-90aa-5e5d5283d1a7",
             "bradley",
-            "qq-15013",
+            "15013",
             "tom",
             "tom@acme.fake"
           ],
@@ -106786,7 +106786,7 @@
       {
         "id": 15017,
         "uuid": "7cd7dab2-e927-4667-a287-e6a82c7a8e32",
-        "ida": "qq-15017",
+        "ida": "15017",
         "dt_created": 1787550111774,
         "dt_modified": 1787550111774,
         "version": 1,
@@ -106878,10 +106878,10 @@
           "parents": [],
           "keywords": [
             "7cd7dab2-e927-4667-a287-e6a82c7a8e32",
-            "qq-15017",
+            "15017",
             "zander",
             "zeke",
-            "zz-fake-customer@example.com"
+            "fake-customer@example.com"
           ],
           "categories": [],
           "depends_on": {},
@@ -106915,7 +106915,7 @@
       {
         "id": 15019,
         "uuid": "f45f9e97-d0fd-4620-a070-6a05b36dacb2",
-        "ida": "qq-15019",
+        "ida": "15019",
         "dt_created": 1787550141221,
         "dt_modified": 1787550141221,
         "version": 1,
@@ -107010,7 +107010,7 @@
             "bill@oakdale.fake",
             "f45f9e97-d0fd-4620-a070-6a05b36dacb2",
             "james",
-            "qq-15019"
+            "15019"
           ],
           "categories": [],
           "depends_on": {},
@@ -107044,7 +107044,7 @@
       {
         "id": 15021,
         "uuid": "c7cbda24-7dcd-46de-9ee2-449cf59c9138",
-        "ida": "qq-15021",
+        "ida": "15021",
         "dt_created": 1787550141350,
         "dt_modified": 1787550141350,
         "version": 1,
@@ -107139,7 +107139,7 @@
             "mitchell",
             "pat",
             "pat@mitchell.fake",
-            "qq-15021"
+            "15021"
           ],
           "categories": [],
           "depends_on": {},
@@ -107173,7 +107173,7 @@
       {
         "id": 15023,
         "uuid": "56e5e3de-bb13-40a2-81ee-7be4cae24384",
-        "ida": "qq-15023",
+        "ida": "15023",
         "dt_created": 1787550141523,
         "dt_modified": 1787550141523,
         "version": 1,
@@ -107268,7 +107268,7 @@
             "dan",
             "dan@probuild.fake",
             "keller",
-            "qq-15023"
+            "15023"
           ],
           "categories": [],
           "depends_on": {},
@@ -107302,7 +107302,7 @@
       {
         "id": 15040,
         "uuid": "2ec91362-b875-43e7-bb0c-f9fdeeb860d9",
-        "ida": "qq-email-10630",
+        "ida": "email-10630",
         "dt_created": 1788061671415,
         "dt_modified": 1788061671415,
         "version": 1,
@@ -107336,7 +107336,7 @@
       {
         "id": 15041,
         "uuid": "2b8d5742-6885-420b-bca1-8caf6c954b44",
-        "ida": "qq-email-10631",
+        "ida": "email-10631",
         "dt_created": 1788061671415,
         "dt_modified": 1788061671415,
         "version": 1,
@@ -107370,7 +107370,7 @@
       {
         "id": 15042,
         "uuid": "5f1cb7ea-4d00-4713-be96-4848ab3dca82",
-        "ida": "qq-email-10632",
+        "ida": "email-10632",
         "dt_created": 1788061671415,
         "dt_modified": 1788061671415,
         "version": 1,
@@ -107404,7 +107404,7 @@
       {
         "id": 15043,
         "uuid": "8e4ae290-eae1-47bb-8131-048fcb83c4c7",
-        "ida": "qq-email-10633",
+        "ida": "email-10633",
         "dt_created": 1788061671415,
         "dt_modified": 1788061671415,
         "version": 1,
@@ -107438,7 +107438,7 @@
       {
         "id": 15045,
         "uuid": "e7f4c1c5-5b9d-4358-9edb-c5bbabbea92f",
-        "ida": "qq-email-10641",
+        "ida": "email-10641",
         "dt_created": 1788061671415,
         "dt_modified": 1788061671415,
         "version": 1,
@@ -107472,7 +107472,7 @@
       {
         "id": 15046,
         "uuid": "976d9741-f4e9-4b56-871a-e75b2da07705",
-        "ida": "qq-email-10642",
+        "ida": "email-10642",
         "dt_created": 1788061671415,
         "dt_modified": 1788061671415,
         "version": 1,
@@ -107506,7 +107506,7 @@
       {
         "id": 15047,
         "uuid": "db361fd9-ec41-444c-a503-0f39b6f3ac44",
-        "ida": "qq-email-10643",
+        "ida": "email-10643",
         "dt_created": 1788061671415,
         "dt_modified": 1788061671415,
         "version": 1,
@@ -107540,7 +107540,7 @@
       {
         "id": 15048,
         "uuid": "f33f3e71-ec63-4de6-b405-84db066b6474",
-        "ida": "qq-email-10644",
+        "ida": "email-10644",
         "dt_created": 1788061671415,
         "dt_modified": 1788061671415,
         "version": 1,
@@ -114288,7 +114288,7 @@
       {
         "id": 3058,
         "uuid": "44530321-ae52-4a2d-b674-5a3381a6bf6f",
-        "ida": "qq-3058",
+        "ida": "3058",
         "dt_created": 1787550111492,
         "dt_modified": 1787550111492,
         "version": 1,
@@ -114382,7 +114382,7 @@
             "16125550101",
             "44530321-ae52-4a2d-b674-5a3381a6bf6f",
             "6125550101",
-            "qq-3058"
+            "3058"
           ],
           "categories": [],
           "depends_on": {},
@@ -114415,7 +114415,7 @@
       {
         "id": 3062,
         "uuid": "9ea2cd69-aae4-4445-8b54-af2af93db58b",
-        "ida": "qq-3062",
+        "ida": "3062",
         "dt_created": 1787550111808,
         "dt_modified": 1787550111808,
         "version": 1,
@@ -114509,7 +114509,7 @@
             "5555550175",
             "5555550187",
             "9ea2cd69-aae4-4445-8b54-af2af93db58b",
-            "qq-3062"
+            "3062"
           ],
           "categories": [],
           "depends_on": {},
@@ -114542,7 +114542,7 @@
       {
         "id": 3064,
         "uuid": "bd195f4e-27e8-4d5d-99cc-1232bfeea8ce",
-        "ida": "qq-3064",
+        "ida": "3064",
         "dt_created": 1787550141248,
         "dt_modified": 1787550141248,
         "version": 1,
@@ -114636,7 +114636,7 @@
             "6125550179",
             "6125550110",
             "bd195f4e-27e8-4d5d-99cc-1232bfeea8ce",
-            "qq-3064"
+            "3064"
           ],
           "categories": [],
           "depends_on": {},
@@ -114669,7 +114669,7 @@
       {
         "id": 3066,
         "uuid": "3545ce8e-45bc-4157-862e-6857fa123382",
-        "ida": "qq-3066",
+        "ida": "3066",
         "dt_created": 1787550141416,
         "dt_modified": 1787550141416,
         "version": 1,
@@ -114763,7 +114763,7 @@
             "16125550301",
             "3545ce8e-45bc-4157-862e-6857fa123382",
             "6125550301",
-            "qq-3066"
+            "3066"
           ],
           "categories": [],
           "depends_on": {},
@@ -114796,7 +114796,7 @@
       {
         "id": 3068,
         "uuid": "3ed63ed3-21ef-40e6-a5c4-0d3a15f181e6",
-        "ida": "qq-3068",
+        "ida": "3068",
         "dt_created": 1787550141559,
         "dt_modified": 1787550141559,
         "version": 1,
@@ -114890,7 +114890,7 @@
             "16125550302",
             "3ed63ed3-21ef-40e6-a5c4-0d3a15f181e6",
             "6125550302",
-            "qq-3068"
+            "3068"
           ],
           "categories": [],
           "depends_on": {},
@@ -114923,7 +114923,7 @@
       {
         "id": 3078,
         "uuid": "bd100cad-a8ca-4221-a393-2176f976ef10",
-        "ida": "qq-phone-10630",
+        "ida": "phone-10630",
         "dt_created": 1788061671415,
         "dt_modified": 1788061671415,
         "version": 1,
@@ -114956,7 +114956,7 @@
       {
         "id": 3079,
         "uuid": "af6e9c86-88db-4703-8cd5-7a0ca8328378",
-        "ida": "qq-phone-10631",
+        "ida": "phone-10631",
         "dt_created": 1788061671415,
         "dt_modified": 1788061671415,
         "version": 1,
@@ -114989,7 +114989,7 @@
       {
         "id": 3080,
         "uuid": "409f888b-0990-4ee3-859e-b561bf42ce1a",
-        "ida": "qq-phone-10632",
+        "ida": "phone-10632",
         "dt_created": 1788061671415,
         "dt_modified": 1788061671415,
         "version": 1,
@@ -115022,7 +115022,7 @@
       {
         "id": 3081,
         "uuid": "fac1ea84-a671-4a80-b2c9-a48f6d846ca4",
-        "ida": "qq-phone-10633",
+        "ida": "phone-10633",
         "dt_created": 1788061671415,
         "dt_modified": 1788061671415,
         "version": 1,
@@ -115055,7 +115055,7 @@
       {
         "id": 3083,
         "uuid": "bd3589f7-f22e-4e7f-bbfc-257eb45ef371",
-        "ida": "qq-phone-10641",
+        "ida": "phone-10641",
         "dt_created": 1788061671415,
         "dt_modified": 1788061671415,
         "version": 1,
@@ -115088,7 +115088,7 @@
       {
         "id": 3084,
         "uuid": "4c036b9c-7a8e-44c3-9f86-e24314c37037",
-        "ida": "qq-phone-10642",
+        "ida": "phone-10642",
         "dt_created": 1788061671415,
         "dt_modified": 1788061671415,
         "version": 1,
@@ -115121,7 +115121,7 @@
       {
         "id": 3085,
         "uuid": "f40e1000-8c1a-42ab-a319-83571579f7f7",
-        "ida": "qq-phone-10643",
+        "ida": "phone-10643",
         "dt_created": 1788061671415,
         "dt_modified": 1788061671415,
         "version": 1,
@@ -115154,7 +115154,7 @@
       {
         "id": 3086,
         "uuid": "1c51ff3f-b0b3-4353-8f77-a0e5b8e1cd3e",
-        "ida": "qq-phone-10644",
+        "ida": "phone-10644",
         "dt_created": 1788061671415,
         "dt_modified": 1788061671415,
         "version": 1,
@@ -137998,7 +137998,7 @@
               },
               {
                 "id": 10695,
-                "name": "qq-10695"
+                "name": "10695"
               }
             ],
             "project": [],
@@ -138675,22 +138675,22 @@
         "contacts": [],
         "addresses": {
           "prime": {
-            "company": "zz Fake Employee",
-            "attention": "zz Fake Employee",
+            "company": "Fake Employee",
+            "attention": "Fake Employee",
             "contact_id": null,
             "full_address": "321 Cedar Ct, Boise ID 83701",
             "instructions": ""
           },
           "bill_to": {
-            "company": "zz Fake Employee",
-            "attention": "zz Fake Employee",
+            "company": "Fake Employee",
+            "attention": "Fake Employee",
             "contact_id": null,
             "full_address": "123 Main St, Austin TX 78701",
             "instructions": "Attn: Accounts Payable"
           },
           "ship_to": {
-            "company": "zz Fake Employee",
-            "attention": "zz Fake Employee",
+            "company": "Fake Employee",
+            "attention": "Fake Employee",
             "contact_id": null,
             "full_address": "222 Maple Ln, Raleigh NC 27601",
             "instructions": "Dock 3, call before delivery"
@@ -138713,15 +138713,15 @@
         },
         "emails": {
           "prime": {
-            "email": "zz-fake-employee@example.com",
+            "email": "fake-employee@example.com",
             "email_id": null
           },
           "bill_to": {
-            "email": "zz-fake-employee@example.com",
+            "email": "fake-employee@example.com",
             "email_id": null
           },
           "ship_to": {
-            "email": "zz-fake-employee+shipping@example.com",
+            "email": "fake-employee+shipping@example.com",
             "email_id": null
           }
         },
@@ -139279,22 +139279,22 @@
         "contacts": [],
         "addresses": {
           "prime": {
-            "company": "zz Fake Manufacturer",
-            "attention": "zz Fake Manufacturer",
+            "company": "Fake Manufacturer",
+            "attention": "Fake Manufacturer",
             "contact_id": null,
             "full_address": "456 Oak Ave, Portland OR 97201",
             "instructions": ""
           },
           "bill_to": {
-            "company": "zz Fake Manufacturer",
-            "attention": "zz Fake Manufacturer",
+            "company": "Fake Manufacturer",
+            "attention": "Fake Manufacturer",
             "contact_id": null,
             "full_address": "222 Maple Ln, Nashville TN 37201",
             "instructions": "Attn: Accounts Payable"
           },
           "ship_to": {
-            "company": "zz Fake Manufacturer",
-            "attention": "zz Fake Manufacturer",
+            "company": "Fake Manufacturer",
+            "attention": "Fake Manufacturer",
             "contact_id": null,
             "full_address": "650 Market St, Springfield IL 62701",
             "instructions": "Dock 3, call before delivery"
@@ -139317,15 +139317,15 @@
         },
         "emails": {
           "prime": {
-            "email": "zz-fake-manufacturer@example.com",
+            "email": "fake-manufacturer@example.com",
             "email_id": null
           },
           "bill_to": {
-            "email": "zz-fake-manufacturer@example.com",
+            "email": "fake-manufacturer@example.com",
             "email_id": null
           },
           "ship_to": {
-            "email": "zz-fake-manufacturer+shipping@example.com",
+            "email": "fake-manufacturer+shipping@example.com",
             "email_id": null
           }
         },
@@ -139884,22 +139884,22 @@
         "contacts": [],
         "addresses": {
           "prime": {
-            "company": "zz Fake Rep",
-            "attention": "zz Fake Rep",
+            "company": "Fake Rep",
+            "attention": "Fake Rep",
             "contact_id": null,
             "full_address": "1010 Commerce Dr, Denver CO 80201",
             "instructions": ""
           },
           "bill_to": {
-            "company": "zz Fake Rep",
-            "attention": "zz Fake Rep",
+            "company": "Fake Rep",
+            "attention": "Fake Rep",
             "contact_id": null,
             "full_address": "888 River Rd, Raleigh NC 27601",
             "instructions": "Attn: Accounts Payable"
           },
           "ship_to": {
-            "company": "zz Fake Rep",
-            "attention": "zz Fake Rep",
+            "company": "Fake Rep",
+            "attention": "Fake Rep",
             "contact_id": null,
             "full_address": "123 Main St, Austin TX 78701",
             "instructions": "Dock 3, call before delivery"
@@ -139922,15 +139922,15 @@
         },
         "emails": {
           "prime": {
-            "email": "zz-fake-rep@example.com",
+            "email": "fake-rep@example.com",
             "email_id": null
           },
           "bill_to": {
-            "email": "zz-fake-rep@example.com",
+            "email": "fake-rep@example.com",
             "email_id": null
           },
           "ship_to": {
-            "email": "zz-fake-rep+shipping@example.com",
+            "email": "fake-rep+shipping@example.com",
             "email_id": null
           }
         },
@@ -140942,7 +140942,7 @@
       {
         "id": 5511,
         "uuid": "12f328ce-617e-4ac1-b033-e764ed97b25a",
-        "ida": "qq-5511",
+        "ida": "5511",
         "dt_created": 1786464050836,
         "dt_modified": 1786464050836,
         "version": 1,
@@ -141044,7 +141044,7 @@
               },
               {
                 "id": 10694,
-                "name": "qq-10694"
+                "name": "10694"
               }
             ],
             "project": [],
@@ -141060,7 +141060,7 @@
             "beacon",
             "customer",
             "llc",
-            "qq-5511",
+            "5511",
             "sale"
           ],
           "categories": [],
@@ -141566,7 +141566,7 @@
       {
         "id": 5527,
         "uuid": "e8c78049-7257-4b6c-88ab-5ec99c4c1003",
-        "ida": "qq-5527",
+        "ida": "5527",
         "dt_created": 1786502676000,
         "dt_modified": 1787807012668,
         "version": 5,
@@ -141658,11 +141658,11 @@
             "order": [
               {
                 "id": 44,
-                "name": "qq44"
+                "name": "44"
               },
               {
                 "id": 34,
-                "name": "1001-so-qq"
+                "name": "1001-so"
               },
               {
                 "id": 82,
@@ -141681,7 +141681,7 @@
               },
               {
                 "id": 10697,
-                "name": "qq-10697"
+                "name": "10697"
               }
             ],
             "invoice": [
@@ -141691,19 +141691,19 @@
               },
               {
                 "id": 75,
-                "name": "qq75"
+                "name": "75"
               },
               {
                 "id": 71,
-                "name": "qq71"
+                "name": "71"
               },
               {
                 "id": 69,
-                "name": "zz-fake-invoice"
+                "name": "fake-invoice"
               },
               {
                 "id": 101,
-                "name": "1017-inv-qq"
+                "name": "1017-inv"
               }
             ],
             "cash": [
@@ -141722,23 +141722,23 @@
             "quote": [
               {
                 "id": 150,
-                "name": "1020-qt-qq"
+                "name": "1020-qt"
               },
               {
                 "id": 120,
-                "name": "1006-qt-qq"
+                "name": "1006-qt"
               },
               {
                 "id": 164,
-                "name": "1034-qt-qq"
+                "name": "1034-qt"
               },
               {
                 "id": 157,
-                "name": "1027-qt-qq"
+                "name": "1027-qt"
               },
               {
                 "id": 143,
-                "name": "1013-qt-qq"
+                "name": "1013-qt"
               }
             ],
             "manufacturer": []
@@ -141756,7 +141756,7 @@
             "james",
             "llc",
             "net",
-            "qq-5527",
+            "5527",
             "wholesale"
           ],
           "categories": [],
@@ -141897,7 +141897,7 @@
       {
         "id": 5528,
         "uuid": "a0dccff6-feba-4c2f-9fec-e3613e5f4159",
-        "ida": "qq-5528",
+        "ida": "5528",
         "dt_created": 1786502676000,
         "dt_modified": 1787807012732,
         "version": 1,
@@ -141987,15 +141987,15 @@
             "order": [
               {
                 "id": 43,
-                "name": "qq43"
+                "name": "43"
               },
               {
                 "id": 85,
-                "name": "1016-so-qq"
+                "name": "1016-so"
               },
               {
                 "id": 41,
-                "name": "qq41"
+                "name": "41"
               }
             ],
             "phone": [],
@@ -142010,17 +142010,17 @@
               },
               {
                 "id": 10699,
-                "name": "qq-10699"
+                "name": "10699"
               }
             ],
             "invoice": [
               {
                 "id": 74,
-                "name": "qq74"
+                "name": "74"
               },
               {
                 "id": 72,
-                "name": "qq72"
+                "name": "72"
               },
               {
                 "id": 96,
@@ -142033,23 +142033,23 @@
             "quote": [
               {
                 "id": 151,
-                "name": "1021-qt-qq"
+                "name": "1021-qt"
               },
               {
                 "id": 137,
-                "name": "1007-qt-qq"
+                "name": "1007-qt"
               },
               {
                 "id": 165,
-                "name": "1035-qt-qq"
+                "name": "1035-qt"
               },
               {
                 "id": 158,
-                "name": "1028-qt-qq"
+                "name": "1028-qt"
               },
               {
                 "id": 144,
-                "name": "1014-qt-qq"
+                "name": "1014-qt"
               }
             ],
             "manufacturer": []
@@ -142066,7 +142066,7 @@
             "ironbridge",
             "keller",
             "ltd",
-            "qq-5528"
+            "5528"
           ],
           "categories": [],
           "depends_on": {},
@@ -142206,7 +142206,7 @@
       {
         "id": 5529,
         "uuid": "5f8d9edf-a392-4355-96b7-672b031028fa",
-        "ida": "qq-5529",
+        "ida": "5529",
         "dt_created": 1786502676000,
         "dt_modified": 1787807012684,
         "version": 1,
@@ -142296,15 +142296,15 @@
             "order": [
               {
                 "id": 35,
-                "name": "zz-fake-order"
+                "name": "fake-order"
               },
               {
                 "id": 42,
-                "name": "qq42"
+                "name": "42"
               },
               {
                 "id": 45,
-                "name": "qq45"
+                "name": "45"
               }
             ],
             "phone": [],
@@ -142319,13 +142319,13 @@
               },
               {
                 "id": 10698,
-                "name": "qq-10698"
+                "name": "10698"
               }
             ],
             "invoice": [
               {
                 "id": 73,
-                "name": "qq73"
+                "name": "73"
               }
             ],
             "project": [],
@@ -142334,23 +142334,23 @@
             "quote": [
               {
                 "id": 156,
-                "name": "1026-qt-qq"
+                "name": "1026-qt"
               },
               {
                 "id": 107,
-                "name": "1005-qt-qq"
+                "name": "1005-qt"
               },
               {
                 "id": 163,
-                "name": "1033-qt-qq"
+                "name": "1033-qt"
               },
               {
                 "id": 142,
-                "name": "1012-qt-qq"
+                "name": "1012-qt"
               },
               {
                 "id": 149,
-                "name": "1019-qt-qq"
+                "name": "1019-qt"
               }
             ],
             "manufacturer": []
@@ -142365,7 +142365,7 @@
             "pat",
             "pat@mitchell.fake",
             "patmitchellfake",
-            "qq-5529",
+            "5529",
             "riverside",
             "supplies"
           ],
@@ -142507,7 +142507,7 @@
       {
         "id": 5530,
         "uuid": "5bb76e6b-5603-41a7-9146-7fe6f8267992",
-        "ida": "qq5530",
+        "ida": "5530",
         "dt_created": 1786502676000,
         "dt_modified": 1787807336092,
         "version": 1,
@@ -142607,15 +142607,15 @@
             "purchase": [
               {
                 "id": 21,
-                "name": "qq21"
+                "name": "21"
               },
               {
                 "id": 17,
-                "name": "qq17"
+                "name": "17"
               },
               {
                 "id": 20,
-                "name": "qq20"
+                "name": "20"
               }
             ],
             "manufacturer": []
@@ -142630,7 +142630,7 @@
             "orders@stanleytools.fake",
             "ordersstanleytoolsfake",
             "partners",
-            "qq5530",
+            "5530",
             "stanley",
             "vendor"
           ],
@@ -142770,7 +142770,7 @@
       {
         "id": 5531,
         "uuid": "91f7dee5-3e2b-48ce-b1d1-5bb405989dfa",
-        "ida": "qq5531",
+        "ida": "5531",
         "dt_created": 1786502676000,
         "dt_modified": 1787807336049,
         "version": 1,
@@ -142870,7 +142870,7 @@
             "purchase": [
               {
                 "id": 18,
-                "name": "qq18"
+                "name": "18"
               }
             ],
             "manufacturer": []
@@ -142884,7 +142884,7 @@
             "karen",
             "lakeside",
             "partners",
-            "qq5531",
+            "5531",
             "vendor",
             "wholesale@behrpaint.fake",
             "wholesalebehrpaintfake"
@@ -143025,7 +143025,7 @@
       {
         "id": 5532,
         "uuid": "a8ac9142-2d81-43b6-9781-ac63cf5335a8",
-        "ida": "qq5532",
+        "ida": "5532",
         "dt_created": 1786502676000,
         "dt_modified": 1787807336009,
         "version": 1,
@@ -143125,15 +143125,15 @@
             "purchase": [
               {
                 "id": 16,
-                "name": "zz-fake-purchase"
+                "name": "fake-purchase"
               },
               {
                 "id": 23,
-                "name": "1009-po-qq"
+                "name": "1009-po"
               },
               {
                 "id": 19,
-                "name": "qq19"
+                "name": "19"
               }
             ],
             "manufacturer": []
@@ -143145,7 +143145,7 @@
             "active",
             "crestview",
             "jim",
-            "qq5532",
+            "5532",
             "sales@southernpine.fake",
             "salessouthernpinefake",
             "sawyer",
@@ -143287,7 +143287,7 @@
       {
         "id": 5533,
         "uuid": "726af3d2-e81a-4aca-aa5a-0edb57f4e04b",
-        "ida": "qq5533",
+        "ida": "5533",
         "dt_created": 1786641275305,
         "dt_modified": 1786641275305,
         "version": 1,
@@ -143387,7 +143387,7 @@
             "purchase": [
               {
                 "id": 22,
-                "name": "qq_PO-001"
+                "name": "PO-001"
               }
             ],
             "manufacturer": []
@@ -143398,7 +143398,7 @@
             "726af3d2-e81a-4aca-aa5a-0edb57f4e04b",
             "industries",
             "lisa",
-            "qq-dev-5533",
+            "dev-5533",
             "sales@diamondpro.fake",
             "salesdiamondprofake",
             "valley",
@@ -143910,7 +143910,7 @@
       {
         "id": 5596,
         "uuid": "5d9635ad-94d1-42ba-89c9-0530ec1ebc74",
-        "ida": "qq-5596",
+        "ida": "5596",
         "dt_created": 1787549997240,
         "dt_modified": 1787549997240,
         "version": 1,
@@ -144013,7 +144013,7 @@
               },
               {
                 "id": 10693,
-                "name": "qq-10693"
+                "name": "10693"
               }
             ],
             "invoice": [
@@ -144028,27 +144028,27 @@
             "quote": [
               {
                 "id": 80,
-                "name": "qq80"
+                "name": "80"
               },
               {
                 "id": 153,
-                "name": "1023-qt-qq"
+                "name": "1023-qt"
               },
               {
                 "id": 167,
-                "name": "1037-qt-qq"
+                "name": "1037-qt"
               },
               {
                 "id": 139,
-                "name": "1009-qt-qq"
+                "name": "1009-qt"
               },
               {
                 "id": 146,
-                "name": "1016-qt-qq"
+                "name": "1016-qt"
               },
               {
                 "id": 160,
-                "name": "1030-qt-qq"
+                "name": "1030-qt"
               }
             ],
             "manufacturer": []
@@ -144061,7 +144061,7 @@
             "bradley",
             "customer",
             "pinnacle",
-            "qq-5596",
+            "5596",
             "sale",
             "systems",
             "tom",
@@ -144572,7 +144572,7 @@
       {
         "id": 5604,
         "uuid": "40c073b2-1a1b-4fc4-b741-740592e468a0",
-        "ida": "qq-cust-riverside-sports",
+        "ida": "cust-riverside-sports",
         "dt_created": 1788061671415,
         "dt_modified": 1789235815527,
         "version": 3,
@@ -144648,31 +144648,31 @@
             "order": [
               {
                 "id": 61,
-                "name": "1011-so-qq"
+                "name": "1011-so"
               },
               {
                 "id": 86,
-                "name": "1017-so-qq"
+                "name": "1017-so"
               },
               {
                 "id": 63,
-                "name": "1013-so-qq"
+                "name": "1013-so"
               },
               {
                 "id": 64,
-                "name": "1014-so-qq"
+                "name": "1014-so"
               },
               {
                 "id": 59,
-                "name": "1009-so-qq"
+                "name": "1009-so"
               },
               {
                 "id": 62,
-                "name": "1012-so-qq"
+                "name": "1012-so"
               },
               {
                 "id": 60,
-                "name": "1010-so-qq"
+                "name": "1010-so"
               }
             ],
             "phone": [],
@@ -144691,19 +144691,19 @@
               },
               {
                 "id": 76,
-                "name": "1008-inv-qq"
+                "name": "1008-inv"
               },
               {
                 "id": 79,
-                "name": "1011-inv-qq"
+                "name": "1011-inv"
               },
               {
                 "id": 77,
-                "name": "1009-inv-qq"
+                "name": "1009-inv"
               },
               {
                 "id": 78,
-                "name": "1010-inv-qq"
+                "name": "1010-inv"
               }
             ],
             "project": [],
@@ -144712,27 +144712,27 @@
             "quote": [
               {
                 "id": 79,
-                "name": "1001-qt-qq"
+                "name": "1001-qt"
               },
               {
                 "id": 152,
-                "name": "1022-qt-qq"
+                "name": "1022-qt"
               },
               {
                 "id": 138,
-                "name": "1008-qt-qq"
+                "name": "1008-qt"
               },
               {
                 "id": 159,
-                "name": "1029-qt-qq"
+                "name": "1029-qt"
               },
               {
                 "id": 166,
-                "name": "1036-qt-qq"
+                "name": "1036-qt"
               },
               {
                 "id": 145,
-                "name": "1015-qt-qq"
+                "name": "1015-qt"
               }
             ],
             "manufacturer": []
@@ -144745,7 +144745,7 @@
             "customer",
             "evergreen",
             "net30",
-            "qq-cust-riverside-sports",
+            "cust-riverside-sports",
             "retail",
             "sale",
             "sarah",
@@ -144876,7 +144876,7 @@
       {
         "id": 5605,
         "uuid": "d1e848b2-626a-4bda-ab4b-c8062552dcb5",
-        "ida": "qq-cust-metro-baseball-acade",
+        "ida": "cust-metro-baseball-acade",
         "dt_created": 1788061671415,
         "dt_modified": 1788061671415,
         "version": 1,
@@ -144948,7 +144948,7 @@
             "order": [
               {
                 "id": 48,
-                "name": "qq_SO-001"
+                "name": "SO-001"
               }
             ],
             "contact": [
@@ -144959,7 +144959,7 @@
               },
               {
                 "id": 10631,
-                "name": "qq_2"
+                "name": "2"
               }
             ],
             "invoice": [
@@ -144971,27 +144971,27 @@
             "quote": [
               {
                 "id": 81,
-                "name": "zz-fake-quote"
+                "name": "fake-quote"
               },
               {
                 "id": 147,
-                "name": "1017-qt-qq"
+                "name": "1017-qt"
               },
               {
                 "id": 154,
-                "name": "1024-qt-qq"
+                "name": "1024-qt"
               },
               {
                 "id": 140,
-                "name": "1010-qt-qq"
+                "name": "1010-qt"
               },
               {
                 "id": 161,
-                "name": "1031-qt-qq"
+                "name": "1031-qt"
               },
               {
                 "id": 168,
-                "name": "1038-qt-qq"
+                "name": "1038-qt"
               }
             ]
           },
@@ -145006,7 +145006,7 @@
             "userbf12c1d5@metrobaseball.fake",
             "mikemetrobaseballcom",
             "net30",
-            "qq-cust-metro-baseball-acade",
+            "cust-metro-baseball-acade",
             "retail",
             "rodriguez",
             "sale"
@@ -145130,7 +145130,7 @@
       {
         "id": 5606,
         "uuid": "0463c365-99da-41c9-ac09-ade23206b88a",
-        "ida": "qq-cust-eastside-little-leag",
+        "ida": "cust-eastside-little-leag",
         "dt_created": 1788061671415,
         "dt_modified": 1788061671415,
         "version": 1,
@@ -145208,7 +145208,7 @@
               },
               {
                 "id": 10632,
-                "name": "qq_3"
+                "name": "3"
               }
             ],
             "invoice": [
@@ -145220,27 +145220,27 @@
             "quote": [
               {
                 "id": 162,
-                "name": "1032-qt-qq"
+                "name": "1032-qt"
               },
               {
                 "id": 106,
-                "name": "1004-qt-qq"
+                "name": "1004-qt"
               },
               {
                 "id": 155,
-                "name": "1025-qt-qq"
+                "name": "1025-qt"
               },
               {
                 "id": 169,
-                "name": "1039-qt-qq"
+                "name": "1039-qt"
               },
               {
                 "id": 141,
-                "name": "1011-qt-qq"
+                "name": "1011-qt"
               },
               {
                 "id": 148,
-                "name": "1018-qt-qq"
+                "name": "1018-qt"
               }
             ]
           },
@@ -145252,7 +145252,7 @@
             "net30",
             "parker",
             "pinnacle",
-            "qq-cust-eastside-little-leag",
+            "cust-eastside-little-leag",
             "retail",
             "sale",
             "systems",
@@ -145379,7 +145379,7 @@
       {
         "id": 5607,
         "uuid": "e050ec6f-e0ad-47bf-b869-a13f739f1412",
-        "ida": "qq-cust-diamond-pro-equipmen",
+        "ida": "cust-diamond-pro-equipmen",
         "dt_created": 1788061671415,
         "dt_modified": 1788061671415,
         "version": 1,
@@ -145457,7 +145457,7 @@
               },
               {
                 "id": 10633,
-                "name": "qq_4"
+                "name": "4"
               }
             ]
           },
@@ -145470,7 +145470,7 @@
             "userfa16a825@diamondpro.fake",
             "lisadiamondprocom",
             "net30",
-            "qq-cust-diamond-pro-equipmen",
+            "cust-diamond-pro-equipmen",
             "retail",
             "riverside",
             "sale",
@@ -161394,7 +161394,7 @@
             "idx",
             "laura",
             "machine",
-            "qqg",
+            "g",
             "richards",
             "wall"
           ],
@@ -161426,7 +161426,7 @@
         "location": {},
         "count": {},
         "priority": "Wall machine human high bed.",
-        "code": "Qqg",
+        "code": "g",
         "site_code": "IDX",
         "is_active": true
       },
@@ -180756,7 +180756,7 @@
       {
         "id": 648,
         "uuid": "49acd73c-25a2-4e4c-aa5e-4749f9a57393",
-        "ida": "QQBB200-F",
+        "ida": "BB200-F",
         "dt_created": 1789519439593,
         "dt_modified": 1789564164730,
         "version": 1,
@@ -180863,8 +180863,8 @@
             "ledsmeter",
             "meter",
             "physical",
-            "qqbb200-f",
-            "qqbb200f",
+            "bb200-f",
+            "bb200f",
             "strip",
             "training",
             "widget",
@@ -180914,7 +180914,7 @@
           "values": {}
         },
         "name": "Training Widget (F) — audit fixture",
-        "sku": "QQBB200-F",
+        "sku": "BB200-F",
         "qr_code": null,
         "kind": "physical",
         "uom": "EA",
@@ -181020,7 +181020,7 @@
       {
         "id": 649,
         "uuid": "92983500-bb9c-4e73-befc-6e2c747c6a18",
-        "ida": "QQBB200-O",
+        "ida": "BB200-O",
         "dt_created": 1789519439682,
         "dt_modified": 1789564164730,
         "version": 1,
@@ -181127,8 +181127,8 @@
             "ledsmeter",
             "meter",
             "physical",
-            "qqbb200-o",
-            "qqbb200o",
+            "bb200-o",
+            "bb200o",
             "strip",
             "training",
             "widget",
@@ -181178,7 +181178,7 @@
           "values": {}
         },
         "name": "Training Widget (O) — audit fixture",
-        "sku": "QQBB200-O",
+        "sku": "BB200-O",
         "qr_code": null,
         "kind": "physical",
         "uom": "EA",
@@ -182610,7 +182610,7 @@
       {
         "id": 79,
         "uuid": "a3b23467-b387-4a20-9a98-869fff77a398",
-        "ida": "1001-qt-qq",
+        "ida": "1001-qt",
         "dt_created": 1787071824309,
         "dt_modified": 1790039761646,
         "version": 4,
@@ -182827,7 +182827,7 @@
         "attention": "Sarah Chen",
         "company": {
           "id": 5604,
-          "ida": "qq-cust-riverside-sports",
+          "ida": "cust-riverside-sports",
           "name": "Riverside Sports",
           "email": "usera2a77993@riversidesports.fake",
           "notes": "",
@@ -182933,7 +182933,7 @@
       {
         "id": 80,
         "uuid": "59fa1918-2366-4825-b5d6-bd81526c6489",
-        "ida": "1002-qt-qq",
+        "ida": "1002-qt",
         "dt_created": 1787080319451,
         "dt_modified": 1789351373009,
         "version": 1,
@@ -183061,7 +183061,7 @@
             "59fa1918-2366-4825-b5d6-bd81526c6489",
             "draft",
             "net",
-            "qqdev-80"
+            "dev-80"
           ],
           "categories": [],
           "depends_on": {},
@@ -183150,7 +183150,7 @@
         "attention": "Tom Bradley",
         "company": {
           "id": 5596,
-          "ida": "qq-5596",
+          "ida": "5596",
           "name": "Acme Sporting Goods",
           "email": "tom@acme.fake",
           "notes": "",
@@ -183238,7 +183238,7 @@
       {
         "id": 81,
         "uuid": "7a1f4700-7648-419a-8a46-9aab38322768",
-        "ida": "1003-qt-qq",
+        "ida": "1003-qt",
         "dt_created": 1787492747512,
         "dt_modified": 1789351372963,
         "version": 1,
@@ -183376,7 +183376,7 @@
         "attention": "Mike Rodriguez",
         "company": {
           "id": 5605,
-          "ida": "qq-cust-metro-baseball-acade",
+          "ida": "cust-metro-baseball-acade",
           "name": "Metro Baseball Academy",
           "email": "userbf12c1d5@metrobaseball.fake",
           "notes": "",
@@ -183464,7 +183464,7 @@
       {
         "id": 106,
         "uuid": "05b128fe-c22c-498a-9024-b6abab791937",
-        "ida": "1004-qt-qq",
+        "ida": "1004-qt",
         "dt_created": 1788661120539,
         "dt_modified": 1788661215886,
         "version": 6,
@@ -183617,7 +183617,7 @@
         "attention": "Tom Parker",
         "company": {
           "id": 5606,
-          "ida": "qq-cust-eastside-little-leag",
+          "ida": "cust-eastside-little-leag",
           "name": "Eastside Little League",
           "email": "user0c978a50@eastsidell.fake",
           "notes": "",
@@ -183705,7 +183705,7 @@
       {
         "id": 107,
         "uuid": "cef06eae-f5ca-4a51-91b8-c1260eae7827",
-        "ida": "1005-qt-qq",
+        "ida": "1005-qt",
         "dt_created": 1788684658881,
         "dt_modified": 1788686392665,
         "version": 16,
@@ -183870,7 +183870,7 @@
         "attention": "Pat Mitchell",
         "company": {
           "id": 5529,
-          "ida": "qq-5529",
+          "ida": "5529",
           "name": "Mitchell Residence",
           "email": "pat@mitchell.fake",
           "notes": "",
@@ -183958,7 +183958,7 @@
       {
         "id": 120,
         "uuid": "f7a23627-981d-4e0f-bfb7-28748b9f23f0",
-        "ida": "1006-qt-qq",
+        "ida": "1006-qt",
         "dt_created": 1788740178476,
         "dt_modified": 1788740178520,
         "version": 2,
@@ -184111,7 +184111,7 @@
         "attention": "Bill James",
         "company": {
           "id": 5527,
-          "ida": "qq-5527",
+          "ida": "5527",
           "name": "Oakdale Hardware & Supply",
           "email": "bill@oakdale.fake",
           "notes": "",
@@ -184199,7 +184199,7 @@
       {
         "id": 137,
         "uuid": "38080aac-8c9a-4369-8063-4e467745c380",
-        "ida": "1007-qt-qq",
+        "ida": "1007-qt",
         "dt_created": 1788953304724,
         "dt_modified": 1788953304778,
         "version": 2,
@@ -184352,7 +184352,7 @@
         "attention": "Dan Keller",
         "company": {
           "id": 5528,
-          "ida": "qq-5528",
+          "ida": "5528",
           "name": "ProBuild Contractors Inc",
           "email": "dan@probuild.fake",
           "notes": "",
@@ -184440,7 +184440,7 @@
       {
         "id": 138,
         "uuid": "abe6bc58-400a-45e2-b613-ca93e23a986a",
-        "ida": "1008-qt-qq",
+        "ida": "1008-qt",
         "dt_created": 1789041826336,
         "dt_modified": 1789041826396,
         "version": 2,
@@ -184596,7 +184596,7 @@
         "attention": "Sarah Chen",
         "company": {
           "id": 5604,
-          "ida": "qq-cust-riverside-sports",
+          "ida": "cust-riverside-sports",
           "name": "Riverside Sports",
           "email": "usera2a77993@riversidesports.fake",
           "notes": "",
@@ -184684,7 +184684,7 @@
       {
         "id": 139,
         "uuid": "fd04d834-d673-4a91-b0e9-4e546a209da4",
-        "ida": "1009-qt-qq",
+        "ida": "1009-qt",
         "dt_created": 1789041866938,
         "dt_modified": 1789041866960,
         "version": 2,
@@ -184846,7 +184846,7 @@
         "attention": "Tom Bradley",
         "company": {
           "id": 5596,
-          "ida": "qq-5596",
+          "ida": "5596",
           "name": "Acme Sporting Goods",
           "email": "tom@acme.fake",
           "notes": "",
@@ -184934,7 +184934,7 @@
       {
         "id": 140,
         "uuid": "d991dc4f-c1cc-42d1-a854-dbf0f18f0a1b",
-        "ida": "1010-qt-qq",
+        "ida": "1010-qt",
         "dt_created": 1789042529093,
         "dt_modified": 1789042529174,
         "version": 2,
@@ -185090,7 +185090,7 @@
         "attention": "Mike Rodriguez",
         "company": {
           "id": 5605,
-          "ida": "qq-cust-metro-baseball-acade",
+          "ida": "cust-metro-baseball-acade",
           "name": "Metro Baseball Academy",
           "email": "userbf12c1d5@metrobaseball.fake",
           "notes": "",
@@ -185178,7 +185178,7 @@
       {
         "id": 141,
         "uuid": "68271ba6-6268-420b-9fe9-8df47abbfa20",
-        "ida": "1011-qt-qq",
+        "ida": "1011-qt",
         "dt_created": 1789042750861,
         "dt_modified": 1789042750916,
         "version": 2,
@@ -185340,7 +185340,7 @@
         "attention": "Tom Parker",
         "company": {
           "id": 5606,
-          "ida": "qq-cust-eastside-little-leag",
+          "ida": "cust-eastside-little-leag",
           "name": "Eastside Little League",
           "email": "user0c978a50@eastsidell.fake",
           "notes": "",
@@ -185428,7 +185428,7 @@
       {
         "id": 142,
         "uuid": "4284e023-ddbb-4faa-ac41-2e110f6836ee",
-        "ida": "1012-qt-qq",
+        "ida": "1012-qt",
         "dt_created": 1789042915002,
         "dt_modified": 1789042915087,
         "version": 2,
@@ -185584,7 +185584,7 @@
         "attention": "Pat Mitchell",
         "company": {
           "id": 5529,
-          "ida": "qq-5529",
+          "ida": "5529",
           "name": "Mitchell Residence",
           "email": "pat@mitchell.fake",
           "notes": "",
@@ -185672,7 +185672,7 @@
       {
         "id": 143,
         "uuid": "ed10056a-280f-4dc2-8f34-9596c9b6b963",
-        "ida": "1013-qt-qq",
+        "ida": "1013-qt",
         "dt_created": 1789043883807,
         "dt_modified": 1789043883871,
         "version": 2,
@@ -185828,7 +185828,7 @@
         "attention": "Bill James",
         "company": {
           "id": 5527,
-          "ida": "qq-5527",
+          "ida": "5527",
           "name": "Oakdale Hardware & Supply",
           "email": "bill@oakdale.fake",
           "notes": "",
@@ -185916,7 +185916,7 @@
       {
         "id": 144,
         "uuid": "d37b7c10-8147-4c4b-8be8-509acc8aa937",
-        "ida": "1014-qt-qq",
+        "ida": "1014-qt",
         "dt_created": 1789043933513,
         "dt_modified": 1789043933536,
         "version": 2,
@@ -186084,7 +186084,7 @@
         "attention": "Dan Keller",
         "company": {
           "id": 5528,
-          "ida": "qq-5528",
+          "ida": "5528",
           "name": "ProBuild Contractors Inc",
           "email": "dan@probuild.fake",
           "notes": "",
@@ -186172,7 +186172,7 @@
       {
         "id": 145,
         "uuid": "c5342d08-9242-4766-ac94-dc9c80537dae",
-        "ida": "1015-qt-qq",
+        "ida": "1015-qt",
         "dt_created": 1789043968022,
         "dt_modified": 1789043968051,
         "version": 2,
@@ -186331,7 +186331,7 @@
         "attention": "Sarah Chen",
         "company": {
           "id": 5604,
-          "ida": "qq-cust-riverside-sports",
+          "ida": "cust-riverside-sports",
           "name": "Riverside Sports",
           "email": "usera2a77993@riversidesports.fake",
           "notes": "",
@@ -186419,7 +186419,7 @@
       {
         "id": 146,
         "uuid": "e8cd9665-f101-4fc2-811f-73fae68161f7",
-        "ida": "1016-qt-qq",
+        "ida": "1016-qt",
         "dt_created": 1789044101592,
         "dt_modified": 1789044101613,
         "version": 2,
@@ -186572,7 +186572,7 @@
         "attention": "Tom Bradley",
         "company": {
           "id": 5596,
-          "ida": "qq-5596",
+          "ida": "5596",
           "name": "Acme Sporting Goods",
           "email": "tom@acme.fake",
           "notes": "",
@@ -186660,7 +186660,7 @@
       {
         "id": 147,
         "uuid": "3e4ddc33-6ef2-44db-8212-b79882cec286",
-        "ida": "1017-qt-qq",
+        "ida": "1017-qt",
         "dt_created": 1789044205807,
         "dt_modified": 1789044205863,
         "version": 2,
@@ -186825,7 +186825,7 @@
         "attention": "Mike Rodriguez",
         "company": {
           "id": 5605,
-          "ida": "qq-cust-metro-baseball-acade",
+          "ida": "cust-metro-baseball-acade",
           "name": "Metro Baseball Academy",
           "email": "userbf12c1d5@metrobaseball.fake",
           "notes": "",
@@ -186913,7 +186913,7 @@
       {
         "id": 148,
         "uuid": "0e8a58fe-09fa-4111-bead-139237d8c843",
-        "ida": "1018-qt-qq",
+        "ida": "1018-qt",
         "dt_created": 1789044331682,
         "dt_modified": 1789044331705,
         "version": 2,
@@ -187075,7 +187075,7 @@
         "attention": "Tom Parker",
         "company": {
           "id": 5606,
-          "ida": "qq-cust-eastside-little-leag",
+          "ida": "cust-eastside-little-leag",
           "name": "Eastside Little League",
           "email": "user0c978a50@eastsidell.fake",
           "notes": "",
@@ -187163,7 +187163,7 @@
       {
         "id": 149,
         "uuid": "f8d3d2d3-a9f8-4195-95a0-2dbf93a01315",
-        "ida": "1019-qt-qq",
+        "ida": "1019-qt",
         "dt_created": 1789044441102,
         "dt_modified": 1789044441153,
         "version": 2,
@@ -187325,7 +187325,7 @@
         "attention": "Pat Mitchell",
         "company": {
           "id": 5529,
-          "ida": "qq-5529",
+          "ida": "5529",
           "name": "Mitchell Residence",
           "email": "pat@mitchell.fake",
           "notes": "",
@@ -187413,7 +187413,7 @@
       {
         "id": 150,
         "uuid": "1c42da19-bcfd-4564-b029-0c6eec893f62",
-        "ida": "1020-qt-qq",
+        "ida": "1020-qt",
         "dt_created": 1789044714631,
         "dt_modified": 1789044714684,
         "version": 2,
@@ -187572,7 +187572,7 @@
         "attention": "Bill James",
         "company": {
           "id": 5527,
-          "ida": "qq-5527",
+          "ida": "5527",
           "name": "Oakdale Hardware & Supply",
           "email": "bill@oakdale.fake",
           "notes": "",
@@ -187660,7 +187660,7 @@
       {
         "id": 151,
         "uuid": "1c237b91-2a58-4998-a306-f4535e402564",
-        "ida": "1021-qt-qq",
+        "ida": "1021-qt",
         "dt_created": 1789044811960,
         "dt_modified": 1789044812023,
         "version": 2,
@@ -187825,7 +187825,7 @@
         "attention": "Dan Keller",
         "company": {
           "id": 5528,
-          "ida": "qq-5528",
+          "ida": "5528",
           "name": "ProBuild Contractors Inc",
           "email": "dan@probuild.fake",
           "notes": "",
@@ -187913,7 +187913,7 @@
       {
         "id": 152,
         "uuid": "656f43f8-3361-42d0-bb7c-d56ddfd8b452",
-        "ida": "1022-qt-qq",
+        "ida": "1022-qt",
         "dt_created": 1789045761251,
         "dt_modified": 1789045761273,
         "version": 2,
@@ -188066,7 +188066,7 @@
         "attention": "Sarah Chen",
         "company": {
           "id": 5604,
-          "ida": "qq-cust-riverside-sports",
+          "ida": "cust-riverside-sports",
           "name": "Riverside Sports",
           "email": "usera2a77993@riversidesports.fake",
           "notes": "",
@@ -188154,7 +188154,7 @@
       {
         "id": 153,
         "uuid": "dd8af7fd-4e4f-4820-8fc9-00de071d16ff",
-        "ida": "1023-qt-qq",
+        "ida": "1023-qt",
         "dt_created": 1789046008173,
         "dt_modified": 1789046008232,
         "version": 2,
@@ -188319,7 +188319,7 @@
         "attention": "Tom Bradley",
         "company": {
           "id": 5596,
-          "ida": "qq-5596",
+          "ida": "5596",
           "name": "Acme Sporting Goods",
           "email": "tom@acme.fake",
           "notes": "",
@@ -188407,7 +188407,7 @@
       {
         "id": 154,
         "uuid": "7dec7b76-0c70-404e-bc2b-4b331aa2010c",
-        "ida": "1024-qt-qq",
+        "ida": "1024-qt",
         "dt_created": 1789046385704,
         "dt_modified": 1789046385754,
         "version": 2,
@@ -188566,7 +188566,7 @@
         "attention": "Mike Rodriguez",
         "company": {
           "id": 5605,
-          "ida": "qq-cust-metro-baseball-acade",
+          "ida": "cust-metro-baseball-acade",
           "name": "Metro Baseball Academy",
           "email": "userbf12c1d5@metrobaseball.fake",
           "notes": "",
@@ -188654,7 +188654,7 @@
       {
         "id": 155,
         "uuid": "11bad413-bb98-4e3c-8467-373dc27124e2",
-        "ida": "1025-qt-qq",
+        "ida": "1025-qt",
         "dt_created": 1789047724296,
         "dt_modified": 1789047724342,
         "version": 2,
@@ -188807,7 +188807,7 @@
         "attention": "Tom Parker",
         "company": {
           "id": 5606,
-          "ida": "qq-cust-eastside-little-leag",
+          "ida": "cust-eastside-little-leag",
           "name": "Eastside Little League",
           "email": "user0c978a50@eastsidell.fake",
           "notes": "",
@@ -188895,7 +188895,7 @@
       {
         "id": 156,
         "uuid": "f901f61e-3a85-434e-a235-1459482fdbfe",
-        "ida": "1026-qt-qq",
+        "ida": "1026-qt",
         "dt_created": 1789048116759,
         "dt_modified": 1789048116813,
         "version": 2,
@@ -189060,7 +189060,7 @@
         "attention": "Pat Mitchell",
         "company": {
           "id": 5529,
-          "ida": "qq-5529",
+          "ida": "5529",
           "name": "Mitchell Residence",
           "email": "pat@mitchell.fake",
           "notes": "",
@@ -189148,7 +189148,7 @@
       {
         "id": 157,
         "uuid": "58a7282e-94ab-4684-b456-a47bbd5dc976",
-        "ida": "1027-qt-qq",
+        "ida": "1027-qt",
         "dt_created": 1789048239323,
         "dt_modified": 1789048239375,
         "version": 2,
@@ -189304,7 +189304,7 @@
         "attention": "Bill James",
         "company": {
           "id": 5527,
-          "ida": "qq-5527",
+          "ida": "5527",
           "name": "Oakdale Hardware & Supply",
           "email": "bill@oakdale.fake",
           "notes": "",
@@ -189392,7 +189392,7 @@
       {
         "id": 158,
         "uuid": "0558db04-3f23-4b23-bd45-2eb03895430f",
-        "ida": "1028-qt-qq",
+        "ida": "1028-qt",
         "dt_created": 1789048339120,
         "dt_modified": 1789048339173,
         "version": 2,
@@ -189548,7 +189548,7 @@
         "attention": "Dan Keller",
         "company": {
           "id": 5528,
-          "ida": "qq-5528",
+          "ida": "5528",
           "name": "ProBuild Contractors Inc",
           "email": "dan@probuild.fake",
           "notes": "",
@@ -189636,7 +189636,7 @@
       {
         "id": 159,
         "uuid": "0a8a2572-4f33-4ac6-9215-dc2a933f93e0",
-        "ida": "1029-qt-qq",
+        "ida": "1029-qt",
         "dt_created": 1789048878272,
         "dt_modified": 1789048878333,
         "version": 2,
@@ -189801,7 +189801,7 @@
         "attention": "Sarah Chen",
         "company": {
           "id": 5604,
-          "ida": "qq-cust-riverside-sports",
+          "ida": "cust-riverside-sports",
           "name": "Riverside Sports",
           "email": "usera2a77993@riversidesports.fake",
           "notes": "",
@@ -189889,7 +189889,7 @@
       {
         "id": 160,
         "uuid": "38490bf7-b211-4c3f-a7b9-270e7ccc4a0f",
-        "ida": "1030-qt-qq",
+        "ida": "1030-qt",
         "dt_created": 1789048886164,
         "dt_modified": 1789048886185,
         "version": 2,
@@ -190057,7 +190057,7 @@
         "attention": "Tom Bradley",
         "company": {
           "id": 5596,
-          "ida": "qq-5596",
+          "ida": "5596",
           "name": "Acme Sporting Goods",
           "email": "tom@acme.fake",
           "notes": "",
@@ -190145,7 +190145,7 @@
       {
         "id": 161,
         "uuid": "e0b3fdfc-cbb0-4e8c-a2bc-5cfb7e93408d",
-        "ida": "1031-qt-qq",
+        "ida": "1031-qt",
         "dt_created": 1789048938588,
         "dt_modified": 1789048938634,
         "version": 2,
@@ -190307,7 +190307,7 @@
         "attention": "Mike Rodriguez",
         "company": {
           "id": 5605,
-          "ida": "qq-cust-metro-baseball-acade",
+          "ida": "cust-metro-baseball-acade",
           "name": "Metro Baseball Academy",
           "email": "userbf12c1d5@metrobaseball.fake",
           "notes": "",
@@ -190395,7 +190395,7 @@
       {
         "id": 162,
         "uuid": "87bdc113-53c2-42b0-aa0a-f2a86907b1c3",
-        "ida": "1032-qt-qq",
+        "ida": "1032-qt",
         "dt_created": 1789049322467,
         "dt_modified": 1789049322569,
         "version": 2,
@@ -190554,7 +190554,7 @@
         "attention": "Tom Parker",
         "company": {
           "id": 5606,
-          "ida": "qq-cust-eastside-little-leag",
+          "ida": "cust-eastside-little-leag",
           "name": "Eastside Little League",
           "email": "user0c978a50@eastsidell.fake",
           "notes": "",
@@ -190642,7 +190642,7 @@
       {
         "id": 163,
         "uuid": "635321b8-3e32-46c0-96dc-e1be59ae6e6a",
-        "ida": "1033-qt-qq",
+        "ida": "1033-qt",
         "dt_created": 1789049328281,
         "dt_modified": 1789049328302,
         "version": 2,
@@ -190801,7 +190801,7 @@
         "attention": "Pat Mitchell",
         "company": {
           "id": 5529,
-          "ida": "qq-5529",
+          "ida": "5529",
           "name": "Mitchell Residence",
           "email": "pat@mitchell.fake",
           "notes": "",
@@ -190889,7 +190889,7 @@
       {
         "id": 164,
         "uuid": "702ebb54-11e4-4c9f-b14b-7306a815b903",
-        "ida": "1034-qt-qq",
+        "ida": "1034-qt",
         "dt_created": 1789049696601,
         "dt_modified": 1789049696674,
         "version": 2,
@@ -191054,7 +191054,7 @@
         "attention": "Bill James",
         "company": {
           "id": 5527,
-          "ida": "qq-5527",
+          "ida": "5527",
           "name": "Oakdale Hardware & Supply",
           "email": "bill@oakdale.fake",
           "notes": "",
@@ -191142,7 +191142,7 @@
       {
         "id": 165,
         "uuid": "f5636e1f-a737-4d90-bdfa-0b1781dab77e",
-        "ida": "1035-qt-qq",
+        "ida": "1035-qt",
         "dt_created": 1789049970280,
         "dt_modified": 1789049970332,
         "version": 2,
@@ -191307,7 +191307,7 @@
         "attention": "Dan Keller",
         "company": {
           "id": 5528,
-          "ida": "qq-5528",
+          "ida": "5528",
           "name": "ProBuild Contractors Inc",
           "email": "dan@probuild.fake",
           "notes": "",
@@ -191395,7 +191395,7 @@
       {
         "id": 166,
         "uuid": "51aa274f-4888-4ec7-b3f7-05cc0f529118",
-        "ida": "1036-qt-qq",
+        "ida": "1036-qt",
         "dt_created": 1789050876661,
         "dt_modified": 1789050876682,
         "version": 2,
@@ -191557,7 +191557,7 @@
         "attention": "Sarah Chen",
         "company": {
           "id": 5604,
-          "ida": "qq-cust-riverside-sports",
+          "ida": "cust-riverside-sports",
           "name": "Riverside Sports",
           "email": "usera2a77993@riversidesports.fake",
           "notes": "",
@@ -191645,7 +191645,7 @@
       {
         "id": 167,
         "uuid": "e7d065a6-9492-4b58-9c6a-10794a5053fe",
-        "ida": "1037-qt-qq",
+        "ida": "1037-qt",
         "dt_created": 1789050991321,
         "dt_modified": 1789050991345,
         "version": 2,
@@ -191807,7 +191807,7 @@
         "attention": "Tom Bradley",
         "company": {
           "id": 5596,
-          "ida": "qq-5596",
+          "ida": "5596",
           "name": "Acme Sporting Goods",
           "email": "tom@acme.fake",
           "notes": "",
@@ -191895,7 +191895,7 @@
       {
         "id": 168,
         "uuid": "fd6c4beb-f2c3-4d05-9f91-3d229404a0c5",
-        "ida": "1038-qt-qq",
+        "ida": "1038-qt",
         "dt_created": 1789052725033,
         "dt_modified": 1789052725095,
         "version": 2,
@@ -192057,7 +192057,7 @@
         "attention": "Mike Rodriguez",
         "company": {
           "id": 5605,
-          "ida": "qq-cust-metro-baseball-acade",
+          "ida": "cust-metro-baseball-acade",
           "name": "Metro Baseball Academy",
           "email": "userbf12c1d5@metrobaseball.fake",
           "notes": "",
@@ -192145,7 +192145,7 @@
       {
         "id": 169,
         "uuid": "06255b41-e020-4ce2-a883-ad9b8bbb4fbb",
-        "ida": "1039-qt-qq",
+        "ida": "1039-qt",
         "dt_created": 1789092338610,
         "dt_modified": 1789092338645,
         "version": 2,
@@ -192301,7 +192301,7 @@
         "attention": "Tom Parker",
         "company": {
           "id": 5606,
-          "ida": "qq-cust-eastside-little-leag",
+          "ida": "cust-eastside-little-leag",
           "name": "Eastside Little League",
           "email": "user0c978a50@eastsidell.fake",
           "notes": "",
@@ -192389,7 +192389,7 @@
       {
         "id": 170,
         "uuid": "08a081f0-edc3-412a-8854-85971833e75f",
-        "ida": "1040-qt-qq",
+        "ida": "1040-qt",
         "dt_created": 1789181113493,
         "dt_modified": 1790039761518,
         "version": 4,
@@ -192617,7 +192617,7 @@
       {
         "id": 171,
         "uuid": "e75c53ba-0d9d-4b9c-ac2c-e846c41e084c",
-        "ida": "1041-qt-qq",
+        "ida": "1041-qt",
         "dt_created": 1789181136797,
         "dt_modified": 1790039761594,
         "version": 4,
@@ -192836,7 +192836,7 @@
       {
         "id": 172,
         "uuid": "8f6380a2-bbe4-4c14-85c6-a629c4beaa55",
-        "ida": "1042-qt-qq",
+        "ida": "1042-qt",
         "dt_created": 1789181203437,
         "dt_modified": 1790039761202,
         "version": 4,
@@ -193058,7 +193058,7 @@
       {
         "id": 175,
         "uuid": "1995e0f7-ecb3-43bd-ac2b-f540eaad1f95",
-        "ida": "1054-qt-qq",
+        "ida": "1054-qt",
         "dt_created": 1789741133222,
         "dt_modified": 1790039761420,
         "version": 10,
@@ -193321,7 +193321,7 @@
       {
         "id": 176,
         "uuid": "4fd81f53-f59e-4d7c-ba62-931d182a3d88",
-        "ida": "1055-qt-qq",
+        "ida": "1055-qt",
         "dt_created": 1789741209761,
         "dt_modified": 1790039761748,
         "version": 7,
@@ -193587,7 +193587,7 @@
       {
         "id": 177,
         "uuid": "61a84f02-cbed-4ffd-a061-f69a3e4ca990",
-        "ida": "1056-qt-qq",
+        "ida": "1056-qt",
         "dt_created": 1789741242143,
         "dt_modified": 1790039761795,
         "version": 10,
@@ -193976,7 +193976,7 @@
         "attention": null,
         "company": {
           "id": 5527,
-          "ida": "qq-5527",
+          "ida": "5527",
           "name": "Beacon LLC 23",
           "email": "blake.shaw.10697@summit.fake",
           "phone": "+15555550172",
@@ -194115,7 +194115,7 @@
         "refs": {
           "links": {
             "customer": {
-              "ida": "qq-5527",
+              "ida": "5527",
               "email": "bill@oakdale.fake",
               "phone": "",
               "status": "active",
@@ -194136,7 +194136,7 @@
           "keywords": [
             "beacon llc 23",
             "bill@oakdale.fake",
-            "qq-5527"
+            "5527"
           ],
           "audit_tag": "audit-fable"
         },
@@ -194169,7 +194169,7 @@
         "attention": null,
         "company": {
           "id": 5527,
-          "ida": "qq-5527",
+          "ida": "5527",
           "name": "Beacon LLC 23",
           "email": "blake.shaw.10697@summit.fake",
           "phone": "+15555550172",
@@ -241139,7 +241139,7 @@
         "item_fk_id": 649,
         "item": {
           "item_id": 649,
-          "ida_item": "QQBB200-O",
+          "ida_item": "BB200-O",
           "sequence": 0,
           "addresses": [],
           "is_active": true,
@@ -241339,7 +241339,7 @@
         "item_fk_id": null,
         "item": {
           "id": 648,
-          "ida": "QQBB200-F",
+          "ida": "BB200-F",
           "item_id": 648,
           "ida_item": "",
           "sequence": 0,
@@ -242191,7 +242191,7 @@
       {
         "id": 34,
         "uuid": "e1f9a359-8c4a-4919-9876-a1a452c8cc11",
-        "ida": "1001-so-qq",
+        "ida": "1001-so",
         "dt_created": 1787681134954,
         "dt_modified": 1790574938559,
         "version": 20,
@@ -242426,7 +242426,7 @@
               }
             ],
             "customer": {
-              "ida": "qqdemo-CUST-05",
+              "ida": "demo-CUST-05",
               "email": "bill.james@jpods.com",
               "phone": "+16125550118",
               "status": "",
@@ -242464,7 +242464,7 @@
             "llc",
             "n30",
             "open",
-            "qqdemo-cust-05",
+            "demo-cust-05",
             "tulsa",
             "wholesale"
           ],
@@ -242554,7 +242554,7 @@
         "attention": "Bill James",
         "company": {
           "id": 5527,
-          "ida": "qq-5527",
+          "ida": "5527",
           "name": "Oakdale Hardware & Supply",
           "email": "bill@oakdale.fake",
           "notes": "",
@@ -242676,7 +242676,7 @@
       {
         "id": 35,
         "uuid": "0d35a225-1c41-4d9e-b784-673f9ec245da",
-        "ida": "1003-so-qq",
+        "ida": "1003-so",
         "dt_created": 1788027918587,
         "dt_modified": 1789886420624,
         "version": 1,
@@ -242829,7 +242829,7 @@
         "attention": "Pat Mitchell",
         "company": {
           "id": 5529,
-          "ida": "qq-5529",
+          "ida": "5529",
           "name": "Mitchell Residence",
           "email": "pat@mitchell.fake",
           "notes": "",
@@ -242915,7 +242915,7 @@
       {
         "id": 41,
         "uuid": "ce87da7d-d61e-441b-b592-018069a70022",
-        "ida": "1004-so-qq",
+        "ida": "1004-so",
         "dt_created": 1788150048790,
         "dt_modified": 1789886420929,
         "version": 1,
@@ -243078,7 +243078,7 @@
         "attention": "Dan Keller",
         "company": {
           "id": 5528,
-          "ida": "qq-5528",
+          "ida": "5528",
           "name": "ProBuild Contractors Inc",
           "email": "dan@probuild.fake",
           "notes": "",
@@ -243164,7 +243164,7 @@
       {
         "id": 42,
         "uuid": "083ffed6-233e-455d-a59f-0d0f19cdadbe",
-        "ida": "1005-so-qq",
+        "ida": "1005-so",
         "dt_created": 1788236448790,
         "dt_modified": 1789886421015,
         "version": 1,
@@ -243321,7 +243321,7 @@
         "attention": "Pat Mitchell",
         "company": {
           "id": 5529,
-          "ida": "qq-5529",
+          "ida": "5529",
           "name": "Mitchell Residence",
           "email": "pat@mitchell.fake",
           "notes": "",
@@ -243407,7 +243407,7 @@
       {
         "id": 43,
         "uuid": "23072c95-1a5b-46a0-bdf3-21a0040fbd61",
-        "ida": "1006-so-qq",
+        "ida": "1006-so",
         "dt_created": 1788322848790,
         "dt_modified": 1789886421107,
         "version": 1,
@@ -243561,7 +243561,7 @@
         "attention": "Dan Keller",
         "company": {
           "id": 5528,
-          "ida": "qq-5528",
+          "ida": "5528",
           "name": "ProBuild Contractors Inc",
           "email": "dan@probuild.fake",
           "notes": "",
@@ -243647,7 +243647,7 @@
       {
         "id": 44,
         "uuid": "eea1cf8b-60ec-4bd6-8999-2ba29e5fd1ea",
-        "ida": "1002-so-qq",
+        "ida": "1002-so",
         "dt_created": 1787977248790,
         "dt_modified": 1789886421191,
         "version": 1,
@@ -243798,7 +243798,7 @@
         "attention": "Bill James",
         "company": {
           "id": 5527,
-          "ida": "qq-5527",
+          "ida": "5527",
           "name": "Oakdale Hardware & Supply",
           "email": "bill@oakdale.fake",
           "notes": "",
@@ -243884,7 +243884,7 @@
       {
         "id": 45,
         "uuid": "e48df574-12f6-4cc6-9733-9a46980c957e",
-        "ida": "1007-so-qq",
+        "ida": "1007-so",
         "dt_created": 1788495648790,
         "dt_modified": 1789886420823,
         "version": 1,
@@ -244038,7 +244038,7 @@
         "attention": "Pat Mitchell",
         "company": {
           "id": 5529,
-          "ida": "qq-5529",
+          "ida": "5529",
           "name": "Mitchell Residence",
           "email": "pat@mitchell.fake",
           "notes": "",
@@ -244124,7 +244124,7 @@
       {
         "id": 48,
         "uuid": "539524d5-2924-4278-a0c0-ce54cda805a1",
-        "ida": "1008-so-qq",
+        "ida": "1008-so",
         "dt_created": 1788720459491,
         "dt_modified": 1790574937985,
         "version": 4,
@@ -244222,7 +244222,7 @@
             "purchase": [
               {
                 "id": 22,
-                "ida": "qq_PO-001"
+                "ida": "PO-001"
               }
             ],
             "order_line": [
@@ -244279,7 +244279,7 @@
         "attention": "Mike Rodriguez",
         "company": {
           "id": 5605,
-          "ida": "qq-cust-metro-baseball-acade",
+          "ida": "cust-metro-baseball-acade",
           "name": "Metro Baseball Academy",
           "email": "userbf12c1d5@metrobaseball.fake",
           "notes": "",
@@ -244383,7 +244383,7 @@
       {
         "id": 59,
         "uuid": "5ef28e73-68a9-49a4-bfb5-1dc7d805f34c",
-        "ida": "1009-so-qq",
+        "ida": "1009-so",
         "dt_created": 1789193070963,
         "dt_modified": 1789194606751,
         "version": 8,
@@ -244529,7 +244529,7 @@
         "attention": "Sarah Chen",
         "company": {
           "id": 5604,
-          "ida": "qq-cust-riverside-sports",
+          "ida": "cust-riverside-sports",
           "name": "Riverside Sports",
           "email": "usera2a77993@riversidesports.fake",
           "notes": "",
@@ -244640,7 +244640,7 @@
       {
         "id": 60,
         "uuid": "ad1040a3-7a23-41a4-a58a-d53cd3214b9a",
-        "ida": "1010-so-qq",
+        "ida": "1010-so",
         "dt_created": 1789265343114,
         "dt_modified": 1789269161156,
         "version": 11,
@@ -244740,7 +244740,7 @@
             "item": [],
             "contact": [],
             "customer": {
-              "ida": "qqdemo-CUST-01",
+              "ida": "demo-CUST-01",
               "email": "usera2a77993@riversidesports.fake",
               "phone": "+19185551234",
               "status": "",
@@ -244816,7 +244816,7 @@
         "attention": "Sarah Chen",
         "company": {
           "id": 5604,
-          "ida": "qq-cust-riverside-sports",
+          "ida": "cust-riverside-sports",
           "name": "Riverside Sports",
           "email": "usera2a77993@riversidesports.fake",
           "notes": "",
@@ -244920,7 +244920,7 @@
       {
         "id": 61,
         "uuid": "a2d098bf-1455-49d7-a115-f9126e2cac88",
-        "ida": "1011-so-qq",
+        "ida": "1011-so",
         "dt_created": 1789269674860,
         "dt_modified": 1789270964202,
         "version": 11,
@@ -245020,7 +245020,7 @@
             "item": [],
             "contact": [],
             "customer": {
-              "ida": "qqdemo-CUST-01",
+              "ida": "demo-CUST-01",
               "email": "usera2a77993@riversidesports.fake",
               "phone": "+19185551234",
               "status": "",
@@ -245096,7 +245096,7 @@
         "attention": "Sarah Chen",
         "company": {
           "id": 5604,
-          "ida": "qq-cust-riverside-sports",
+          "ida": "cust-riverside-sports",
           "name": "Riverside Sports",
           "email": "usera2a77993@riversidesports.fake",
           "notes": "",
@@ -245207,7 +245207,7 @@
       {
         "id": 62,
         "uuid": "c3a35f80-e95a-4fc1-b9b6-77bdf540167c",
-        "ida": "1012-so-qq",
+        "ida": "1012-so",
         "dt_created": 1789272101951,
         "dt_modified": 1789272707254,
         "version": 5,
@@ -245359,7 +245359,7 @@
         "attention": "Sarah Chen",
         "company": {
           "id": 5604,
-          "ida": "qq-cust-riverside-sports",
+          "ida": "cust-riverside-sports",
           "name": "Riverside Sports",
           "email": "usera2a77993@riversidesports.fake",
           "notes": "",
@@ -245463,7 +245463,7 @@
       {
         "id": 63,
         "uuid": "4cb85895-6cdf-40c9-adad-9673880d1310",
-        "ida": "1013-so-qq",
+        "ida": "1013-so",
         "dt_created": 1789272767939,
         "dt_modified": 1789272975445,
         "version": 6,
@@ -245563,7 +245563,7 @@
             "item": [],
             "contact": [],
             "customer": {
-              "ida": "qqdemo-CUST-01",
+              "ida": "demo-CUST-01",
               "email": "usera2a77993@riversidesports.fake",
               "phone": "+19185551234",
               "status": "",
@@ -245647,7 +245647,7 @@
         "attention": "Sarah Chen",
         "company": {
           "id": 5604,
-          "ida": "qq-cust-riverside-sports",
+          "ida": "cust-riverside-sports",
           "name": "Riverside Sports",
           "email": "usera2a77993@riversidesports.fake",
           "notes": "",
@@ -245751,7 +245751,7 @@
       {
         "id": 64,
         "uuid": "a2f4fe6e-3f8c-4dda-bf5d-5f007b91e727",
-        "ida": "1014-so-qq",
+        "ida": "1014-so",
         "dt_created": 1789273052764,
         "dt_modified": 1789305779930,
         "version": 11,
@@ -245854,7 +245854,7 @@
             "item": [],
             "contact": [],
             "customer": {
-              "ida": "qq-cust-riverside-sports",
+              "ida": "cust-riverside-sports",
               "email": "usera2a77993@riversidesports.fake",
               "phone": "",
               "status": "active",
@@ -245888,7 +245888,7 @@
             "net30",
             "planned",
             "quote",
-            "1014-so-qq",
+            "1014-so",
             "retail",
             "sale",
             "sarah"
@@ -245926,7 +245926,7 @@
         "attention": "Sarah Chen",
         "company": {
           "id": 5604,
-          "ida": "qq-cust-riverside-sports",
+          "ida": "cust-riverside-sports",
           "name": "Evergreen Works 15",
           "email": "pat.brooks.10630@metro.fake",
           "phone": "+15555550177",
@@ -246031,7 +246031,7 @@
       {
         "id": 82,
         "uuid": "41ce0155-9a40-45ff-b5be-3db253e80e19",
-        "ida": "1015-so-qq",
+        "ida": "1015-so",
         "dt_created": 1789443819519,
         "dt_modified": 1790574938437,
         "version": 5,
@@ -246177,7 +246177,7 @@
         "attention": "Bill James",
         "company": {
           "id": 5527,
-          "ida": "qq-5527",
+          "ida": "5527",
           "name": "Oakdale Hardware & Supply",
           "email": "bill@oakdale.fake",
           "notes": "",
@@ -246281,7 +246281,7 @@
       {
         "id": 85,
         "uuid": "51e2d224-b3ab-4bdd-80f7-527c119ac0fc",
-        "ida": "1016-so-qq",
+        "ida": "1016-so",
         "dt_created": 1789494633886,
         "dt_modified": 1789494633914,
         "version": 2,
@@ -246443,7 +246443,7 @@
         "attention": "Dan Keller",
         "company": {
           "id": 5528,
-          "ida": "qq-5528",
+          "ida": "5528",
           "name": "ProBuild Contractors Inc",
           "email": "dan@probuild.fake",
           "notes": "",
@@ -246529,7 +246529,7 @@
       {
         "id": 86,
         "uuid": "67a9491e-24cc-4bc6-af0a-9d6951703d1e",
-        "ida": "1017-so-qq",
+        "ida": "1017-so",
         "dt_created": 1789499858726,
         "dt_modified": 1789499858818,
         "version": 2,
@@ -246697,7 +246697,7 @@
         "attention": "Sarah Chen",
         "company": {
           "id": 5604,
-          "ida": "qq-cust-riverside-sports",
+          "ida": "cust-riverside-sports",
           "name": "Riverside Sports",
           "email": "usera2a77993@riversidesports.fake",
           "notes": "",
@@ -246783,7 +246783,7 @@
       {
         "id": 91,
         "uuid": "95a6d6c7-c2a1-4d75-a0d7-92e0ee51b0af",
-        "ida": "1025-so-qq",
+        "ida": "1025-so",
         "dt_created": 1790276327364,
         "dt_modified": 1790574938499,
         "version": 10,
@@ -247044,7 +247044,7 @@
       {
         "id": 92,
         "uuid": "f9152d02-e6c7-4ff6-b327-c067e046755c",
-        "ida": "1026-so-qq",
+        "ida": "1026-so",
         "dt_created": 1790276391922,
         "dt_modified": 1790574938373,
         "version": 7,
@@ -247433,7 +247433,7 @@
         "attention": null,
         "company": {
           "id": 5527,
-          "ida": "qq-5527",
+          "ida": "5527",
           "name": "Beacon LLC 23",
           "email": "blake.shaw.10697@summit.fake",
           "phone": "+15555550172",
@@ -247626,7 +247626,7 @@
         "attention": null,
         "company": {
           "id": 5527,
-          "ida": "qq-5527",
+          "ida": "5527",
           "name": "Beacon LLC 23",
           "email": "blake.shaw.10697@summit.fake",
           "phone": "+15555550172",
@@ -247819,7 +247819,7 @@
         "attention": null,
         "company": {
           "id": 5527,
-          "ida": "qq-5527",
+          "ida": "5527",
           "name": "Beacon LLC 23",
           "email": "blake.shaw.10697@summit.fake",
           "phone": "+15555550172",
@@ -248012,7 +248012,7 @@
         "attention": null,
         "company": {
           "id": 5527,
-          "ida": "qq-5527",
+          "ida": "5527",
           "name": "Beacon LLC 23",
           "email": "blake.shaw.10697@summit.fake",
           "phone": "+15555550172",
@@ -248157,7 +248157,7 @@
             "item": [],
             "contact": [],
             "customer": {
-              "ida": "qq-5527",
+              "ida": "5527",
               "email": "bill@oakdale.fake",
               "phone": "",
               "status": "active",
@@ -248177,7 +248177,7 @@
           "keywords": [
             "beacon llc 23",
             "bill@oakdale.fake",
-            "qq-5527"
+            "5527"
           ],
           "audit_tag": "audit-fable",
           "categories": [],
@@ -248213,7 +248213,7 @@
         "attention": null,
         "company": {
           "id": 5527,
-          "ida": "qq-5527",
+          "ida": "5527",
           "name": "Beacon LLC 23",
           "email": "blake.shaw.10697@summit.fake",
           "phone": "+15555550172",
@@ -248372,7 +248372,7 @@
             "item": [],
             "contact": [],
             "customer": {
-              "ida": "qq-5527",
+              "ida": "5527",
               "email": "bill@oakdale.fake",
               "phone": "",
               "status": "active",
@@ -248392,7 +248392,7 @@
           "keywords": [
             "beacon llc 23",
             "bill@oakdale.fake",
-            "qq-5527"
+            "5527"
           ],
           "audit_tag": "audit-fable",
           "categories": [],
@@ -248428,7 +248428,7 @@
         "attention": null,
         "company": {
           "id": 5527,
-          "ida": "qq-5527",
+          "ida": "5527",
           "name": "Beacon LLC 23",
           "email": "blake.shaw.10697@summit.fake",
           "phone": "+15555550172",
@@ -266814,7 +266814,7 @@
         "item_fk_id": 649,
         "item": {
           "item_id": 649,
-          "ida_item": "QQBB200-O",
+          "ida_item": "BB200-O",
           "sequence": 0,
           "addresses": [],
           "is_active": true,
@@ -267014,7 +267014,7 @@
         "item_fk_id": null,
         "item": {
           "id": 648,
-          "ida": "QQBB200-F",
+          "ida": "BB200-F",
           "item_id": 648,
           "ida_item": "",
           "sequence": 0,
@@ -267224,7 +267224,7 @@
         "item_fk_id": null,
         "item": {
           "id": 648,
-          "ida": "QQBB200-F",
+          "ida": "BB200-F",
           "item_id": 648,
           "ida_item": "",
           "sequence": 0,
@@ -267502,7 +267502,7 @@
       {
         "id": 68,
         "uuid": "58d194e2-c4c7-4d26-ad78-af1ad9b656ad",
-        "ida": "1001-inv-qq",
+        "ida": "1001-inv",
         "dt_created": 1787381195549,
         "dt_modified": 1789594434500,
         "version": 8,
@@ -267560,7 +267560,7 @@
         "attention": "Bill James",
         "company": {
           "id": 5527,
-          "ida": "qq-5527",
+          "ida": "5527",
           "name": "Oakdale Hardware & Supply",
           "email": "bill@oakdale.fake",
           "notes": "",
@@ -267688,7 +267688,7 @@
               }
             ],
             "customer": {
-              "ida": "qqdemo-CUST-05",
+              "ida": "demo-CUST-05",
               "email": null,
               "phone": null,
               "status": "",
@@ -267803,7 +267803,7 @@
       {
         "id": 69,
         "uuid": "940302d7-bb15-4961-9a33-c2222bd805ae",
-        "ida": "1003-inv-qq",
+        "ida": "1003-inv",
         "dt_created": 1787696855047,
         "dt_modified": 1789594434785,
         "version": 1,
@@ -267858,7 +267858,7 @@
         "attention": "Bill James",
         "company": {
           "id": 5527,
-          "ida": "qq-5527",
+          "ida": "5527",
           "name": "Oakdale Hardware & Supply",
           "email": "bill@oakdale.fake",
           "notes": "",
@@ -268034,7 +268034,7 @@
       {
         "id": 71,
         "uuid": "80fc85eb-ee9f-46be-8a2c-6a318ed45e11",
-        "ida": "1004-inv-qq",
+        "ida": "1004-inv",
         "dt_created": 1787732585368,
         "dt_modified": 1789594435117,
         "version": 1,
@@ -268089,7 +268089,7 @@
         "attention": "Bill James",
         "company": {
           "id": 5527,
-          "ida": "qq-5527",
+          "ida": "5527",
           "name": "Oakdale Hardware & Supply",
           "email": "bill@oakdale.fake",
           "notes": "",
@@ -268275,7 +268275,7 @@
       {
         "id": 72,
         "uuid": "f18fbdd9-d164-48b0-935e-3a3a64ad0862",
-        "ida": "1006-inv-qq",
+        "ida": "1006-inv",
         "dt_created": 1788078185368,
         "dt_modified": 1789594435443,
         "version": 1,
@@ -268330,7 +268330,7 @@
         "attention": "Dan Keller",
         "company": {
           "id": 5528,
-          "ida": "qq-5528",
+          "ida": "5528",
           "name": "ProBuild Contractors Inc",
           "email": "dan@probuild.fake",
           "notes": "",
@@ -268522,7 +268522,7 @@
       {
         "id": 73,
         "uuid": "faeb15f8-f006-4a4e-bc90-73c49c4003b7",
-        "ida": "1005-inv-qq",
+        "ida": "1005-inv",
         "dt_created": 1787991785368,
         "dt_modified": 1789594435728,
         "version": 1,
@@ -268577,7 +268577,7 @@
         "attention": "Pat Mitchell",
         "company": {
           "id": 5529,
-          "ida": "qq-5529",
+          "ida": "5529",
           "name": "Mitchell Residence",
           "email": "pat@mitchell.fake",
           "notes": "",
@@ -268760,7 +268760,7 @@
       {
         "id": 74,
         "uuid": "480453b0-45d8-4168-9d02-992aace45dd8",
-        "ida": "1002-inv-qq",
+        "ida": "1002-inv",
         "dt_created": 1787386985368,
         "dt_modified": 1789594436021,
         "version": 1,
@@ -268815,7 +268815,7 @@
         "attention": "Dan Keller",
         "company": {
           "id": 5528,
-          "ida": "qq-5528",
+          "ida": "5528",
           "name": "ProBuild Contractors Inc",
           "email": "dan@probuild.fake",
           "notes": "",
@@ -269010,7 +269010,7 @@
       {
         "id": 75,
         "uuid": "50d017e4-9ab9-4d83-b92b-7d9588cb5c93",
-        "ida": "1007-inv-qq",
+        "ida": "1007-inv",
         "dt_created": 1788164585368,
         "dt_modified": 1789594436301,
         "version": 13,
@@ -269065,7 +269065,7 @@
         "attention": "Bill James",
         "company": {
           "id": 5527,
-          "ida": "qq-5527",
+          "ida": "5527",
           "name": "Oakdale Hardware & Supply",
           "email": "bill@oakdale.fake",
           "notes": "",
@@ -269271,7 +269271,7 @@
       {
         "id": 76,
         "uuid": "01e01ad9-391b-4a89-a918-d3e6b044acf6",
-        "ida": "1008-inv-qq",
+        "ida": "1008-inv",
         "dt_created": 1788863256214,
         "dt_modified": 1789594436592,
         "version": 8,
@@ -269326,7 +269326,7 @@
         "attention": "Sarah Chen",
         "company": {
           "id": 5604,
-          "ida": "qq-cust-riverside-sports",
+          "ida": "cust-riverside-sports",
           "name": "Riverside Sports",
           "email": "usera2a77993@riversidesports.fake",
           "notes": "",
@@ -269431,7 +269431,7 @@
           "tags": [],
           "links": {
             "customer": {
-              "ida": "qqdemo-CUST-01",
+              "ida": "demo-CUST-01",
               "email": "usera2a77993@riversidesports.fake",
               "phone": "+19185551234",
               "status": "",
@@ -269558,7 +269558,7 @@
       {
         "id": 77,
         "uuid": "a8b91302-e0bf-410e-9569-8e5543ee5271",
-        "ida": "1009-inv-qq",
+        "ida": "1009-inv",
         "dt_created": 1788939052675,
         "dt_modified": 1789594436881,
         "version": 11,
@@ -269616,7 +269616,7 @@
         "attention": "Sarah Chen",
         "company": {
           "id": 5604,
-          "ida": "qq-cust-riverside-sports",
+          "ida": "cust-riverside-sports",
           "name": "Riverside Sports",
           "email": "usera2a77993@riversidesports.fake",
           "notes": "",
@@ -269721,7 +269721,7 @@
           "tags": [],
           "links": {
             "customer": {
-              "ida": "qqdemo-CUST-01",
+              "ida": "demo-CUST-01",
               "email": "usera2a77993@riversidesports.fake",
               "phone": "+19185551234",
               "status": "",
@@ -269849,7 +269849,7 @@
       {
         "id": 78,
         "uuid": "7b908247-65b7-420f-9eb2-082ea7a4600f",
-        "ida": "1010-inv-qq",
+        "ida": "1010-inv",
         "dt_created": 1788941834725,
         "dt_modified": 1789594437179,
         "version": 1,
@@ -269904,7 +269904,7 @@
         "attention": "Sarah Chen",
         "company": {
           "id": 5604,
-          "ida": "qq-cust-riverside-sports",
+          "ida": "cust-riverside-sports",
           "name": "Riverside Sports",
           "email": "usera2a77993@riversidesports.fake",
           "notes": "",
@@ -270082,7 +270082,7 @@
       {
         "id": 79,
         "uuid": "f1e824ff-50c7-422e-b39e-07968e26c302",
-        "ida": "1011-inv-qq",
+        "ida": "1011-inv",
         "dt_created": 1788942148111,
         "dt_modified": 1789594437473,
         "version": 7,
@@ -270138,7 +270138,7 @@
         "attention": "Sarah Chen",
         "company": {
           "id": 5604,
-          "ida": "qq-cust-riverside-sports",
+          "ida": "cust-riverside-sports",
           "name": "Riverside Sports",
           "email": "usera2a77993@riversidesports.fake",
           "notes": "",
@@ -270243,7 +270243,7 @@
           "tags": [],
           "links": {
             "customer": {
-              "ida": "qqdemo-CUST-01",
+              "ida": "demo-CUST-01",
               "email": "usera2a77993@riversidesports.fake",
               "phone": "+19185551234",
               "status": "",
@@ -270372,7 +270372,7 @@
       {
         "id": 96,
         "uuid": "69eacc1a-f3f1-4e41-b4f6-48dc41e684e8",
-        "ida": "1012-inv-qq",
+        "ida": "1012-inv",
         "dt_created": 1789112772905,
         "dt_modified": 1789594437762,
         "version": 10,
@@ -270427,7 +270427,7 @@
         "attention": "Dan Keller",
         "company": {
           "id": 5528,
-          "ida": "qq-5528",
+          "ida": "5528",
           "name": "ProBuild Contractors Inc",
           "email": "dan@probuild.fake",
           "notes": "",
@@ -270539,7 +270539,7 @@
             ],
             "ledger": [],
             "customer": {
-              "ida": "qq-5528",
+              "ida": "5528",
               "email": "dan@probuild.fake",
               "phone": "612-555-0302",
               "status": "active",
@@ -270583,7 +270583,7 @@
             "medium",
             "net30",
             "paid",
-            "1012-inv-qq",
+            "1012-inv",
             "retail",
             "sale"
           ],
@@ -270665,7 +270665,7 @@
       {
         "id": 97,
         "uuid": "57489332-1c2b-46cf-9207-e3fcfa78c8d2",
-        "ida": "1013-inv-qq",
+        "ida": "1013-inv",
         "dt_created": 1789112834083,
         "dt_modified": 1789594438052,
         "version": 7,
@@ -270720,7 +270720,7 @@
         "attention": "Sarah Chen",
         "company": {
           "id": 5604,
-          "ida": "qq-cust-riverside-sports",
+          "ida": "cust-riverside-sports",
           "name": "Riverside Sports",
           "email": "usera2a77993@riversidesports.fake",
           "notes": "",
@@ -270926,7 +270926,7 @@
       {
         "id": 98,
         "uuid": "1a0da33d-7808-41e3-888a-6b0059b2b39e",
-        "ida": "1014-inv-qq",
+        "ida": "1014-inv",
         "dt_created": 1789114570511,
         "dt_modified": 1789594438340,
         "version": 22,
@@ -270981,7 +270981,7 @@
         "attention": "Tom Bradley",
         "company": {
           "id": 5596,
-          "ida": "qq-5596",
+          "ida": "5596",
           "name": "Acme Sporting Goods",
           "email": "tom@acme.fake",
           "notes": "",
@@ -271087,7 +271087,7 @@
           "links": {
             "phone": [],
             "customer": {
-              "ida": "qq-5596",
+              "ida": "5596",
               "email": "tom@acme.fake",
               "phone": "612-555-0101",
               "status": "active",
@@ -271123,7 +271123,7 @@
             "medium",
             "net30",
             "paid",
-            "1014-inv-qq",
+            "1014-inv",
             "sale",
             "tom",
             "wholesale"
@@ -271206,7 +271206,7 @@
       {
         "id": 99,
         "uuid": "d065a4d9-a32b-4265-80ca-6a1a45350c04",
-        "ida": "1015-inv-qq",
+        "ida": "1015-inv",
         "dt_created": 1789115573993,
         "dt_modified": 1789594438629,
         "version": 13,
@@ -271261,7 +271261,7 @@
         "attention": "Mike Rodriguez",
         "company": {
           "id": 5605,
-          "ida": "qq-cust-metro-baseball-acade",
+          "ida": "cust-metro-baseball-acade",
           "name": "Metro Baseball Academy",
           "email": "userbf12c1d5@metrobaseball.fake",
           "notes": "",
@@ -271464,7 +271464,7 @@
       {
         "id": 100,
         "uuid": "e9d8dc0c-69b7-44d0-8dc9-1a30bb671360",
-        "ida": "1016-inv-qq",
+        "ida": "1016-inv",
         "dt_created": 1789115958769,
         "dt_modified": 1789594438921,
         "version": 8,
@@ -271519,7 +271519,7 @@
         "attention": "Tom Parker",
         "company": {
           "id": 5606,
-          "ida": "qq-cust-eastside-little-leag",
+          "ida": "cust-eastside-little-leag",
           "name": "Eastside Little League",
           "email": "user0c978a50@eastsidell.fake",
           "notes": "",
@@ -271742,7 +271742,7 @@
       {
         "id": 101,
         "uuid": "06bfb6a8-3d66-40f1-86cb-4466f7091fc9",
-        "ida": "1017-inv-qq",
+        "ida": "1017-inv",
         "dt_created": 1789160825783,
         "dt_modified": 1789594439203,
         "version": 12,
@@ -271798,7 +271798,7 @@
         "attention": "Bill James",
         "company": {
           "id": 5527,
-          "ida": "qq-5527",
+          "ida": "5527",
           "name": "Oakdale Hardware & Supply",
           "email": "bill@oakdale.fake",
           "notes": "",
@@ -271903,7 +271903,7 @@
           "tags": [],
           "links": {
             "customer": {
-              "ida": "qq5527",
+              "ida": "5527",
               "email": null,
               "phone": null,
               "status": "active",
@@ -272024,7 +272024,7 @@
       {
         "id": 108,
         "uuid": "0ea45b0a-4a24-4351-bce6-871ac37a5aab",
-        "ida": "1024-inv-qq",
+        "ida": "1024-inv",
         "dt_created": 1789945278713,
         "dt_modified": 1789594439487,
         "version": 10,
@@ -272262,7 +272262,7 @@
       {
         "id": 109,
         "uuid": "5adaea32-670d-4beb-a56d-195dd399d36f",
-        "ida": "1025-inv-qq",
+        "ida": "1025-inv",
         "dt_created": 1789945340742,
         "dt_modified": 1789594439771,
         "version": 7,
@@ -272552,7 +272552,7 @@
         "attention": null,
         "company": {
           "id": 5527,
-          "ida": "qq-5527",
+          "ida": "5527",
           "name": "Oakdale Hardware & Supply",
           "email": "bill@oakdale.fake",
           "notes": "",
@@ -272765,7 +272765,7 @@
         "attention": null,
         "company": {
           "id": 5527,
-          "ida": "qq-5527",
+          "ida": "5527",
           "name": "Oakdale Hardware & Supply",
           "email": "bill@oakdale.fake",
           "notes": "",
@@ -272978,7 +272978,7 @@
         "attention": null,
         "company": {
           "id": 5527,
-          "ida": "qq-5527",
+          "ida": "5527",
           "name": "Oakdale Hardware & Supply",
           "email": "bill@oakdale.fake",
           "notes": "",
@@ -273200,7 +273200,7 @@
         "attention": null,
         "company": {
           "id": 5527,
-          "ida": "qq-5527",
+          "ida": "5527",
           "name": "Oakdale Hardware & Supply",
           "email": "bill@oakdale.fake",
           "notes": "",
@@ -273425,7 +273425,7 @@
         "attention": null,
         "company": {
           "id": 5527,
-          "ida": "qq-5527",
+          "ida": "5527",
           "name": "Beacon LLC 23",
           "email": "blake.shaw.10697@summit.fake",
           "phone": "+15555550172",
@@ -273599,7 +273599,7 @@
         "attention": null,
         "company": {
           "id": 5527,
-          "ida": "qq-5527",
+          "ida": "5527",
           "name": "Beacon LLC 23",
           "email": "blake.shaw.10697@summit.fake",
           "phone": "+15555550172",
@@ -273675,7 +273675,7 @@
             "item": [],
             "contact": [],
             "customer": {
-              "ida": "qq-5527",
+              "ida": "5527",
               "email": "bill@oakdale.fake",
               "phone": "",
               "status": "active",
@@ -273704,7 +273704,7 @@
           "keywords": [
             "beacon llc 23",
             "bill@oakdale.fake",
-            "qq-5527"
+            "5527"
           ],
           "audit_tag": "audit-fable",
           "categories": [],
@@ -273851,7 +273851,7 @@
         "attention": null,
         "company": {
           "id": 5527,
-          "ida": "qq-5527",
+          "ida": "5527",
           "name": "Beacon LLC 23",
           "email": "blake.shaw.10697@summit.fake",
           "phone": "+15555550172",
@@ -273924,7 +273924,7 @@
             "item": [],
             "contact": [],
             "customer": {
-              "ida": "qq-5527",
+              "ida": "5527",
               "email": "bill@oakdale.fake",
               "phone": "",
               "status": "active",
@@ -273953,7 +273953,7 @@
           "keywords": [
             "beacon llc 23",
             "bill@oakdale.fake",
-            "qq-5527"
+            "5527"
           ],
           "audit_tag": "audit-fable",
           "categories": [],
@@ -274090,7 +274090,7 @@
         "attention": null,
         "company": {
           "id": 5527,
-          "ida": "qq-5527",
+          "ida": "5527",
           "name": "Beacon LLC 23",
           "email": "blake.shaw.10697@summit.fake",
           "phone": "+15555550172",
@@ -274163,7 +274163,7 @@
             "item": [],
             "contact": [],
             "customer": {
-              "ida": "qq-5527",
+              "ida": "5527",
               "email": "bill@oakdale.fake",
               "phone": "",
               "status": "active",
@@ -274187,7 +274187,7 @@
           "keywords": [
             "beacon llc 23",
             "bill@oakdale.fake",
-            "qq-5527"
+            "5527"
           ],
           "audit_tag": "audit-fable",
           "categories": [],
@@ -274301,7 +274301,7 @@
         "attention": null,
         "company": {
           "id": 5527,
-          "ida": "qq-5527",
+          "ida": "5527",
           "name": "Beacon LLC 23",
           "email": "blake.shaw.10697@summit.fake",
           "phone": "+15555550172",
@@ -274374,7 +274374,7 @@
         "refs": {
           "links": {
             "customer": {
-              "ida": "qq-5527",
+              "ida": "5527",
               "email": "bill@oakdale.fake",
               "phone": "",
               "status": "active",
@@ -274396,7 +274396,7 @@
           "keywords": [
             "beacon llc 23",
             "bill@oakdale.fake",
-            "qq-5527"
+            "5527"
           ],
           "audit_tag": "audit-fable"
         },
@@ -299636,7 +299636,7 @@
         "item_fk_id": 649,
         "item": {
           "item_id": 649,
-          "ida_item": "QQBB200-O",
+          "ida_item": "BB200-O",
           "sequence": 0,
           "addresses": [],
           "is_active": true,
@@ -299835,7 +299835,7 @@
         "item_fk_id": 649,
         "item": {
           "item_id": 649,
-          "ida_item": "QQBB200-O",
+          "ida_item": "BB200-O",
           "sequence": 0,
           "addresses": [],
           "is_active": true,
@@ -300040,7 +300040,7 @@
         "item_fk_id": null,
         "item": {
           "id": 648,
-          "ida": "QQBB200-F",
+          "ida": "BB200-F",
           "item_id": 648,
           "ida_item": "",
           "sequence": 0,
@@ -300245,7 +300245,7 @@
         "item_fk_id": null,
         "item": {
           "id": 648,
-          "ida": "QQBB200-F",
+          "ida": "BB200-F",
           "item_id": 648,
           "ida_item": "",
           "sequence": 0,
@@ -300450,7 +300450,7 @@
         "item_fk_id": null,
         "item": {
           "id": 648,
-          "ida": "QQBB200-F",
+          "ida": "BB200-F",
           "item_id": 648,
           "ida_item": "",
           "sequence": 0,
@@ -300728,7 +300728,7 @@
       {
         "id": 15,
         "uuid": "cc4720ad-9486-42e9-8ba3-6733d644ff0c",
-        "ida": "1002-po-qq",
+        "ida": "1002-po",
         "dt_created": 1787761172079,
         "dt_modified": 1789584992498,
         "version": 3,
@@ -300890,7 +300890,7 @@
         "attention": "Lisa Wang",
         "company": {
           "id": 5607,
-          "ida": "qq-cust-diamond-pro-equipmen",
+          "ida": "cust-diamond-pro-equipmen",
           "name": "Riverside Supplies 82",
           "email": "skyler.shaw.10633@lakeside.fake",
           "phone": "+15555550189",
@@ -300997,7 +300997,7 @@
       {
         "id": 16,
         "uuid": "08d2a4c2-550a-4a3d-8965-9c2ce2b4cc2b",
-        "ida": "1004-po-qq",
+        "ida": "1004-po",
         "dt_created": 1788001080887,
         "dt_modified": 1789859706619,
         "version": 1,
@@ -301141,7 +301141,7 @@
         "attention": "Jim Sawyer",
         "company": {
           "id": 5532,
-          "ida": "qq5532",
+          "ida": "5532",
           "name": "Southern Pine Lumber",
           "email": "sales@southernpine.fake",
           "notes": "",
@@ -301229,7 +301229,7 @@
       {
         "id": 17,
         "uuid": "979c8ba0-e6ca-4305-96e7-1a0ea6e52776",
-        "ida": "1003-po-qq",
+        "ida": "1003-po",
         "dt_created": 1787864006893,
         "dt_modified": 1789859706714,
         "version": 1,
@@ -301389,7 +301389,7 @@
         "attention": "Mark Stanley",
         "company": {
           "id": 5530,
-          "ida": "qq5530",
+          "ida": "5530",
           "name": "Stanley Tools",
           "email": "orders@stanleytools.fake",
           "notes": "",
@@ -301477,7 +301477,7 @@
       {
         "id": 18,
         "uuid": "9271ab7c-c95d-4df6-a731-9e5f58ef12a4",
-        "ida": "1001-po-qq",
+        "ida": "1001-po",
         "dt_created": 1787518406893,
         "dt_modified": 1789859706761,
         "version": 1,
@@ -301634,7 +301634,7 @@
         "attention": "Karen Behr",
         "company": {
           "id": 5531,
-          "ida": "qq5531",
+          "ida": "5531",
           "name": "Behr Paint Co",
           "email": "wholesale@behrpaint.fake",
           "notes": "",
@@ -301722,7 +301722,7 @@
       {
         "id": 19,
         "uuid": "bc6e76e7-a972-46f2-bbdc-95d19b9acb25",
-        "ida": "1005-po-qq",
+        "ida": "1005-po",
         "dt_created": 1788036806893,
         "dt_modified": 1789859706808,
         "version": 1,
@@ -301879,7 +301879,7 @@
         "attention": "Jim Sawyer",
         "company": {
           "id": 5532,
-          "ida": "qq5532",
+          "ida": "5532",
           "name": "Southern Pine Lumber",
           "email": "sales@southernpine.fake",
           "notes": "",
@@ -301967,7 +301967,7 @@
       {
         "id": 20,
         "uuid": "cbdf74d5-0e3e-49e6-bba8-6f60ad15dbae",
-        "ida": "1006-po-qq",
+        "ida": "1006-po",
         "dt_created": 1788382406893,
         "dt_modified": 1790158376961,
         "version": 4,
@@ -302069,7 +302069,7 @@
           "tags": [],
           "links": {
             "vendor": {
-              "ida": "qq5530",
+              "ida": "5530",
               "email": null,
               "phone": "",
               "status": "active",
@@ -302110,7 +302110,7 @@
             "net30",
             "open",
             "purchase",
-            "1006-po-qq",
+            "1006-po",
             "retail"
           ],
           "categories": [],
@@ -302146,7 +302146,7 @@
         "attention": "Mark Stanley",
         "company": {
           "id": 5530,
-          "ida": "qq5530",
+          "ida": "5530",
           "name": "Stanley Tools",
           "email": "orders@stanleytools.fake",
           "notes": "",
@@ -302234,7 +302234,7 @@
       {
         "id": 21,
         "uuid": "b33ed9bf-ebd9-42bb-9a58-8be089f0e2e7",
-        "ida": "1007-po-qq",
+        "ida": "1007-po",
         "dt_created": 1788468806893,
         "dt_modified": 1790720790808,
         "version": 7,
@@ -302334,7 +302334,7 @@
           "tags": [],
           "links": {
             "vendor": {
-              "ida": "qq5530",
+              "ida": "5530",
               "email": "orders@stanleytools.fake",
               "phone": "(860) 555-0400",
               "status": "active",
@@ -302370,7 +302370,7 @@
             "net30",
             "open",
             "purchase",
-            "1007-po-qq",
+            "1007-po",
             "retail",
             "stanley"
           ],
@@ -302407,7 +302407,7 @@
         "attention": "Mark Stanley",
         "company": {
           "id": 5530,
-          "ida": "qq5530",
+          "ida": "5530",
           "name": "Stanley Tools",
           "email": "orders@stanleytools.fake",
           "notes": "",
@@ -302495,7 +302495,7 @@
       {
         "id": 22,
         "uuid": "4677dc2a-afbd-4c0b-ba65-a963b5c48aae",
-        "ida": "1008-po-qq",
+        "ida": "1008-po",
         "dt_created": 1788693649220,
         "dt_modified": 1790548099175,
         "version": 13,
@@ -302579,7 +302579,7 @@
             "item": [],
             "order": {
               "id": 48,
-              "ida": "qq_SO-001"
+              "ida": "SO-001"
             },
             "contact": [],
             "purchase_line": [
@@ -302633,7 +302633,7 @@
         "attention": "Lisa Wang",
         "company": {
           "id": 5533,
-          "ida": "qq5533",
+          "ida": "5533",
           "name": "Diamond Pro Equipment",
           "email": "sales@diamondpro.fake",
           "notes": "",
@@ -302722,7 +302722,7 @@
         "commission": {},
         "flow": {},
         "source": {},
-        "source_name": "BOM explosion from qq_SO-001",
+        "source_name": "BOM explosion from SO-001",
         "actions": {},
         "shipping": {
           "ship_to": {
@@ -302739,7 +302739,7 @@
       {
         "id": 23,
         "uuid": "9a749cab-77fd-4efa-9b70-572e50ab68f5",
-        "ida": "1009-po-qq",
+        "ida": "1009-po",
         "dt_created": 1789246280083,
         "dt_modified": 1789247456541,
         "version": 7,
@@ -302840,7 +302840,7 @@
             "item": [],
             "contact": [],
             "customer": {
-              "ida": "qqdemo-CUST-01",
+              "ida": "demo-CUST-01",
               "email": "usera2a77993@riversidesports.fake",
               "phone": "+19185551234",
               "status": "",
@@ -302917,7 +302917,7 @@
         "attention": "Jim Sawyer",
         "company": {
           "id": 5532,
-          "ida": "qq5532",
+          "ida": "5532",
           "name": "Southern Pine Lumber",
           "email": "sales@southernpine.fake",
           "notes": "",
@@ -303166,7 +303166,7 @@
         "attention": null,
         "company": {
           "id": 5530,
-          "ida": "qq5530",
+          "ida": "5530",
           "name": "Stanley Tools",
           "email": "orders@stanleytools.fake",
           "notes": "",
@@ -303407,7 +303407,7 @@
         "attention": null,
         "company": {
           "id": 5530,
-          "ida": "qq5530",
+          "ida": "5530",
           "name": "Stanley Tools",
           "email": "orders@stanleytools.fake",
           "notes": "",
@@ -303657,7 +303657,7 @@
         "attention": null,
         "company": {
           "id": 5530,
-          "ida": "qq5530",
+          "ida": "5530",
           "name": "Stanley Tools",
           "email": "orders@stanleytools.fake",
           "notes": "",
@@ -303910,7 +303910,7 @@
         "attention": null,
         "company": {
           "id": 5530,
-          "ida": "qq5530",
+          "ida": "5530",
           "name": "Stanley Tools",
           "email": "orders@stanleytools.fake",
           "notes": "",
@@ -304134,7 +304134,7 @@
         "attention": null,
         "company": {
           "id": 5530,
-          "ida": "qq5530",
+          "ida": "5530",
           "name": "Lakeside Partners 71",
           "email": "peyton.zimmerman.10715@harbor.fake",
           "phone": "5555550182",
@@ -304273,7 +304273,7 @@
         "refs": {
           "links": {
             "vendor": {
-              "ida": "qq5530",
+              "ida": "5530",
               "email": "orders@stanleytools.fake",
               "phone": "",
               "status": "active",
@@ -304294,7 +304294,7 @@
           "keywords": [
             "lakeside partners 71",
             "orders@stanleytools.fake",
-            "qq5530"
+            "5530"
           ],
           "audit_tag": "audit-fable"
         },
@@ -304327,7 +304327,7 @@
         "attention": null,
         "company": {
           "id": 5530,
-          "ida": "qq5530",
+          "ida": "5530",
           "name": "Lakeside Partners 71",
           "email": "peyton.zimmerman.10715@harbor.fake",
           "phone": "5555550182",
@@ -304493,7 +304493,7 @@
             "item": [],
             "contact": [],
             "customer": {
-              "ida": "qq-cust-eastside-little-leag",
+              "ida": "cust-eastside-little-leag",
               "email": "user0c978a50@eastsidell.fake",
               "phone": "",
               "status": "active",
@@ -304557,7 +304557,7 @@
         "attention": "Drew Palmer",
         "company": {
           "id": 5606,
-          "ida": "qq-cust-eastside-little-leag",
+          "ida": "cust-eastside-little-leag",
           "name": "Pinnacle Systems 70",
           "email": "lee.burke.10632@acme.fake",
           "phone": "+15555550160",
@@ -317699,7 +317699,7 @@
         "item_fk_id": 649,
         "item": {
           "item_id": 649,
-          "ida_item": "QQBB200-O",
+          "ida_item": "BB200-O",
           "sequence": 0,
           "addresses": [],
           "is_active": true,
@@ -317891,7 +317891,7 @@
         "item_fk_id": null,
         "item": {
           "id": 648,
-          "ida": "QQBB200-F",
+          "ida": "BB200-F",
           "item_id": 648,
           "ida_item": "",
           "sequence": 0,
@@ -320465,7 +320465,7 @@
         "fee_amount": "0.00",
         "company": {
           "id": 5527,
-          "ida": "qq-5527",
+          "ida": "5527",
           "name": "Oakdale Hardware & Supply",
           "email": "bill@oakdale.fake",
           "notes": "",
@@ -320660,7 +320660,7 @@
         "fee_amount": "0.00",
         "company": {
           "id": 5527,
-          "ida": "qq-5527",
+          "ida": "5527",
           "name": "Oakdale Hardware & Supply",
           "email": "bill@oakdale.fake",
           "notes": "",
@@ -320856,7 +320856,7 @@
         "fee_amount": "0.00",
         "company": {
           "id": 5527,
-          "ida": "qq-5527",
+          "ida": "5527",
           "name": "Beacon LLC 23",
           "email": "blake.shaw.10697@summit.fake",
           "phone": "+15555550172",
@@ -321004,7 +321004,7 @@
         "fee_amount": "0.00",
         "company": {
           "id": 5527,
-          "ida": "qq-5527",
+          "ida": "5527",
           "name": "Beacon LLC 23",
           "email": "blake.shaw.10697@summit.fake",
           "phone": "+15555550172",
@@ -321152,7 +321152,7 @@
         "fee_amount": "0.00",
         "company": {
           "id": 5530,
-          "ida": "qq5530",
+          "ida": "5530",
           "name": "Lakeside Partners 71",
           "email": "peyton.zimmerman.10715@harbor.fake",
           "phone": "5555550182",
@@ -321300,7 +321300,7 @@
         "fee_amount": "0.00",
         "company": {
           "id": 5527,
-          "ida": "qq-5527",
+          "ida": "5527",
           "name": "Beacon LLC 23",
           "email": "blake.shaw.10697@summit.fake",
           "phone": "+15555550172",
@@ -321448,7 +321448,7 @@
         "fee_amount": "0.00",
         "company": {
           "id": 5527,
-          "ida": "qq-5527",
+          "ida": "5527",
           "name": "Beacon LLC 23",
           "email": "blake.shaw.10697@summit.fake",
           "phone": "+15555550172",
@@ -321596,7 +321596,7 @@
         "fee_amount": "0.00",
         "company": {
           "id": 5527,
-          "ida": "qq-5527",
+          "ida": "5527",
           "name": "Beacon LLC 23",
           "email": "blake.shaw.10697@summit.fake",
           "phone": "+15555550172",
@@ -321748,7 +321748,7 @@
         "fee_amount": "0.00",
         "company": {
           "id": 5527,
-          "ida": "qq-5527",
+          "ida": "5527",
           "name": "Beacon LLC 23",
           "email": "blake.shaw.10697@summit.fake",
           "phone": "+15555550172",
@@ -321900,7 +321900,7 @@
         "fee_amount": "0.00",
         "company": {
           "id": 5527,
-          "ida": "qq-5527",
+          "ida": "5527",
           "name": "Beacon LLC 23",
           "email": "blake.shaw.10697@summit.fake",
           "phone": "+15555550172",
@@ -322048,7 +322048,7 @@
         "fee_amount": "0.00",
         "company": {
           "id": 5527,
-          "ida": "qq-5527",
+          "ida": "5527",
           "name": "Beacon LLC 23",
           "email": "blake.shaw.10697@summit.fake",
           "phone": "+15555550172",
@@ -322196,7 +322196,7 @@
         "fee_amount": "0.00",
         "company": {
           "id": 5527,
-          "ida": "qq-5527",
+          "ida": "5527",
           "name": "Beacon LLC 23",
           "email": "blake.shaw.10697@summit.fake",
           "phone": "+15555550172",
@@ -322348,7 +322348,7 @@
         "fee_amount": "0.00",
         "company": {
           "id": 5527,
-          "ida": "qq-5527",
+          "ida": "5527",
           "name": "Beacon LLC 23",
           "email": "blake.shaw.10697@summit.fake",
           "phone": "+15555550172",
@@ -322503,7 +322503,7 @@
         "fee_amount": "0.00",
         "company": {
           "id": 5527,
-          "ida": "qq-5527",
+          "ida": "5527",
           "name": "Beacon LLC 23",
           "email": "blake.shaw.10697@summit.fake",
           "phone": "+15555550172",
@@ -322655,7 +322655,7 @@
         "fee_amount": "0.00",
         "company": {
           "id": 5527,
-          "ida": "qq-5527",
+          "ida": "5527",
           "name": "Beacon LLC 23",
           "email": "blake.shaw.10697@summit.fake",
           "phone": "+15555550172",
@@ -322755,7 +322755,7 @@
       {
         "id": 262,
         "uuid": "3664d1e6-088a-4796-9d44-d0a0aab97047",
-        "ida": "audit-fable-ADJ-QQBB200-F",
+        "ida": "audit-fable-ADJ-BB200-F",
         "dt_created": 1789520350506,
         "dt_modified": 1789520350506,
         "version": 1,
@@ -322893,7 +322893,7 @@
       {
         "id": 263,
         "uuid": "4db932f0-b557-4337-b62f-b28611954c9e",
-        "ida": "audit-fable-ADJ-QQBB200-F",
+        "ida": "audit-fable-ADJ-BB200-F",
         "dt_created": 1789520350575,
         "dt_modified": 1789520350575,
         "version": 1,
@@ -323031,7 +323031,7 @@
       {
         "id": 293,
         "uuid": "9674a856-0bc9-4a6f-b6bd-f6688e711316",
-        "ida": "SJ-1001-inv-qq",
+        "ida": "SJ-1001-inv",
         "dt_created": 1789594434202,
         "dt_modified": 1789594434202,
         "version": 1,
@@ -323128,7 +323128,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1001-inv-qq-4000-sales_revenue"
+            "sj-1001-inv-4000-sales_revenue"
           ],
           "categories": [],
           "depends_on": {},
@@ -323165,7 +323165,7 @@
       {
         "id": 294,
         "uuid": "461e726b-bf59-4024-bc65-3dbe4c49db8f",
-        "ida": "SJ-1001-inv-qq",
+        "ida": "SJ-1001-inv",
         "dt_created": 1789594434295,
         "dt_modified": 1789594434295,
         "version": 1,
@@ -323262,7 +323262,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1001-inv-qq-5000-cost_of_goods_sold"
+            "sj-1001-inv-5000-cost_of_goods_sold"
           ],
           "categories": [],
           "depends_on": {},
@@ -323299,7 +323299,7 @@
       {
         "id": 295,
         "uuid": "7b0bc831-8f39-4a45-ba27-4855f2e1d84c",
-        "ida": "SJ-1001-inv-qq",
+        "ida": "SJ-1001-inv",
         "dt_created": 1789594434367,
         "dt_modified": 1789594434367,
         "version": 1,
@@ -323396,7 +323396,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1001-inv-qq-1200-inventory"
+            "sj-1001-inv-1200-inventory"
           ],
           "categories": [],
           "depends_on": {},
@@ -323433,7 +323433,7 @@
       {
         "id": 296,
         "uuid": "9885d90f-6ad9-4ff8-b90b-e24c2e472b63",
-        "ida": "SJ-1001-inv-qq",
+        "ida": "SJ-1001-inv",
         "dt_created": 1789594434435,
         "dt_modified": 1789594434435,
         "version": 1,
@@ -323530,7 +323530,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1001-inv-qq-1100-accounts_receivable"
+            "sj-1001-inv-1100-accounts_receivable"
           ],
           "categories": [],
           "depends_on": {},
@@ -323567,7 +323567,7 @@
       {
         "id": 297,
         "uuid": "2abb86f4-34df-4a05-b29b-66a4ee2a5ed9",
-        "ida": "SJ-1003-inv-qq",
+        "ida": "SJ-1003-inv",
         "dt_created": 1789594434524,
         "dt_modified": 1789594434524,
         "version": 1,
@@ -323664,7 +323664,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1003-inv-qq-4000-sales_revenue"
+            "sj-1003-inv-4000-sales_revenue"
           ],
           "categories": [],
           "depends_on": {},
@@ -323701,7 +323701,7 @@
       {
         "id": 298,
         "uuid": "bbcf1d55-62d6-4bd4-ba47-579fc3678cf5",
-        "ida": "SJ-1003-inv-qq",
+        "ida": "SJ-1003-inv",
         "dt_created": 1789594434590,
         "dt_modified": 1789594434590,
         "version": 1,
@@ -323798,7 +323798,7 @@
             "bbcf1d55-62d6-4bd4-ba47-579fc3678cf5",
             "invoice",
             "sales",
-            "sj-1003-inv-qq-5000-cost_of_goods_sold"
+            "sj-1003-inv-5000-cost_of_goods_sold"
           ],
           "categories": [],
           "depends_on": {},
@@ -323835,7 +323835,7 @@
       {
         "id": 299,
         "uuid": "d5bbcca9-6a51-40f3-a282-113065b18526",
-        "ida": "SJ-1003-inv-qq",
+        "ida": "SJ-1003-inv",
         "dt_created": 1789594434655,
         "dt_modified": 1789594434655,
         "version": 1,
@@ -323932,7 +323932,7 @@
             "d5bbcca9-6a51-40f3-a282-113065b18526",
             "invoice",
             "sales",
-            "sj-1003-inv-qq-1200-inventory"
+            "sj-1003-inv-1200-inventory"
           ],
           "categories": [],
           "depends_on": {},
@@ -323969,7 +323969,7 @@
       {
         "id": 300,
         "uuid": "f45d6d68-7931-479c-af0e-3634a97456d9",
-        "ida": "SJ-1003-inv-qq",
+        "ida": "SJ-1003-inv",
         "dt_created": 1789594434720,
         "dt_modified": 1789594434720,
         "version": 1,
@@ -324066,7 +324066,7 @@
             "f45d6d68-7931-479c-af0e-3634a97456d9",
             "invoice",
             "sales",
-            "sj-1003-inv-qq-1100-accounts_receivable"
+            "sj-1003-inv-1100-accounts_receivable"
           ],
           "categories": [],
           "depends_on": {},
@@ -324103,7 +324103,7 @@
       {
         "id": 301,
         "uuid": "3f3f3d21-4f0d-4769-a78e-364ec2e6ddfb",
-        "ida": "SJ-1004-inv-qq",
+        "ida": "SJ-1004-inv",
         "dt_created": 1789594434811,
         "dt_modified": 1789594434811,
         "version": 1,
@@ -324200,7 +324200,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1004-inv-qq-4000-sales_revenue"
+            "sj-1004-inv-4000-sales_revenue"
           ],
           "categories": [],
           "depends_on": {},
@@ -324237,7 +324237,7 @@
       {
         "id": 302,
         "uuid": "bfd18fda-df51-4122-afba-9f43641c5228",
-        "ida": "SJ-1004-inv-qq",
+        "ida": "SJ-1004-inv",
         "dt_created": 1789594434876,
         "dt_modified": 1789594434876,
         "version": 1,
@@ -324334,7 +324334,7 @@
             "bfd18fda-df51-4122-afba-9f43641c5228",
             "invoice",
             "sales",
-            "sj-1004-inv-qq-5000-cost_of_goods_sold"
+            "sj-1004-inv-5000-cost_of_goods_sold"
           ],
           "categories": [],
           "depends_on": {},
@@ -324371,7 +324371,7 @@
       {
         "id": 303,
         "uuid": "eb057f5e-ce24-4d44-9dc7-f415c21c0e06",
-        "ida": "SJ-1004-inv-qq",
+        "ida": "SJ-1004-inv",
         "dt_created": 1789594434967,
         "dt_modified": 1789594434967,
         "version": 1,
@@ -324468,7 +324468,7 @@
             "eb057f5e-ce24-4d44-9dc7-f415c21c0e06",
             "invoice",
             "sales",
-            "sj-1004-inv-qq-1200-inventory"
+            "sj-1004-inv-1200-inventory"
           ],
           "categories": [],
           "depends_on": {},
@@ -324505,7 +324505,7 @@
       {
         "id": 304,
         "uuid": "8287cee3-7a2b-4d2b-820e-bf01ef437943",
-        "ida": "SJ-1004-inv-qq",
+        "ida": "SJ-1004-inv",
         "dt_created": 1789594435032,
         "dt_modified": 1789594435032,
         "version": 1,
@@ -324602,7 +324602,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1004-inv-qq-1100-accounts_receivable"
+            "sj-1004-inv-1100-accounts_receivable"
           ],
           "categories": [],
           "depends_on": {},
@@ -324639,7 +324639,7 @@
       {
         "id": 305,
         "uuid": "1a0646a9-87e7-461d-b4db-58427504167d",
-        "ida": "SJ-1006-inv-qq",
+        "ida": "SJ-1006-inv",
         "dt_created": 1789594435152,
         "dt_modified": 1789594435152,
         "version": 1,
@@ -324736,7 +324736,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1006-inv-qq-4000-sales_revenue"
+            "sj-1006-inv-4000-sales_revenue"
           ],
           "categories": [],
           "depends_on": {},
@@ -324773,7 +324773,7 @@
       {
         "id": 306,
         "uuid": "6e2f42f6-dfd8-475f-ad90-b57ad4eef380",
-        "ida": "SJ-1006-inv-qq",
+        "ida": "SJ-1006-inv",
         "dt_created": 1789594435217,
         "dt_modified": 1789594435217,
         "version": 1,
@@ -324870,7 +324870,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1006-inv-qq-5000-cost_of_goods_sold"
+            "sj-1006-inv-5000-cost_of_goods_sold"
           ],
           "categories": [],
           "depends_on": {},
@@ -324907,7 +324907,7 @@
       {
         "id": 307,
         "uuid": "f6bd1256-cf26-4e95-9a49-db28071d2ac9",
-        "ida": "SJ-1006-inv-qq",
+        "ida": "SJ-1006-inv",
         "dt_created": 1789594435281,
         "dt_modified": 1789594435281,
         "version": 1,
@@ -325004,7 +325004,7 @@
             "f6bd1256-cf26-4e95-9a49-db28071d2ac9",
             "invoice",
             "sales",
-            "sj-1006-inv-qq-1200-inventory"
+            "sj-1006-inv-1200-inventory"
           ],
           "categories": [],
           "depends_on": {},
@@ -325041,7 +325041,7 @@
       {
         "id": 308,
         "uuid": "9d3e6e62-4aeb-465a-9ee3-0baa5154db9c",
-        "ida": "SJ-1006-inv-qq",
+        "ida": "SJ-1006-inv",
         "dt_created": 1789594435379,
         "dt_modified": 1789594435379,
         "version": 1,
@@ -325138,7 +325138,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1006-inv-qq-1100-accounts_receivable"
+            "sj-1006-inv-1100-accounts_receivable"
           ],
           "categories": [],
           "depends_on": {},
@@ -325175,7 +325175,7 @@
       {
         "id": 309,
         "uuid": "d6b023d9-93c3-412e-aab4-6bb57e5dafee",
-        "ida": "SJ-1005-inv-qq",
+        "ida": "SJ-1005-inv",
         "dt_created": 1789594435464,
         "dt_modified": 1789594435464,
         "version": 1,
@@ -325272,7 +325272,7 @@
             "d6b023d9-93c3-412e-aab4-6bb57e5dafee",
             "invoice",
             "sales",
-            "sj-1005-inv-qq-4000-sales_revenue"
+            "sj-1005-inv-4000-sales_revenue"
           ],
           "categories": [],
           "depends_on": {},
@@ -325309,7 +325309,7 @@
       {
         "id": 310,
         "uuid": "208e7a23-4dc3-4325-974d-c1d068e00d29",
-        "ida": "SJ-1005-inv-qq",
+        "ida": "SJ-1005-inv",
         "dt_created": 1789594435530,
         "dt_modified": 1789594435530,
         "version": 1,
@@ -325406,7 +325406,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1005-inv-qq-5000-cost_of_goods_sold"
+            "sj-1005-inv-5000-cost_of_goods_sold"
           ],
           "categories": [],
           "depends_on": {},
@@ -325443,7 +325443,7 @@
       {
         "id": 311,
         "uuid": "5c08700d-dc07-41cc-8f7e-424895f7c1a7",
-        "ida": "SJ-1005-inv-qq",
+        "ida": "SJ-1005-inv",
         "dt_created": 1789594435595,
         "dt_modified": 1789594435595,
         "version": 1,
@@ -325540,7 +325540,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1005-inv-qq-1200-inventory"
+            "sj-1005-inv-1200-inventory"
           ],
           "categories": [],
           "depends_on": {},
@@ -325577,7 +325577,7 @@
       {
         "id": 312,
         "uuid": "c20b4ae5-38d7-4076-86b0-3987343f0bea",
-        "ida": "SJ-1005-inv-qq",
+        "ida": "SJ-1005-inv",
         "dt_created": 1789594435662,
         "dt_modified": 1789594435662,
         "version": 1,
@@ -325674,7 +325674,7 @@
             "c20b4ae5-38d7-4076-86b0-3987343f0bea",
             "invoice",
             "sales",
-            "sj-1005-inv-qq-1100-accounts_receivable"
+            "sj-1005-inv-1100-accounts_receivable"
           ],
           "categories": [],
           "depends_on": {},
@@ -325711,7 +325711,7 @@
       {
         "id": 313,
         "uuid": "b41d6043-4231-4933-a5a6-dd38153d459a",
-        "ida": "SJ-1002-inv-qq",
+        "ida": "SJ-1002-inv",
         "dt_created": 1789594435759,
         "dt_modified": 1789594435759,
         "version": 1,
@@ -325808,7 +325808,7 @@
             "b41d6043-4231-4933-a5a6-dd38153d459a",
             "invoice",
             "sales",
-            "sj-1002-inv-qq-4000-sales_revenue"
+            "sj-1002-inv-4000-sales_revenue"
           ],
           "categories": [],
           "depends_on": {},
@@ -325845,7 +325845,7 @@
       {
         "id": 314,
         "uuid": "a4065bec-2141-49a9-aec7-4d11038b2d3b",
-        "ida": "SJ-1002-inv-qq",
+        "ida": "SJ-1002-inv",
         "dt_created": 1789594435825,
         "dt_modified": 1789594435825,
         "version": 1,
@@ -325942,7 +325942,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1002-inv-qq-5000-cost_of_goods_sold"
+            "sj-1002-inv-5000-cost_of_goods_sold"
           ],
           "categories": [],
           "depends_on": {},
@@ -325979,7 +325979,7 @@
       {
         "id": 315,
         "uuid": "de84fbc1-d837-424d-af07-3934ff507522",
-        "ida": "SJ-1002-inv-qq",
+        "ida": "SJ-1002-inv",
         "dt_created": 1789594435891,
         "dt_modified": 1789594435891,
         "version": 1,
@@ -326076,7 +326076,7 @@
             "de84fbc1-d837-424d-af07-3934ff507522",
             "invoice",
             "sales",
-            "sj-1002-inv-qq-1200-inventory"
+            "sj-1002-inv-1200-inventory"
           ],
           "categories": [],
           "depends_on": {},
@@ -326113,7 +326113,7 @@
       {
         "id": 316,
         "uuid": "a1b95495-9ecc-40d5-94bd-e5e8411d9625",
-        "ida": "SJ-1002-inv-qq",
+        "ida": "SJ-1002-inv",
         "dt_created": 1789594435955,
         "dt_modified": 1789594435955,
         "version": 1,
@@ -326210,7 +326210,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1002-inv-qq-1100-accounts_receivable"
+            "sj-1002-inv-1100-accounts_receivable"
           ],
           "categories": [],
           "depends_on": {},
@@ -326247,7 +326247,7 @@
       {
         "id": 317,
         "uuid": "1d864d85-8a12-4bbd-a12e-921f0531d4e1",
-        "ida": "SJ-1007-inv-qq",
+        "ida": "SJ-1007-inv",
         "dt_created": 1789594436041,
         "dt_modified": 1789594436041,
         "version": 1,
@@ -326344,7 +326344,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1007-inv-qq-4000-sales_revenue"
+            "sj-1007-inv-4000-sales_revenue"
           ],
           "categories": [],
           "depends_on": {},
@@ -326381,7 +326381,7 @@
       {
         "id": 318,
         "uuid": "243262c2-2f79-4306-bb02-f723957c1225",
-        "ida": "SJ-1007-inv-qq",
+        "ida": "SJ-1007-inv",
         "dt_created": 1789594436106,
         "dt_modified": 1789594436106,
         "version": 1,
@@ -326478,7 +326478,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1007-inv-qq-5000-cost_of_goods_sold"
+            "sj-1007-inv-5000-cost_of_goods_sold"
           ],
           "categories": [],
           "depends_on": {},
@@ -326515,7 +326515,7 @@
       {
         "id": 319,
         "uuid": "0185ed01-6fc4-4e23-bf32-0fcf2c4fad83",
-        "ida": "SJ-1007-inv-qq",
+        "ida": "SJ-1007-inv",
         "dt_created": 1789594436171,
         "dt_modified": 1789594436171,
         "version": 1,
@@ -326612,7 +326612,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1007-inv-qq-1200-inventory"
+            "sj-1007-inv-1200-inventory"
           ],
           "categories": [],
           "depends_on": {},
@@ -326649,7 +326649,7 @@
       {
         "id": 320,
         "uuid": "e0c08a81-83b9-4c6f-83c5-9ef91028198b",
-        "ida": "SJ-1007-inv-qq",
+        "ida": "SJ-1007-inv",
         "dt_created": 1789594436237,
         "dt_modified": 1789594436237,
         "version": 1,
@@ -326746,7 +326746,7 @@
             "e0c08a81-83b9-4c6f-83c5-9ef91028198b",
             "invoice",
             "sales",
-            "sj-1007-inv-qq-1100-accounts_receivable"
+            "sj-1007-inv-1100-accounts_receivable"
           ],
           "categories": [],
           "depends_on": {},
@@ -326783,7 +326783,7 @@
       {
         "id": 321,
         "uuid": "95abe4a0-6371-44a8-8ae3-1a954dde44f9",
-        "ida": "SJ-1008-inv-qq",
+        "ida": "SJ-1008-inv",
         "dt_created": 1789594436333,
         "dt_modified": 1789594436333,
         "version": 1,
@@ -326880,7 +326880,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1008-inv-qq-4000-sales_revenue"
+            "sj-1008-inv-4000-sales_revenue"
           ],
           "categories": [],
           "depends_on": {},
@@ -326917,7 +326917,7 @@
       {
         "id": 322,
         "uuid": "468aaf5d-c908-486c-8c73-827d5dd6a7ea",
-        "ida": "SJ-1008-inv-qq",
+        "ida": "SJ-1008-inv",
         "dt_created": 1789594436399,
         "dt_modified": 1789594436399,
         "version": 1,
@@ -327014,7 +327014,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1008-inv-qq-5000-cost_of_goods_sold"
+            "sj-1008-inv-5000-cost_of_goods_sold"
           ],
           "categories": [],
           "depends_on": {},
@@ -327051,7 +327051,7 @@
       {
         "id": 323,
         "uuid": "534f2029-623f-4bd5-8c45-f0559559abdd",
-        "ida": "SJ-1008-inv-qq",
+        "ida": "SJ-1008-inv",
         "dt_created": 1789594436462,
         "dt_modified": 1789594436462,
         "version": 1,
@@ -327148,7 +327148,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1008-inv-qq-1200-inventory"
+            "sj-1008-inv-1200-inventory"
           ],
           "categories": [],
           "depends_on": {},
@@ -327185,7 +327185,7 @@
       {
         "id": 324,
         "uuid": "825db82b-0957-4a3f-be49-4062472c42a8",
-        "ida": "SJ-1008-inv-qq",
+        "ida": "SJ-1008-inv",
         "dt_created": 1789594436528,
         "dt_modified": 1789594436528,
         "version": 1,
@@ -327282,7 +327282,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1008-inv-qq-1100-accounts_receivable"
+            "sj-1008-inv-1100-accounts_receivable"
           ],
           "categories": [],
           "depends_on": {},
@@ -327319,7 +327319,7 @@
       {
         "id": 325,
         "uuid": "f7a6fab6-ea63-4105-89df-38eacf526b02",
-        "ida": "SJ-1009-inv-qq",
+        "ida": "SJ-1009-inv",
         "dt_created": 1789594436620,
         "dt_modified": 1789594436620,
         "version": 1,
@@ -327416,7 +327416,7 @@
             "f7a6fab6-ea63-4105-89df-38eacf526b02",
             "invoice",
             "sales",
-            "sj-1009-inv-qq-4000-sales_revenue"
+            "sj-1009-inv-4000-sales_revenue"
           ],
           "categories": [],
           "depends_on": {},
@@ -327453,7 +327453,7 @@
       {
         "id": 326,
         "uuid": "4dc22bc9-0913-42b6-ba00-5e1a222660d7",
-        "ida": "SJ-1009-inv-qq",
+        "ida": "SJ-1009-inv",
         "dt_created": 1789594436684,
         "dt_modified": 1789594436684,
         "version": 1,
@@ -327550,7 +327550,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1009-inv-qq-5000-cost_of_goods_sold"
+            "sj-1009-inv-5000-cost_of_goods_sold"
           ],
           "categories": [],
           "depends_on": {},
@@ -327587,7 +327587,7 @@
       {
         "id": 327,
         "uuid": "a0722820-5b15-43ce-8db4-6fb09025e38b",
-        "ida": "SJ-1009-inv-qq",
+        "ida": "SJ-1009-inv",
         "dt_created": 1789594436750,
         "dt_modified": 1789594436750,
         "version": 1,
@@ -327684,7 +327684,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1009-inv-qq-1200-inventory"
+            "sj-1009-inv-1200-inventory"
           ],
           "categories": [],
           "depends_on": {},
@@ -327721,7 +327721,7 @@
       {
         "id": 328,
         "uuid": "7b9cdf0c-3e7b-4760-88a4-7febb95d2b31",
-        "ida": "SJ-1009-inv-qq",
+        "ida": "SJ-1009-inv",
         "dt_created": 1789594436816,
         "dt_modified": 1789594436816,
         "version": 1,
@@ -327818,7 +327818,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1009-inv-qq-1100-accounts_receivable"
+            "sj-1009-inv-1100-accounts_receivable"
           ],
           "categories": [],
           "depends_on": {},
@@ -327855,7 +327855,7 @@
       {
         "id": 329,
         "uuid": "109410d2-b05f-43b4-bb10-509c0dd2890a",
-        "ida": "SJ-1010-inv-qq",
+        "ida": "SJ-1010-inv",
         "dt_created": 1789594436902,
         "dt_modified": 1789594436902,
         "version": 1,
@@ -327952,7 +327952,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1010-inv-qq-4000-sales_revenue"
+            "sj-1010-inv-4000-sales_revenue"
           ],
           "categories": [],
           "depends_on": {},
@@ -327989,7 +327989,7 @@
       {
         "id": 330,
         "uuid": "b671e7d4-e63c-40c8-b136-1ec3d36b2ebc",
-        "ida": "SJ-1010-inv-qq",
+        "ida": "SJ-1010-inv",
         "dt_created": 1789594436969,
         "dt_modified": 1789594436969,
         "version": 1,
@@ -328086,7 +328086,7 @@
             "b671e7d4-e63c-40c8-b136-1ec3d36b2ebc",
             "invoice",
             "sales",
-            "sj-1010-inv-qq-5000-cost_of_goods_sold"
+            "sj-1010-inv-5000-cost_of_goods_sold"
           ],
           "categories": [],
           "depends_on": {},
@@ -328123,7 +328123,7 @@
       {
         "id": 331,
         "uuid": "5bac3a45-181f-4bf4-93ae-1389cceda521",
-        "ida": "SJ-1010-inv-qq",
+        "ida": "SJ-1010-inv",
         "dt_created": 1789594437037,
         "dt_modified": 1789594437037,
         "version": 1,
@@ -328220,7 +328220,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1010-inv-qq-1200-inventory"
+            "sj-1010-inv-1200-inventory"
           ],
           "categories": [],
           "depends_on": {},
@@ -328257,7 +328257,7 @@
       {
         "id": 332,
         "uuid": "2f04e36f-03ef-4f5b-97ed-db94463622be",
-        "ida": "SJ-1010-inv-qq",
+        "ida": "SJ-1010-inv",
         "dt_created": 1789594437112,
         "dt_modified": 1789594437112,
         "version": 1,
@@ -328354,7 +328354,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1010-inv-qq-1100-accounts_receivable"
+            "sj-1010-inv-1100-accounts_receivable"
           ],
           "categories": [],
           "depends_on": {},
@@ -328391,7 +328391,7 @@
       {
         "id": 333,
         "uuid": "e302769d-bcef-434c-bbe4-61b5dd03df8f",
-        "ida": "SJ-1011-inv-qq",
+        "ida": "SJ-1011-inv",
         "dt_created": 1789594437207,
         "dt_modified": 1789594437207,
         "version": 1,
@@ -328488,7 +328488,7 @@
             "e302769d-bcef-434c-bbe4-61b5dd03df8f",
             "invoice",
             "sales",
-            "sj-1011-inv-qq-4000-sales_revenue"
+            "sj-1011-inv-4000-sales_revenue"
           ],
           "categories": [],
           "depends_on": {},
@@ -328525,7 +328525,7 @@
       {
         "id": 334,
         "uuid": "d8d8e6d4-f262-4fd8-bdd6-85cf6c52420d",
-        "ida": "SJ-1011-inv-qq",
+        "ida": "SJ-1011-inv",
         "dt_created": 1789594437273,
         "dt_modified": 1789594437273,
         "version": 1,
@@ -328622,7 +328622,7 @@
             "d8d8e6d4-f262-4fd8-bdd6-85cf6c52420d",
             "invoice",
             "sales",
-            "sj-1011-inv-qq-5000-cost_of_goods_sold"
+            "sj-1011-inv-5000-cost_of_goods_sold"
           ],
           "categories": [],
           "depends_on": {},
@@ -328659,7 +328659,7 @@
       {
         "id": 335,
         "uuid": "3b148afb-62e9-4ca7-98cb-432f42083ae8",
-        "ida": "SJ-1011-inv-qq",
+        "ida": "SJ-1011-inv",
         "dt_created": 1789594437340,
         "dt_modified": 1789594437340,
         "version": 1,
@@ -328756,7 +328756,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1011-inv-qq-1200-inventory"
+            "sj-1011-inv-1200-inventory"
           ],
           "categories": [],
           "depends_on": {},
@@ -328793,7 +328793,7 @@
       {
         "id": 336,
         "uuid": "5fc0c2f9-aee1-43ea-8774-0a0527140722",
-        "ida": "SJ-1011-inv-qq",
+        "ida": "SJ-1011-inv",
         "dt_created": 1789594437407,
         "dt_modified": 1789594437407,
         "version": 1,
@@ -328890,7 +328890,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1011-inv-qq-1100-accounts_receivable"
+            "sj-1011-inv-1100-accounts_receivable"
           ],
           "categories": [],
           "depends_on": {},
@@ -328927,7 +328927,7 @@
       {
         "id": 337,
         "uuid": "7a611a19-e357-416c-9e6b-45d2fc2bbc0f",
-        "ida": "SJ-1012-inv-qq",
+        "ida": "SJ-1012-inv",
         "dt_created": 1789594437500,
         "dt_modified": 1789594437500,
         "version": 1,
@@ -329024,7 +329024,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1012-inv-qq-4000-sales_revenue"
+            "sj-1012-inv-4000-sales_revenue"
           ],
           "categories": [],
           "depends_on": {},
@@ -329061,7 +329061,7 @@
       {
         "id": 338,
         "uuid": "213f8c9a-37e2-471c-84d6-8ae2f59af851",
-        "ida": "SJ-1012-inv-qq",
+        "ida": "SJ-1012-inv",
         "dt_created": 1789594437567,
         "dt_modified": 1789594437567,
         "version": 1,
@@ -329158,7 +329158,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1012-inv-qq-5000-cost_of_goods_sold"
+            "sj-1012-inv-5000-cost_of_goods_sold"
           ],
           "categories": [],
           "depends_on": {},
@@ -329195,7 +329195,7 @@
       {
         "id": 339,
         "uuid": "d2c48471-e81a-4d00-954c-bb7b65bc60dd",
-        "ida": "SJ-1012-inv-qq",
+        "ida": "SJ-1012-inv",
         "dt_created": 1789594437631,
         "dt_modified": 1789594437631,
         "version": 1,
@@ -329292,7 +329292,7 @@
             "d2c48471-e81a-4d00-954c-bb7b65bc60dd",
             "invoice",
             "sales",
-            "sj-1012-inv-qq-1200-inventory"
+            "sj-1012-inv-1200-inventory"
           ],
           "categories": [],
           "depends_on": {},
@@ -329329,7 +329329,7 @@
       {
         "id": 340,
         "uuid": "7089b630-a025-4355-b57d-fd4303944f94",
-        "ida": "SJ-1012-inv-qq",
+        "ida": "SJ-1012-inv",
         "dt_created": 1789594437696,
         "dt_modified": 1789594437696,
         "version": 1,
@@ -329426,7 +329426,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1012-inv-qq-1100-accounts_receivable"
+            "sj-1012-inv-1100-accounts_receivable"
           ],
           "categories": [],
           "depends_on": {},
@@ -329463,7 +329463,7 @@
       {
         "id": 341,
         "uuid": "0ccb48fa-ca74-4649-8f3d-b12b31b13cf7",
-        "ida": "SJ-1013-inv-qq",
+        "ida": "SJ-1013-inv",
         "dt_created": 1789594437792,
         "dt_modified": 1789594437792,
         "version": 1,
@@ -329560,7 +329560,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1013-inv-qq-4000-sales_revenue"
+            "sj-1013-inv-4000-sales_revenue"
           ],
           "categories": [],
           "depends_on": {},
@@ -329597,7 +329597,7 @@
       {
         "id": 342,
         "uuid": "6f74baef-9e4c-4347-afc9-21aa0cd50c16",
-        "ida": "SJ-1013-inv-qq",
+        "ida": "SJ-1013-inv",
         "dt_created": 1789594437858,
         "dt_modified": 1789594437858,
         "version": 1,
@@ -329694,7 +329694,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1013-inv-qq-5000-cost_of_goods_sold"
+            "sj-1013-inv-5000-cost_of_goods_sold"
           ],
           "categories": [],
           "depends_on": {},
@@ -329731,7 +329731,7 @@
       {
         "id": 343,
         "uuid": "c80cdd34-8797-4314-803e-f103b9cda31d",
-        "ida": "SJ-1013-inv-qq",
+        "ida": "SJ-1013-inv",
         "dt_created": 1789594437922,
         "dt_modified": 1789594437922,
         "version": 1,
@@ -329828,7 +329828,7 @@
             "c80cdd34-8797-4314-803e-f103b9cda31d",
             "invoice",
             "sales",
-            "sj-1013-inv-qq-1200-inventory"
+            "sj-1013-inv-1200-inventory"
           ],
           "categories": [],
           "depends_on": {},
@@ -329865,7 +329865,7 @@
       {
         "id": 344,
         "uuid": "fc121581-c045-404e-9b11-33e3aa318d29",
-        "ida": "SJ-1013-inv-qq",
+        "ida": "SJ-1013-inv",
         "dt_created": 1789594437987,
         "dt_modified": 1789594437987,
         "version": 1,
@@ -329962,7 +329962,7 @@
             "fc121581-c045-404e-9b11-33e3aa318d29",
             "invoice",
             "sales",
-            "sj-1013-inv-qq-1100-accounts_receivable"
+            "sj-1013-inv-1100-accounts_receivable"
           ],
           "categories": [],
           "depends_on": {},
@@ -329999,7 +329999,7 @@
       {
         "id": 345,
         "uuid": "6f3df9e6-4ef8-4490-baf1-c62dd2806234",
-        "ida": "SJ-1014-inv-qq",
+        "ida": "SJ-1014-inv",
         "dt_created": 1789594438071,
         "dt_modified": 1789594438071,
         "version": 1,
@@ -330096,7 +330096,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1014-inv-qq-4000-sales_revenue"
+            "sj-1014-inv-4000-sales_revenue"
           ],
           "categories": [],
           "depends_on": {},
@@ -330133,7 +330133,7 @@
       {
         "id": 346,
         "uuid": "7f07ad6b-a702-460e-927a-6a5281fcf392",
-        "ida": "SJ-1014-inv-qq",
+        "ida": "SJ-1014-inv",
         "dt_created": 1789594438138,
         "dt_modified": 1789594438138,
         "version": 1,
@@ -330230,7 +330230,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1014-inv-qq-5000-cost_of_goods_sold"
+            "sj-1014-inv-5000-cost_of_goods_sold"
           ],
           "categories": [],
           "depends_on": {},
@@ -330267,7 +330267,7 @@
       {
         "id": 347,
         "uuid": "5ec5d009-3f46-41bd-a565-50d6d4ce2940",
-        "ida": "SJ-1014-inv-qq",
+        "ida": "SJ-1014-inv",
         "dt_created": 1789594438206,
         "dt_modified": 1789594438206,
         "version": 1,
@@ -330364,7 +330364,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1014-inv-qq-1200-inventory"
+            "sj-1014-inv-1200-inventory"
           ],
           "categories": [],
           "depends_on": {},
@@ -330401,7 +330401,7 @@
       {
         "id": 348,
         "uuid": "feb0cfda-8531-4501-96f5-323c963cf9c5",
-        "ida": "SJ-1014-inv-qq",
+        "ida": "SJ-1014-inv",
         "dt_created": 1789594438273,
         "dt_modified": 1789594438273,
         "version": 1,
@@ -330498,7 +330498,7 @@
             "feb0cfda-8531-4501-96f5-323c963cf9c5",
             "invoice",
             "sales",
-            "sj-1014-inv-qq-1100-accounts_receivable"
+            "sj-1014-inv-1100-accounts_receivable"
           ],
           "categories": [],
           "depends_on": {},
@@ -330535,7 +330535,7 @@
       {
         "id": 349,
         "uuid": "cdaaac4e-8197-4e62-a7d3-380d766272f4",
-        "ida": "SJ-1015-inv-qq",
+        "ida": "SJ-1015-inv",
         "dt_created": 1789594438369,
         "dt_modified": 1789594438369,
         "version": 1,
@@ -330632,7 +330632,7 @@
             "cdaaac4e-8197-4e62-a7d3-380d766272f4",
             "invoice",
             "sales",
-            "sj-1015-inv-qq-4000-sales_revenue"
+            "sj-1015-inv-4000-sales_revenue"
           ],
           "categories": [],
           "depends_on": {},
@@ -330669,7 +330669,7 @@
       {
         "id": 350,
         "uuid": "1f04ced8-2fe8-43fe-82ea-693f78c20d0f",
-        "ida": "SJ-1015-inv-qq",
+        "ida": "SJ-1015-inv",
         "dt_created": 1789594438435,
         "dt_modified": 1789594438435,
         "version": 1,
@@ -330766,7 +330766,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1015-inv-qq-5000-cost_of_goods_sold"
+            "sj-1015-inv-5000-cost_of_goods_sold"
           ],
           "categories": [],
           "depends_on": {},
@@ -330803,7 +330803,7 @@
       {
         "id": 351,
         "uuid": "6f9b49b8-84c6-43a8-a0aa-0009d739ae02",
-        "ida": "SJ-1015-inv-qq",
+        "ida": "SJ-1015-inv",
         "dt_created": 1789594438499,
         "dt_modified": 1789594438499,
         "version": 1,
@@ -330900,7 +330900,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1015-inv-qq-1200-inventory"
+            "sj-1015-inv-1200-inventory"
           ],
           "categories": [],
           "depends_on": {},
@@ -330937,7 +330937,7 @@
       {
         "id": 352,
         "uuid": "21e2559d-4a15-41ef-b755-dc433418cfe1",
-        "ida": "SJ-1015-inv-qq",
+        "ida": "SJ-1015-inv",
         "dt_created": 1789594438563,
         "dt_modified": 1789594438563,
         "version": 1,
@@ -331034,7 +331034,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1015-inv-qq-1100-accounts_receivable"
+            "sj-1015-inv-1100-accounts_receivable"
           ],
           "categories": [],
           "depends_on": {},
@@ -331071,7 +331071,7 @@
       {
         "id": 353,
         "uuid": "a5fea62a-ea2c-4f94-93a0-b695aa9fe1c7",
-        "ida": "SJ-1016-inv-qq",
+        "ida": "SJ-1016-inv",
         "dt_created": 1789594438656,
         "dt_modified": 1789594438656,
         "version": 1,
@@ -331168,7 +331168,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1016-inv-qq-4000-sales_revenue"
+            "sj-1016-inv-4000-sales_revenue"
           ],
           "categories": [],
           "depends_on": {},
@@ -331205,7 +331205,7 @@
       {
         "id": 354,
         "uuid": "0d71dcf6-c946-4836-92d9-5d628c07b655",
-        "ida": "SJ-1016-inv-qq",
+        "ida": "SJ-1016-inv",
         "dt_created": 1789594438722,
         "dt_modified": 1789594438722,
         "version": 1,
@@ -331302,7 +331302,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1016-inv-qq-5000-cost_of_goods_sold"
+            "sj-1016-inv-5000-cost_of_goods_sold"
           ],
           "categories": [],
           "depends_on": {},
@@ -331339,7 +331339,7 @@
       {
         "id": 355,
         "uuid": "9a0d95fe-393f-4700-b486-0d03353d381f",
-        "ida": "SJ-1016-inv-qq",
+        "ida": "SJ-1016-inv",
         "dt_created": 1789594438790,
         "dt_modified": 1789594438790,
         "version": 1,
@@ -331436,7 +331436,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1016-inv-qq-1200-inventory"
+            "sj-1016-inv-1200-inventory"
           ],
           "categories": [],
           "depends_on": {},
@@ -331473,7 +331473,7 @@
       {
         "id": 356,
         "uuid": "2340b644-65c4-489e-ba94-234b8c8e4567",
-        "ida": "SJ-1016-inv-qq",
+        "ida": "SJ-1016-inv",
         "dt_created": 1789594438856,
         "dt_modified": 1789594438856,
         "version": 1,
@@ -331570,7 +331570,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1016-inv-qq-1100-accounts_receivable"
+            "sj-1016-inv-1100-accounts_receivable"
           ],
           "categories": [],
           "depends_on": {},
@@ -331607,7 +331607,7 @@
       {
         "id": 357,
         "uuid": "8a28adee-8154-4acd-b6ce-7efb5cf9fa02",
-        "ida": "SJ-1017-inv-qq",
+        "ida": "SJ-1017-inv",
         "dt_created": 1789594438944,
         "dt_modified": 1789594438944,
         "version": 1,
@@ -331704,7 +331704,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1017-inv-qq-4000-sales_revenue"
+            "sj-1017-inv-4000-sales_revenue"
           ],
           "categories": [],
           "depends_on": {},
@@ -331741,7 +331741,7 @@
       {
         "id": 358,
         "uuid": "e75fa557-bf6b-4d22-bdec-bf559cc7b8af",
-        "ida": "SJ-1017-inv-qq",
+        "ida": "SJ-1017-inv",
         "dt_created": 1789594439009,
         "dt_modified": 1789594439009,
         "version": 1,
@@ -331838,7 +331838,7 @@
             "e75fa557-bf6b-4d22-bdec-bf559cc7b8af",
             "invoice",
             "sales",
-            "sj-1017-inv-qq-5000-cost_of_goods_sold"
+            "sj-1017-inv-5000-cost_of_goods_sold"
           ],
           "categories": [],
           "depends_on": {},
@@ -331875,7 +331875,7 @@
       {
         "id": 359,
         "uuid": "dbe84519-3cfb-4063-92bb-1bc866c43c8c",
-        "ida": "SJ-1017-inv-qq",
+        "ida": "SJ-1017-inv",
         "dt_created": 1789594439074,
         "dt_modified": 1789594439074,
         "version": 1,
@@ -331972,7 +331972,7 @@
             "dbe84519-3cfb-4063-92bb-1bc866c43c8c",
             "invoice",
             "sales",
-            "sj-1017-inv-qq-1200-inventory"
+            "sj-1017-inv-1200-inventory"
           ],
           "categories": [],
           "depends_on": {},
@@ -332009,7 +332009,7 @@
       {
         "id": 360,
         "uuid": "ccc5cd46-096c-488c-8e88-24cac0d2c053",
-        "ida": "SJ-1017-inv-qq",
+        "ida": "SJ-1017-inv",
         "dt_created": 1789594439139,
         "dt_modified": 1789594439139,
         "version": 1,
@@ -332106,7 +332106,7 @@
             "ccc5cd46-096c-488c-8e88-24cac0d2c053",
             "invoice",
             "sales",
-            "sj-1017-inv-qq-1100-accounts_receivable"
+            "sj-1017-inv-1100-accounts_receivable"
           ],
           "categories": [],
           "depends_on": {},
@@ -332143,7 +332143,7 @@
       {
         "id": 361,
         "uuid": "5fd5ece4-7656-4359-9ad6-d783cf01bf94",
-        "ida": "SJ-1024-inv-qq",
+        "ida": "SJ-1024-inv",
         "dt_created": 1789594439220,
         "dt_modified": 1789594439220,
         "version": 1,
@@ -332240,7 +332240,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1024-inv-qq-4000-sales_revenue"
+            "sj-1024-inv-4000-sales_revenue"
           ],
           "categories": [],
           "depends_on": {},
@@ -332277,7 +332277,7 @@
       {
         "id": 362,
         "uuid": "5938fed2-7792-4166-9665-1c9b3845c8f9",
-        "ida": "SJ-1024-inv-qq",
+        "ida": "SJ-1024-inv",
         "dt_created": 1789594439287,
         "dt_modified": 1789594439287,
         "version": 1,
@@ -332374,7 +332374,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1024-inv-qq-5000-cost_of_goods_sold"
+            "sj-1024-inv-5000-cost_of_goods_sold"
           ],
           "categories": [],
           "depends_on": {},
@@ -332411,7 +332411,7 @@
       {
         "id": 363,
         "uuid": "7e6c21aa-0cd8-470f-ac0b-6f545009fea0",
-        "ida": "SJ-1024-inv-qq",
+        "ida": "SJ-1024-inv",
         "dt_created": 1789594439354,
         "dt_modified": 1789594439354,
         "version": 1,
@@ -332508,7 +332508,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1024-inv-qq-1200-inventory"
+            "sj-1024-inv-1200-inventory"
           ],
           "categories": [],
           "depends_on": {},
@@ -332545,7 +332545,7 @@
       {
         "id": 364,
         "uuid": "d8f4a38e-1f25-4c15-915d-e60704ab47c3",
-        "ida": "SJ-1024-inv-qq",
+        "ida": "SJ-1024-inv",
         "dt_created": 1789594439422,
         "dt_modified": 1789594439422,
         "version": 1,
@@ -332642,7 +332642,7 @@
             "d8f4a38e-1f25-4c15-915d-e60704ab47c3",
             "invoice",
             "sales",
-            "sj-1024-inv-qq-1100-accounts_receivable"
+            "sj-1024-inv-1100-accounts_receivable"
           ],
           "categories": [],
           "depends_on": {},
@@ -332679,7 +332679,7 @@
       {
         "id": 365,
         "uuid": "99d172a2-d568-4383-bbd3-6df18e0ac6f7",
-        "ida": "SJ-1025-inv-qq",
+        "ida": "SJ-1025-inv",
         "dt_created": 1789594439510,
         "dt_modified": 1789594439510,
         "version": 1,
@@ -332776,7 +332776,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1025-inv-qq-4000-sales_revenue"
+            "sj-1025-inv-4000-sales_revenue"
           ],
           "categories": [],
           "depends_on": {},
@@ -332813,7 +332813,7 @@
       {
         "id": 366,
         "uuid": "459cb6c5-7db0-4ed8-86b7-e5b70dad6370",
-        "ida": "SJ-1025-inv-qq",
+        "ida": "SJ-1025-inv",
         "dt_created": 1789594439575,
         "dt_modified": 1789594439575,
         "version": 1,
@@ -332910,7 +332910,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1025-inv-qq-5000-cost_of_goods_sold"
+            "sj-1025-inv-5000-cost_of_goods_sold"
           ],
           "categories": [],
           "depends_on": {},
@@ -332947,7 +332947,7 @@
       {
         "id": 367,
         "uuid": "c04c1301-120e-496e-aae0-e51cdd518ca1",
-        "ida": "SJ-1025-inv-qq",
+        "ida": "SJ-1025-inv",
         "dt_created": 1789594439642,
         "dt_modified": 1789594439642,
         "version": 1,
@@ -333044,7 +333044,7 @@
             "c04c1301-120e-496e-aae0-e51cdd518ca1",
             "invoice",
             "sales",
-            "sj-1025-inv-qq-1200-inventory"
+            "sj-1025-inv-1200-inventory"
           ],
           "categories": [],
           "depends_on": {},
@@ -333081,7 +333081,7 @@
       {
         "id": 368,
         "uuid": "8769fbe0-ba57-4b9e-9800-4fb258357b66",
-        "ida": "SJ-1025-inv-qq",
+        "ida": "SJ-1025-inv",
         "dt_created": 1789594439708,
         "dt_modified": 1789594439708,
         "version": 1,
@@ -333178,7 +333178,7 @@
             "automation",
             "invoice",
             "sales",
-            "sj-1025-inv-qq-1100-accounts_receivable"
+            "sj-1025-inv-1100-accounts_receivable"
           ],
           "categories": [],
           "depends_on": {},
@@ -348676,7 +348676,7 @@
       {
         "id": 38,
         "uuid": "712e46c3-1afb-4908-a4b5-baa5464c0e3d",
-        "ida": "qq-touch-10697-3d",
+        "ida": "touch-10697-3d",
         "dt_created": 1787802422477,
         "dt_modified": 1787802422477,
         "version": 1,
@@ -348719,7 +348719,7 @@
       {
         "id": 39,
         "uuid": "7c70e669-7bd1-4c62-801a-455132b45049",
-        "ida": "qq-touch-10697-2d",
+        "ida": "touch-10697-2d",
         "dt_created": 1787888822477,
         "dt_modified": 1787888822477,
         "version": 1,
@@ -348762,7 +348762,7 @@
       {
         "id": 40,
         "uuid": "50b9a1c7-8d79-4722-94fb-2c679a215778",
-        "ida": "qq-touch-10697-1d",
+        "ida": "touch-10697-1d",
         "dt_created": 1787975222477,
         "dt_modified": 1787975222477,
         "version": 1,
@@ -348805,7 +348805,7 @@
       {
         "id": 41,
         "uuid": "3d642952-14e9-4ad2-a360-2abd1b3192ca",
-        "ida": "qq-touch-10699-7d",
+        "ida": "touch-10699-7d",
         "dt_created": 1787456822477,
         "dt_modified": 1787456822477,
         "version": 1,
@@ -348848,7 +348848,7 @@
       {
         "id": 42,
         "uuid": "f4f535b1-c2bd-4293-ae3a-47be48f63b30",
-        "ida": "qq-touch-10699-5d",
+        "ida": "touch-10699-5d",
         "dt_created": 1787629622477,
         "dt_modified": 1787629622477,
         "version": 1,
@@ -348891,7 +348891,7 @@
       {
         "id": 43,
         "uuid": "813389fa-c6eb-4523-97c9-79b7fde7d271",
-        "ida": "qq-touch-10699-3d",
+        "ida": "touch-10699-3d",
         "dt_created": 1787802422477,
         "dt_modified": 1787802422477,
         "version": 1,
@@ -348934,7 +348934,7 @@
       {
         "id": 44,
         "uuid": "9ac85e5e-a9b8-4613-918d-e9c0d1054b9d",
-        "ida": "qq-touch-10698-5d",
+        "ida": "touch-10698-5d",
         "dt_created": 1787629622477,
         "dt_modified": 1787629622477,
         "version": 1,
@@ -348977,7 +348977,7 @@
       {
         "id": 45,
         "uuid": "e1740e10-2bcf-4dd6-9ae2-c1cd56462c0c",
-        "ida": "qq-touch-10698-4d",
+        "ida": "touch-10698-4d",
         "dt_created": 1787716022477,
         "dt_modified": 1787716022477,
         "version": 1,
@@ -349020,7 +349020,7 @@
       {
         "id": 46,
         "uuid": "c69a9905-c25c-44c3-a35e-aa92dff25060",
-        "ida": "qq-touch-10630-10d",
+        "ida": "touch-10630-10d",
         "dt_created": 1787197622477,
         "dt_modified": 1787197622477,
         "version": 1,
@@ -349063,7 +349063,7 @@
       {
         "id": 47,
         "uuid": "c80e0c24-df2d-4860-b5ab-897b58f1d3fe",
-        "ida": "qq-touch-10630-8d",
+        "ida": "touch-10630-8d",
         "dt_created": 1787370422477,
         "dt_modified": 1787370422477,
         "version": 1,
@@ -349106,7 +349106,7 @@
       {
         "id": 48,
         "uuid": "4800dd08-c31e-4178-a86d-a52a38d43c9b",
-        "ida": "qq-touch-10630-6d",
+        "ida": "touch-10630-6d",
         "dt_created": 1787543222477,
         "dt_modified": 1787543222477,
         "version": 1,
@@ -349149,7 +349149,7 @@
       {
         "id": 49,
         "uuid": "2d593753-8192-4718-9c13-706bcc76f11e",
-        "ida": "qq-touch-10693-4d",
+        "ida": "touch-10693-4d",
         "dt_created": 1787716022477,
         "dt_modified": 1787716022477,
         "version": 1,
@@ -349192,7 +349192,7 @@
       {
         "id": 50,
         "uuid": "9f1745e1-9493-4c5b-bd73-85eaabce68dd",
-        "ida": "qq-touch-10693-3d",
+        "ida": "touch-10693-3d",
         "dt_created": 1787802422477,
         "dt_modified": 1787802422477,
         "version": 1,
@@ -349235,7 +349235,7 @@
       {
         "id": 51,
         "uuid": "50de1ab5-b080-429f-86aa-f96f3ce4c864",
-        "ida": "qq-touch-10633-14d",
+        "ida": "touch-10633-14d",
         "dt_created": 1786852022477,
         "dt_modified": 1786852022477,
         "version": 1,
@@ -349278,7 +349278,7 @@
       {
         "id": 52,
         "uuid": "ce0f9b62-6c2f-4a35-93bb-0e12863828f6",
-        "ida": "qq-touch-10633-10d",
+        "ida": "touch-10633-10d",
         "dt_created": 1787197622477,
         "dt_modified": 1787197622477,
         "version": 1,
