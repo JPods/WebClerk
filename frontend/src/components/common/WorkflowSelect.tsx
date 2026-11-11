@@ -6,6 +6,7 @@
  * if needed) or opens a dialog for complex actions.
  */
 import React, { useCallback, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useDispatch } from 'react-redux';
 import { showToast } from '@/store/slices/toastSlice';
 
@@ -52,7 +53,7 @@ const ACTION_CONFIGS: Record<string, ActionDef[]> = {
   ],
   purchase: [
     { key: 'convert_to_receipt', label: 'To Receipt', command: 'convert',
-      confirm: 'Plan a receipt for everything left on this purchase? Review it, then Receive it.',
+      confirm: 'Receive what is left on this purchase?',
       params: () => ({ to: 'receipt' }) },
     { key: 'create_serial_on_receive', label: 'Create Serial', needsDialog: true },
   ],
@@ -110,6 +111,29 @@ async function callManage(action: string, params: Record<string, unknown>): Prom
   return res.data?.data;
 }
 
+/** One source line offered to a conversion: what is left, and how much of it to take. */
+interface ConvertRow { line_id: number; label: string; left: number; qty: string }
+
+/** The lines a conversion can take: saved, not removed, with something left. */
+export function convertRows(record: any): ConvertRow[] {
+  return (Array.isArray(record?.lines) ? record.lines : [])
+    .filter((l: any) => l && l.id && !l._removed && !l._new && l.line_type !== 'discount')
+    .map((l: any) => {
+      const left = Number(l.quantity?.remaining ?? 0) || 0;
+      const item = l.item || {};
+      return { line_id: l.id, left, qty: String(left),
+               label: [item.ida_item, item.description].filter(Boolean).join(' — ') || `line ${l.line_number ?? l.id}` };
+    })
+    .filter((r: ConvertRow) => r.left > 0);
+}
+
+/** The `lines` a conversion sends: nothing when every quantity is what is left (the server
+ *  takes everything left, as before); otherwise each line with a quantity above 0. */
+export function convertLines(rows: ConvertRow[]): { line_id: number; qty: number }[] | null {
+  if (rows.every((r) => Number(r.qty) === r.left)) return null;
+  return rows.map((r) => ({ line_id: r.line_id, qty: Number(r.qty) || 0 })).filter((r) => r.qty > 0);
+}
+
 interface WorkflowSelectProps {
   modelName: string;
   record?: any;
@@ -119,7 +143,39 @@ interface WorkflowSelectProps {
 const WorkflowSelect: React.FC<WorkflowSelectProps> = ({ modelName, record, onComplete }) => {
   const dispatch = useDispatch();
   const [loading, setLoading] = useState(false);
+  // A conversion asks its quantities first (Bill, 2026-11-11): one save at the number meant.
+  const [asking, setAsking] = useState<{ action: ActionDef; rows: ConvertRow[] } | null>(null);
   const actions = ACTION_CONFIGS[modelName] || [];
+
+  const run = useCallback(async (action: ActionDef, extra: Record<string, unknown> = {}) => {
+    try {
+      setLoading(true);
+      const params = { ...(action.params ? action.params(record || {}) : {}), ...extra };
+      const result = action.command
+        ? await callCommand(modelName, record.id, action.command, params)
+        : await callManage(action.key, params);
+      // The server's coaching rides on the result (a purchase born without a vendor, 2026-11-08).
+      const notes = Array.isArray(result?.messages) ? result.messages.filter(Boolean) : [];
+      dispatch(showToast({ message: [`${action.label} completed`, ...notes].join('. '), type: 'success' }));
+      onComplete?.({ ...result, _action: action.key });
+    } catch (err: any) {
+      dispatch(showToast({ message: err?.response?.data?.message || err?.message || `${action.label} failed`, type: 'error' }));
+    } finally {
+      setLoading(false);
+    }
+  }, [record, modelName, dispatch, onComplete]);
+
+  const confirmAsked = useCallback(() => {
+    if (!asking) return;
+    const lines = convertLines(asking.rows);
+    if (lines && !lines.length) {
+      dispatch(showToast({ message: 'Enter a quantity above 0 on at least one line.', type: 'info' }));
+      return;
+    }
+    const { action } = asking;
+    setAsking(null);
+    void run(action, lines ? { lines } : {});
+  }, [asking, run, dispatch]);
 
   const handleChange = useCallback(async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const key = e.target.value;
@@ -134,30 +190,65 @@ const WorkflowSelect: React.FC<WorkflowSelectProps> = ({ modelName, record, onCo
       return;
     }
 
+    if (action.command === 'convert') {
+      // The lines and what is left of each, editable; Enter takes them as shown. A record
+      // loaded without its lines falls back to the plain question.
+      const rows = convertRows(record);
+      if (rows.length) { setAsking({ action, rows }); return; }
+    }
     if (action.confirm && !confirm(action.confirm)) return;
     // Destructive actions require a second confirmation
     if (action.key === 'complete_order' && !confirm('CONFIRM: This will lock the order. Proceed?')) return;
-
-    try {
-      setLoading(true);
-      const params = action.params ? action.params(record || {}) : {};
-      const result = action.command
-        ? await callCommand(modelName, record.id, action.command, params)
-        : await callManage(action.key, params);
-      // The server's coaching rides on the result (a purchase born without a vendor, 2026-11-08).
-      const notes = Array.isArray(result?.messages) ? result.messages.filter(Boolean) : [];
-      dispatch(showToast({ message: [`${action.label} completed`, ...notes].join('. '), type: 'success' }));
-      onComplete?.({ ...result, _action: action.key });
-    } catch (err: any) {
-      dispatch(showToast({ message: err?.response?.data?.message || err?.message || `${action.label} failed`, type: 'error' }));
-    } finally {
-      setLoading(false);
-    }
-  }, [actions, record, modelName, dispatch, onComplete]);
+    await run(action);
+  }, [actions, record, dispatch, run]);
 
   if (!actions.length) return null;
 
   return (
+    <>
+    {asking && createPortal(
+      <div data-wc="convert-ask" role="dialog" aria-label={asking.action.label}
+        style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(0,0,0,0.35)',
+                 display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '12vh' }}
+        onKeyDown={(e) => { if (e.key === 'Escape') setAsking(null); }}>
+        <form onSubmit={(e) => { e.preventDefault(); confirmAsked(); }}
+          style={{ background: 'var(--db-surface, #fff)', color: 'var(--db-text, #212529)',
+                   border: '1px solid var(--db-border, #dee2e6)', borderRadius: 6, padding: 16,
+                   minWidth: 420, maxWidth: '90vw', maxHeight: '70vh', overflow: 'auto', fontSize: 13 }}>
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>{asking.action.label}</div>
+          <div style={{ color: 'var(--db-text-dim, #6c757d)', marginBottom: 10 }}>
+            {asking.action.confirm} Change a quantity to take less; 0 leaves the line out.
+          </div>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead><tr>
+              <th style={{ textAlign: 'right', width: 90, padding: '2px 6px' }}>Qty</th>
+              <th style={{ textAlign: 'right', width: 70, padding: '2px 6px' }}>Left</th>
+              <th style={{ textAlign: 'left', padding: '2px 6px' }}>Item</th>
+            </tr></thead>
+            <tbody>
+              {asking.rows.map((r, i) => (
+                <tr key={r.line_id}>
+                  <td style={{ padding: '2px 6px', textAlign: 'right' }}>
+                    <input type="text" inputMode="decimal" value={r.qty} autoFocus={i === 0}
+                      onFocus={(e) => e.currentTarget.select()}
+                      onChange={(e) => setAsking({ ...asking, rows: asking.rows.map((x) =>
+                        x.line_id === r.line_id ? { ...x, qty: e.target.value.replace(/[^0-9.]/g, '') } : x) })}
+                      className="db-input" style={{ width: 72, textAlign: 'right', fontSize: 'inherit' }} />
+                  </td>
+                  <td style={{ padding: '2px 6px', textAlign: 'right' }}>{r.left.toLocaleString()}</td>
+                  <td style={{ padding: '2px 6px' }}>{r.label}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 12 }}>
+            <button type="button" onClick={() => setAsking(null)} className="px-3 py-1 rounded"
+              style={{ border: '1px solid var(--db-border, #dee2e6)', fontSize: 'inherit' }}>Cancel</button>
+            <button type="submit" className="px-3 py-1 rounded font-medium text-white bg-green-600 hover:bg-green-700"
+              style={{ fontSize: 'inherit' }}>{asking.action.label}</button>
+          </div>
+        </form>
+      </div>, document.body)}
     <select
       onChange={handleChange}
       disabled={loading || !record?.id}
@@ -174,6 +265,7 @@ const WorkflowSelect: React.FC<WorkflowSelectProps> = ({ modelName, record, onCo
         <option key={a.key} value={a.key}>{a.label}</option>
       ))}
     </select>
+    </>
   );
 };
 
