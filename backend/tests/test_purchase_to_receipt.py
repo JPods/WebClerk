@@ -311,3 +311,20 @@ def test_lines_sent_to_a_model_without_lines_are_refused_not_dropped(admin_clien
     assert b'lines_not_accepted' in r.content
     item.refresh_from_db()
     assert item.name == 'No lines here'
+
+
+def test_a_saved_planned_receipt_says_what_is_not_yet_received(admin_client):
+    """Bill, 2026-11-11: he planned 5, saved, and looked for them in on_hand. The save says the
+    goods wait for Receive; once received it says nothing."""
+    a = _item('Widget')
+    po, (pa,) = _po((a, 7, PO_COST))
+    receipt_id = _data(_convert(admin_client, po.pk, {'lines': [{'line_id': pa.pk, 'qty': 5}]}))['receipt_id']
+    r = admin_client.put(f'/wcapi/receipt/{receipt_id}/', {'comments': {'notes': 'at the dock'}},
+                         content_type='application/json')
+    assert r.status_code == 200, r.content
+    assert any('5 planned on this receipt and not yet received' in m for m in r.json()['data'].get('messages', [])), r.json()
+    assert _stock(a)[0] == 0
+    assert _receive(admin_client, receipt_id).status_code == 200
+    r = admin_client.put(f'/wcapi/receipt/{receipt_id}/', {'comments': {'notes': 'shelved'}},
+                         content_type='application/json')
+    assert not any('not yet received' in m for m in r.json()['data'].get('messages', [])), r.json()
