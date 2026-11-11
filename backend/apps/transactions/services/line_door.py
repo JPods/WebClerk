@@ -420,6 +420,10 @@ def post_line_change(line, *, deleted: bool = False) -> None:
         # moves the one the line already has.
         layer = _receipt_layer(line, header, create=not getattr(line, 'inventory_layer_id', None))
 
+    # 'line added' only for a line never saved before (no loaded snapshot). A saved line whose
+    # footprint was empty — a parent reopened by a cut child, remaining 0 → 5 — is a change
+    # (FAULT 20261109T193641).
+    never_saved = getattr(line, '_loaded', None) is None
     reason = (line.line_type if correction and not deleted
-              else 'line deleted' if deleted else ('line added' if not before else 'line changed'))
+              else 'line deleted' if deleted else ('line added' if never_saved else 'line changed'))
     _write(line, item_id, deltas, reason=reason, layer=layer)

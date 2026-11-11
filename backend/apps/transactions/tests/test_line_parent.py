@@ -202,3 +202,32 @@ class TestReadsNeverWrite:
         assert parent_quantities(inv) == {"parent_active": 10.0, "parent_remaining": 4.0}
         order_line.refresh_from_db()
         assert parent_quantities(order_line) is None  # standalone: no parent
+
+
+@pytest.mark.django_db
+class TestReopenedParentPendingReason:
+    """FAULT 20261109T193641: cutting a converted order line reopened its quote line's remaining
+    (0 → 5), and the quote line's Pending read 'line added'. The quote line was saved long before;
+    only a line never saved before is an added line."""
+
+    def test_cut_order_line_labels_quote_pending_line_changed(self, item):
+        from apps.core.models import Pending
+
+        quote = Quote.objects.create(status="draft")
+        ql = QuoteLine.objects.create(quote=quote, item_fk=item, quantity={"active": 15})
+        order = Order.objects.create(status="draft")
+        ol = OrderLine.objects.create(
+            order=order, item_fk=item, quantity={"active": 15},
+            refs={"source": {"quote_line_id": ql.pk}},
+        )
+        assert _q(ql)["remaining"] == 0
+
+        ol.quantity = {**ol.quantity, "active": 10}
+        ol.save()
+        assert _q(ql)["remaining"] == 5
+
+        pendings = Pending.objects.filter(config__line_model="quoteline", config__line_id=ql.pk)
+        first, last = pendings.order_by("id").first(), pendings.order_by("id").last()
+        assert first.changes["reason"] == "line added"       # the quote line's own creation
+        assert last.changes.get("on_qt") == 5
+        assert last.changes["reason"] == "line changed"
