@@ -248,6 +248,16 @@ export function TransactionItemSearch({
             style={{ fontSize: 'inherit' }}>Add</button>
         );
       } },
+    // Quantity sits beside Add: type the number, click Add, with almost no mouse travel (Bill, 2026-11-11).
+    { key: 'quantity', label: 'Qty', align: 'right', width: 80, render: (item) => {
+        const itemKey = resolveItemKey(item);
+        return (
+          <input type="text" inputMode="decimal" value={(quantities[itemKey] ?? defaultQuantity) || ""}
+            onClick={(e) => e.stopPropagation()}
+            onChange={(event) => handleQuantityChange(itemKey, event.target.value)}
+            className="db-input" style={{ width: 64, textAlign: 'right', fontSize: 'inherit' }} />
+        );
+      } },
     { key: 'image', label: '', width: 44, render: (item) => resolveItemCode(item) ? (
         <img src={`/wcapi/_image/item/${encodeURIComponent(resolveItemCode(item))}/tn.jpg`} alt=""
           className="w-8 h-8 rounded object-cover" loading="lazy"
@@ -264,15 +274,6 @@ export function TransactionItemSearch({
         <span title={otherFigure(item)}>{getUnitValue(item) === null ? "…"
           : formatCell(getUnitValue(item), 'price', { type: 'currency' })}</span>
       ) },
-    { key: 'quantity', label: 'Quantity', align: 'right', width: 110, render: (item) => {
-        const itemKey = resolveItemKey(item);
-        return (
-          <input type="text" inputMode="decimal" value={(quantities[itemKey] ?? defaultQuantity) || ""}
-            onClick={(e) => e.stopPropagation()}
-            onChange={(event) => handleQuantityChange(itemKey, event.target.value)}
-            className="db-input" style={{ width: 90, textAlign: 'right', fontSize: 'inherit' }} />
-        );
-      } },
   ];
 
   return (
