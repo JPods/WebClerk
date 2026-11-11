@@ -69,7 +69,7 @@ def recorder():
     register('item', ModelBehaviour())
 
 
-def _item(ida='zz-verb-1', **extra):
+def _item(ida='t-verb-1', **extra):
     return save_record(Actor.system(), {'model_name': 'item', 'name': 'Verb', 'ida': ida,
                                         **extra}).obj
 
@@ -106,7 +106,7 @@ def test_the_five_steps_run_in_order(registry):
                                  'after': [{'set': {'metadata.review.post': 'user after'}}]})
     register('item', Order())
     try:
-        item = _item('zz-verb-order')
+        item = _item('t-verb-order')
     finally:
         register('item', ModelBehaviour())
 
@@ -122,16 +122,16 @@ def test_a_user_before_hook_refuses_after_the_code_hook_ran(registry, recorder):
     user_hook('RPT-PRE', {'point': 'item.save_pre',
                           'before': [{'block': 'Items are frozen this week.'}]})
     with pytest.raises(Refused) as caught:
-        _item('zz-verb-frozen')
+        _item('t-verb-frozen')
     assert caught.value.code == 'hook_blocked'
     assert recorder == ['code before'], 'code before ran; nothing after the refusal did'
 
     from apps.products.models import Item
-    assert not Item.objects.filter(ida='zz-verb-frozen').exists()
+    assert not Item.objects.filter(ida='t-verb-frozen').exists()
 
 
 def test_after_hooks_run_only_when_the_base_succeeded(registry, recorder):
-    item = _item('zz-verb-del')
+    item = _item('t-verb-del')
     recorder.clear()
     user_hook('RPT-DEL', {'point': 'item.delete_pre', 'before': [{'block': 'Keep it.'}]})
     with pytest.raises(Refused):
@@ -140,7 +140,7 @@ def test_after_hooks_run_only_when_the_base_succeeded(registry, recorder):
 
 
 def test_delete_runs_the_same_structure(registry, recorder):
-    item = _item('zz-verb-del2')
+    item = _item('t-verb-del2')
     recorder.clear()
     result = delete_record(Actor.system(), 'item', item.pk)
     assert result.deleted
@@ -178,7 +178,7 @@ def test_the_old_report_made_inactive_frees_the_slot(registry):
 def test_when_changed_fires_on_a_real_change_only(registry):
     user_hook('RPT-CHG', {'point': 'item.save_post', 'after': [
         {'when_changed': 'name', 'set': {'metadata.review.renamed': True}}]})
-    item = _item('zz-verb-chg')
+    item = _item('t-verb-chg')
     Item = type(item)
     Item.objects.filter(pk=item.pk).update(metadata={})
 
@@ -200,7 +200,7 @@ def test_an_unknown_verb_is_refused():
 
 
 def test_run_reaches_the_base_service():
-    result = verbs.run(Actor.system(), 'save', 'item', {'name': 'Via run', 'ida': 'zz-verb-run'})
+    result = verbs.run(Actor.system(), 'save', 'item', {'name': 'Via run', 'ida': 't-verb-run'})
     assert result.created and result.model_key == 'item'
 
 
@@ -235,7 +235,7 @@ def test_after_hooks_start_from_what_derived_work_wrote():
 
     register('item', Deriving())
     try:
-        item = _item('zz-verb-derived')
+        item = _item('t-verb-derived')
     finally:
         register('item', ModelBehaviour())
     assert seen['name'] == 'Derived'
@@ -246,7 +246,7 @@ def test_after_hooks_start_from_what_derived_work_wrote():
 def test_when_changed_sees_json_fields(registry):
     user_hook('RPT-JSON', {'point': 'item.save_post', 'after': [
         {'when_changed': 'comments', 'set': {'metadata.review.config_changed': True}}]})
-    item = _item('zz-verb-json')
+    item = _item('t-verb-json')
     type(item).objects.filter(pk=item.pk).update(metadata={})
     save_record(Actor.system(), {'model_name': 'item', 'id': item.pk,
                                  'comments': {'mode': 'update', 'value': {'notes': 'red'}}})
@@ -261,7 +261,7 @@ def test_after_delete_hooks_know_which_record_went():
         def after_delete(self, ctx: HookContext) -> None:
             seen['id'] = ctx.obj.id
 
-    item = _item('zz-verb-gone')
+    item = _item('t-verb-gone')
     register('item', Watcher())
     try:
         delete_record(Actor.system(), 'item', item.pk)
@@ -285,13 +285,13 @@ def test_a_failing_after_hook_keeps_the_save_and_opens_one_critical_action():
     register('item', Broken())
     try:
         first = save_record(Actor.system(), {'model_name': 'item', 'name': 'Kept',
-                                             'ida': 'zz-verb-broken'})
+                                             'ida': 't-verb-broken'})
         save_record(Actor.system(), {'model_name': 'item', 'name': 'Kept again',
-                                     'ida': 'zz-verb-broken-2'})
+                                     'ida': 't-verb-broken-2'})
     finally:
         register('item', ModelBehaviour())
 
-    item = Item.objects.get(ida='zz-verb-broken')
+    item = Item.objects.get(ida='t-verb-broken')
     assert item.name == 'Kept', "the save stands; what the failing hook wrote is rolled back"
     assert any('the hook is broken' in m for m in first.messages)
     faults = Action.objects.filter(refs__hook_fault__key='item.save_post:code')
@@ -311,9 +311,9 @@ def test_a_failing_user_after_hook_keeps_the_save_and_rolls_back_what_it_wrote(r
         'after': [{'set': {'metadata.review.ok': True}}, {'set': {'name': 'not allowed'}}]}})
 
     result = save_record(Actor.system(), {'model_name': 'item', 'name': 'Kept',
-                                          'ida': 'zz-verb-user-broken'})
+                                          'ida': 't-verb-user-broken'})
     save_record(Actor.system(), {'model_name': 'item', 'name': 'Kept too',
-                                 'ida': 'zz-verb-user-broken-2'})
+                                 'ida': 't-verb-user-broken-2'})
 
     item = result.obj
     item.refresh_from_db()
@@ -333,7 +333,7 @@ def test_a_hook_made_record_runs_its_own_hook_once_and_no_deeper(registry):
                                'after': [{'create_action': {'name': 'from item'}}]})
     user_hook('RPT-ACT-ACT', {'point': 'action.save_post',
                               'after': [{'create_action': {'name': 'from action'}}]})
-    item = _item('zz-verb-depth')
+    item = _item('t-verb-depth')
 
     made = Action.objects.filter(refs__source__isnull=False)
     from_item = made.filter(refs__source__model='item', refs__source__id=item.pk)
@@ -355,7 +355,7 @@ def test_a_non_slot_point_may_hold_more_than_one_report(registry):
 
 
 def test_user_hooks_run_on_delete_after_the_record_is_gone(registry):
-    item = _item('zz-verb-del-post')
+    item = _item('t-verb-del-post')
     user_hook('RPT-DEL-POST', {'point': 'item.delete_post',
                                'after': [{'set': {'metadata.review.gone': True}}]})
     seen = {}
@@ -378,10 +378,10 @@ def test_user_hooks_run_on_delete_after_the_record_is_gone(registry):
 
 def test_a_command_reads_as_an_actor_with_no_request():
     from apps.core.services.get import read
-    item = _item('zz-verb-read')
+    item = _item('t-verb-read')
     one = read(Actor.system(), 'item', item.pk)
     assert (one.get('record') or one).get('id') == item.pk
-    many = read(Actor.system(), 'item', params={'search': 'zz-verb-read'})
+    many = read(Actor.system(), 'item', params={'search': 't-verb-read'})
     assert any(r.get('id') == item.pk for r in many.get('results', []))
 
 
@@ -397,7 +397,7 @@ def test_get_runs_the_hooks_around_the_read(recorder):
             seen.append('after get')
             ctx.data['result']['stamped'] = True
 
-    item = _item('zz-verb-hooked')
+    item = _item('t-verb-hooked')
     register('item', Reader())
     try:
         result = read(Actor.system(), 'item', item.pk)
@@ -421,7 +421,7 @@ def test_the_rest_channel_reads_through_the_verb(client, django_user_model):
         def after_get(self, ctx: HookContext) -> None:
             ctx.data['result']['stamped'] = True
 
-    item = Item.objects.create(ida='zz-verb-rest', name='Rest', security_level=1)
+    item = Item.objects.create(ida='t-verb-rest', name='Rest', security_level=1)
     admin = django_user_model.objects.create_user(email='rest-admin@test.com', password='x',
                                                   username='', role='admin')
     client.force_login(admin)

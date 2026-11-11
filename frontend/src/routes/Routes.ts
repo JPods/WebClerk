@@ -38,7 +38,6 @@
   static readonly jsonTree: string = "/json-tree";
   static readonly commerceDashboard: string = "/commerce";
   static readonly accountingDashboard: string = "/accounting";
-  static readonly aliceTraining: string = "/training";
   static readonly flightSimulator: string = "/flight-simulator";
   static readonly defaults: string = "/defaults";
   static readonly journalize: string = "/journalize/:model";

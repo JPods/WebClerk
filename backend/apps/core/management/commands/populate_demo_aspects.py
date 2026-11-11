@@ -170,12 +170,10 @@ class Command(BaseCommand):
 
     def _populate_contacts(self, dry_run):
         """Fill contact aspects with personal keys from existing scalar data."""
-        # Only populate contacts that are linked to demo orgs (qq ida prefix)
-        demo_org_ids = list(OrgBase.objects.filter(
-            ida__startswith='qq'
-        ).values_list('contact_id', flat=True))
+        # The contacts an org names as its own
+        demo_org_ids = list(OrgBase.objects.values_list('contact_id', flat=True))
         contacts = Contact.objects.filter(id__in=[x for x in demo_org_ids if x])
-        self.stdout.write(f'\nContacts (demo-linked): {contacts.count()} records')
+        self.stdout.write(f'\nContacts (org-linked): {contacts.count()} records')
         updated = 0
 
         for i, c in enumerate(contacts):

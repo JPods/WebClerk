@@ -344,7 +344,7 @@ def populate_transaction_commission(transaction_id: int, model_name: str) -> dic
     }
 
 
-def accrue_commission(transaction_id: int, model_name: str, ida_prefix: str = '') -> dict:
+def accrue_commission(transaction_id: int, model_name: str) -> dict:
     """Accrue commission to GL — fires after invoice journalize.
 
     Creates GL entries: Commission Expense (debit) / Commission Payable (credit)
@@ -421,7 +421,7 @@ def accrue_commission(transaction_id: int, model_name: str, ida_prefix: str = ''
             rep_name = rep.get('name', f"Rep #{rep.get('rep_id', '?')}")
             # The ida names the document; which rep is carried in metadata, not appended —
             # appending it (and -EXP/-PAY) overflowed ida's 40 characters (B-2).
-            ida = journal_ida(ida_prefix, 'CM', header.ida)
+            ida = journal_ida('CM', header.ida)
             rep_meta = {'rep_id': rep_id, 'rep_ida': rep.get('rep_ida', ''), 'rep_name': rep_name}
 
             # Commission Expense debit

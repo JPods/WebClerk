@@ -1,7 +1,7 @@
 """A document's ida follows its company sequence format (Bill, 2026-09-26).
 
 Tokens {number} (required) {tag} {yy} {yyyy} {mm}; literal text for a prefix or suffix;
-reset "yearly" needs a year token; the year is the company's local date; training keeps -qq.
+reset "yearly" needs a year token; the year is the company's local date.
 """
 from datetime import date, datetime, timezone
 from unittest import mock
@@ -25,11 +25,6 @@ SEQ = {'tag': 'inv', 'pad': 4, 'next': 42}
 def test_the_format_builds_the_ida(fmt, expect):
     seq = {**SEQ, **({'format': fmt} if fmt else {})}
     assert format_document_ida(42, seq, on=date(2026, 9, 26)) == expect
-
-
-def test_a_training_document_keeps_qq_whatever_the_format():
-    seq = {**SEQ, 'format': '{yy}-{number}-{tag}'}
-    assert format_document_ida(42, seq, training=True, on=date(2026, 1, 2)) == '26-0042-inv-qq'
 
 
 @pytest.mark.parametrize('seq, words', [

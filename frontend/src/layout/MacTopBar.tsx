@@ -73,12 +73,6 @@ export default function MacTopBar({ activePath }: Props) {
       <div className="flex items-center gap-2 text-sm font-semibold">
         <GridIcon className="h-4 w-4" style={{ color: 'var(--wc-accent-green)' }} />
         <span className="text-xs">WebClerk 3.0</span>
-        {user?.prefs?.training && (
-          <span className="rounded px-2 py-0.5 text-[9px] font-bold animate-pulse"
-            style={{ backgroundColor: 'var(--wc-accent-red)', color: '#fff' }}>
-            TRAINING
-          </span>
-        )}
         {apiBusy && (
           <span className="flex items-center gap-1 text-[9px]" style={{ color: 'var(--wc-accent)' }}>
             <span className="h-1.5 w-1.5 animate-pulse rounded-full" style={{ backgroundColor: 'var(--wc-accent)' }} />

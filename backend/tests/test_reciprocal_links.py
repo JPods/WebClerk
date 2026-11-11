@@ -47,7 +47,7 @@ def test_a_record_listing_an_action_is_listed_back():
 def test_an_action_naming_records_is_listed_by_them():
     client = _client()
     org = OrgBase.objects.create(org_type='customer', company='zz Links Co')
-    who = Contact.objects.create(email='zz-who@example.com', name_first='Who')
+    who = Contact.objects.create(email='t-who@example.com', name_first='Who')
     call = Action.objects.create(action={'en': 'zz call'})
     version = OrgBase.objects.get(pk=org.pk).version
 
@@ -71,7 +71,7 @@ def test_documents_are_two_sided_too():
     from apps.docs.models import Document
     client = _client()
     org = OrgBase.objects.create(org_type='customer', company='zz Links Co')
-    doc = Document.objects.create(name='zz-links.txt', path={'key': 'uploads/zz-links.txt'})
+    doc = Document.objects.create(name='t-links.txt', path={'key': 'uploads/t-links.txt'})
 
     _put(client, 'customer', org.id, {'refs.links.document': [{'id': doc.id}]})
     assert _ids(doc, 'customer') == [org.id]
@@ -80,15 +80,15 @@ def test_documents_are_two_sided_too():
 def test_any_two_models_are_linked_both_ways():
     client = _client()
     vendor = OrgBase.objects.create(org_type='vendor', company='zz Supplier')
-    buyer = Contact.objects.create(email='zz-buyer@example.com', name_first='Buyer')
+    buyer = Contact.objects.create(email='t-buyer@example.com', name_first='Buyer')
     _put(client, 'contact', buyer.id, {'refs.links.vendor': [{'id': vendor.id}]})
     assert _ids(vendor, 'contact') == [buyer.id]
 
 
 def test_a_record_linked_to_another_of_its_kind_is_linked_back():
     client = _client()
-    ann = Contact.objects.create(email='zz-ann@example.com', name_first='Ann')
-    bob = Contact.objects.create(email='zz-bob@example.com', name_first='Bob')
+    ann = Contact.objects.create(email='t-ann@example.com', name_first='Ann')
+    bob = Contact.objects.create(email='t-bob@example.com', name_first='Bob')
     _put(client, 'contact', ann.id, {'refs.links.contact': [{'id': bob.id}]})
     assert _ids(bob, 'contact') == [ann.id] and _ids(ann, 'contact') == [bob.id]
 

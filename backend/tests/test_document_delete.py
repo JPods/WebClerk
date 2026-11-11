@@ -15,7 +15,7 @@ def _uploads_in_tmp(tmp_path, settings):
     settings.DATA_DIR = str(tmp_path / 'data')
 
 
-def _doc(tmp_path, name='zz-doc-delete.txt', outside=False):
+def _doc(tmp_path, name='t-doc-delete.txt', outside=False):
     """A document whose file WebClerk stored (under the uploads root), or one pointing at
     a file it does not own."""
     from apps.docs.models import Document
@@ -44,7 +44,7 @@ def test_delete_removes_the_record_and_then_the_file(tmp_path):
 
 def test_a_refused_delete_keeps_both_the_record_and_the_file(tmp_path, monkeypatch):
     from apps.docs.models import Document
-    doc, f = _doc(tmp_path, 'zz-doc-keep.txt')
+    doc, f = _doc(tmp_path, 't-doc-keep.txt')
 
     def _refuse(self, *args, **kwargs):
         raise RuntimeError('This document is cited by a posted invoice.')

@@ -20,7 +20,7 @@ def _item(ida: str, name: str = 'Deletable'):
 
 def test_a_system_actor_deletes_without_a_request():
     from apps.products.models import Item
-    made = _item('zz-del-1')
+    made = _item('t-del-1')
 
     result = delete_record(Actor.system(source='command'), 'item', made.obj_id)
 
@@ -50,7 +50,7 @@ def test_a_guard_refusing_comes_back_as_coaching_not_a_crash():
     raising. The door turns that into a Refused carrying the guard's own words."""
     from apps.products.models import Item
 
-    made = _item('zz-del-guard')
+    made = _item('t-del-guard')
 
     def _refuse(self, *args, **kwargs):
         raise RuntimeError('This item has been sold; retire it instead.')
@@ -111,16 +111,16 @@ def test_admin_save_goes_through_the_door(rf):
                                               is_staff=True)
 
         class _Form:
-            cleaned_data = {'name': 'From Admin', 'ida': 'zz-del-admin'}
+            cleaned_data = {'name': 'From Admin', 'ida': 't-del-admin'}
 
-        obj = Item(name='From Admin', ida='zz-del-admin')
+        obj = Item(name='From Admin', ida='t-del-admin')
         model_admin.save_model(request, obj, _Form(), change=False)
     finally:
         door_module.save_record = original
 
     assert seen['actor'].kind == 'staff' and seen['actor'].source == 'admin'
     assert seen['data']['model_name'] == 'item'
-    assert Item.objects.filter(ida='zz-del-admin').exists()
+    assert Item.objects.filter(ida='t-del-admin').exists()
 
 
 def test_a_staff_actor_is_a_person_and_meets_the_guards():

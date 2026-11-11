@@ -1,5 +1,5 @@
 """The Journalize reports (Bill, 2026-11-07): one per posting model, the unposted records ready
-or waiting with the reason, zz/qq never; the person ticks and posts, each row through the door
+or waiting with the reason; the person ticks and posts, each row through the door
 command on its own, with the run's answer per row and a JournalBatch as its audit record."""
 import pytest
 
@@ -49,15 +49,13 @@ def test_every_posting_model_has_a_report_record_and_an_executor(chart_of_accoun
         assert report.config['screen_url'] == entry['screen_url'] == f'/journalize/{m}'
 
 
-def test_the_report_lists_ready_and_waiting_rows_and_never_a_training_row(terms, chart_of_accounts):
+def test_the_report_lists_ready_and_waiting_rows(terms, chart_of_accounts):
     from apps.accounts.services.journalize_report import unposted
     ready = _invoice('released')
     planned = _invoice('planned')
     hollow = _invoice('released', lines=0)
-    training = _invoice('released', ida='zz-1')
     report = unposted('invoice')
     rows = {r['id']: r for r in report['rows']}
-    assert training.pk not in rows
     assert rows[ready.pk]['waiting'] == '' and rows[ready.pk]['preview']['entries']
     # A planned invoice is postable: the post releases it (Bill, 2026-11-08), and the row says so.
     assert rows[planned.pk]['waiting'] == '' and 'releases this planned invoice' in rows[planned.pk]['note']

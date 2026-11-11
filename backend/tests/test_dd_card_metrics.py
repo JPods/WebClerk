@@ -70,15 +70,15 @@ def test_a_row_above_the_viewers_level_is_left_out(django_user_model):
     assert [(m['label'], m['value']) for m in out['metrics']] == [('Count', 1), ('Value', 100.0)]
 
 
-def test_training_rows_never_tally(admin):
-    """zz and qq records are training or disposable and count in no figure (Bill's standing rule)."""
+def test_every_row_tallies_whatever_its_ida(admin):
+    """No ida prefix leaves a record out of a figure (Bill, 2026-11-11: zz and qq removed)."""
     _order(100.0, 60.0, 40.0, ida='ORD-1')
-    _order(500.0, 60.0, 40.0, ida='zz-training')
+    _order(500.0, 60.0, 40.0, ida='t-training')
     _order(700.0, 60.0, 40.0, ida='QQ-sim')
     out = card_metrics({'model': 'order', 'metrics': [
         {'field': 'id', 'agg': 'count', 'label': 'Count'},
         {'field': 'totals.total', 'agg': 'sum', 'label': 'Value'}]}, Actor(user=admin, kind='user'))
-    assert [(m['label'], m['value']) for m in out['metrics']] == [('Count', 1), ('Value', 100.0)]
+    assert [(m['label'], m['value']) for m in out['metrics']] == [('Count', 3), ('Value', 1300.0)]
 
 
 def test_rows_the_asker_may_not_see_do_not_count(django_user_model):

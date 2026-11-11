@@ -831,14 +831,6 @@
   white-space: nowrap;
 }
 
-.fs-item-picker-mode {
-  font-size: calc(var(--fsc-fs, 13px) - 3px);
-  color: var(--db-text-muted, #ccc);
-}
-
-.fs-item-picker-mode.is-training {
-  color: var(--db-accent-green, #6a9955);
-}
 
 .fs-btn-unresolved {
   border-color: var(--db-accent-red, #f14c4c);

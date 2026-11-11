@@ -500,9 +500,7 @@ class CoreModel(models.Model):
             from common.ida import DOCUMENT_SEQUENCES, generate_ida, next_document_ida
             model_name = self._meta.model_name
             if model_name in DOCUMENT_SEQUENCES:
-                # Training mode (flight simulator): marker set by save_view
-                training = bool(getattr(self, '_training_prefix', None))
-                ida_value = next_document_ida(model_name, training=training)
+                ida_value = next_document_ida(model_name)
             else:
                 ida_value = generate_ida(self.pk)
             type(self).objects.filter(models.Q(ida="") | models.Q(ida__isnull=True), pk=self.pk).update(ida=ida_value)

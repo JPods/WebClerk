@@ -7,7 +7,7 @@ Before the release gate (validate_status.JOURNALIZE_FROM, 10e4099) an invoice co
 GL at planned, open, active or pending, and once posted no status moves — so those invoices were
 frozen short of release. Bill's ruling: set them to released, with a comment on each saying why;
 the GL entries stand. Written with a queryset update (the journal lock refuses a save), version and
-dt_modified bumped. Training rows (zz/qq) are never touched. Idempotent: a comment carries a key.
+dt_modified bumped. Idempotent: a comment carries a key.
 """
 import os
 import time
@@ -19,11 +19,10 @@ FAULT = 'FAULT 20261107T195226'
 
 
 def frozen_invoices():
-    from apps.core.services.tally import tallied
     from apps.transactions.models import Invoice
     from apps.transactions.services.validate_status import JOURNALIZE_FROM
-    return tallied(Invoice.objects.filter(dt_journaled__gt=0, is_active=True)
-                   .exclude(status__in=JOURNALIZE_FROM['invoice'])).order_by('pk')
+    return (Invoice.objects.filter(dt_journaled__gt=0, is_active=True)
+            .exclude(status__in=JOURNALIZE_FROM['invoice']).order_by('pk'))
 
 
 def release(invoice) -> str:

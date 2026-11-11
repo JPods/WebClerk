@@ -76,11 +76,8 @@ def test_documents_are_numbered_number_first_by_type(db):
     first = Quote.objects.create(status="planned")
     second = Quote.objects.create(status="planned")
     invoice = Invoice.objects.create(status="planned")
-    training = Quote(status="planned")
-    training._training_prefix = "qq"
-    training.save()
 
-    assert (first.ida, second.ida, invoice.ida, training.ida) == ("1001-qt", "1002-qt", "1001-inv", "1003-qt-qq")
+    assert (first.ida, second.ida, invoice.ida) == ("1001-qt", "1002-qt", "1001-inv")
 
 
 def test_other_records_use_their_pk(db):

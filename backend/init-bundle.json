@@ -3994,7 +3994,7 @@
             "next": 1029,
             "format": "{number}-{tag}"
           },
-          "note": "ida for transaction documents: {number}-{tag}, meaningful characters first. Training documents end in -qq. common/ida.py next_document_ida.",
+          "note": "ida for transaction documents: {number}-{tag}, meaningful characters first. common/ida.py next_document_ida.",
           "order": {
             "pad": 4,
             "tag": "so",
@@ -99406,10 +99406,10 @@
             "model": "item",
             "title": "Create an Item",
             "action": "create_item",
-            "explanation": "An Item is anything you sell or buy. It has:\n• ida — your internal SKU/part number (must be unique)\n• name — human-readable description\n• quantity — JSON with on_hand, on_so, on_po, available, etc.\n• price — JSON with base price, price levels, breaks\n• cost — JSON with standard, last, average cost\n• gls — JSON mapping to GL accounts (revenue, cogs, inventory)\n\nThe ida \"qqBB200\" starts with \"qq\" — this is the training prefix. All flight sim items use qq so they're easy to find and clean up.\n\nWC2: [Item]ida_item, [Item]descpt",
-            "instruction": "Open the right panel form (Item). Fill in:\n• IDA: qqBB200 (the training item ID)\n• Name: Training Widget\n• Description: Standard training item for flight simulator exercises\n\nSave the record.",
+            "explanation": "An Item is anything you sell or buy. It has:\n• ida — your internal SKU/part number (must be unique)\n• name — human-readable description\n• quantity — JSON with on_hand, on_so, on_po, available, etc.\n• price — JSON with base price, price levels, breaks\n• cost — JSON with standard, last, average cost\n• gls — JSON mapping to GL accounts (revenue, cogs, inventory)\n\nWC2: [Item]ida_item, [Item]descpt",
+            "instruction": "Open the right panel form (Item). Fill in:\n• IDA: BB200\n• Name: Training Widget\n• Description: Standard training item for flight simulator exercises\n\nSave the record.",
             "expected_fields": {
-              "ida": "qqBB200",
+              "ida": "BB200",
               "name": "Training Widget"
             }
           },
@@ -99496,7 +99496,7 @@
             "title": "Create a Quote",
             "action": "create_quote",
             "explanation": "A Quote is a quote — a conversation with the customer about what they might buy. It is NOT a commitment.\n\nWhat happens when you save the quote line:\n• on_qt increases by 15 (we're quoting 15 units)\n• on_hand stays at 100 (nothing moved)\n• available stays at 100 (quotes don't allocate)\n• NO GL entries (a quote has no financial weight)\n• A Pending record is created (tracks the quantity delta)\n\nWhy quotes don't allocate: imagine quoting 50 units to 10 customers. If quotes allocated, you'd need 500 units for $5,000 in quotes — but most quotes don't convert. Quotes are visibility, not commitment.\n\nWC2: This was the Quote window → [QT_Lines] table.",
-            "instruction": "Open the right panel form (Quote). Fill in:\n• Customer: Training Corp (from exercise 1)\n• Contact: Training User\n\nSave the header first, then add a line:\n• Item: qqBB200 (Training Widget)\n• Quantity: 15\n• Price: $10.00 (should auto-fill from item)\n\nSave.",
+            "instruction": "Open the right panel form (Quote). Fill in:\n• Customer: Training Corp (from exercise 1)\n• Contact: Training User\n\nSave the header first, then add a line:\n• Item: BB200 (Training Widget)\n• Quantity: 15\n• Price: $10.00 (should auto-fill from item)\n\nSave.",
             "expected_quantity_change": {
               "on_qt": "+15",
               "on_hand": "100 (unchanged)",
@@ -99527,8 +99527,8 @@
               "name": "Your First Sale Complete",
               "summary": "You created a quote for 15 units, converted 9 to an order. The customer has 9 units committed (on_so=9), 6 still quoted (on_qt=6), and 91 units available for other customers.\n\nNext: run \"Defaults — the customer first\" to see what a record is born with, then \"Inventory Quantity Tracking\" to continue this order through invoicing, purchasing, and receiving."
             },
-            "explanation": "Summary of what you've built across the three foundation exercises:\n\n| Record | What it is | Key insight |\n|--------|-----------|-------------|\n| Contact | Training User | People are separate from companies |\n| Customer | Training Corp | Companies have financial data (credit, aging) |\n| Item | qqBB200 | Products have price, cost, GL accounts, quantity buckets |\n| Quote | 15 × $10 | Quotes don't allocate inventory |\n| Order | 9 × $10 | Orders DO allocate inventory |\n\nThe data you created here is the foundation for every flight sim in Phase 2, 3, and 4. The training item qqBB200 with 100 units on hand at $10 price / $6 cost is the standard starting point.\n\nThe progression: Contact → Customer → Item → Quote → Order → Invoice → Cash → GL. Each step adds financial weight. The first three have none. The quote has visibility only. The order commits. The invoice is the financial event.",
-            "instruction": "The right panel should now show the new Order.\n\nVerify:\n• Customer: Training Corp\n• 1 line: qqBB200 × 9 at $10.00 = $90.00\n• Status: planned or released\n\nCheck the left panel quantities:\n• on_hand = 100, on_so = 9, on_qt = 6, available = 91\n\nThis order is ready to invoice (ship)."
+            "explanation": "Summary of what you've built across the three foundation exercises:\n\n| Record | What it is | Key insight |\n|--------|-----------|-------------|\n| Contact | Training User | People are separate from companies |\n| Customer | Training Corp | Companies have financial data (credit, aging) |\n| Item | BB200 | Products have price, cost, GL accounts, quantity buckets |\n| Quote | 15 × $10 | Quotes don't allocate inventory |\n| Order | 9 × $10 | Orders DO allocate inventory |\n\nThe data you created here is the foundation for every flight sim in Phase 2, 3, and 4. The training item BB200 with 100 units on hand at $10 price / $6 cost is the standard starting point.\n\nThe progression: Contact → Customer → Item → Quote → Order → Invoice → Cash → GL. Each step adds financial weight. The first three have none. The quote has visibility only. The order commits. The invoice is the financial event.",
+            "instruction": "The right panel should now show the new Order.\n\nVerify:\n• Customer: Training Corp\n• 1 line: BB200 × 9 at $10.00 = $90.00\n• Status: planned or released\n\nCheck the left panel quantities:\n• on_hand = 100, on_so = 9, on_qt = 6, available = 91\n\nThis order is ready to invoice (ship)."
           }
         ],
         "next_sim": "defaults-walk",
@@ -99587,7 +99587,7 @@
           {
             "step": 3,
             "title": "Add a retail line, then assign a wholesale customer",
-            "instruction": "On the quote, add a line:\n• Item: qqBB200 (Training Widget)\n• Quantity: 5\n• Price: fills at retail ($10.00)\nSave.\n\nNow set the customer to Riverside Supplies 80 (a wholesale customer) and save.\n\nThe quote reloads. Look at:\n• Terms and Price level: now the customer's (N30, wholesale)\n• Bill to and Ship to: the customer's blocks\n• The line's price: repriced to wholesale\n• The message under the form: \"1 line repriced to wholesale\"",
+            "instruction": "On the quote, add a line:\n• Item: BB200 (Training Widget)\n• Quantity: 5\n• Price: fills at retail ($10.00)\nSave.\n\nNow set the customer to Riverside Supplies 80 (a wholesale customer) and save.\n\nThe quote reloads. Look at:\n• Terms and Price level: now the customer's (N30, wholesale)\n• Bill to and Ship to: the customer's blocks\n• The line's price: repriced to wholesale\n• The message under the form: \"1 line repriced to wholesale\"",
             "action": "assign_customer",
             "model": "quote",
             "expected_fields": {
@@ -99648,7 +99648,7 @@
               "name": "Defaults Walk Complete",
               "summary": "You watched defaults fill from three sources in order — the model's definition, the customer or vendor, and you — carry through quote, order and invoice, and sit side by side in the defaults console. Then you posted the invoice yourself from the Journalize report.\n\nNext: run \"Inventory Quantity Tracking\" to follow quantities and the GL through order, invoice, purchase and receipt."
             },
-            "explanation": "Posting to the general ledger is a person's choice and never automatic (Bill, 2026-11-07). No save, status change or conversion writes a GL row. There is one posting path — the journalize command on the record — and the Journalize report is a list of what has not posted yet, per model, with that one command behind each tick box.\n\nA waiting row is not a failure; it is coaching. The report asks the same two questions the command would — is the document complete, and is it released — and says what is missing in the command's own words, so what you fix on the record is what the report asked for.\n\nOnce posted, the invoice is locked: its status cannot move, its lines cannot change, and its dt_journaled records the moment. The run is recorded as a JournalBatch — who posted, which records, how many posted and how many were refused — the audit record of a choice someone made.\n\nTraining records (the qq idas the simulator makes) never tally: no report, dashboard or GL balance counts them. Walk this as many times as you like."
+            "explanation": "Posting to the general ledger is a person's choice and never automatic (Bill, 2026-11-07). No save, status change or conversion writes a GL row. There is one posting path — the journalize command on the record — and the Journalize report is a list of what has not posted yet, per model, with that one command behind each tick box.\n\nA waiting row is not a failure; it is coaching. The report asks the same two questions the command would — is the document complete, and is it released — and says what is missing in the command's own words, so what you fix on the record is what the report asked for.\n\nOnce posted, the invoice is locked: its status cannot move, its lines cannot change, and its dt_journaled records the moment. The run is recorded as a JournalBatch — who posted, which records, how many posted and how many were refused — the audit record of a choice someone made.\n\nWhat you post here is real on this data set: every report, dashboard and GL balance counts it. Walk the lessons on a demo data set, not on your live books."
           }
         ],
         "models_used": [

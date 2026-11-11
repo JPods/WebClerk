@@ -471,149 +471,6 @@ def _export_report(params: Dict[str, Any]) -> Dict[str, Any]:
     return export_report(params)
 
 
-def _run_training_flow(params: dict) -> dict:
-    """Alice: run a training/health-check transaction cycle.
-
-    Creates quote → order → invoice → cash → PO → receipt
-    for a specific customer and item. All records flagged with
-    metadata.training=True so reporting excludes them.
-
-    Params:
-        customer_id: customer org to use
-        item_id: item to transact
-        quote_qty: (default 5)
-        order_qty: (default 4)
-        invoice_qty: (default 3)
-        po_qty: (default 10)
-        receive_qty: (default 8)
-    """
-    from apps.transactions.services.training_flow import TrainingFlow
-
-    customer_id = params.get('customer_id')
-    item_id = params.get('item_id')
-    if not customer_id or not item_id:
-        raise ValueError("customer_id and item_id are required")
-
-    flow = TrainingFlow(customer_id=int(customer_id), item_id=int(item_id))
-    return flow.run_full_cycle(
-        quote_qty=int(params.get('quote_qty', 5)),
-        order_qty=int(params.get('order_qty', 4)),
-        invoice_qty=int(params.get('invoice_qty', 3)),
-        po_qty=int(params.get('po_qty', 10)),
-        receive_qty=int(params.get('receive_qty', 8)),
-    )
-
-
-def _cleanup_training(params: dict) -> dict:
-    """Alice: clean up all training-flagged records."""
-    from apps.transactions.services.training_flow import cleanup_training_records
-    return cleanup_training_records()
-
-
-def _get_training_activity(params: dict) -> dict:
-    """Return transaction lines + pending records for a training item.
-
-    Shows the user exactly what happened: every line record and every
-    pending record for the given item ida, from today, in dt sequence.
-
-    Params:
-        item_ida: item ida to track (default 'zzitem')
-    """
-    from datetime import datetime, timezone as tz
-    from apps.products.models import Item
-    from apps.transactions.models import (
-        QuoteLine, OrderLine, InvoiceLine, PurchaseLine,
-    )
-    from apps.core.models import Pending
-    from apps.products.models.inventory_layer import InventoryLayer
-
-    item_ida = params.get('item_ida', 'zz-fake-item')
-    item = Item.objects.filter(ida=item_ida).first()
-    if not item:
-        return {'error': f'Item {item_ida} not found. Run: manage.py seed_training_data'}
-
-    # Today's start (UTC)
-    today_start = datetime.now(tz.utc).replace(hour=0, minute=0, second=0, microsecond=0)
-    today_ms = int(today_start.timestamp() * 1000)
-
-    # Collect transaction lines for this item
-    rows = []
-    line_models = [
-        ('quote', QuoteLine, 'quote'),
-        ('order', OrderLine, 'order'),
-        ('invoice', InvoiceLine, 'invoice'),
-        ('purchase', PurchaseLine, 'purchase'),
-    ]
-    for kind, Model, parent_field in line_models:
-        qs = Model.objects.filter(
-            item_fk=item,
-            dt_created__gte=today_ms,
-        ).select_related(parent_field).order_by('dt_created')
-        for ln in qs:
-            parent_obj = getattr(ln, parent_field, None)
-            qty = ln.quantity or {}
-            price = getattr(ln, 'price', None) or {}
-            cost = ln.cost or {}
-            rows.append({
-                'dt': ln.dt_created,
-                'type': kind,
-                'record_type': 'line',
-                'parent_ida': getattr(parent_obj, 'ida', '') if parent_obj else '',
-                'parent_status': getattr(parent_obj, 'status', '') if parent_obj else '',
-                'qty_staged': qty.get('staged') or qty.get('active', 0),
-                'qty_remaining': qty.get('remaining', 0),
-                'unit_price': price.get('unit', 0) if isinstance(price, dict) else 0,
-                'unit_cost': cost.get('unit', 0),
-                'amount': (getattr(ln, 'totals', None) or {}).get('amount', 0),
-                'line_id': ln.pk,
-                'line_status': getattr(ln, 'status', ''),
-            })
-
-    # Collect pending records for this item
-    pending_qs = Pending.objects.filter(
-        record_id=str(item.pk),
-        dt_created__gte=today_ms,
-    ).order_by('dt_created')
-    for p in pending_qs:
-        cfg = p.config or {}
-        rows.append({
-            'dt': p.dt_created,
-            'type': 'pending',
-            'record_type': 'pending',
-            'parent_ida': p.purpose or p.name or '',
-            'parent_status': 'processed' if p.is_processed() else 'pending',
-            'detail': cfg.get('field', ''),
-            'delta': cfg.get('delta', 0),
-            'reason': cfg.get('reason', ''),
-            'pending_id': p.pk,
-        })
-
-    # Sort everything by dt
-    rows.sort(key=lambda r: r['dt'])
-
-    # Item inventory summary
-    inv = {'on_hand': 0, 'on_so': 0, 'on_po': 0, 'on_qt': 0, 'available': 0}
-    qty_field = getattr(item, 'quantity', None) or {}
-    if isinstance(qty_field, dict):
-        inv.update({k: qty_field.get(k, 0) for k in inv})
-
-    # Also check inventory layers
-    layers = InventoryLayer.objects.filter(item=item, is_active=True)
-    if layers.exists():
-        layer = layers.first()
-        lq = layer.quantity if isinstance(layer.quantity, dict) else {}
-        inv['on_hand'] = lq.get('on_hand', inv['on_hand'])
-        inv['on_so'] = lq.get('on_so', inv['on_so'])
-        inv['on_po'] = lq.get('on_po', inv['on_po'])
-
-    return {
-        'item': {'id': item.pk, 'ida': item.ida, 'description': item.description or ''},
-        'inventory': inv,
-        'activity': rows,
-        'count': len(rows),
-    }
-
-
 def _get_orphan_counts(params: dict) -> dict:
     """Admin dashboard: orphan record counts by table.
 
@@ -780,9 +637,6 @@ def _get_bootstrap_dt(params):
 
 
 _ACTION_DISPATCH = {
-    "run_training_flow": _run_training_flow,
-    "cleanup_training": _cleanup_training,
-    "get_training_activity": _get_training_activity,
     "file_small_sting": _file_small_sting,
     "approve_small_sting": _approve_small_sting,
     "reject_small_sting": _reject_small_sting,
@@ -834,12 +688,6 @@ _ACTION_DISPATCH = {
         fromlist=['get_item_by_ida']
     ).get_item_by_ida(
         ida=params['ida'],
-    ),
-    "reset_flight_simulator": lambda params: __import__(
-        'apps.products.services.inventory.inventory_flight_sim',
-        fromlist=['reset_flight_simulator']
-    ).reset_flight_simulator(
-        item_ida=params['ida'],
     ),
     "get_item_flight_state": lambda params: __import__(
         'apps.products.services.inventory.inventory_flight_sim',
@@ -926,7 +774,7 @@ _ACTION_DISPATCH = {
     "transfer_credit": lambda p: __import__('apps.transactions.services.cash.cash_pending', fromlist=['transfer_credit']).transfer_credit(p['credit_invoice_id'], p['invoice_id'], p['amount'], p.get('reason', '')),
     # ── Commission ──
     "populate_commission": lambda p: __import__('apps.transactions.services.pricing.commission_compute', fromlist=['populate_transaction_commission']).populate_transaction_commission(p['transaction_id'], p['model_name']),
-    "accrue_commission": lambda p: __import__('apps.transactions.services.pricing.commission_compute', fromlist=['accrue_commission']).accrue_commission(p['transaction_id'], p['model_name'], p.get('ida_prefix', '')),
+    "accrue_commission": lambda p: __import__('apps.transactions.services.pricing.commission_compute', fromlist=['accrue_commission']).accrue_commission(p['transaction_id'], p['model_name']),
     "get_commission_report": lambda p: __import__('apps.transactions.services.pricing.commission_compute', fromlist=['get_commission_report']).get_commission_report(p['period_start'], p['period_end'], p.get('rep_id'), p.get('model_name', 'invoice')),
     # ── Vendor Scorecard ──
     "compute_vendor_scorecard": lambda p: __import__('apps.orgs.services.vendor_scorecard', fromlist=['compute_vendor_scorecard']).compute_vendor_scorecard(p['vendor_id'], p.get('period_days', 90)),

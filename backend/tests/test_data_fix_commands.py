@@ -25,7 +25,6 @@ def _posted_invoice(status, ida=''):
 def test_release_journalized_invoices_releases_only_the_frozen_rows_with_a_reason(tmp_path, capsys):
     frozen = _posted_invoice('planned')
     fine = _posted_invoice('released')
-    training = _posted_invoice('planned', ida='zz-fix')
     version = frozen.version
     call_command('release_journalized_invoices')
     assert 'Journalized invoices short of release: 1' in capsys.readouterr().out
@@ -35,10 +34,10 @@ def test_release_journalized_invoices_releases_only_the_frozen_rows_with_a_reaso
         call_command('release_journalized_invoices', '--apply')
     backup = tmp_path / 'wc.dump'; backup.write_text('x')
     call_command('release_journalized_invoices', '--apply', '--backup', str(backup))
-    frozen.refresh_from_db(); fine.refresh_from_db(); training.refresh_from_db()
+    frozen.refresh_from_db(); fine.refresh_from_db()
     assert frozen.status == 'released' and frozen.version == version + 1
     assert "'planned' → 'released'" in frozen.comments['process'][-1]['mgs']
-    assert fine.status == 'released' and training.status == 'planned'
+    assert fine.status == 'released'
     call_command('release_journalized_invoices', '--apply', '--backup', str(backup))   # idempotent
     frozen.refresh_from_db()
     assert len(frozen.comments['process']) == 1

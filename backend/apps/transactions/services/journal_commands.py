@@ -92,7 +92,7 @@ def journalize(ctx) -> Dict[str, Any]:
     post = {'invoice': posting.journalize_invoice, 'cash': posting.journalize_cash,
             'receipt': posting.journalize_receipt,
             'workorder': posting.journalize_workorder}[ctx.model_key]
-    result = post(ctx.obj.pk, ida_prefix=str((ctx.data or {}).get('ida_prefix') or ''))
+    result = post(ctx.obj.pk)
     if result.get('error'):
         error = result['error']
         code = ('already_journalized' if error == 'Already journalized' else

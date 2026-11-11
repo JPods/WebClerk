@@ -12,14 +12,13 @@ from tests.test_gl_posting import invoice_with_line
 
 
 def test_the_ida_names_the_document_not_the_account():
-    assert journal_ida('', 'SJ', 'INV-1001') == 'SJ-INV-1001'
-    assert journal_ida('zz', 'CJ', 'CASH-7') == 'zzCJ-CASH-7', "training prefix stays first"
+    assert journal_ida('SJ', 'INV-1001') == 'SJ-INV-1001'
 
 
 def test_an_ida_that_cannot_fit_is_refused_by_name_not_clipped():
-    long_ida = 'X' * (IDA_MAX - 2)
+    long_ida = 'X' * IDA_MAX
     with pytest.raises(ValueError) as caught:
-        journal_ida('zz', 'SJ', long_ida)
+        journal_ida('SJ', long_ida)
     assert long_ida in str(caught.value) and str(IDA_MAX) in str(caught.value)
 
 

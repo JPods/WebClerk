@@ -13,7 +13,7 @@ from apps.core.views import instance_submit_view as view
 
 pytestmark = pytest.mark.django_db
 
-SENDER = SimpleNamespace(ida='zz-conn-sender', name='zz Sender', config={'instance_uuid': 'zz-uuid'})
+SENDER = SimpleNamespace(ida='t-conn-sender', name='Sender', config={'instance_uuid': 't-uuid'})
 
 
 def _data(r):
@@ -39,11 +39,11 @@ def test_a_submitted_id_does_not_overwrite_hq_rows():
     assert sent.pk != mine.pk and sent.uuid != mine.uuid
     assert sent.project_id != 999 and not sent.assigned_to
     assert sent.refs.get('tags') == ['issue'] and 'links' not in (sent.refs or {})
-    assert sent.metadata['source_connection']['ida'] == 'zz-conn-sender'
+    assert sent.metadata['source_connection']['ida'] == 't-conn-sender'
 
 
 def test_the_same_record_sent_twice_is_received_once():
-    record = {'action': {'en': 'zz note'}, 'metadata': {'source_instance': {'local_uuid': 'zz-local-1'}}}
+    record = {'action': {'en': 'a note'}, 'metadata': {'source_instance': {'local_uuid': 't-local-1'}}}
     first, second = _submit(record), _submit(record)
     assert first.status_code == 201 and second.status_code == 200
     assert _data(second)['duplicate'] is True and _data(second)['id'] == _data(first)['id']

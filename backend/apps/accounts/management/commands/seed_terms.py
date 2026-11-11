@@ -36,7 +36,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         if options.get('force'):
-            deleted, _ = Term.objects.exclude(ida__startswith='zz').delete()
+            deleted, _ = Term.objects.all().delete()
             self.stdout.write(f'Deleted {deleted} existing terms')
 
         created = skipped = 0

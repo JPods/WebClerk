@@ -16,7 +16,7 @@ pytestmark = pytest.mark.django_db
 def _client():
     client = APIClient()
     client.force_authenticate(Contact.objects.create_superuser(
-        email='zz-calc@example.com', password=secrets.token_urlsafe(16)))
+        email='t-calc@example.com', password=secrets.token_urlsafe(16)))
     return client
 
 
@@ -37,9 +37,9 @@ def _list(client, model, ids):
 
 @pytest.fixture
 def boms():
-    a, b = (Item.objects.create(ida=f'zz-calc-{n}', name=n, kind=Item.KIND_PHYSICAL) for n in 'AB')
+    a, b = (Item.objects.create(ida=f't-calc-{n}', name=n, kind=Item.KIND_PHYSICAL) for n in 'AB')
     for i, q in enumerate(('2', '3')):
-        part = Item.objects.create(ida=f'zz-calc-part{i}', name=f'part{i}', kind=Item.KIND_PHYSICAL)
+        part = Item.objects.create(ida=f't-calc-part{i}', name=f'part{i}', kind=Item.KIND_PHYSICAL)
         BillOfMaterial.objects.create(parent_item=a, child_item=part, quantity=Decimal(q), sequence=i,
                                       op_data={'run_time': 10 * (i + 1)})
     return a, b

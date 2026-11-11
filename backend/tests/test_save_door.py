@@ -21,7 +21,7 @@ def test_a_system_actor_saves_without_a_request():
     calling Model.save() directly and skipping every check the endpoint applied."""
     result = save_record(
         Actor.system(source='command'),
-        {'model_name': 'item', 'name': 'Door Test Widget', 'ida': 'zz-door-1'},
+        {'model_name': 'item', 'name': 'Door Test Widget', 'ida': 't-door-1'},
     )
     assert result.obj_id and result.created
     assert result.version >= 1, "the version is stamped for a system writer too"
@@ -35,7 +35,7 @@ def test_the_door_stamps_identity_the_same_way_for_every_actor():
         person = Contact.objects.create(email=f'door-{kind}@example.com', role='admin')
         actor = Actor.system() if kind == 'system' else Actor(user=person, kind='user')
         result = save_record(actor, {'model_name': 'item', 'name': f'Door {kind}',
-                                     'ida': f'zz-door-{kind}'})
+                                     'ida': f't-door-{kind}'})
         made[kind] = result.obj
     for obj in made.values():
         assert obj.version >= 1 and obj.dt_modified and obj.uuid
@@ -49,7 +49,7 @@ def test_one_create_writes_the_record_more_than_once_today():
     into a passing test; when step 3 lands this becomes version 1 and the assertion
     below still holds."""
     result = save_record(Actor.system(), {'model_name': 'item', 'name': 'Churn',
-                                          'ida': 'zz-door-churn'})
+                                          'ida': 't-door-churn'})
     assert result.version >= 1
     assert result.obj.version == result.version
 
@@ -72,7 +72,7 @@ def test_a_missing_model_name_is_refused():
 
 def test_a_stale_version_is_refused_with_both_numbers():
     first = save_record(Actor.system(), {'model_name': 'item', 'name': 'Versioned',
-                                         'ida': 'zz-door-v'})
+                                         'ida': 't-door-v'})
     with pytest.raises(Refused) as caught:
         save_record(Actor.system(), {'model_name': 'item', 'id': first.obj_id,
                                      'name': 'Changed', 'version': 99})
@@ -113,7 +113,7 @@ def test_a_behaviour_runs_before_and_after_the_write(monkeypatch):
     register('item', Noisy())
     try:
         save_record(Actor.system(), {'model_name': 'item', 'name': 'Branching',
-                                     'ida': 'zz-door-b'})
+                                     'ida': 't-door-b'})
     finally:
         register('item', ModelBehaviour())
 
@@ -130,13 +130,13 @@ def test_a_behaviour_can_refuse_the_save():
     try:
         with pytest.raises(Refused) as caught:
             save_record(Actor.system(), {'model_name': 'item', 'name': 'Refused',
-                                         'ida': 'zz-door-r'})
+                                         'ida': 't-door-r'})
         assert caught.value.status == 409 and caught.value.code == 'item_refused'
     finally:
         register('item', ModelBehaviour())
 
     from apps.products.models import Item
-    assert not Item.objects.filter(ida='zz-door-r').exists(), "a refusal writes nothing"
+    assert not Item.objects.filter(ida='t-door-r').exists(), "a refusal writes nothing"
 
 
 def test_a_failure_after_the_write_keeps_the_save():
@@ -151,9 +151,9 @@ def test_a_failure_after_the_write_keeps_the_save():
     register('item', Exploder())
     try:
         result = save_record(Actor.system(), {'model_name': 'item', 'name': 'Kept',
-                                              'ida': 'zz-door-x'})
+                                              'ida': 't-door-x'})
     finally:
         register('item', ModelBehaviour())
 
-    assert Item.objects.filter(ida='zz-door-x').exists()
+    assert Item.objects.filter(ida='t-door-x').exists()
     assert any('after blew up' in m for m in result.messages)

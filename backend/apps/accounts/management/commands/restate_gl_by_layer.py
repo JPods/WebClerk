@@ -210,7 +210,7 @@ class Command(BaseCommand):
 
         def _post(invoice, account, debit, credit, event_id, note):
             GlJournal.objects.create(
-                ida=journal_ida('', 'SJ', invoice.ida), account=account,
+                ida=journal_ida('SJ', invoice.ida), account=account,
                 debit=float(debit) if debit else None, credit=float(credit) if credit else None,
                 source='automation', type='sales', source_id=invoice.pk, source_model='invoice',
                 event_id=event_id, note=note)

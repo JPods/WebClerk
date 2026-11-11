@@ -6,8 +6,8 @@
 Blanks on open records are filled from each model's own definition (a dt_ field as born + days);
 a locked, journalized, released or terminal document is kept and reported; a value off
 its list is reported, never rewritten (Alice coaches the owner: watch_defaults); the company
-profile's unread prefs.currency keys (code, locale, symbol) are dropped. Training rows are
-never touched. Bill: back up before a bulk change — --apply refuses without --backup naming a
+profile's unread prefs.currency keys (code, locale, symbol) are dropped.
+Bill: back up before a bulk change — --apply refuses without --backup naming a
 file that exists.
 """
 import os

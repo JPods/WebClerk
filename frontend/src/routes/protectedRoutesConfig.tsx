@@ -37,7 +37,6 @@ const WorkOrderWindowLazy = React.lazy(() => import("../apps/transactions/pages/
 // Static imports — lightweight or always-needed
 import JsonViewer from "../pages/admin/JsonViewer";
 import CommerceDashboard from "../pages/admin/CommerceDashboard";
-import AliceTraining from "../pages/admin/AliceTraining";
 import TeamDashboard from "../pages/admin/TeamDashboard";
 import WhitelistTester from "../pages/tools/WhitelistTester";
 import ParadePrint from "../pages/tools/ParadePrint";
@@ -159,7 +158,6 @@ export const protectedRoutesConfig = [
   { path: PageRoutes.adminWorkbench, element: <DataBrowser /> },
   { path: PageRoutes.jsonViewer, element: <JsonViewer /> },
   { path: PageRoutes.commerceDashboard, element: <CommerceDashboard /> },
-  { path: PageRoutes.aliceTraining, element: <AliceTraining /> },
   { path: PageRoutes.flightSimulator, element: <S><FlightSimConsole /></S> },
   { path: PageRoutes.flightSim, element: <S><FlightSimConsole /></S> },
   { path: PageRoutes.flightSimInventory, element: <S><FlightSimConsole /></S> },

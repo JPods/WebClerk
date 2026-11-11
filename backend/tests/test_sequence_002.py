@@ -14,7 +14,7 @@ End-to-end test:
   10. Convert order → purchase (on_po)
   11. Check conversion history
 
-Uses zzz- prefix for all test data.
+Runs in the test database.
 """
 import pytest
 import time
@@ -43,8 +43,8 @@ class TestSequence002(TestCase):
         self.item, _ = Item.objects.get_or_create(
             pk=308,
             defaults={
-                'name': 'zzz Test Item 308',
-                'ida': 'zzz-item-308',
+                'name': 'Test Item 308',
+                'ida': 't-item-308',
                 'sku': 'ZZZ-308',
                 'price': {'base': 25.0},
                 'cost': {'standard': 12.0},
@@ -54,9 +54,9 @@ class TestSequence002(TestCase):
 
         # Create or get test rep
         self.rep, _ = OrgBase.objects.get_or_create(
-            ida='zzz-test-rep-002',
+            ida='t-test-rep-002',
             defaults={
-                'company': 'zzz Test Rep 002',
+                'company': 'Test Rep 002',
                 'org_type': 'rep',
                 'status': 'active',
                 'financial': {
@@ -74,9 +74,9 @@ class TestSequence002(TestCase):
 
         # Create or get test customer with rep assignment
         self.customer, _ = OrgBase.objects.get_or_create(
-            ida='zzz-test-cust-002',
+            ida='t-test-cust-002',
             defaults={
-                'company': 'zzz Test Customer 002',
+                'company': 'Test Customer 002',
                 'org_type': 'customer',
                 'status': 'active',
                 'price_level': 'retail',
@@ -98,7 +98,7 @@ class TestSequence002(TestCase):
         QuoteLine = apps.get_model('transactions', 'QuoteLine')
 
         self.quote = Quote.objects.create(
-            ida='zzz-prop-002',
+            ida='t-prop-002',
             customer=self.customer,
             status='planned',
             price_level='retail',
@@ -209,7 +209,7 @@ class TestSequence002(TestCase):
 
         self.test_04_convert_order_to_invoice()
 
-        result = journalize_invoice(self.invoice_id, ida_prefix='zzz-')
+        result = journalize_invoice(self.invoice_id)
         self.assertGreater(result.get('created', 0), 0, 'Should create GL entries')
         self.assertNotIn('error', result)
 
@@ -229,7 +229,7 @@ class TestSequence002(TestCase):
         # Create a cash entry
         Cash = apps.get_model('transactions', 'Cash')
         cash = Cash.objects.create(
-            ida='zzz-pay-002',
+            ida='t-pay-002',
             amount=Decimal('200'),
             status='active',
         )
@@ -259,7 +259,7 @@ class TestSequence002(TestCase):
         from django.db.models import Sum, Value
         from django.db.models.functions import Coalesce
 
-        totals = GlJournal.objects.filter(ida__startswith='zzz-').aggregate(
+        totals = GlJournal.objects.aggregate(
             total_debit=Coalesce(Sum('debit'), Value(0.0)),
             total_credit=Coalesce(Sum('credit'), Value(0.0)),
         )
@@ -305,9 +305,9 @@ class TestSequence002(TestCase):
         # Need a vendor
         OrgBase = apps.get_model('orgs', 'OrgBase')
         vendor, _ = OrgBase.objects.get_or_create(
-            ida='zzz-test-vendor-002',
+            ida='t-test-vendor-002',
             defaults={
-                'company': 'zzz Test Vendor 002',
+                'company': 'Test Vendor 002',
                 'org_type': 'vendor',
                 'status': 'active',
             },
@@ -366,7 +366,7 @@ class TestSequence002(TestCase):
         print(f'  ✓ Order → Invoice: {inv_result["lines_saved"]} lines')
 
         # Journalize
-        gl_result = journalize_invoice(self.invoice_id, ida_prefix='zzz-')
+        gl_result = journalize_invoice(self.invoice_id)
         assert gl_result.get('created', 0) > 0, 'No GL entries created'
         print(f'  ✓ Journalized: {gl_result["created"]} GL entries')
 
@@ -379,7 +379,7 @@ class TestSequence002(TestCase):
         GlJournal = apps.get_model('accounts', 'GlJournal')
         from django.db.models import Sum, Value
         from django.db.models.functions import Coalesce
-        totals = GlJournal.objects.filter(ida__startswith='zzz-').aggregate(
+        totals = GlJournal.objects.aggregate(
             d=Coalesce(Sum('debit'), Value(0.0)),
             c=Coalesce(Sum('credit'), Value(0.0)),
         )

@@ -250,7 +250,7 @@ class Command(BaseCommand):
                 if has_metadata:
                     existing = model_cls.objects.filter(metadata__health='fake').first()
                 elif has_ida:
-                    existing = model_cls.objects.filter(ida__startswith='zz-fake-').first()
+                    existing = model_cls.objects.filter(ida__startswith='fake-').first()
                 else:
                     existing = None
                 if existing:
@@ -284,11 +284,11 @@ class Command(BaseCommand):
 
         # Standard fields
         if 'ida' in fields:
-            kwargs['ida'] = f'zz-fake-{model_key}'
+            kwargs['ida'] = f'fake-{model_key}'
         if 'name' in fields and fields['name'].__class__.__name__ == 'CharField':
-            kwargs['name'] = f'zz Fake {meta.singular}'
+            kwargs['name'] = f'Fake {meta.singular}'
         if 'display_name' in fields:
-            kwargs['display_name'] = f'zz Fake {meta.singular}'
+            kwargs['display_name'] = f'Fake {meta.singular}'
         if 'description' in fields and fields['description'].__class__.__name__ in ('CharField', 'TextField'):
             kwargs['description'] = f'Fake {meta.singular} for DataBrowser testing'
         if 'status' in fields:
@@ -312,11 +312,11 @@ class Command(BaseCommand):
         # Model-specific defaults
         if model_key in ('customer', 'vendor', 'manufacturer', 'employee', 'rep'):
             kwargs['org_type'] = model_key
-            kwargs.setdefault('email', f'zz-fake-{model_key}@example.com')
+            kwargs.setdefault('email', f'fake-{model_key}@example.com')
             kwargs.setdefault('phone', '555-000-0000')
         elif model_key == 'contact':
-            kwargs['email'] = f'zz-fake@example.com'
-            kwargs['name_first'] = 'zz Fake'
+            kwargs['email'] = f'fake@example.com'
+            kwargs['name_first'] = 'Fake'
             kwargs['name_last'] = 'Contact'
             kwargs['role'] = 'user'
         elif model_key == 'item':
@@ -328,7 +328,7 @@ class Command(BaseCommand):
             kwargs['purpose'] = 'fake_seed'
             kwargs['config'] = {'health': 'fake'}
         elif model_key == 'gl_account':
-            kwargs['ida'] = 'zz-fake-00000'
+            kwargs['ida'] = 'fake-00000'
             kwargs['type'] = 'asset'
             kwargs['category'] = 'cash'
         elif model_key == 'currency':

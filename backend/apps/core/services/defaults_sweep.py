@@ -11,7 +11,7 @@ made before that rule, or outside the door, has blanks. The sweep finds, per mod
 the records whose default field is blank and the records whose value is off the field's list.
 Blanks are repaired (``apply``): the model's default, a dt_ field as the record's dt_created
 plus the days. A value off its list is never rewritten — it is reported for a person (Alice's
-check coaches the owner; watch_defaults). Training rows (zz/qq idas) are never touched.
+check coaches the owner; watch_defaults).
 
 Also the company profile's prefs.currency: code, locale and symbol there are read by nothing
 since the stored formatting (config.defaults.formatting on each definition) took over; the
@@ -92,9 +92,8 @@ def _models_with_defaults() -> Dict[str, Dict[str, Any]]:
 
 
 def find_blanks(limit_ids: int = 20) -> List[Finding]:
-    """Per model and default field: the tallied records whose field is blank."""
+    """Per model and default field: the records whose field is blank."""
     from apps.core.services.defaults import resolve
-    from apps.core.services.tally import tallied
     findings: List[Finding] = []
     for key, block in _models_with_defaults().items():
         model = _model(key)
@@ -105,7 +104,7 @@ def find_blanks(limit_ids: int = 20) -> List[Finding]:
             name, _ = resolve(raw, value)
             if name not in names:
                 continue
-            blank = tallied(model.objects.all()).filter(_blank(model, name))
+            blank = model.objects.all().filter(_blank(model, name))
             kept_q = _kept(model)
             # Exclude by pk, not by the negated Q: a null metadata.health makes the JSON test
             # NULL, and NOT (… OR NULL) drops the open rows from both sides.
@@ -128,7 +127,6 @@ def find_unlisted(limit_ids: int = 20) -> List[Finding]:
     """Per model and default field with a list: the stored values that are not on it."""
     from django.db.models import Count
     from apps.core.services import select_lists
-    from apps.core.services.tally import tallied
     findings: List[Finding] = []
     for key, block in _models_with_defaults().items():
         model = _model(key)
@@ -141,13 +139,13 @@ def find_unlisted(limit_ids: int = 20) -> List[Finding]:
             if name not in names or not listed:
                 continue
             allowed = {str(v).lower() for v in listed}
-            rows = (tallied(model.objects.all()).exclude(**{f'{name}__isnull': True}).exclude(**{name: ''})
+            rows = (model.objects.all().exclude(**{f'{name}__isnull': True}).exclude(**{name: ''})
                     .values(name).annotate(n=Count('pk')).order_by('-n'))
             for row in rows:
                 value = row[name]
                 if str(value).lower() in allowed:
                     continue
-                ids = list(tallied(model.objects.all()).filter(**{name: value}).order_by('pk').values_list('pk', flat=True)[:limit_ids])
+                ids = list(model.objects.all().filter(**{name: value}).order_by('pk').values_list('pk', flat=True)[:limit_ids])
                 findings.append(Finding(key, name, 'unlisted', row['n'], value, ids))
     return findings
 
@@ -174,7 +172,6 @@ def apply(findings: List[Finding]) -> Dict[str, int]:
     from django.db.models import F
     from apps.core.models import Setting
     from apps.core.services.defaults import model_defaults, named_term
-    from apps.core.services.tally import tallied
     written: Dict[str, int] = {}
     now_ms = int(time.time() * 1000)
     for finding in findings:
@@ -185,7 +182,7 @@ def apply(findings: List[Finding]) -> Dict[str, int]:
             value = block.get(raw)
             if model is None or value in (None, ''):
                 continue
-            qs = tallied(model.objects.all()).filter(_blank(model, finding.field))
+            qs = model.objects.all().filter(_blank(model, finding.field))
             kept_q = _kept(model)
             if kept_q is not None:
                 qs = qs.exclude(pk__in=qs.filter(kept_q).values('pk'))

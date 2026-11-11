@@ -24,8 +24,8 @@ def _item(ida, cost=None):
 @pytest.fixture
 def cart():
     """zz CART = 2 × zz WHEEL (1 TIRE at 12 + 1 TUBE at 6) + 1 FLOOR at 45 → 81."""
-    cart, wheel = _item('zz-CART'), _item('zz-WHEEL')
-    tire, tube, floor = _item('zz-TIRE', 12), _item('zz-TUBE', 6), _item('zz-FLOOR', 45)
+    cart, wheel = _item('t-CART'), _item('t-WHEEL')
+    tire, tube, floor = _item('t-TIRE', 12), _item('t-TUBE', 6), _item('t-FLOOR', 45)
     lines = {
         'wheel': BillOfMaterial.objects.create(parent_item=cart, child_item=wheel, quantity=Decimal('2'), sequence=1),
         'floor': BillOfMaterial.objects.create(parent_item=cart, child_item=floor, quantity=Decimal('1'), sequence=2),
@@ -55,7 +55,7 @@ def test_what_if_recalculates_without_saving(cart):
     parent, items, lines = cart
     client = APIClient()
     client.force_authenticate(Contact.objects.create_superuser(
-        email='zz-bom@example.com', password=secrets.token_urlsafe(16)))
+        email='t-bom@example.com', password=secrets.token_urlsafe(16)))
     url = f'/wcapi/products/items/{parent.id}/bom/expand/'
 
     r = client.post(url, {'what_if': {'cost': {items['tire'].id: 20}, 'quantity': {lines['wheel'].id: 3}}},
@@ -73,7 +73,7 @@ def test_a_bad_what_if_is_refused(cart):
     parent, _items, _lines = cart
     client = APIClient()
     client.force_authenticate(Contact.objects.create_superuser(
-        email='zz-bom2@example.com', password=secrets.token_urlsafe(16)))
+        email='t-bom2@example.com', password=secrets.token_urlsafe(16)))
     r = client.post(f'/wcapi/products/items/{parent.id}/bom/expand/',
                     {'what_if': {'cost': {'1': 'lots'}}}, format='json', HTTP_HOST='localhost')
     assert r.status_code == 400

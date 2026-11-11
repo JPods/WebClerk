@@ -228,7 +228,7 @@ def _get_json_subfields(model_name: str, field_name: str) -> List[str]:
         'tax': ['rate', 'amount', 'jurisdiction', 'taxable_amount'],
         'physical': ['weight', 'dimensions', 'packages'],
         'finance': ['terms', 'credit_limit', 'balance'],
-        'metadata': ['training', 'source', 'project_name'],
+        'metadata': ['source', 'project_name'],
         'refs': ['links', 'source'],
         'comments': ['notes', 'public', 'internal'],
         'action': ['en'],

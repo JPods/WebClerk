@@ -29,17 +29,16 @@ from django.db import models, transaction
 IDA_MAX = 40   # common.models BaseModel.ida
 
 
-def journal_ida(ida_prefix: str, kind: str, source_ida) -> str:
-    """The ida every journal line of one document shares: ``{prefix}{kind}-{source ida}``.
+def journal_ida(kind: str, source_ida) -> str:
+    """The ida every journal line of one document shares: ``{kind}-{source ida}``.
 
     It names the document posted, not the account — the account has its own column, and
-    appending it overflowed ida's 40 characters (defect B-2, 2026-09-23). The prefix
-    stays first so zz/qq training rows are still recognised by their start.
+    appending it overflowed ida's 40 characters (defect B-2, 2026-09-23).
 
     Fails fast rather than truncating: a clipped ida would silently point at a different
     document, or at none.
     """
-    ida = f'{ida_prefix or ""}{kind}-{source_ida or ""}'
+    ida = f'{kind}-{source_ida or ""}'
     if len(ida) > IDA_MAX:
         raise ValueError(
             f'Cannot journal {kind} {source_ida!r}: its journal reference {ida!r} is '
@@ -155,7 +154,7 @@ def force_to_balance(
     # Derive batch_id and ida from existing entries
     first = existing.first()
     batch_id = first.batch_id or ''
-    ida = first.ida or journal_ida('', 'FTB', f'{source_model}-{source_id}')
+    ida = first.ida or journal_ida('FTB', f'{source_model}-{source_id}')
 
     audit_record = {
         'event': 'force_to_balance',
@@ -364,7 +363,7 @@ def _invoice_cost_of_goods(lines):
     return movements, {k: v.quantize(Decimal('0.01')) for k, v in cost.items()}
 
 
-def journalize_invoice(invoice_id: int, ida_prefix: str = '') -> dict:
+def journalize_invoice(invoice_id: int) -> dict:
     """Journalize a single invoice — line-level GL posting.
 
     Header (from the totals envelope):
@@ -385,7 +384,6 @@ def journalize_invoice(invoice_id: int, ida_prefix: str = '') -> dict:
 
     Args:
         invoice_id: Invoice PK
-        ida_prefix: prefix for journal ida (e.g., 'zzz' for test)
 
     Returns:
         {created: int, postings: [{account, debit, credit, purpose}], error: str}
@@ -525,7 +523,7 @@ def journalize_invoice(invoice_id: int, ida_prefix: str = '') -> dict:
         }
 
     try:
-        ida = journal_ida(ida_prefix, 'SJ', invoice.ida)
+        ida = journal_ida('SJ', invoice.ida)
     except ValueError as e:
         return {'created': 0, 'status': 'exception', 'error': str(e),
                 'source_id': invoice_id, 'source_model': 'invoice', 'postings': []}
@@ -578,7 +576,7 @@ def journalize_invoice(invoice_id: int, ida_prefix: str = '') -> dict:
     if comm.get('reps') and not comm.get('accrued'):
         try:
             from apps.transactions.services.pricing.commission_compute import accrue_commission
-            commission_result = accrue_commission(invoice_id, 'invoice', ida_prefix=ida_prefix)
+            commission_result = accrue_commission(invoice_id, 'invoice')
             created += commission_result.get('created', 0)
             posting_list.extend(commission_result.get('entries', []))
         except Exception:
@@ -590,7 +588,7 @@ def journalize_invoice(invoice_id: int, ida_prefix: str = '') -> dict:
     return result
 
 
-def journalize_cash(cash_id: int, ida_prefix: str = '') -> dict:
+def journalize_cash(cash_id: int) -> dict:
     """Journalize a cash entry — checkbook convention (signed amounts).
 
     Positive amount (received): Cash debit, AR credit — money in.
@@ -598,7 +596,6 @@ def journalize_cash(cash_id: int, ida_prefix: str = '') -> dict:
 
     Args:
         cash_id: Cash PK
-        ida_prefix: prefix for journal ida
 
     Returns:
         {created: int, postings: [...], error: str}
@@ -696,7 +693,7 @@ def journalize_cash(cash_id: int, ida_prefix: str = '') -> dict:
         credit_account, credit_purpose = cash_account, 'cash_disbursement'
 
     try:
-        ida = journal_ida(ida_prefix, 'CJ', cash.ida)
+        ida = journal_ida('CJ', cash.ida)
     except ValueError as e:
         return {'created': 0, 'status': 'exception', 'error': str(e),
                 'source_id': cash_id, 'source_model': 'cash', 'postings': []}
@@ -801,7 +798,7 @@ def journalize_cash(cash_id: int, ida_prefix: str = '') -> dict:
                             fx_account = _role('fx_gain_loss')
 
                             # Post FX gain/loss GL entry
-                            fx_ida = journal_ida(ida_prefix, 'FX', cash.ida)
+                            fx_ida = journal_ida('FX', cash.ida)
 
                             if fx_amount > 0:
                                 # FX gain: debit AR (we received more value), credit FX gain/loss
@@ -899,7 +896,7 @@ def journalize_cash(cash_id: int, ida_prefix: str = '') -> dict:
     return result
 
 
-def journalize_receipt(receipt_id: int, ida_prefix: str = '') -> dict:
+def journalize_receipt(receipt_id: int) -> dict:
     """Journalize a received receipt: payables from the receipt, inventory from its layers
     (Bill, 2026-09-28/30; plan 2026-09-30-gl-by-layer.md). The PO posts nothing.
 
@@ -990,7 +987,7 @@ def journalize_receipt(receipt_id: int, ida_prefix: str = '') -> dict:
                 'error': f'Out of balance: debits {debits} credits {credits}'}
 
     try:
-        ida = journal_ida(ida_prefix, 'RJ', receipt.ida)
+        ida = journal_ida('RJ', receipt.ida)
     except ValueError as e:
         return {'created': 0, 'status': 'exception', 'error': str(e),
                 'source_id': receipt_id, 'source_model': 'receipt', 'postings': []}
@@ -1020,7 +1017,7 @@ def _standing_event_ids(GlJournal, source_id: int, source_model: str) -> set:
     return {event_id for pk, event_id in rows.values_list('id', 'event_id') if pk not in reversed_ids}
 
 
-def journalize_workorder(workorder_id: int, ida_prefix: str = '') -> dict:
+def journalize_workorder(workorder_id: int) -> dict:
     """Post a workorder's unposted events (Bill, 2026-09-28: workorders journalize on command, per
     event; 2026-09-30: scrap is expensed; an opening is a count with config.opening).
 
@@ -1122,7 +1119,7 @@ def journalize_workorder(workorder_id: int, ida_prefix: str = '') -> dict:
         return {'created': 0, 'status': 'exception', 'source_id': wo.pk, 'source_model': 'workorder',
                 'error': f'Out of balance: debits {debits} credits {credits}'}
     try:
-        ida = journal_ida(ida_prefix, 'WJ', wo.ida or wo.pk)
+        ida = journal_ida('WJ', wo.ida or wo.pk)
     except ValueError as e:
         return {'created': 0, 'status': 'exception', 'error': str(e),
                 'source_id': wo.pk, 'source_model': 'workorder', 'postings': []}
@@ -1145,7 +1142,7 @@ def journalize_workorder(workorder_id: int, ida_prefix: str = '') -> dict:
 # BOM Journal — inventory transfer on assembly build
 # ---------------------------------------------------------------------------
 
-def journalize_adjustment(item_id: int, qty: Decimal, cost: Decimal, reason: str = '', ida_prefix: str = '') -> dict:
+def journalize_adjustment(item_id: int, qty: Decimal, cost: Decimal, reason: str = '') -> dict:
     """Journal entry for an inventory adjustment (scrap, draw, count variance).
 
     Debit/credit inventory + offset to adjustment expense account.
@@ -1166,7 +1163,7 @@ def journalize_adjustment(item_id: int, qty: Decimal, cost: Decimal, reason: str
     posting_list = []
     batch_id = f'ADJ-{item_id}-{int(time.time())}'
     try:
-        ida = journal_ida(ida_prefix, 'ADJ', _item_ida(item_id))
+        ida = journal_ida('ADJ', _item_ida(item_id))
     except ValueError as e:
         return {'created': 0, 'status': 'exception', 'error': str(e)}
 

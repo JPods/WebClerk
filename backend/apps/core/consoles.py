@@ -225,7 +225,7 @@ def get_first_item_scenario() -> Dict[str, Any]:
             'title': 'Create an Item',
             'instruction': (
                 'Open the right panel form (Item). Fill in:\n'
-                '• IDA: qqBB200 (the training item ID)\n'
+                '• IDA: BB200\n'
                 '• Name: Training Widget\n'
                 '• Description: Standard training item for flight simulator exercises\n\n'
                 'Save the record.'
@@ -233,7 +233,7 @@ def get_first_item_scenario() -> Dict[str, Any]:
             'action': 'create_item',
             'model': 'item',
             'expected_fields': {
-                'ida': 'qqBB200',
+                'ida': 'BB200',
                 'name': 'Training Widget',
             },
             'explanation': (
@@ -244,8 +244,6 @@ def get_first_item_scenario() -> Dict[str, Any]:
                 '• price — JSON with base price, price levels, breaks\n'
                 '• cost — JSON with standard, last, average cost\n'
                 '• gls — JSON mapping to GL accounts (revenue, cogs, inventory)\n\n'
-                'The ida "qqBB200" starts with "qq" — this is the training prefix. '
-                'All flight sim items use qq so they\'re easy to find and clean up.\n\n'
                 'WC2: [Item]ida_item, [Item]descpt'
             ),
         },
@@ -397,7 +395,7 @@ def get_first_sale_scenario() -> Dict[str, Any]:
                 '• Customer: Training Corp (from exercise 1)\n'
                 '• Contact: Training User\n\n'
                 'Save the header first, then add a line:\n'
-                '• Item: qqBB200 (Training Widget)\n'
+                '• Item: BB200 (Training Widget)\n'
                 '• Quantity: 15\n'
                 '• Price: $10.00 (should auto-fill from item)\n\n'
                 'Save.'
@@ -470,7 +468,7 @@ def get_first_sale_scenario() -> Dict[str, Any]:
                 'The right panel should now show the new Order.\n\n'
                 'Verify:\n'
                 '• Customer: Training Corp\n'
-                '• 1 line: qqBB200 × 9 at $10.00 = $90.00\n'
+                '• 1 line: BB200 × 9 at $10.00 = $90.00\n'
                 '• Status: planned or released\n\n'
                 'Check the left panel quantities:\n'
                 '• on_hand = 100, on_so = 9, on_qt = 6, available = 91\n\n'
@@ -495,11 +493,11 @@ def get_first_sale_scenario() -> Dict[str, Any]:
                 '|--------|-----------|-------------|\n'
                 '| Contact | Training User | People are separate from companies |\n'
                 '| Customer | Training Corp | Companies have financial data (credit, aging) |\n'
-                '| Item | qqBB200 | Products have price, cost, GL accounts, quantity buckets |\n'
+                '| Item | BB200 | Products have price, cost, GL accounts, quantity buckets |\n'
                 '| Quote | 15 × $10 | Quotes don\'t allocate inventory |\n'
                 '| Order | 9 × $10 | Orders DO allocate inventory |\n\n'
                 'The data you created here is the foundation for every flight sim in '
-                'Phase 2, 3, and 4. The training item qqBB200 with 100 units on hand '
+                'Phase 2, 3, and 4. The training item BB200 with 100 units on hand '
                 'at $10 price / $6 cost is the standard starting point.\n\n'
                 'The progression: Contact → Customer → Item → Quote → Order → '
                 'Invoice → Cash → GL. Each step adds financial weight. The first '
@@ -527,8 +525,7 @@ def get_defaults_walk_scenario() -> Dict[str, Any]:
 
     What a record is born with, and who gets to say: the model's Setting, then the customer or
     vendor, then the person. Ends at the Journalize report, where posting is the person's choice.
-    The simulator turns on training mode, so every record made here is a qq record and never
-    tallies.
+    Every record made here is a real record on the data set and tallies (Bill, 2026-11-11).
     """
     steps = [
         {
@@ -600,7 +597,7 @@ def get_defaults_walk_scenario() -> Dict[str, Any]:
             'title': 'Add a retail line, then assign a wholesale customer',
             'instruction': (
                 'On the quote, add a line:\n'
-                '• Item: qqBB200 (Training Widget)\n'
+                '• Item: BB200 (Training Widget)\n'
                 '• Quantity: 5\n'
                 '• Price: fills at retail ($10.00)\n'
                 'Save.\n\n'
@@ -783,8 +780,8 @@ def get_defaults_walk_scenario() -> Dict[str, Any]:
                 'change, and its dt_journaled records the moment. The run is recorded as a '
                 'JournalBatch — who posted, which records, how many posted and how many were '
                 'refused — the audit record of a choice someone made.\n\n'
-                'Training records (the qq idas the simulator makes) never tally: no report, '
-                'dashboard or GL balance counts them. Walk this as many times as you like.'
+                'What you post here is real on this data set: every report, dashboard and GL '
+                'balance counts it. Walk the lessons on a demo data set, not on your live books.'
             ),
         },
     ]

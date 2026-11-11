@@ -68,10 +68,10 @@ def test_flush_makes_its_signal_on_a_fresh_database():
 def test_a_seed_creates_then_updates_its_setting():
     """S-10: seed commands create their Setting on purpose (they were refused on create)."""
     s, created = Setting.authorized_update_or_create(
-        ida='zz-seed', defaults={'name': 'seed', 'purpose': 'wc:system', 'config': {'v': 1}})
+        ida='t-seed', defaults={'name': 'seed', 'purpose': 'wc:system', 'config': {'v': 1}})
     assert created and s.config == {'v': 1}
     s, created = Setting.authorized_update_or_create(
-        ida='zz-seed', defaults={'name': 'seed', 'purpose': 'wc:system', 'config': {'v': 2}})
-    assert not created and Setting.objects.get(ida='zz-seed').config == {'v': 2}
-    s, created = Setting.authorized_get_or_create(ida='zz-seed', defaults={'config': {'v': 3}})
+        ida='t-seed', defaults={'name': 'seed', 'purpose': 'wc:system', 'config': {'v': 2}})
+    assert not created and Setting.objects.get(ida='t-seed').config == {'v': 2}
+    s, created = Setting.authorized_get_or_create(ida='t-seed', defaults={'config': {'v': 3}})
     assert not created and s.config == {'v': 2}

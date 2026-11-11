@@ -67,7 +67,7 @@ def _invoice_with_lines(line_count: int):
 
     customer = OrgBase.objects.create(company='UoW Customer', org_type='customer',
                                       is_active=True)
-    item = Item.objects.create(name='UoW Widget', ida='zz-uow-item')
+    item = Item.objects.create(name='UoW Widget', ida='t-uow-item')
     invoice = Invoice.objects.create(customer_id=customer.pk, status='open')
     return invoice, item, InvoiceLine
 

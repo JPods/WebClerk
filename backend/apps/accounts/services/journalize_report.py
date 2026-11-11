@@ -5,7 +5,7 @@ journalized and post them."). The batch (batch_journalize) is gone.
 
 One generator, one Report record per model (report_registry.SHIPPED_REPORTS, key
 ``journalize_<model>``, screen ``/journalize/<model>``). The report lists the model's unposted
-records — a zz/qq row never — each either ready, with the entry it will post (the real posting,
+records, each either ready, with the entry it will post (the real posting,
 rolled back: journal_preview.preview_for), or waiting, with the reason in the door's or the
 poster's own words. The person ticks the ready rows and posts: every row goes through the door
 command ``journalize`` on its own, so one refusal stops nothing else, and the run answers
@@ -76,10 +76,9 @@ def _total(obj):
 def unposted(model_key: str, limit: int = 200) -> Dict[str, Any]:
     """The model's unposted records, oldest first, each ready (with its preview) or waiting (with
     its reason). ``total`` counts them all; ``rows`` carries the first ``limit``."""
-    from apps.core.services.tally import tallied
     from apps.transactions.services.journal_preview import preview_for
     Model = _model(model_key)
-    qs = tallied(Model.objects.filter(dt_journaled=0, is_active=True)).order_by('dt_created', 'pk')
+    qs = Model.objects.filter(dt_journaled=0, is_active=True).order_by('dt_created', 'pk')
     rows: List[Dict[str, Any]] = []
     for obj in qs[:limit]:
         why, preview = waiting(obj, model_key), None

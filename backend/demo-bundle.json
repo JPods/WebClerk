@@ -3993,7 +3993,7 @@
             "next": 1029,
             "format": "{number}-{tag}"
           },
-          "note": "ida for transaction documents: {number}-{tag}, meaningful characters first. Training documents end in -qq. common/ida.py next_document_ida.",
+          "note": "ida for transaction documents: {number}-{tag}, meaningful characters first. common/ida.py next_document_ida.",
           "order": {
             "pad": 4,
             "tag": "so",

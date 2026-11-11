@@ -13,8 +13,7 @@ Two forms, meaningful characters first so people type the part that tells
 records apart:
     Transaction documents — config.sequences.{key}.format from the company profile,
         default {number}-{tag}: 1001-qt, 1001-so, 1001-inv, 1001-po, 1001-wo, 1001-c.
-        Each type counts on its own. Training documents (flight simulator) end in -qq
-        whatever the format: 1002-inv-qq.
+        Each type counts on its own.
     Everything else — the record's pk: "1039".
 
 The format is the company's (Bill, 2026-09-26: "add the model indicator … define a prefix or
@@ -44,8 +43,6 @@ DOCUMENT_SEQUENCES = {
     'workorder': 'work_order',
     'cash': 'cash',
 }
-
-TRAINING_SUFFIX = 'qq'
 
 # The standard sequences a new company profile starts with (config.sequences).
 DEFAULT_SEQUENCES = {
@@ -94,14 +91,13 @@ def validate_sequences(sequences: Optional[dict]) -> None:
                              f'"{fmt}" would repeat last year\'s idas.')
 
 
-def format_document_ida(number: int, sequence: dict, training: bool = False, on=None) -> str:
+def format_document_ida(number: int, sequence: dict, on=None) -> str:
     """The ida for a document number in its sequence's format, on the company's local date."""
     on = on or date.today()
     pad = int(sequence.get('pad') or 0)
-    ida = (sequence.get('format') or DEFAULT_FORMAT).format(
+    return (sequence.get('format') or DEFAULT_FORMAT).format(
         number=f"{number:0{pad}d}", tag=sequence.get('tag', ''),
         yy=f"{on.year % 100:02d}", yyyy=f"{on.year:04d}", mm=f"{on.month:02d}")
-    return f"{ida}-{TRAINING_SUFFIX}" if training else ida
 
 
 def company_today(company_config: Optional[dict]):
@@ -115,7 +111,7 @@ def company_today(company_config: Optional[dict]):
     return datetime.now(tz).date()
 
 
-def next_document_ida(model_name: str, training: bool = False) -> str:
+def next_document_ida(model_name: str) -> str:
     """Take the next number for a transaction document and advance the sequence.
 
     Reads and increments company profile config.sequences.{key} under a row
@@ -144,4 +140,4 @@ def next_document_ida(model_name: str, training: bool = False) -> str:
         config['sequences'] = dict(sequences, **{key: sequence})
         # Queryset update: advancing a counter is not a settings edit.
         Setting.objects.filter(pk=company.pk).update(config=config)
-    return format_document_ida(number, sequence, training, on=today)
+    return format_document_ida(number, sequence, on=today)

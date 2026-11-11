@@ -106,13 +106,6 @@ const PLANNED_MODELS = new Set(["quote", "order", "invoice", "purchase", "receip
 const SIM_ITEM_KEY = "wc:flightsim:item_ida";
 const DEFAULT_SIM_ITEM_IDA = "";
 
-/** Items with this ida prefix are training items and may be reset.
- *  Anything else is real and is watched only. Mirrors TRAINING_IDA_PREFIX in
- *  backend/apps/products/services/inventory/inventory_flight_sim.py, which
- *  refuses the reset outright — this only keeps the UI from asking. */
-const TRAINING_IDA_PREFIX = "qq";
-const isTrainingItem = (ida: string) =>
-  ida.trim().toLowerCase().startsWith(TRAINING_IDA_PREFIX);
 
 
 interface SimDoc {
@@ -235,7 +228,6 @@ const SimItemPicker: React.FC<{
           <div className="fs-item-picker-empty">No items match “{query}”.</div>
         )}
         {results.map((r) => {
-          const training = isTrainingItem(r.ida || "");
           return (
             <button
               key={r.id}
@@ -249,9 +241,6 @@ const SimItemPicker: React.FC<{
                 <span className="fs-item-picker-sku">sku {r.sku}</span>
               )}
               <span className="fs-item-picker-name">{r.name}</span>
-              <span className={`fs-item-picker-mode${training ? " is-training" : ""}`}>
-                {training ? "training — resets each run" : "real — watch only"}
-              </span>
             </button>
           );
         })}
@@ -277,15 +266,13 @@ const FlightSimConsole: React.FC = () => {
   const [itemName, setItemName] = useState("");
 
   // The simulator tracks exactly ONE item, and the user chooses which.
-  // Every simulation that needs an item uses this one. Training items (ida
-  // starting 'qq') get a fresh reset on each run; any other item is watched
-  // only — never reset — so a simulation can never delete live records.
+  // Every simulation that needs an item uses this one. The item is a real
+  // record and is never reset: a simulation deletes nothing (Bill, 2026-11-11).
   const [simItemIda, setSimItemIda] = useState<string>(() => {
     try { return localStorage.getItem(SIM_ITEM_KEY) || DEFAULT_SIM_ITEM_IDA; }
     catch { return DEFAULT_SIM_ITEM_IDA; }
   });
   const [showItemPicker, setShowItemPicker] = useState(false);
-  const [watchOnly, setWatchOnly] = useState(false);
   const [simError, setSimError] = useState<string | null>(null);
 
   const chooseSimItem = useCallback((ida: string) => {
@@ -442,7 +429,7 @@ const FlightSimConsole: React.FC = () => {
       const result = await createRecord(model, {
         status: PLANNED_MODELS.has(model) ? "planned" : "active",
         ...header,
-        metadata: { training: true, flight_sim: true },
+        metadata: { flight_sim: true },
       }) as any;
       const newId = result?.id;
       if (!newId) setSimError(`Could not create the ${model} this simulation starts from.`);
@@ -457,7 +444,7 @@ const FlightSimConsole: React.FC = () => {
   };
 
   /** Start a simulation.
-   *  Click = always fresh — reset item + all training data, then create new record.
+   *  Click = a new record on the chosen item; nothing is reset or deleted.
    *  Shift-click = resume last (find most recent from transaction data).
    */
   // itemIda: pass the ida just picked. setSimItemIda has not re-rendered yet,
@@ -476,7 +463,6 @@ const FlightSimConsole: React.FC = () => {
       setSplitWidth(280);
     }
     setSimError(null);
-    setWatchOnly(false);
     try {
       // Company profile sim — find the Setting by ida and open it
       if (sim.id === 'company-profile') {
@@ -514,16 +500,6 @@ const FlightSimConsole: React.FC = () => {
           setShowItemPicker(true);
           setLoading(false);
           return;
-        }
-
-        const training = isTrainingItem(ida);
-        setWatchOnly(!training);
-
-        // Click = fresh start, but ONLY for a training item. Reset deletes the
-        // item's transaction lines and any header they leave empty, so a real
-        // item from the data set is watched as-is and never reset.
-        if (!resume && training) {
-          await manageAction("reset_flight_simulator", { ida });
         }
 
         const res = await manageAction("get_item_by_ida", { ida });
@@ -666,7 +642,7 @@ const FlightSimConsole: React.FC = () => {
           <h2 className="fs-select-title">Flight Simulator</h2>
           <p className="fs-select-desc">
             Choose a simulation to learn how transactions flow through WebClerk.
-            Each simulation uses a training item and walks you through creating
+            Each simulation uses the item you choose and walks you through creating
             real transactions while watching quantities, pending records, and GL accounts change.
           </p>
         </div>
@@ -745,7 +721,6 @@ const FlightSimConsole: React.FC = () => {
           >
             Item: {simItemIda || "choose…"}
             {!itemId && simItemIda && <span className="fs-watch-badge is-missing">not found</span>}
-            {itemId && watchOnly && <span className="fs-watch-badge">watch only</span>}
           </button>
         )}
         {simDocs.length > 0 && (

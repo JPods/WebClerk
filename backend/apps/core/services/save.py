@@ -91,10 +91,6 @@ def _load_or_new(actor: Actor, model_cls, model_key: str, record_id, expected_ve
         if hasattr(obj, 'security_level'):
             from apps.core.services.access import new_record_level
             obj.security_level = new_record_level(model_key)
-        # Training mode (flight simulator): every record the user makes is a qq record.
-        prefs = getattr(actor.user, 'prefs', None) or {}
-        if isinstance(prefs, dict) and prefs.get('training'):
-            obj._training_prefix = 'qq'
         return obj, True
 
     # A person may change only what they may read: visibility is asked of the read

@@ -1,5 +1,5 @@
 """The sweep (readme 106 step 4): existing records get the defaults they were born without;
-a value off its list is reported, never rewritten; training rows are never touched; the
+a value off its list is reported, never rewritten; the
 profile's unread currency keys go. Alice's check (watch_defaults) uses the same finder."""
 import os
 
@@ -34,17 +34,15 @@ def _by(findings, model, field, kind='blank'):
 
 def test_the_sweep_finds_and_fills_what_was_born_outside_the_door(admin, model_defaults):
     bare = Quote.objects.create(finance={'sales_tax_rate': 0})            # outside the door: no defaults
-    training = Quote.objects.create(finance={'sales_tax_rate': 0}, ida='zz-sweep-1')
     assert (bare.terms, bare.priority, bare.dt_needed) == (None, None, None)
     found = defaults_sweep.find_blanks()
     terms = _by(found, 'quote', 'terms')
-    assert terms.count == 1 and terms.ids == [bare.pk] and terms.value == 'N30', 'the training row is not counted'
+    assert terms.count == 1 and terms.ids == [bare.pk] and terms.value == 'N30'
     assert _by(found, 'quote', 'dt_needed').value == 'dt_needed_days'
     written = defaults_sweep.apply(found)
-    bare.refresh_from_db(); training.refresh_from_db()
+    bare.refresh_from_db()
     assert (bare.terms, bare.price_level, bare.priority) == ('N30', 'retail', 'medium')
     assert bare.dt_needed == bare.dt_created + 14 * DAY_MS, 'born plus the days, from its own birth'
-    assert training.terms is None, 'zz rows are never touched'
     assert written['quote.terms'] == 1 and written['quote.dt_needed'] == 1
     assert defaults_sweep.find_blanks() == [] or all(f.model != 'quote' for f in defaults_sweep.find_blanks())
 
