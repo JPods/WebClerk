@@ -39272,13 +39272,13 @@
                   "visible": true
                 },
                 {
-                  "field": "company.email",
+                  "field": "emails.bill_to.email",
                   "label": "email",
                   "width": 160,
                   "visible": true
                 },
                 {
-                  "field": "company.phone",
+                  "field": "phones.bill_to.number",
                   "label": "phone",
                   "width": 110,
                   "visible": true
@@ -51168,13 +51168,13 @@
                   "visible": true
                 },
                 {
-                  "field": "company.email",
+                  "field": "emails.bill_to.email",
                   "label": "email",
                   "width": 160,
                   "visible": true
                 },
                 {
-                  "field": "company.phone",
+                  "field": "phones.bill_to.number",
                   "label": "phone",
                   "width": 110,
                   "visible": true
@@ -60383,13 +60383,13 @@
                   "visible": true
                 },
                 {
-                  "field": "company.email",
+                  "field": "emails.bill_to.email",
                   "label": "email",
                   "width": 160,
                   "visible": true
                 },
                 {
-                  "field": "company.phone",
+                  "field": "phones.bill_to.number",
                   "label": "phone",
                   "width": 110,
                   "visible": true
@@ -63936,13 +63936,13 @@
                   "visible": true
                 },
                 {
-                  "field": "company.email",
+                  "field": "emails.vendor.email",
                   "label": "email",
                   "width": 160,
                   "visible": true
                 },
                 {
-                  "field": "company.phone",
+                  "field": "phones.vendor.number",
                   "label": "phone",
                   "width": 110,
                   "visible": true
@@ -89164,13 +89164,13 @@
                   "visible": true
                 },
                 {
-                  "field": "company.email",
+                  "field": "emails.bill_to.email",
                   "label": "email",
                   "width": 160,
                   "visible": true
                 },
                 {
-                  "field": "company.phone",
+                  "field": "phones.bill_to.number",
                   "label": "phone",
                   "width": 110,
                   "visible": true
@@ -182853,11 +182853,6 @@
           "id": 5604,
           "ida": "cust-riverside-sports",
           "name": "Riverside Sports",
-          "email": "usera2a77993@riversidesports.fake",
-          "notes": "",
-          "phone": "5555550141",
-          "domain": "riversidesports.com",
-          "attention": "Sarah Chen",
           "is_individual": false
         },
         "addresses": {
@@ -183176,11 +183171,6 @@
           "id": 5596,
           "ida": "5596",
           "name": "Acme Sporting Goods",
-          "email": "tom@acme.fake",
-          "notes": "",
-          "phone": "5555550109",
-          "domain": "acme.fake",
-          "attention": "Tom Bradley",
           "is_individual": false
         },
         "addresses": {
@@ -183402,11 +183392,6 @@
           "id": 5605,
           "ida": "cust-metro-baseball-acade",
           "name": "Metro Baseball Academy",
-          "email": "userbf12c1d5@metrobaseball.fake",
-          "notes": "",
-          "phone": "5555550141",
-          "domain": "metrobaseball.com",
-          "attention": "Mike Rodriguez",
           "is_individual": false
         },
         "addresses": {
@@ -183643,11 +183628,6 @@
           "id": 5606,
           "ida": "cust-eastside-little-leag",
           "name": "Eastside Little League",
-          "email": "user0c978a50@eastsidell.fake",
-          "notes": "",
-          "phone": "5555550105",
-          "domain": "eastsidell.org",
-          "attention": "Tom Parker",
           "is_individual": false
         },
         "addresses": {
@@ -183896,11 +183876,6 @@
           "id": 5529,
           "ida": "5529",
           "name": "Mitchell Residence",
-          "email": "pat@mitchell.fake",
-          "notes": "",
-          "phone": "5555550105",
-          "domain": "mitchell.fake",
-          "attention": "Pat Mitchell",
           "is_individual": false
         },
         "addresses": {
@@ -184137,11 +184112,6 @@
           "id": 5527,
           "ida": "5527",
           "name": "Oakdale Hardware & Supply",
-          "email": "bill@oakdale.fake",
-          "notes": "",
-          "phone": "5555550167",
-          "domain": "oakdale.fake",
-          "attention": "Bill James",
           "is_individual": false
         },
         "addresses": {
@@ -184378,11 +184348,6 @@
           "id": 5528,
           "ida": "5528",
           "name": "ProBuild Contractors Inc",
-          "email": "dan@probuild.fake",
-          "notes": "",
-          "phone": "5555550125",
-          "domain": "probuild.fake",
-          "attention": "Dan Keller",
           "is_individual": false
         },
         "addresses": {
@@ -184622,11 +184587,6 @@
           "id": 5604,
           "ida": "cust-riverside-sports",
           "name": "Riverside Sports",
-          "email": "usera2a77993@riversidesports.fake",
-          "notes": "",
-          "phone": "5555550141",
-          "domain": "riversidesports.com",
-          "attention": "Sarah Chen",
           "is_individual": false
         },
         "addresses": {
@@ -184872,11 +184832,6 @@
           "id": 5596,
           "ida": "5596",
           "name": "Acme Sporting Goods",
-          "email": "tom@acme.fake",
-          "notes": "",
-          "phone": "5555550109",
-          "domain": "acme.fake",
-          "attention": "Tom Bradley",
           "is_individual": false
         },
         "addresses": {
@@ -185116,11 +185071,6 @@
           "id": 5605,
           "ida": "cust-metro-baseball-acade",
           "name": "Metro Baseball Academy",
-          "email": "userbf12c1d5@metrobaseball.fake",
-          "notes": "",
-          "phone": "5555550141",
-          "domain": "metrobaseball.com",
-          "attention": "Mike Rodriguez",
           "is_individual": false
         },
         "addresses": {
@@ -185366,11 +185316,6 @@
           "id": 5606,
           "ida": "cust-eastside-little-leag",
           "name": "Eastside Little League",
-          "email": "user0c978a50@eastsidell.fake",
-          "notes": "",
-          "phone": "5555550105",
-          "domain": "eastsidell.org",
-          "attention": "Tom Parker",
           "is_individual": false
         },
         "addresses": {
@@ -185610,11 +185555,6 @@
           "id": 5529,
           "ida": "5529",
           "name": "Mitchell Residence",
-          "email": "pat@mitchell.fake",
-          "notes": "",
-          "phone": "5555550105",
-          "domain": "mitchell.fake",
-          "attention": "Pat Mitchell",
           "is_individual": false
         },
         "addresses": {
@@ -185854,11 +185794,6 @@
           "id": 5527,
           "ida": "5527",
           "name": "Oakdale Hardware & Supply",
-          "email": "bill@oakdale.fake",
-          "notes": "",
-          "phone": "5555550167",
-          "domain": "oakdale.fake",
-          "attention": "Bill James",
           "is_individual": false
         },
         "addresses": {
@@ -186110,11 +186045,6 @@
           "id": 5528,
           "ida": "5528",
           "name": "ProBuild Contractors Inc",
-          "email": "dan@probuild.fake",
-          "notes": "",
-          "phone": "5555550125",
-          "domain": "probuild.fake",
-          "attention": "Dan Keller",
           "is_individual": false
         },
         "addresses": {
@@ -186357,11 +186287,6 @@
           "id": 5604,
           "ida": "cust-riverside-sports",
           "name": "Riverside Sports",
-          "email": "usera2a77993@riversidesports.fake",
-          "notes": "",
-          "phone": "5555550141",
-          "domain": "riversidesports.com",
-          "attention": "Sarah Chen",
           "is_individual": false
         },
         "addresses": {
@@ -186598,11 +186523,6 @@
           "id": 5596,
           "ida": "5596",
           "name": "Acme Sporting Goods",
-          "email": "tom@acme.fake",
-          "notes": "",
-          "phone": "5555550109",
-          "domain": "acme.fake",
-          "attention": "Tom Bradley",
           "is_individual": false
         },
         "addresses": {
@@ -186851,11 +186771,6 @@
           "id": 5605,
           "ida": "cust-metro-baseball-acade",
           "name": "Metro Baseball Academy",
-          "email": "userbf12c1d5@metrobaseball.fake",
-          "notes": "",
-          "phone": "5555550141",
-          "domain": "metrobaseball.com",
-          "attention": "Mike Rodriguez",
           "is_individual": false
         },
         "addresses": {
@@ -187101,11 +187016,6 @@
           "id": 5606,
           "ida": "cust-eastside-little-leag",
           "name": "Eastside Little League",
-          "email": "user0c978a50@eastsidell.fake",
-          "notes": "",
-          "phone": "5555550105",
-          "domain": "eastsidell.org",
-          "attention": "Tom Parker",
           "is_individual": false
         },
         "addresses": {
@@ -187351,11 +187261,6 @@
           "id": 5529,
           "ida": "5529",
           "name": "Mitchell Residence",
-          "email": "pat@mitchell.fake",
-          "notes": "",
-          "phone": "5555550105",
-          "domain": "mitchell.fake",
-          "attention": "Pat Mitchell",
           "is_individual": false
         },
         "addresses": {
@@ -187598,11 +187503,6 @@
           "id": 5527,
           "ida": "5527",
           "name": "Oakdale Hardware & Supply",
-          "email": "bill@oakdale.fake",
-          "notes": "",
-          "phone": "5555550167",
-          "domain": "oakdale.fake",
-          "attention": "Bill James",
           "is_individual": false
         },
         "addresses": {
@@ -187851,11 +187751,6 @@
           "id": 5528,
           "ida": "5528",
           "name": "ProBuild Contractors Inc",
-          "email": "dan@probuild.fake",
-          "notes": "",
-          "phone": "5555550125",
-          "domain": "probuild.fake",
-          "attention": "Dan Keller",
           "is_individual": false
         },
         "addresses": {
@@ -188092,11 +187987,6 @@
           "id": 5604,
           "ida": "cust-riverside-sports",
           "name": "Riverside Sports",
-          "email": "usera2a77993@riversidesports.fake",
-          "notes": "",
-          "phone": "5555550141",
-          "domain": "riversidesports.com",
-          "attention": "Sarah Chen",
           "is_individual": false
         },
         "addresses": {
@@ -188345,11 +188235,6 @@
           "id": 5596,
           "ida": "5596",
           "name": "Acme Sporting Goods",
-          "email": "tom@acme.fake",
-          "notes": "",
-          "phone": "5555550109",
-          "domain": "acme.fake",
-          "attention": "Tom Bradley",
           "is_individual": false
         },
         "addresses": {
@@ -188592,11 +188477,6 @@
           "id": 5605,
           "ida": "cust-metro-baseball-acade",
           "name": "Metro Baseball Academy",
-          "email": "userbf12c1d5@metrobaseball.fake",
-          "notes": "",
-          "phone": "5555550141",
-          "domain": "metrobaseball.com",
-          "attention": "Mike Rodriguez",
           "is_individual": false
         },
         "addresses": {
@@ -188833,11 +188713,6 @@
           "id": 5606,
           "ida": "cust-eastside-little-leag",
           "name": "Eastside Little League",
-          "email": "user0c978a50@eastsidell.fake",
-          "notes": "",
-          "phone": "5555550105",
-          "domain": "eastsidell.org",
-          "attention": "Tom Parker",
           "is_individual": false
         },
         "addresses": {
@@ -189086,11 +188961,6 @@
           "id": 5529,
           "ida": "5529",
           "name": "Mitchell Residence",
-          "email": "pat@mitchell.fake",
-          "notes": "",
-          "phone": "5555550105",
-          "domain": "mitchell.fake",
-          "attention": "Pat Mitchell",
           "is_individual": false
         },
         "addresses": {
@@ -189330,11 +189200,6 @@
           "id": 5527,
           "ida": "5527",
           "name": "Oakdale Hardware & Supply",
-          "email": "bill@oakdale.fake",
-          "notes": "",
-          "phone": "5555550167",
-          "domain": "oakdale.fake",
-          "attention": "Bill James",
           "is_individual": false
         },
         "addresses": {
@@ -189574,11 +189439,6 @@
           "id": 5528,
           "ida": "5528",
           "name": "ProBuild Contractors Inc",
-          "email": "dan@probuild.fake",
-          "notes": "",
-          "phone": "5555550125",
-          "domain": "probuild.fake",
-          "attention": "Dan Keller",
           "is_individual": false
         },
         "addresses": {
@@ -189827,11 +189687,6 @@
           "id": 5604,
           "ida": "cust-riverside-sports",
           "name": "Riverside Sports",
-          "email": "usera2a77993@riversidesports.fake",
-          "notes": "",
-          "phone": "5555550141",
-          "domain": "riversidesports.com",
-          "attention": "Sarah Chen",
           "is_individual": false
         },
         "addresses": {
@@ -190083,11 +189938,6 @@
           "id": 5596,
           "ida": "5596",
           "name": "Acme Sporting Goods",
-          "email": "tom@acme.fake",
-          "notes": "",
-          "phone": "5555550109",
-          "domain": "acme.fake",
-          "attention": "Tom Bradley",
           "is_individual": false
         },
         "addresses": {
@@ -190333,11 +190183,6 @@
           "id": 5605,
           "ida": "cust-metro-baseball-acade",
           "name": "Metro Baseball Academy",
-          "email": "userbf12c1d5@metrobaseball.fake",
-          "notes": "",
-          "phone": "5555550141",
-          "domain": "metrobaseball.com",
-          "attention": "Mike Rodriguez",
           "is_individual": false
         },
         "addresses": {
@@ -190580,11 +190425,6 @@
           "id": 5606,
           "ida": "cust-eastside-little-leag",
           "name": "Eastside Little League",
-          "email": "user0c978a50@eastsidell.fake",
-          "notes": "",
-          "phone": "5555550105",
-          "domain": "eastsidell.org",
-          "attention": "Tom Parker",
           "is_individual": false
         },
         "addresses": {
@@ -190827,11 +190667,6 @@
           "id": 5529,
           "ida": "5529",
           "name": "Mitchell Residence",
-          "email": "pat@mitchell.fake",
-          "notes": "",
-          "phone": "5555550105",
-          "domain": "mitchell.fake",
-          "attention": "Pat Mitchell",
           "is_individual": false
         },
         "addresses": {
@@ -191080,11 +190915,6 @@
           "id": 5527,
           "ida": "5527",
           "name": "Oakdale Hardware & Supply",
-          "email": "bill@oakdale.fake",
-          "notes": "",
-          "phone": "5555550167",
-          "domain": "oakdale.fake",
-          "attention": "Bill James",
           "is_individual": false
         },
         "addresses": {
@@ -191333,11 +191163,6 @@
           "id": 5528,
           "ida": "5528",
           "name": "ProBuild Contractors Inc",
-          "email": "dan@probuild.fake",
-          "notes": "",
-          "phone": "5555550125",
-          "domain": "probuild.fake",
-          "attention": "Dan Keller",
           "is_individual": false
         },
         "addresses": {
@@ -191583,11 +191408,6 @@
           "id": 5604,
           "ida": "cust-riverside-sports",
           "name": "Riverside Sports",
-          "email": "usera2a77993@riversidesports.fake",
-          "notes": "",
-          "phone": "5555550141",
-          "domain": "riversidesports.com",
-          "attention": "Sarah Chen",
           "is_individual": false
         },
         "addresses": {
@@ -191833,11 +191653,6 @@
           "id": 5596,
           "ida": "5596",
           "name": "Acme Sporting Goods",
-          "email": "tom@acme.fake",
-          "notes": "",
-          "phone": "5555550109",
-          "domain": "acme.fake",
-          "attention": "Tom Bradley",
           "is_individual": false
         },
         "addresses": {
@@ -192083,11 +191898,6 @@
           "id": 5605,
           "ida": "cust-metro-baseball-acade",
           "name": "Metro Baseball Academy",
-          "email": "userbf12c1d5@metrobaseball.fake",
-          "notes": "",
-          "phone": "5555550141",
-          "domain": "metrobaseball.com",
-          "attention": "Mike Rodriguez",
           "is_individual": false
         },
         "addresses": {
@@ -192327,11 +192137,6 @@
           "id": 5606,
           "ida": "cust-eastside-little-leag",
           "name": "Eastside Little League",
-          "email": "user0c978a50@eastsidell.fake",
-          "notes": "",
-          "phone": "5555550105",
-          "domain": "eastsidell.org",
-          "attention": "Tom Parker",
           "is_individual": false
         },
         "addresses": {
@@ -193225,11 +193030,6 @@
           "id": 5609,
           "ida": "CUST-01",
           "name": "Riverside Sports",
-          "email": "",
-          "notes": "",
-          "phone": "5555550199",
-          "domain": "",
-          "attention": "Sarah Chen",
           "is_individual": false
         },
         "addresses": {
@@ -193491,11 +193291,6 @@
           "id": 5610,
           "ida": "CUST-02",
           "name": "Metro Baseball Academy",
-          "email": "",
-          "notes": "",
-          "phone": "5555550194",
-          "domain": "",
-          "attention": "Mike Rodriguez",
           "is_individual": false
         },
         "addresses": {
@@ -193760,11 +193555,6 @@
           "id": 5611,
           "ida": "CUST-03",
           "name": "Eastside Little League",
-          "email": "",
-          "notes": "",
-          "phone": "5555550167",
-          "domain": "",
-          "attention": "Karen Williams",
           "is_individual": false
         },
         "addresses": {
@@ -194002,17 +193792,27 @@
           "id": 5527,
           "ida": "5527",
           "name": "Beacon LLC 23",
-          "email": "blake.shaw.10697@summit.fake",
-          "phone": "+15555550172",
-          "domain": "probuild.fake",
-          "attention": "Blake Shaw",
-          "contact_id": 10697,
-          "full_address": "777 Lake Shore Dr, Charlotte, NC 28201",
           "is_individual": false
         },
-        "addresses": {},
-        "emails": {},
-        "phones": {},
+        "addresses": {
+          "bill_to": {
+            "contact_id": 10697,
+            "company": "Beacon LLC 23",
+            "attention": "Blake Shaw",
+            "full_address": "777 Lake Shore Dr, Charlotte, NC 28201",
+            "instructions": ""
+          }
+        },
+        "emails": {
+          "bill_to": {
+            "email": "blake.shaw.10697@summit.fake"
+          }
+        },
+        "phones": {
+          "bill_to": {
+            "number": "+15555550172"
+          }
+        },
         "price_level": "retail",
         "terms": null,
         "conditions_id": null,
@@ -194195,17 +193995,27 @@
           "id": 5527,
           "ida": "5527",
           "name": "Beacon LLC 23",
-          "email": "blake.shaw.10697@summit.fake",
-          "phone": "+15555550172",
-          "domain": "probuild.fake",
-          "attention": "Blake Shaw",
-          "contact_id": 10697,
-          "full_address": "777 Lake Shore Dr, Charlotte, NC 28201",
           "is_individual": false
         },
-        "addresses": {},
-        "emails": {},
-        "phones": {},
+        "addresses": {
+          "bill_to": {
+            "contact_id": 10697,
+            "company": "Beacon LLC 23",
+            "attention": "Blake Shaw",
+            "full_address": "777 Lake Shore Dr, Charlotte, NC 28201",
+            "instructions": ""
+          }
+        },
+        "emails": {
+          "bill_to": {
+            "email": "blake.shaw.10697@summit.fake"
+          }
+        },
+        "phones": {
+          "bill_to": {
+            "number": "+15555550172"
+          }
+        },
         "price_level": "wholesale",
         "terms": null,
         "conditions_id": null,
@@ -194618,12 +194428,6 @@
           "id": 5609,
           "ida": "CUST-01",
           "name": "Oakdale Trading 27",
-          "email": "",
-          "phone": "",
-          "domain": "",
-          "attention": "",
-          "contact_id": null,
-          "full_address": "",
           "is_individual": false
         },
         "addresses": {
@@ -195068,12 +194872,6 @@
           "id": 5609,
           "ida": "CUST-01",
           "name": "Oakdale Trading 27",
-          "email": "",
-          "phone": "",
-          "domain": "",
-          "attention": "",
-          "contact_id": null,
-          "full_address": "",
           "is_individual": false
         },
         "addresses": {
@@ -195710,12 +195508,6 @@
           "id": 5609,
           "ida": "CUST-01",
           "name": "Oakdale Trading 27",
-          "email": "",
-          "phone": "",
-          "domain": "",
-          "attention": "",
-          "contact_id": null,
-          "full_address": "",
           "is_individual": false
         },
         "addresses": {
@@ -196171,12 +195963,6 @@
           "id": 5609,
           "ida": "CUST-01",
           "name": "Oakdale Trading 27",
-          "email": "",
-          "phone": "",
-          "domain": "",
-          "attention": "",
-          "contact_id": null,
-          "full_address": "",
           "is_individual": false
         },
         "addresses": {
@@ -242580,11 +242366,6 @@
           "id": 5527,
           "ida": "5527",
           "name": "Oakdale Hardware & Supply",
-          "email": "bill@oakdale.fake",
-          "notes": "",
-          "phone": "5555550167",
-          "domain": "oakdale.fake",
-          "attention": "Bill James",
           "is_individual": false
         },
         "addresses": {
@@ -242855,11 +242636,6 @@
           "id": 5529,
           "ida": "5529",
           "name": "Mitchell Residence",
-          "email": "pat@mitchell.fake",
-          "notes": "",
-          "phone": "5555550105",
-          "domain": "mitchell.fake",
-          "attention": "Pat Mitchell",
           "is_individual": false
         },
         "addresses": {
@@ -243104,11 +242880,6 @@
           "id": 5528,
           "ida": "5528",
           "name": "ProBuild Contractors Inc",
-          "email": "dan@probuild.fake",
-          "notes": "",
-          "phone": "5555550125",
-          "domain": "probuild.fake",
-          "attention": "Dan Keller",
           "is_individual": false
         },
         "addresses": {
@@ -243347,11 +243118,6 @@
           "id": 5529,
           "ida": "5529",
           "name": "Mitchell Residence",
-          "email": "pat@mitchell.fake",
-          "notes": "",
-          "phone": "5555550105",
-          "domain": "mitchell.fake",
-          "attention": "Pat Mitchell",
           "is_individual": false
         },
         "addresses": {
@@ -243587,11 +243353,6 @@
           "id": 5528,
           "ida": "5528",
           "name": "ProBuild Contractors Inc",
-          "email": "dan@probuild.fake",
-          "notes": "",
-          "phone": "5555550125",
-          "domain": "probuild.fake",
-          "attention": "Dan Keller",
           "is_individual": false
         },
         "addresses": {
@@ -243824,11 +243585,6 @@
           "id": 5527,
           "ida": "5527",
           "name": "Oakdale Hardware & Supply",
-          "email": "bill@oakdale.fake",
-          "notes": "",
-          "phone": "5555550167",
-          "domain": "oakdale.fake",
-          "attention": "Bill James",
           "is_individual": false
         },
         "addresses": {
@@ -244064,11 +243820,6 @@
           "id": 5529,
           "ida": "5529",
           "name": "Mitchell Residence",
-          "email": "pat@mitchell.fake",
-          "notes": "",
-          "phone": "5555550105",
-          "domain": "mitchell.fake",
-          "attention": "Pat Mitchell",
           "is_individual": false
         },
         "addresses": {
@@ -244305,11 +244056,6 @@
           "id": 5605,
           "ida": "cust-metro-baseball-acade",
           "name": "Metro Baseball Academy",
-          "email": "userbf12c1d5@metrobaseball.fake",
-          "notes": "",
-          "phone": "5555550141",
-          "domain": "metrobaseball.com",
-          "attention": "Mike Rodriguez",
           "is_individual": false
         },
         "addresses": {
@@ -244555,11 +244301,6 @@
           "id": 5604,
           "ida": "cust-riverside-sports",
           "name": "Riverside Sports",
-          "email": "usera2a77993@riversidesports.fake",
-          "notes": "",
-          "phone": "5555550141",
-          "domain": "riversidesports.com",
-          "attention": "Sarah Chen",
           "is_individual": false
         },
         "addresses": {
@@ -244842,11 +244583,6 @@
           "id": 5604,
           "ida": "cust-riverside-sports",
           "name": "Riverside Sports",
-          "email": "usera2a77993@riversidesports.fake",
-          "notes": "",
-          "phone": "5555550141",
-          "domain": "riversidesports.com",
-          "attention": "Sarah Chen",
           "is_individual": false
         },
         "addresses": {
@@ -245122,11 +244858,6 @@
           "id": 5604,
           "ida": "cust-riverside-sports",
           "name": "Riverside Sports",
-          "email": "usera2a77993@riversidesports.fake",
-          "notes": "",
-          "phone": "5555550141",
-          "domain": "riversidesports.com",
-          "attention": "Sarah Chen",
           "is_individual": false
         },
         "addresses": {
@@ -245385,11 +245116,6 @@
           "id": 5604,
           "ida": "cust-riverside-sports",
           "name": "Riverside Sports",
-          "email": "usera2a77993@riversidesports.fake",
-          "notes": "",
-          "phone": "5555550141",
-          "domain": "riversidesports.com",
-          "attention": "Sarah Chen",
           "is_individual": false
         },
         "addresses": {
@@ -245673,11 +245399,6 @@
           "id": 5604,
           "ida": "cust-riverside-sports",
           "name": "Riverside Sports",
-          "email": "usera2a77993@riversidesports.fake",
-          "notes": "",
-          "phone": "5555550141",
-          "domain": "riversidesports.com",
-          "attention": "Sarah Chen",
           "is_individual": false
         },
         "addresses": {
@@ -245952,12 +245673,6 @@
           "id": 5604,
           "ida": "cust-riverside-sports",
           "name": "Evergreen Works 15",
-          "email": "pat.brooks.10630@metro.fake",
-          "phone": "+15555550177",
-          "domain": "harbor.fake",
-          "attention": "Pat Brooks",
-          "contact_id": 10630,
-          "full_address": "654 Maple Ct, Raleigh, NC 27601",
           "is_individual": false
         },
         "addresses": {
@@ -246203,11 +245918,6 @@
           "id": 5527,
           "ida": "5527",
           "name": "Oakdale Hardware & Supply",
-          "email": "bill@oakdale.fake",
-          "notes": "",
-          "phone": "5555550167",
-          "domain": "oakdale.fake",
-          "attention": "Bill James",
           "is_individual": false
         },
         "addresses": {
@@ -246469,11 +246179,6 @@
           "id": 5528,
           "ida": "5528",
           "name": "ProBuild Contractors Inc",
-          "email": "dan@probuild.fake",
-          "notes": "",
-          "phone": "5555550125",
-          "domain": "probuild.fake",
-          "attention": "Dan Keller",
           "is_individual": false
         },
         "addresses": {
@@ -246723,11 +246428,6 @@
           "id": 5604,
           "ida": "cust-riverside-sports",
           "name": "Riverside Sports",
-          "email": "usera2a77993@riversidesports.fake",
-          "notes": "",
-          "phone": "5555550141",
-          "domain": "riversidesports.com",
-          "attention": "Sarah Chen",
           "is_individual": false
         },
         "addresses": {
@@ -246950,11 +246650,6 @@
           "id": 5609,
           "ida": "CUST-01",
           "name": "Riverside Sports",
-          "email": "",
-          "notes": "",
-          "phone": "5555550199",
-          "domain": "",
-          "attention": "Sarah Chen",
           "is_individual": false
         },
         "addresses": {
@@ -247211,11 +246906,6 @@
           "id": 5610,
           "ida": "CUST-02",
           "name": "Metro Baseball Academy",
-          "email": "",
-          "notes": "",
-          "phone": "5555550194",
-          "domain": "",
-          "attention": "Mike Rodriguez",
           "is_individual": false
         },
         "addresses": {
@@ -247459,17 +247149,27 @@
           "id": 5527,
           "ida": "5527",
           "name": "Beacon LLC 23",
-          "email": "blake.shaw.10697@summit.fake",
-          "phone": "+15555550172",
-          "domain": "probuild.fake",
-          "attention": "Blake Shaw",
-          "contact_id": 10697,
-          "full_address": "777 Lake Shore Dr, Charlotte, NC 28201",
           "is_individual": false
         },
-        "addresses": {},
-        "emails": {},
-        "phones": {},
+        "addresses": {
+          "bill_to": {
+            "contact_id": 10697,
+            "company": "Beacon LLC 23",
+            "attention": "Blake Shaw",
+            "full_address": "777 Lake Shore Dr, Charlotte, NC 28201",
+            "instructions": ""
+          }
+        },
+        "emails": {
+          "bill_to": {
+            "email": "blake.shaw.10697@summit.fake"
+          }
+        },
+        "phones": {
+          "bill_to": {
+            "number": "+15555550172"
+          }
+        },
         "price_level": "retail",
         "terms": null,
         "conditions_id": null,
@@ -247652,17 +247352,27 @@
           "id": 5527,
           "ida": "5527",
           "name": "Beacon LLC 23",
-          "email": "blake.shaw.10697@summit.fake",
-          "phone": "+15555550172",
-          "domain": "probuild.fake",
-          "attention": "Blake Shaw",
-          "contact_id": 10697,
-          "full_address": "777 Lake Shore Dr, Charlotte, NC 28201",
           "is_individual": false
         },
-        "addresses": {},
-        "emails": {},
-        "phones": {},
+        "addresses": {
+          "bill_to": {
+            "contact_id": 10697,
+            "company": "Beacon LLC 23",
+            "attention": "Blake Shaw",
+            "full_address": "777 Lake Shore Dr, Charlotte, NC 28201",
+            "instructions": ""
+          }
+        },
+        "emails": {
+          "bill_to": {
+            "email": "blake.shaw.10697@summit.fake"
+          }
+        },
+        "phones": {
+          "bill_to": {
+            "number": "+15555550172"
+          }
+        },
         "price_level": "retail",
         "terms": null,
         "conditions_id": null,
@@ -247845,17 +247555,27 @@
           "id": 5527,
           "ida": "5527",
           "name": "Beacon LLC 23",
-          "email": "blake.shaw.10697@summit.fake",
-          "phone": "+15555550172",
-          "domain": "probuild.fake",
-          "attention": "Blake Shaw",
-          "contact_id": 10697,
-          "full_address": "777 Lake Shore Dr, Charlotte, NC 28201",
           "is_individual": false
         },
-        "addresses": {},
-        "emails": {},
-        "phones": {},
+        "addresses": {
+          "bill_to": {
+            "contact_id": 10697,
+            "company": "Beacon LLC 23",
+            "attention": "Blake Shaw",
+            "full_address": "777 Lake Shore Dr, Charlotte, NC 28201",
+            "instructions": ""
+          }
+        },
+        "emails": {
+          "bill_to": {
+            "email": "blake.shaw.10697@summit.fake"
+          }
+        },
+        "phones": {
+          "bill_to": {
+            "number": "+15555550172"
+          }
+        },
         "price_level": "retail",
         "terms": null,
         "conditions_id": null,
@@ -248038,17 +247758,27 @@
           "id": 5527,
           "ida": "5527",
           "name": "Beacon LLC 23",
-          "email": "blake.shaw.10697@summit.fake",
-          "phone": "+15555550172",
-          "domain": "probuild.fake",
-          "attention": "Blake Shaw",
-          "contact_id": 10697,
-          "full_address": "777 Lake Shore Dr, Charlotte, NC 28201",
           "is_individual": false
         },
-        "addresses": {},
-        "emails": {},
-        "phones": {},
+        "addresses": {
+          "bill_to": {
+            "contact_id": 10697,
+            "company": "Beacon LLC 23",
+            "attention": "Blake Shaw",
+            "full_address": "777 Lake Shore Dr, Charlotte, NC 28201",
+            "instructions": ""
+          }
+        },
+        "emails": {
+          "bill_to": {
+            "email": "blake.shaw.10697@summit.fake"
+          }
+        },
+        "phones": {
+          "bill_to": {
+            "number": "+15555550172"
+          }
+        },
         "price_level": "retail",
         "terms": null,
         "conditions_id": null,
@@ -248239,17 +247969,27 @@
           "id": 5527,
           "ida": "5527",
           "name": "Beacon LLC 23",
-          "email": "blake.shaw.10697@summit.fake",
-          "phone": "+15555550172",
-          "domain": "probuild.fake",
-          "attention": "Blake Shaw",
-          "contact_id": 10697,
-          "full_address": "777 Lake Shore Dr, Charlotte, NC 28201",
           "is_individual": false
         },
-        "addresses": {},
-        "emails": {},
-        "phones": {},
+        "addresses": {
+          "bill_to": {
+            "contact_id": 10697,
+            "company": "Beacon LLC 23",
+            "attention": "Blake Shaw",
+            "full_address": "777 Lake Shore Dr, Charlotte, NC 28201",
+            "instructions": ""
+          }
+        },
+        "emails": {
+          "bill_to": {
+            "email": "blake.shaw.10697@summit.fake"
+          }
+        },
+        "phones": {
+          "bill_to": {
+            "number": "+15555550172"
+          }
+        },
         "price_level": "wholesale",
         "terms": null,
         "conditions_id": null,
@@ -248454,17 +248194,27 @@
           "id": 5527,
           "ida": "5527",
           "name": "Beacon LLC 23",
-          "email": "blake.shaw.10697@summit.fake",
-          "phone": "+15555550172",
-          "domain": "probuild.fake",
-          "attention": "Blake Shaw",
-          "contact_id": 10697,
-          "full_address": "777 Lake Shore Dr, Charlotte, NC 28201",
           "is_individual": false
         },
-        "addresses": {},
-        "emails": {},
-        "phones": {},
+        "addresses": {
+          "bill_to": {
+            "contact_id": 10697,
+            "company": "Beacon LLC 23",
+            "attention": "Blake Shaw",
+            "full_address": "777 Lake Shore Dr, Charlotte, NC 28201",
+            "instructions": ""
+          }
+        },
+        "emails": {
+          "bill_to": {
+            "email": "blake.shaw.10697@summit.fake"
+          }
+        },
+        "phones": {
+          "bill_to": {
+            "number": "+15555550172"
+          }
+        },
         "price_level": "wholesale",
         "terms": null,
         "conditions_id": null,
@@ -248675,12 +248425,6 @@
           "id": 5609,
           "ida": "CUST-01",
           "name": "Oakdale Trading 27",
-          "email": "",
-          "phone": "",
-          "domain": "",
-          "attention": "",
-          "contact_id": null,
-          "full_address": "",
           "is_individual": false
         },
         "addresses": {
@@ -267586,11 +267330,6 @@
           "id": 5527,
           "ida": "5527",
           "name": "Oakdale Hardware & Supply",
-          "email": "bill@oakdale.fake",
-          "notes": "",
-          "phone": "5555550167",
-          "domain": "oakdale.fake",
-          "attention": "Bill James",
           "is_individual": false
         },
         "addresses": {
@@ -267884,11 +267623,6 @@
           "id": 5527,
           "ida": "5527",
           "name": "Oakdale Hardware & Supply",
-          "email": "bill@oakdale.fake",
-          "notes": "",
-          "phone": "5555550167",
-          "domain": "oakdale.fake",
-          "attention": "Bill James",
           "is_individual": false
         },
         "addresses": {
@@ -268115,11 +267849,6 @@
           "id": 5527,
           "ida": "5527",
           "name": "Oakdale Hardware & Supply",
-          "email": "bill@oakdale.fake",
-          "notes": "",
-          "phone": "5555550167",
-          "domain": "oakdale.fake",
-          "attention": "Bill James",
           "is_individual": false
         },
         "addresses": {
@@ -268356,11 +268085,6 @@
           "id": 5528,
           "ida": "5528",
           "name": "ProBuild Contractors Inc",
-          "email": "dan@probuild.fake",
-          "notes": "",
-          "phone": "5555550125",
-          "domain": "probuild.fake",
-          "attention": "Dan Keller",
           "is_individual": false
         },
         "addresses": {
@@ -268603,11 +268327,6 @@
           "id": 5529,
           "ida": "5529",
           "name": "Mitchell Residence",
-          "email": "pat@mitchell.fake",
-          "notes": "",
-          "phone": "5555550105",
-          "domain": "mitchell.fake",
-          "attention": "Pat Mitchell",
           "is_individual": false
         },
         "addresses": {
@@ -268841,11 +268560,6 @@
           "id": 5528,
           "ida": "5528",
           "name": "ProBuild Contractors Inc",
-          "email": "dan@probuild.fake",
-          "notes": "",
-          "phone": "5555550125",
-          "domain": "probuild.fake",
-          "attention": "Dan Keller",
           "is_individual": false
         },
         "addresses": {
@@ -269091,11 +268805,6 @@
           "id": 5527,
           "ida": "5527",
           "name": "Oakdale Hardware & Supply",
-          "email": "bill@oakdale.fake",
-          "notes": "",
-          "phone": "5555550167",
-          "domain": "oakdale.fake",
-          "attention": "Bill James",
           "is_individual": false
         },
         "addresses": {
@@ -269352,11 +269061,6 @@
           "id": 5604,
           "ida": "cust-riverside-sports",
           "name": "Riverside Sports",
-          "email": "usera2a77993@riversidesports.fake",
-          "notes": "",
-          "phone": "5555550141",
-          "domain": "riversidesports.com",
-          "attention": "Sarah Chen",
           "is_individual": false
         },
         "addresses": {
@@ -269642,11 +269346,6 @@
           "id": 5604,
           "ida": "cust-riverside-sports",
           "name": "Riverside Sports",
-          "email": "usera2a77993@riversidesports.fake",
-          "notes": "",
-          "phone": "5555550141",
-          "domain": "riversidesports.com",
-          "attention": "Sarah Chen",
           "is_individual": false
         },
         "addresses": {
@@ -269930,11 +269629,6 @@
           "id": 5604,
           "ida": "cust-riverside-sports",
           "name": "Riverside Sports",
-          "email": "usera2a77993@riversidesports.fake",
-          "notes": "",
-          "phone": "5555550141",
-          "domain": "riversidesports.com",
-          "attention": "Sarah Chen",
           "is_individual": false
         },
         "addresses": {
@@ -270164,11 +269858,6 @@
           "id": 5604,
           "ida": "cust-riverside-sports",
           "name": "Riverside Sports",
-          "email": "usera2a77993@riversidesports.fake",
-          "notes": "",
-          "phone": "5555550141",
-          "domain": "riversidesports.com",
-          "attention": "Sarah Chen",
           "is_individual": false
         },
         "addresses": {
@@ -270453,11 +270142,6 @@
           "id": 5528,
           "ida": "5528",
           "name": "ProBuild Contractors Inc",
-          "email": "dan@probuild.fake",
-          "notes": "",
-          "phone": "5555550125",
-          "domain": "probuild.fake",
-          "attention": "Dan Keller",
           "is_individual": false
         },
         "addresses": {
@@ -270746,11 +270430,6 @@
           "id": 5604,
           "ida": "cust-riverside-sports",
           "name": "Riverside Sports",
-          "email": "usera2a77993@riversidesports.fake",
-          "notes": "",
-          "phone": "5555550141",
-          "domain": "riversidesports.com",
-          "attention": "Sarah Chen",
           "is_individual": false
         },
         "addresses": {
@@ -271007,11 +270686,6 @@
           "id": 5596,
           "ida": "5596",
           "name": "Acme Sporting Goods",
-          "email": "tom@acme.fake",
-          "notes": "",
-          "phone": "5555550109",
-          "domain": "acme.fake",
-          "attention": "Tom Bradley",
           "is_individual": false
         },
         "addresses": {
@@ -271287,11 +270961,6 @@
           "id": 5605,
           "ida": "cust-metro-baseball-acade",
           "name": "Metro Baseball Academy",
-          "email": "userbf12c1d5@metrobaseball.fake",
-          "notes": "",
-          "phone": "5555550141",
-          "domain": "metrobaseball.com",
-          "attention": "Mike Rodriguez",
           "is_individual": false
         },
         "addresses": {
@@ -271545,11 +271214,6 @@
           "id": 5606,
           "ida": "cust-eastside-little-leag",
           "name": "Eastside Little League",
-          "email": "user0c978a50@eastsidell.fake",
-          "notes": "",
-          "phone": "5555550105",
-          "domain": "eastsidell.org",
-          "attention": "Tom Parker",
           "is_individual": false
         },
         "addresses": {
@@ -271824,11 +271488,6 @@
           "id": 5527,
           "ida": "5527",
           "name": "Oakdale Hardware & Supply",
-          "email": "bill@oakdale.fake",
-          "notes": "",
-          "phone": "5555550167",
-          "domain": "oakdale.fake",
-          "attention": "Bill James",
           "is_individual": false
         },
         "addresses": {
@@ -272093,11 +271752,6 @@
           "id": 5609,
           "ida": "CUST-01",
           "name": "Riverside Sports",
-          "email": "",
-          "notes": "",
-          "phone": "5555550199",
-          "domain": "",
-          "attention": "Sarah Chen",
           "is_individual": false
         },
         "addresses": {
@@ -272331,11 +271985,6 @@
           "id": 5610,
           "ida": "CUST-02",
           "name": "Metro Baseball Academy",
-          "email": "",
-          "notes": "",
-          "phone": "5555550194",
-          "domain": "",
-          "attention": "Mike Rodriguez",
           "is_individual": false
         },
         "addresses": {
@@ -272578,11 +272227,6 @@
           "id": 5527,
           "ida": "5527",
           "name": "Oakdale Hardware & Supply",
-          "email": "bill@oakdale.fake",
-          "notes": "",
-          "phone": "612-555-0169",
-          "domain": "oakdale.fake",
-          "attention": "Bill James",
           "is_individual": false
         },
         "addresses": {
@@ -272791,11 +272435,6 @@
           "id": 5527,
           "ida": "5527",
           "name": "Oakdale Hardware & Supply",
-          "email": "bill@oakdale.fake",
-          "notes": "",
-          "phone": "612-555-0169",
-          "domain": "oakdale.fake",
-          "attention": "Bill James",
           "is_individual": false
         },
         "addresses": {
@@ -273004,11 +272643,6 @@
           "id": 5527,
           "ida": "5527",
           "name": "Oakdale Hardware & Supply",
-          "email": "bill@oakdale.fake",
-          "notes": "",
-          "phone": "612-555-0169",
-          "domain": "oakdale.fake",
-          "attention": "Bill James",
           "is_individual": false
         },
         "addresses": {
@@ -273226,11 +272860,6 @@
           "id": 5527,
           "ida": "5527",
           "name": "Oakdale Hardware & Supply",
-          "email": "bill@oakdale.fake",
-          "notes": "",
-          "phone": "612-555-0169",
-          "domain": "oakdale.fake",
-          "attention": "Bill James",
           "is_individual": false
         },
         "addresses": {
@@ -273451,17 +273080,27 @@
           "id": 5527,
           "ida": "5527",
           "name": "Beacon LLC 23",
-          "email": "blake.shaw.10697@summit.fake",
-          "phone": "+15555550172",
-          "domain": "probuild.fake",
-          "attention": "Blake Shaw",
-          "contact_id": 10697,
-          "full_address": "777 Lake Shore Dr, Charlotte, NC 28201",
           "is_individual": false
         },
-        "addresses": {},
-        "emails": {},
-        "phones": {},
+        "addresses": {
+          "bill_to": {
+            "contact_id": 10697,
+            "company": "Beacon LLC 23",
+            "attention": "Blake Shaw",
+            "full_address": "777 Lake Shore Dr, Charlotte, NC 28201",
+            "instructions": ""
+          }
+        },
+        "emails": {
+          "bill_to": {
+            "email": "blake.shaw.10697@summit.fake"
+          }
+        },
+        "phones": {
+          "bill_to": {
+            "number": "+15555550172"
+          }
+        },
         "price_level": "retail",
         "terms": null,
         "conditions_id": null,
@@ -273625,17 +273264,27 @@
           "id": 5527,
           "ida": "5527",
           "name": "Beacon LLC 23",
-          "email": "blake.shaw.10697@summit.fake",
-          "phone": "+15555550172",
-          "domain": "probuild.fake",
-          "attention": "Blake Shaw",
-          "contact_id": 10697,
-          "full_address": "777 Lake Shore Dr, Charlotte, NC 28201",
           "is_individual": false
         },
-        "addresses": {},
-        "emails": {},
-        "phones": {},
+        "addresses": {
+          "bill_to": {
+            "contact_id": 10697,
+            "company": "Beacon LLC 23",
+            "attention": "Blake Shaw",
+            "full_address": "777 Lake Shore Dr, Charlotte, NC 28201",
+            "instructions": ""
+          }
+        },
+        "emails": {
+          "bill_to": {
+            "email": "blake.shaw.10697@summit.fake"
+          }
+        },
+        "phones": {
+          "bill_to": {
+            "number": "+15555550172"
+          }
+        },
         "price_level": "retail",
         "terms": null,
         "conditions_id": null,
@@ -273877,17 +273526,27 @@
           "id": 5527,
           "ida": "5527",
           "name": "Beacon LLC 23",
-          "email": "blake.shaw.10697@summit.fake",
-          "phone": "+15555550172",
-          "domain": "probuild.fake",
-          "attention": "Blake Shaw",
-          "contact_id": 10697,
-          "full_address": "777 Lake Shore Dr, Charlotte, NC 28201",
           "is_individual": false
         },
-        "addresses": {},
-        "emails": {},
-        "phones": {},
+        "addresses": {
+          "bill_to": {
+            "contact_id": 10697,
+            "company": "Beacon LLC 23",
+            "attention": "Blake Shaw",
+            "full_address": "777 Lake Shore Dr, Charlotte, NC 28201",
+            "instructions": ""
+          }
+        },
+        "emails": {
+          "bill_to": {
+            "email": "blake.shaw.10697@summit.fake"
+          }
+        },
+        "phones": {
+          "bill_to": {
+            "number": "+15555550172"
+          }
+        },
         "price_level": "retail",
         "terms": null,
         "conditions_id": null,
@@ -274116,17 +273775,27 @@
           "id": 5527,
           "ida": "5527",
           "name": "Beacon LLC 23",
-          "email": "blake.shaw.10697@summit.fake",
-          "phone": "+15555550172",
-          "domain": "probuild.fake",
-          "attention": "Blake Shaw",
-          "contact_id": 10697,
-          "full_address": "777 Lake Shore Dr, Charlotte, NC 28201",
           "is_individual": false
         },
-        "addresses": {},
-        "emails": {},
-        "phones": {},
+        "addresses": {
+          "bill_to": {
+            "contact_id": 10697,
+            "company": "Beacon LLC 23",
+            "attention": "Blake Shaw",
+            "full_address": "777 Lake Shore Dr, Charlotte, NC 28201",
+            "instructions": ""
+          }
+        },
+        "emails": {
+          "bill_to": {
+            "email": "blake.shaw.10697@summit.fake"
+          }
+        },
+        "phones": {
+          "bill_to": {
+            "number": "+15555550172"
+          }
+        },
         "price_level": "retail",
         "terms": null,
         "conditions_id": null,
@@ -274327,17 +273996,27 @@
           "id": 5527,
           "ida": "5527",
           "name": "Beacon LLC 23",
-          "email": "blake.shaw.10697@summit.fake",
-          "phone": "+15555550172",
-          "domain": "probuild.fake",
-          "attention": "Blake Shaw",
-          "contact_id": 10697,
-          "full_address": "777 Lake Shore Dr, Charlotte, NC 28201",
           "is_individual": false
         },
-        "addresses": {},
-        "emails": {},
-        "phones": {},
+        "addresses": {
+          "bill_to": {
+            "contact_id": 10697,
+            "company": "Beacon LLC 23",
+            "attention": "Blake Shaw",
+            "full_address": "777 Lake Shore Dr, Charlotte, NC 28201",
+            "instructions": ""
+          }
+        },
+        "emails": {
+          "bill_to": {
+            "email": "blake.shaw.10697@summit.fake"
+          }
+        },
+        "phones": {
+          "bill_to": {
+            "number": "+15555550172"
+          }
+        },
         "price_level": "wholesale",
         "terms": null,
         "conditions_id": null,
@@ -274566,12 +274245,6 @@
           "id": 5609,
           "ida": "CUST-01",
           "name": "Oakdale Trading 27",
-          "email": "",
-          "phone": "",
-          "domain": "",
-          "attention": "",
-          "contact_id": null,
-          "full_address": "",
           "is_individual": false
         },
         "addresses": {
@@ -300916,12 +300589,6 @@
           "id": 5607,
           "ida": "cust-diamond-pro-equipmen",
           "name": "Riverside Supplies 82",
-          "email": "skyler.shaw.10633@lakeside.fake",
-          "phone": "+15555550189",
-          "domain": "metro.fake",
-          "attention": "Skyler Shaw",
-          "contact_id": 10633,
-          "full_address": "222 Cedar Blvd, Portland, OR 97201",
           "is_individual": false
         },
         "addresses": {
@@ -301167,11 +300834,6 @@
           "id": 5532,
           "ida": "5532",
           "name": "Southern Pine Lumber",
-          "email": "sales@southernpine.fake",
-          "notes": "",
-          "phone": "5555550194",
-          "domain": "",
-          "attention": "Jim Sawyer",
           "is_individual": false
         },
         "addresses": {
@@ -301415,11 +301077,6 @@
           "id": 5530,
           "ida": "5530",
           "name": "Stanley Tools",
-          "email": "orders@stanleytools.fake",
-          "notes": "",
-          "phone": "5555550125",
-          "domain": "",
-          "attention": "Mark Stanley",
           "is_individual": false
         },
         "addresses": {
@@ -301660,11 +301317,6 @@
           "id": 5531,
           "ida": "5531",
           "name": "Behr Paint Co",
-          "email": "wholesale@behrpaint.fake",
-          "notes": "",
-          "phone": "5555550109",
-          "domain": "",
-          "attention": "Karen Behr",
           "is_individual": false
         },
         "addresses": {
@@ -301905,11 +301557,6 @@
           "id": 5532,
           "ida": "5532",
           "name": "Southern Pine Lumber",
-          "email": "sales@southernpine.fake",
-          "notes": "",
-          "phone": "5555550194",
-          "domain": "",
-          "attention": "Jim Sawyer",
           "is_individual": false
         },
         "addresses": {
@@ -302172,11 +301819,6 @@
           "id": 5530,
           "ida": "5530",
           "name": "Stanley Tools",
-          "email": "orders@stanleytools.fake",
-          "notes": "",
-          "phone": "5555550125",
-          "domain": "",
-          "attention": "Mark Stanley",
           "is_individual": false
         },
         "addresses": {
@@ -302433,11 +302075,6 @@
           "id": 5530,
           "ida": "5530",
           "name": "Stanley Tools",
-          "email": "orders@stanleytools.fake",
-          "notes": "",
-          "phone": "5555550125",
-          "domain": "",
-          "attention": "Mark Stanley",
           "is_individual": false
         },
         "addresses": {
@@ -302659,11 +302296,6 @@
           "id": 5533,
           "ida": "5533",
           "name": "Diamond Pro Equipment",
-          "email": "sales@diamondpro.fake",
-          "notes": "",
-          "phone": "5555550155",
-          "domain": "",
-          "attention": "Lisa Wang",
           "is_individual": false
         },
         "addresses": {
@@ -302943,11 +302575,6 @@
           "id": 5532,
           "ida": "5532",
           "name": "Southern Pine Lumber",
-          "email": "sales@southernpine.fake",
-          "notes": "",
-          "phone": "5555550194",
-          "domain": "",
-          "attention": "Jim Sawyer",
           "is_individual": false
         },
         "addresses": {
@@ -303192,11 +302819,6 @@
           "id": 5530,
           "ida": "5530",
           "name": "Stanley Tools",
-          "email": "orders@stanleytools.fake",
-          "notes": "",
-          "phone": "(860) 555-0400",
-          "domain": "",
-          "attention": "Mark Stanley",
           "is_individual": false
         },
         "addresses": {
@@ -303433,11 +303055,6 @@
           "id": 5530,
           "ida": "5530",
           "name": "Stanley Tools",
-          "email": "orders@stanleytools.fake",
-          "notes": "",
-          "phone": "(860) 555-0400",
-          "domain": "",
-          "attention": "Mark Stanley",
           "is_individual": false
         },
         "addresses": {
@@ -303683,11 +303300,6 @@
           "id": 5530,
           "ida": "5530",
           "name": "Stanley Tools",
-          "email": "orders@stanleytools.fake",
-          "notes": "",
-          "phone": "(860) 555-0400",
-          "domain": "",
-          "attention": "Mark Stanley",
           "is_individual": false
         },
         "addresses": {
@@ -303936,11 +303548,6 @@
           "id": 5530,
           "ida": "5530",
           "name": "Stanley Tools",
-          "email": "orders@stanleytools.fake",
-          "notes": "",
-          "phone": "(860) 555-0400",
-          "domain": "",
-          "attention": "Mark Stanley",
           "is_individual": false
         },
         "addresses": {
@@ -304160,17 +303767,27 @@
           "id": 5530,
           "ida": "5530",
           "name": "Lakeside Partners 71",
-          "email": "peyton.zimmerman.10715@harbor.fake",
-          "phone": "5555550182",
-          "domain": "metro.fake",
-          "attention": "Peyton Zimmerman",
-          "contact_id": 10715,
-          "full_address": "456 Oak Ave, Boise, ID 83701",
           "is_individual": false
         },
-        "addresses": {},
-        "emails": {},
-        "phones": {},
+        "addresses": {
+          "vendor": {
+            "contact_id": 10715,
+            "company": "Lakeside Partners 71",
+            "attention": "Peyton Zimmerman",
+            "full_address": "456 Oak Ave, Boise, ID 83701",
+            "instructions": ""
+          }
+        },
+        "emails": {
+          "vendor": {
+            "email": "peyton.zimmerman.10715@harbor.fake"
+          }
+        },
+        "phones": {
+          "vendor": {
+            "number": "5555550182"
+          }
+        },
         "price_level": "retail",
         "terms": null,
         "conditions_id": null,
@@ -304353,17 +303970,27 @@
           "id": 5530,
           "ida": "5530",
           "name": "Lakeside Partners 71",
-          "email": "peyton.zimmerman.10715@harbor.fake",
-          "phone": "5555550182",
-          "domain": "metro.fake",
-          "attention": "Peyton Zimmerman",
-          "contact_id": 10715,
-          "full_address": "456 Oak Ave, Boise, ID 83701",
           "is_individual": false
         },
-        "addresses": {},
-        "emails": {},
-        "phones": {},
+        "addresses": {
+          "vendor": {
+            "contact_id": 10715,
+            "company": "Lakeside Partners 71",
+            "attention": "Peyton Zimmerman",
+            "full_address": "456 Oak Ave, Boise, ID 83701",
+            "instructions": ""
+          }
+        },
+        "emails": {
+          "vendor": {
+            "email": "peyton.zimmerman.10715@harbor.fake"
+          }
+        },
+        "phones": {
+          "vendor": {
+            "number": "5555550182"
+          }
+        },
         "price_level": "retail",
         "terms": null,
         "conditions_id": null,
@@ -304583,12 +304210,6 @@
           "id": 5606,
           "ida": "cust-eastside-little-leag",
           "name": "Pinnacle Systems 70",
-          "email": "lee.burke.10632@acme.fake",
-          "phone": "+15555550160",
-          "domain": "prairie.fake",
-          "attention": "Lee Burke",
-          "contact_id": 10632,
-          "full_address": "555 Park Row, Columbus, OH 43201",
           "is_individual": false
         },
         "addresses": {

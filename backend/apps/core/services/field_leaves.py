@@ -130,7 +130,7 @@ for _doc in DOCUMENT_PARTIES:
         FIELD_SCHEMAS[f'{_doc}.{_aspect}'] = f'{_AS}:{aspect_class_name(_doc, _aspect)}'
 
 TRANSACTION_HEADER_SCHEMAS = {
-    'company': f'{_TE}:TransactionCompany',
+    'company': f'{_TE}:TransactionParty',
     'totals': f'{_TE}:TransactionTotals',
     'allocations': f'{_TE}:TransactionAllocations',
     'finance': f'{_TE}:TransactionFinance',

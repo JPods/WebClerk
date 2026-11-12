@@ -68,3 +68,90 @@ def test_who_fills_what():
     assert roles_filled_by('purchase', 'company') == ('bill_to', 'ship_to')
     assert roles_filled_by('quote', 'customer') == ('bill_to', 'ship_to')
     assert roles_filled_by('quote', 'company') == () and roles_filled_by('receipt', 'vendor') == ()
+
+
+# ── readme 109 P4: one home for the counterparty's contact details ──────────────
+
+@pytest.fixture
+def admin(django_user_model):
+    return django_user_model.objects.create_superuser(
+        email='parties@example.com', password=None, name_first='Par', name_last='Ties', username='')
+
+
+def _saved(admin, model_key, cls, **fields):
+    from apps.core.services.door import Actor
+    from apps.core.services.new import new_record
+    from apps.core.services.save import save_record
+    actor = Actor(user=admin, kind='user', source='wcapi')
+    doc = cls.objects.get(pk=new_record(actor, model_key, {}).obj_id)
+    save_record(actor, {'id': doc.pk, 'version': doc.version, **fields}, model_key=model_key)
+    doc.refresh_from_db()
+    return doc
+
+
+def test_company_is_identity_and_the_details_come_from_the_block(admin, model_defaults):
+    from apps.orgs.models import Customer, Vendor
+    from apps.transactions.models import Purchase, Quote
+    block = {'contact_id': None, 'company': 'Parts Inc', 'attention': 'Sal',
+             'full_address': '9 Mill St, Denver, CO 80201', 'instructions': ''}
+    seller = Vendor.objects.create(company='Parts Inc', addresses={'bill_to': block},
+                                   phones={'bill_to': {'number': '303-555-0100'}},
+                                   emails={'bill_to': {'email': 'ap@parts.test'}})
+    po = _saved(admin, 'purchase', Purchase, vendor_id=seller.pk)
+    assert set(po.company) == {'id', 'ida', 'name', 'is_individual'} and po.company['name'] == 'Parts Inc'
+    assert (po.address_full, po.phone, po.email) == ('9 Mill St, Denver, CO 80201', '303-555-0100', 'ap@parts.test')
+
+    buyer = Customer.objects.create(company='Acme Corp', addresses={'bill_to': {**block, 'company': 'Acme Corp',
+                                                                                'full_address': '1 Main St'}})
+    q = _saved(admin, 'quote', Quote, customer_id=buyer.pk)
+    assert set(q.company) == {'id', 'ida', 'name', 'is_individual'} and q.company['name'] == 'Acme Corp'
+    assert q.address_full == '1 Main St'
+
+
+def test_the_counterparty_of_a_purchase_is_its_vendor_even_with_a_customer(admin, model_defaults):
+    """A drop shipment carries both; the purchase's company is who we buy from."""
+    from apps.orgs.models import Customer, Vendor
+    from apps.transactions.models import Purchase
+    seller = Vendor.objects.create(company='Parts Inc')
+    buyer = Customer.objects.create(company='Acme Corp')
+    po = _saved(admin, 'purchase', Purchase, vendor_id=seller.pk, customer_id=buyer.pk)
+    assert po.company['name'] == 'Parts Inc'
+
+
+def test_the_migration_keeps_every_detail_and_moves_every_path():
+    import importlib
+    from types import SimpleNamespace
+    m = importlib.import_module('apps.transactions.migrations.0056_counterparty_details_in_the_party_block')
+    old = SimpleNamespace(company={'id': 7, 'ida': '7', 'name': 'Parts Inc', 'contact_id': 3, 'attention': 'Sal',
+                                   'full_address': '9 Mill St', 'phone': '303', 'email': 'a@b.test',
+                                   'domain': 'b.test', 'is_individual': False},
+                          addresses={}, emails={}, phones={})
+    moved = m.moved_document(old, 'vendor')
+    assert moved['company'] == {'id': 7, 'ida': '7', 'name': 'Parts Inc', 'is_individual': False}
+    assert moved['addresses']['vendor'] == {'contact_id': 3, 'company': 'Parts Inc', 'attention': 'Sal',
+                                            'full_address': '9 Mill St', 'instructions': ''}
+    assert moved['emails'] == {'vendor': {'email': 'a@b.test'}} and moved['phones'] == {'vendor': {'number': '303'}}
+    done = SimpleNamespace(**{**vars(old), **moved})
+    assert m.moved_document(done, 'vendor') == {}, 'done once'
+    # a block someone already filled is the truth: it is not overwritten
+    kept = SimpleNamespace(company=dict(old.company), addresses={'vendor': {'company': 'Typed', 'full_address': 'X'}},
+                           emails={}, phones={})
+    assert 'addresses' not in m.moved_document(kept, 'vendor')
+
+    layout = {'list': [{'field': 'company.name'}, {'field': 'company.email'}, {'field': 'company.domain'}]}
+    assert m.moved_layout(layout, 'bill_to') == {'list': [{'field': 'company.name'}, {'field': 'emails.bill_to.email'}]}
+    access = m.moved_access({'sets': {'all': ['company.name', 'company.phone', 'phones.bill_to.number']},
+                             'roles': {'rep': {'view': ['company.full_address'], 'edit': []}}}, 'bill_to')
+    assert access['sets']['all'] == ['company.name', 'phones.bill_to.number']
+    assert access['roles']['rep']['view'] == ['addresses.bill_to.full_address']
+
+
+@pytest.mark.parametrize('bundle', ['init-bundle.json', 'settings-bundle.json'])
+def test_no_shipped_definition_names_a_company_detail(bundle):
+    data = json.loads((BACKEND / bundle).read_text())
+    for setting in data.get('settings') or []:
+        key = str(setting.get('parent_model') or '').lower()
+        if setting.get('purpose') == 'wc:model' and key in DOCUMENT_PARTIES:
+            text = json.dumps({'layout': setting['config'].get('layout'), 'access': setting['config'].get('access')})
+            for detail in ('attention', 'full_address', 'phone', 'email', 'contact_id', 'domain'):
+                assert f'"company.{detail}"' not in text, f'{bundle} {key}: company.{detail}'

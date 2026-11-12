@@ -77,6 +77,13 @@ def roles_filled_by(model_key: str, source: str) -> tuple:
     return tuple(role for role, by in DOCUMENT_PARTIES.get(model_key, {}).items() if by == source)
 
 
+def counterparty_role(model_key: str):
+    """The block that holds the document's counterparty — the customer's on a sale (bill_to),
+    the vendor's on a purchase; None for a document whose blocks no party fills."""
+    return next((role for role, by in DOCUMENT_PARTIES.get(model_key, {}).items()
+                 if by in ('customer', 'vendor')), None)
+
+
 def _aspect_class(name: str, aspect: str, roles) -> type:
     from pydantic import create_model
     entry = ASPECT_ENTRIES[aspect]

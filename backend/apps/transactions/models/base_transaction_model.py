@@ -259,8 +259,8 @@ class TransactionBaseModel(HardDeleteOnly, BaseModel):
     attention = models.CharField(max_length=255, blank=True, null=True)  # scalar index for search
 
     # Denormalized counterparty snapshot — company identity (from OrgBase) + contact
-    # communication (from Contact's FK pointers). Populated on save via
-    # _populate_company_snapshot(). Schema: TransactionCompany (transaction_envelopes.py).
+    # (their contact details are in the party block — readme 109 P4). Populated on save via
+    # _populate_company_snapshot(). Schema: TransactionParty (transaction_envelopes.py).
     company = models.JSONField(default=dict, blank=True,
         help_text="Counterparty snapshot: {id, ida, name, contact_id, attention, full_address, phone, email, domain, is_individual}")
 
@@ -365,45 +365,30 @@ class TransactionBaseModel(HardDeleteOnly, BaseModel):
         lines.exclude(**values).update(**values)
 
     def _populate_company_snapshot(self):
-        """Populate company snapshot from OrgBase + Contact.
+        """``company`` = who the document's counterparty is: identity only (readme 109 P4).
 
-        Contact drives communication (attention, full_address, phone, email, domain).
-        OrgBase provides company identity (id, ida, name).
-        Resolution: transaction.contact → org.contact_id → org FK pointers (last resort).
-        One contact = all roles (bill_to, ship_to) until explicitly split.
+        The counterparty is the party the table names for this document (the vendor on a
+        purchase or receipt, else the customer). Their contact details live in the party
+        block, filled when the party is picked (services/party_fill) — not here.
+        (The field's help_text still lists the old keys: changing it is a schema migration
+        on six tables for a comment.)
         """
+        buys = self._meta.model_name in ('purchase', 'receipt')
         org = None
-        if self.customer_id:
-            try:
-                org = self.customer
-            except Exception:
-                pass
-        if not org and self.vendor_id:
-            try:
-                org = self.vendor
-            except Exception:
-                pass
+        for party in (('vendor', 'customer') if buys else ('customer', 'vendor')):
+            if getattr(self, f'{party}_id', None):
+                try:
+                    org = getattr(self, party)
+                except Exception:
+                    org = None
+                if org:
+                    break
         if not org:
             return
-
-        # Resolve contact: transaction's contact_id takes priority over org's
-        contact = None
-        if self.contact_id:
-            try:
-                contact = self.contact
-            except Exception:
-                pass
-
-        current = self.company if isinstance(self.company, dict) else {}
-        # Rebuild if org changed or contact changed
-        current_org_id = current.get('id')
-        current_contact_id = current.get('contact_id')
-        if (current_org_id == org.id
-                and current.get('name')
-                and current_contact_id == (contact.pk if contact else None)):
-            return
-
-        self.company = org.build_company_snapshot(contact=contact)
+        identity = {'id': org.id, 'ida': org.ida or '', 'name': org.company or '',
+                    'is_individual': bool(getattr(org, 'is_individual', False))}
+        if self.company != identity:
+            self.company = identity
 
     # ── Read-only properties — replaced scalar shadow fields ────────
     # These read from the JSON envelope or FK relationships.
@@ -422,7 +407,7 @@ class TransactionBaseModel(HardDeleteOnly, BaseModel):
         return Decimal(str(val)) if val is not None else None
 
     # company property removed — replaced by company JSONField (2026-09-05)
-    # Schema: TransactionCompany — {id, ida, name, contact_id, attention, full_address, phone, email, domain, is_individual}
+    # Schema: TransactionParty — {id, ida, name, is_individual}
 
     @property
     def company_name(self):
@@ -430,37 +415,27 @@ class TransactionBaseModel(HardDeleteOnly, BaseModel):
         c = self.company if isinstance(self.company, dict) else {}
         return c.get('name', '')
 
+    def _counterparty(self, aspect: str, key: str) -> str:
+        """One value of the document's counterparty block (bill_to on a sale, vendor on a
+        purchase — common/schemas/aspects.DOCUMENT_PARTIES). The block is the one home of the
+        counterparty's contact details (readme 109 P4)."""
+        from common.schemas.aspects import counterparty_role
+        role = counterparty_role(self._meta.model_name)
+        blocks = getattr(self, aspect, None)
+        block = blocks.get(role) if role and isinstance(blocks, dict) else None
+        return (block.get(key) or '') if isinstance(block, dict) else ''
+
     @property
     def address_full(self):
-        refs = self.refs if isinstance(self.refs, dict) else {}
-        links = refs.get('links', {})
-        for role in ('customer', 'vendor', 'manufacturer'):
-            r = links.get(role, {})
-            if r.get('address_full'):
-                return r['address_full']
-        return ''
+        return self._counterparty('addresses', 'full_address')
 
     @property
     def email(self):
-        if self.contact_id and self.contact:
-            return self.contact.email or ''
-        refs = self.refs if isinstance(self.refs, dict) else {}
-        links = refs.get('links', {})
-        for role in ('customer', 'vendor', 'manufacturer'):
-            r = links.get(role, {})
-            if r.get('email'):
-                return r['email']
-        return ''
+        return self._counterparty('emails', 'email')
 
     @property
     def phone(self):
-        refs = self.refs if isinstance(self.refs, dict) else {}
-        links = refs.get('links', {})
-        for role in ('customer', 'vendor', 'manufacturer'):
-            r = links.get(role, {})
-            if r.get('phone'):
-                return r['phone']
-        return ''
+        return self._counterparty('phones', 'number')
 
     class Meta:
         abstract = True

@@ -29,8 +29,31 @@ from pydantic import BaseModel, ConfigDict, Field
 # Transaction Header Envelopes
 # ═══════════════════════════════════════════════════════════════════════
 
+class TransactionParty(BaseModel):
+    """Who a document's counterparty is — identity only (readme 109 P4, Bill 2026-11-12).
+
+    Their contact details (attention, address, phone, email) have one home: the document's
+    party block (``addresses/emails/phones.<role>``; the role is in
+    common/schemas/aspects.DOCUMENT_PARTIES — bill_to on a sale, vendor on a purchase).
+    """
+    id: Optional[int] = Field(
+        None, title="Org ID", description="OrgBase record id (customer or vendor)",
+        json_schema_extra={'widget': 'lookup', 'model': 'orgbase'})
+    ida: str = Field("", title="Org Code", description="Human-readable org identifier",
+                     json_schema_extra={'widget': 'text'})
+    name: str = Field("", title="Company", description="The org's company name",
+                      json_schema_extra={'widget': 'text'})
+    is_individual: bool = Field(False, title="Individual",
+                                description="True if org is a person, not a company",
+                                json_schema_extra={'widget': 'boolean'})
+
+    class Config:
+        extra = "forbid"
+
+
 class TransactionCompany(BaseModel):
-    """Counterparty snapshot on a transaction header.
+    """Counterparty snapshot with contact details — Cash only (a payment carries no party
+    blocks). A document header's ``company`` is TransactionParty.
 
     Built from Contact (the person) + OrgBase (the company).
     One contact = all roles (bill_to, ship_to, buy_from) until explicitly split.
