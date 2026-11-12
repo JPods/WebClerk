@@ -291,6 +291,11 @@ def _target_lines(source_lines, source_type: str, target_type: str,
             "commission": _copy_commission(getattr(src_line, "commission", None)),
         }
         line.update({key: value for key, value in carried.items() if value})
+        from apps.transactions.services import line_contacts
+        if f'{target_type}line' in line_contacts.LINE_DOCUMENTS:
+            people = line_contacts.carried(src_line)       # the warranty holder goes with the line
+            if people:
+                line["refs"]["contacts"] = people
         if target_type == "receipt":
             from apps.transactions.services.line_door import _stock_warehouse
             # A receipt line declares no price, commission, comments, config or refs.source:

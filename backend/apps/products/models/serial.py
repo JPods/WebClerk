@@ -162,6 +162,8 @@ class Serial(BaseModel):
         self.status = 'available'
         self.save()
         self.log_action('Made available')
+        from apps.transactions.services import line_contacts
+        line_contacts.write_serial(self, [])       # back in stock: nobody holds it
 
     def reserve_for_order(self, customer_id, order_id, sales_line_ref=None, price: float = 0.0, discount: float = 0.0):
         """Reserve for a sales order (not yet shipped)."""
@@ -208,6 +210,9 @@ class Serial(BaseModel):
             self.warranty = warranty
         self.save()
         self.log_action('Issued in invoice', doc_type='invoice', doc_id=invoice_id)
+        # The people the line names (its warranty holder) are this unit's too (readme 109 P6).
+        from apps.transactions.services import line_contacts
+        line_contacts.onto_serial(self, sales_line_ref)
 
     def return_from_customer(self, invoice_id=None, notes: str = ''):
         """Return from customer. Moves to returned status pending inspection."""

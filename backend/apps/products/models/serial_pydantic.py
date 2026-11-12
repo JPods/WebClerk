@@ -18,6 +18,7 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 from common.schemas.envelopes import ConfigBase, MetadataBase, RecordPrefsBase, RefsBase, SourceRef
+from common.schemas.transaction_envelopes import LineContact
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -136,6 +137,7 @@ class SerialPrefs(RecordPrefsBase):
 class SerialRefs(RefsBase):
     tags: list[str] = Field(default_factory=list)
     keywords: list[str] = Field(default_factory=list)
+    contacts: list[LineContact] = Field(default_factory=list)   # readme 109 P6
 
 
 # -- Default serial actions (seeded into Setting.serial) -------------------

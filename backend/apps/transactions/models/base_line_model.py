@@ -733,11 +733,21 @@ class BaseLineCore(HardDeleteOnly, BaseModel):
             except Exception:
                 pass  # graceful fallback — line_number stays 0
 
+        # The people a line names (readme 109 P6): entries made whole before the save, the
+        # contacts' and serials' side written after it.
+        from apps.transactions.services import line_contacts
+        contacts_before = None
+        if line_contacts.document_key(self) is not None:
+            if self.pk and not self._state.adding:
+                contacts_before = type(self).objects.filter(pk=self.pk).values_list('refs', flat=True).first()
+            line_contacts.settle(self, contacts_before)
+
         self._snapshot_held = True   # every post_save receiver reads the same "before"
         try:
             result = super().save(*args, **kwargs)
         finally:
             self._snapshot_held = False
+        line_contacts.link(self, contacts_before)
         self._take_snapshot()        # after every receiver has read the old one
         return result
 

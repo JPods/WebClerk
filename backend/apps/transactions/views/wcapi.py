@@ -79,6 +79,15 @@ def _leaf_paths(payload, prefix: str = "", collections: frozenset = frozenset())
                 else:
                     out.add(f"{path}.{channel}")
             continue
+        if key == 'contacts' and prefix in ('refs.', 'lines.refs.') and isinstance(value, list):
+            # The people a line names (readme 109 P6): a list of entries whose fields the leaf
+            # map names (refs.contacts.role), checked field by field as a comment entry is.
+            # An empty list takes people off, which is a write of who they are.
+            for entry in value:
+                out |= ({f"{path}.{field}" for field in entry} if isinstance(entry, dict) else {path})
+            if not value:
+                out.add(f"{path}.contact_id")
+            continue
         if isinstance(value, dict) and value:
             out |= _leaf_paths(value, f"{path}.")
         elif not prefix and key in collections and isinstance(value, list):

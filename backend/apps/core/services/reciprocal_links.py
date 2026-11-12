@@ -76,6 +76,12 @@ def _set_side(model_cls, pk: int, key: str, other_id: int, present: bool) -> Non
     model_cls.objects.filter(pk=pk).update(**update)
 
 
+def set_side(model_cls, pk: int, key: str, other_id: int, present: bool) -> None:
+    """The one writer of a link element, for a writer whose own side is not under refs.links
+    (a line's refs.contacts — transactions/services/line_contacts.py)."""
+    _set_side(model_cls, pk, key, other_id, present)
+
+
 def keep(model_key: str, before_refs, obj) -> None:
     """After ``obj`` (of ``model_key``) saved: write the other side of what its links changed."""
     after_refs = getattr(obj, 'refs', None)

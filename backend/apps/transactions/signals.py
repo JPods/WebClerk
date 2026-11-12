@@ -358,6 +358,23 @@ for _sell_line_model in (QuoteLine, OrderLine, InvoiceLine):
 
 
 # =============================================================================
+# LINE CONTACTS (readme 109 P6; Bill, 2026-11-12)
+# A deleted line's contacts no longer list it. The save side is the line's own
+# save (base_line_model.py), which has the "before" this needs.
+# =============================================================================
+
+def register_line_contacts(line_model):
+    @receiver(post_delete, sender=line_model)
+    def unlink_contacts_on_delete(sender, instance, **kwargs):
+        from apps.transactions.services import line_contacts
+        line_contacts.unlink(instance)
+
+
+for _sell_line_model in (QuoteLine, OrderLine, InvoiceLine):
+    register_line_contacts(_sell_line_model)
+
+
+# =============================================================================
 # HEADER TAX CHANGE → RECOMPUTE
 #
 # Totals were recomputed only when a line was saved, so a tax rate set or

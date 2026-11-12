@@ -52,7 +52,8 @@ LINE_MODEL_MAP = {
 
 #: JSON fields an update merges into, keeping the keys the payload does not name.
 MERGE_FIELDS = frozenset({'item', 'quantity', 'cost', 'price', 'tax', 'action', 'physical',
-                          'flow', 'source'})
+                          'flow', 'source',
+                          'refs'})     # a line's refs.contacts is sent alone (readme 109 P6)
 
 
 def _normalize_model_key(model_key: str) -> str:

@@ -29,6 +29,27 @@ from pydantic import BaseModel, ConfigDict, Field
 # Transaction Header Envelopes
 # ═══════════════════════════════════════════════════════════════════════
 
+class LineContact(BaseModel):
+    """A person associated with what a line sold, who is neither the document's counterparty
+    nor one of its address blocks (readme 109 P6; Bill, 2026-11-12: a furniture store buys a
+    warranty for one of its customers — that customer is the line's warranty_holder).
+
+    ``role`` is on the list each installation edits (the contact definition's
+    ``selectlists.transaction_role``). ``contact_id`` is the pointer; the rest is what the
+    contact read when the line was saved, named as the contact names it.
+    """
+    model_config = ConfigDict(extra='forbid')
+    role: str = Field("", title="Role", description="What this person is to the line",
+                      json_schema_extra={'widget': 'select'})
+    contact_id: Optional[int] = Field(
+        None, title="Contact", description="Contact record id",
+        json_schema_extra={'widget': 'lookup', 'model': 'contact'})
+    display_name: str = Field("", title="Name", json_schema_extra={'widget': 'text'})
+    company: str = Field("", title="Company", json_schema_extra={'widget': 'text'})
+    email: str = Field("", title="Email", json_schema_extra={'widget': 'text'})
+    phone: str = Field("", title="Phone", json_schema_extra={'widget': 'text'})
+
+
 class TransactionParty(BaseModel):
     """Who a document's counterparty is — identity only (readme 109 P4, Bill 2026-11-12).
 

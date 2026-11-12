@@ -22853,6 +22853,12 @@
               "value": "other",
               "label": "Other"
             }
+          ],
+          "transaction_role": [
+            {
+              "value": "warranty_holder",
+              "label": "Warranty Holder"
+            }
           ]
         },
         "field_groups": [
