@@ -288,9 +288,8 @@ class ReceiptBehaviour(ModelBehaviour):
 
 
 def coach_not_received(ctx: HookContext) -> None:
-    """A saved receipt whose goods are planned and not received says so, and how to receive them
-    (Bill, 2026-11-11: he planned 5 and looked for them in on_hand). Saving never moves stock;
-    the Receive command does (2026-09-30)."""
+    """A held receipt (converted with ``hold: true``) says what waits and how to receive it (Bill,
+    2026-11-11, R2). Saving a receipt that is not held receives its goods, so nothing waits."""
     from apps.transactions.models import ReceiptLine
     waiting = 0.0
     for q in ReceiptLine.objects.filter(receipt_id=ctx.obj.pk).values_list('quantity', flat=True):

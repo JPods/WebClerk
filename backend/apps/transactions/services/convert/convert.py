@@ -349,14 +349,14 @@ def convert_record(actor, source_type: str, source_id: int, target_type: str, *,
                    line_ids: Optional[List[int]] = None, contact_id: Optional[int] = None,
                    vendor_id: Optional[int] = None,
                    take: Optional[Callable[[List[dict]], List[dict]]] = None,
-                   stamp: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+                   stamp: Optional[Dict[str, Any]] = None, hold: bool = False) -> Dict[str, Any]:
     """Convert ``source_type`` #``source_id`` to a new ``target_type``, as ``actor``.
 
     The target is saved once with its lines — one save, its hooks once, the transfer check in
     the same unit. Without ``take`` every line the source has left goes; with it,
     ``take(built_lines)`` names the lines to keep and their quantities (shipping, the named
     path). ``stamp`` is more of the header the server authors (a shipping record), carried
-    like the rest.
+    like the rest. ``hold`` (a receipt only) saves the goods as staged, not received (R2).
     """
     from apps.core.services.save import save_record
 
@@ -395,11 +395,13 @@ def convert_record(actor, source_type: str, source_id: int, target_type: str, *,
     header.update(copy.deepcopy(stamp or {}))
     lines = (take or list)(copy.deepcopy(built))
     if target_type == "receipt":
-        # A planned receipt holds its goods as staged: nothing is on the shelf until the receipt's
-        # receive command (Bill, 2026-09-30), so the layer is born at the receipt's final cost.
+        # Saving a receipt receives the goods (Bill, 2026-11-11, R1): each line is saved with what
+        # was asked as active, and its door moves on_hand / on_rc, the layer and the purchase line's
+        # remaining. Hold is a positive act (R2): the goods wait as staged until Receive.
         for line in lines:
-            planned = float((line.get("quantity") or {}).get("active") or 0)
-            line["quantity"] = {**line["quantity"], "active": 0, "staged": planned, "remaining": 0}
+            asked = float((line.get("quantity") or {}).get("active") or 0)
+            line["quantity"] = {**line["quantity"], "active": 0 if hold else asked, "staged": asked,
+                                "remaining": 0}
     # The lines are the server's too, built from the source: they ride with the header past the
     # role's field filter, so a role that may convert but may not type a line's fields still
     # gets its document whole (a USER's convert was refused on lines.item.id_num, 2026-11-08).
@@ -426,11 +428,12 @@ def convert_record(actor, source_type: str, source_id: int, target_type: str, *,
 
 
 def convert_command(ctx) -> Dict[str, Any]:
-    """POST /wcapi/<source>/<id>/convert/ {to, lines?: [{line_id, qty?}], vendor_id?, contact_id?}.
+    """POST /wcapi/<source>/<id>/convert/ {to, lines?: [{line_id, qty?}], vendor_id?, contact_id?, hold?}.
 
     ``lines`` names the source lines affected (Bill, 2026-09-27); the target is saved with
     exactly those. Without it, the target is saved with everything the source has left
-    (Bill, 2026-11-08).
+    (Bill, 2026-11-08). ``hold: true`` on a receipt keeps the goods staged until Receive
+    (Bill, 2026-11-11, R2: hold is a positive act); without it, saving the receipt receives them.
     """
     to = (ctx.data.get("to") or "").lower()
     if not to:
@@ -452,7 +455,19 @@ def convert_command(ctx) -> Dict[str, Any]:
         line_ids = [int(row["line_id"]) for row in named]
     return convert_record(ctx.actor, ctx.model_key, ctx.obj.pk, to,
                           line_ids=line_ids, contact_id=ctx.data.get("contact_id"),
-                          vendor_id=ctx.data.get("vendor_id"), take=take)
+                          vendor_id=ctx.data.get("vendor_id"), take=take,
+                          hold=_hold(ctx.data.get("hold"), to))
+
+
+def _hold(value, to: str) -> bool:
+    """``hold`` is a yes or a no, and only a receipt holds goods."""
+    if value in (None, False, ""):
+        return False
+    if value is not True:
+        raise _refuse("bad_hold", f'"hold" is true or false ({value!r} was sent).')
+    if to != "receipt":
+        raise _refuse("hold_not_receipt", f"Only a receipt holds goods; a {to} has nothing to hold.")
+    return True
 
 
 def _system(source="convert"):

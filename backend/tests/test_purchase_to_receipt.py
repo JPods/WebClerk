@@ -1,14 +1,14 @@
 """Receiving is a convert, like order→invoice (Bill, 2026-09-27, R3).
 
-POST /wcapi/purchase/<id>/convert/ {to: 'receipt', lines?: [{line_id, qty?}]} saves a planned
-receipt through the door: without lines, everything left on the purchase; with them, only those
-lines, each at the qty given. A receipt line keeps the purchase line's whole cost, and the two
-costs are independent after that. More than is left is accepted and flagged to Alice.
+POST /wcapi/purchase/<id>/convert/ {to: 'receipt', lines?: [{line_id, qty?}], hold?} saves a receipt
+through the door: without lines, everything left on the purchase; with them, only those lines, each at
+the qty given. A receipt line keeps the purchase line's whole cost, and the two costs are independent
+after that. More than is left is accepted and flagged to Alice.
 
-Bill, 2026-09-30: the goods go on the shelf when the receipt is received, a step of its own. A
-planned receipt holds them as staged; POST /wcapi/receipt/<id>/receive/ moves on_hand and on_rc,
-drops the purchase line's remaining and creates each layer at the receipt's final cost, which
-never changes after (2026-09-28).
+Bill, 2026-11-11 (readme 108): saving a receipt receives the goods (R1) — on_hand, on_rc, the purchase
+line's remaining and the layer move at the save, at the best known cost. Hold is a positive act (R2):
+``hold: true`` keeps the goods staged until POST /wcapi/receipt/<id>/receive/. A received line's dock
+cost never changes (R3).
 """
 import pytest
 
@@ -74,7 +74,7 @@ def _remaining(pol):
     return pol.quantity.get('remaining')
 
 
-def test_a_planned_receipt_takes_everything_left_and_holds_it_until_received(admin_client):
+def test_a_saved_receipt_takes_everything_left_and_receives_it(admin_client):
     a, b = _item('Widget'), _item('Gadget')
     po, (pa, pb) = _po((a, 10, PO_COST), (b, 5, {'unit': 9.5}))
     r = _convert(admin_client, po.pk)
@@ -82,23 +82,16 @@ def test_a_planned_receipt_takes_everything_left_and_holds_it_until_received(adm
     receipt = Receipt.objects.get(pk=_data(r)['receipt_id'])
     assert receipt.ida, 'the core model assigns the number'
     assert receipt.vendor_id == po.vendor_id, 'the receipt is from the purchase\'s vendor'
-    assert (receipt.status, receipt.parent_model, receipt.parent_id) == ('planned', 'purchase', po.pk)
+    assert (receipt.parent_model, receipt.parent_id) == ('purchase', po.pk)
     lines = {line.parent_line_id: line for line in ReceiptLine.objects.filter(receipt=receipt)}
     assert set(lines) == {pa.pk, pb.pk}
-    assert (lines[pa.pk].quantity['staged'], lines[pa.pk].quantity['active']) == (10, 0)
+    assert lines[pa.pk].quantity['active'] == 10 and lines[pb.pk].quantity['active'] == 5
     pa.refresh_from_db()
     assert lines[pa.pk].cost == pa.cost, 'the receipt line takes the purchase line\'s whole cost'
-    assert _stock(a) == (0, 0, 10), 'planned: nothing on the shelf, still on order'
-    assert not any(line.inventory_layer_id for line in lines.values())
-
-    r = _receive(admin_client, receipt.pk)
-    assert r.status_code == 200, r.content
-    lines = {line.parent_line_id: line for line in ReceiptLine.objects.filter(receipt=receipt)}
-    assert lines[pa.pk].quantity['active'] == 10 and lines[pb.pk].quantity['active'] == 5
-    assert _stock(a) == (10, 10, 0) and _stock(b) == (5, 5, 0)
+    assert _stock(a) == (10, 10, 0) and _stock(b) == (5, 5, 0), 'on the shelf at the save'
     layer = lines[pa.pk].inventory_layer
-    assert layer.cost['unit_po'] == 4.0
     assert (layer.parent_model, layer.parent_id) == ('receiptline', lines[pa.pk].pk)
+    assert layer.quantity['received'] == 10
     for item in (a, b):
         line = next(l for l in lines.values() if l.item_fk_id == item.pk)
         assert Pending.objects.filter(record_id=str(item.pk), purpose='inventory_line_add',
@@ -108,27 +101,63 @@ def test_a_planned_receipt_takes_everything_left_and_holds_it_until_received(adm
     assert r.status_code == 400 and r.json()['error']['code'] == 'nothing_to_receive', r.content
 
 
+def test_a_held_receipt_waits_until_received(admin_client):
+    """R2: hold is a positive act, and Receive is the way off hold."""
+    a, b = _item('Widget'), _item('Gadget')
+    po, (pa, pb) = _po((a, 10, PO_COST), (b, 5, {'unit': 9.5}))
+    r = _convert(admin_client, po.pk, {'hold': True})
+    assert r.status_code == 200, r.content
+    receipt = Receipt.objects.get(pk=_data(r)['receipt_id'])
+    lines = {line.parent_line_id: line for line in ReceiptLine.objects.filter(receipt=receipt)}
+    assert (lines[pa.pk].quantity['staged'], lines[pa.pk].quantity['active']) == (10, 0)
+    assert _stock(a) == (0, 0, 10), 'held: nothing on the shelf, still on order'
+    assert not any(line.inventory_layer_id for line in lines.values())
+    assert _remaining(pa) == 10
+
+    r = _receive(admin_client, receipt.pk)
+    assert r.status_code == 200, r.content
+    assert _stock(a) == (10, 10, 0) and _stock(b) == (5, 5, 0)
+    assert _remaining(pa) == 0 and _remaining(pb) == 0
+    line = ReceiptLine.objects.get(pk=lines[pa.pk].pk)
+    assert line.inventory_layer.quantity['received'] == 10
+
+
+@pytest.mark.parametrize('hold, code', [('yes', 'bad_hold'), (1, 'bad_hold')])
+def test_hold_is_true_or_false(admin_client, hold, code):
+    a = _item('Widget')
+    po, _ = _po((a, 10, PO_COST))
+    r = _convert(admin_client, po.pk, {'hold': hold})
+    assert r.status_code == 400 and r.json()['error']['code'] == code, r.content
+    assert not Receipt.objects.exists()
+
+
+def test_only_a_receipt_holds(admin_client):
+    a = _item('Widget')
+    order, _line = _order(a, 4)
+    r = admin_client.post(f'/wcapi/order/{order.pk}/convert/', {'to': 'purchase', 'hold': True},
+                          content_type='application/json')
+    assert r.status_code == 400 and r.json()['error']['code'] == 'hold_not_receipt', r.content
+
+
 def test_a_partial_receipt_then_what_is_left_then_nothing(admin_client):
     a = _item('Widget')
     po, (pa,) = _po((a, 10, PO_COST))
-    first = _data(_convert(admin_client, po.pk, {'lines': [{'line_id': pa.pk, 'qty': 7}]}))['receipt_id']
+    r = _convert(admin_client, po.pk, {'lines': [{'line_id': pa.pk, 'qty': 7}]})
+    assert r.status_code == 200, r.content
+    assert _stock(a) == (7, 7, 3) and _remaining(pa) == 3
     r = _convert(admin_client, po.pk)
     assert r.status_code == 200, r.content
     second = ReceiptLine.objects.get(receipt_id=_data(r)['receipt_id'])
-    assert second.quantity['staged'] == 3, 'what open receipts plan is not planned again'
+    assert second.quantity['active'] == 3, 'what is received is not received again'
+    assert _stock(a) == (10, 10, 0)
     r = _convert(admin_client, po.pk)
     assert r.status_code == 400 and r.json()['error']['code'] == 'nothing_to_convert', r.content
-    assert _receive(admin_client, first).status_code == 200
-    assert _stock(a) == (7, 7, 3) and _remaining(pa) == 3
-    assert _receive(admin_client, second.receipt_id).status_code == 200
-    assert _stock(a) == (10, 10, 0)
 
 
-def test_named_lines_convert_and_receive_only_those(admin_client):
+def test_named_lines_receive_only_those(admin_client):
     a, b = _item('Widget'), _item('Gadget')
     po, (pa, pb) = _po((a, 10, PO_COST), (b, 5, {'unit': 9.5}))
-    r = _convert(admin_client, po.pk)
-    receipt_id = _data(r)['receipt_id']
+    receipt_id = _data(_convert(admin_client, po.pk, {'hold': True}))['receipt_id']
     lb = ReceiptLine.objects.get(receipt_id=receipt_id, parent_line_id=pb.pk)
     la = ReceiptLine.objects.get(receipt_id=receipt_id, parent_line_id=pa.pk)
     assert _receive(admin_client, receipt_id, {'lines': [{'line_id': lb.pk}]}).status_code == 200
@@ -137,11 +166,11 @@ def test_named_lines_convert_and_receive_only_those(admin_client):
     assert _stock(a) == (4, 4, 6)
 
 
-def test_the_cost_is_edited_before_receiving_and_fixed_after(admin_client):
+def test_the_cost_is_edited_while_held_and_fixed_once_received(admin_client):
     a = _item('Widget')
     po, (pa,) = _po((a, 10, PO_COST))
     pa.refresh_from_db()
-    receipt_id = _data(_convert(admin_client, po.pk))['receipt_id']
+    receipt_id = _data(_convert(admin_client, po.pk, {'hold': True}))['receipt_id']
     line = ReceiptLine.objects.get(receipt_id=receipt_id)
     r = admin_client.patch(f'/wcapi/receipt/{receipt_id}/',
                            {'lines': [{'id': line.pk, 'cost': {'unit': 4.25}}]},
@@ -153,25 +182,66 @@ def test_the_cost_is_edited_before_receiving_and_fixed_after(admin_client):
     assert _receive(admin_client, receipt_id).status_code == 200
     line.refresh_from_db()
     layer_cost = dict(line.inventory_layer.cost)
-    assert line.inventory_layer.cost['unit_po'] == 4.25, 'the layer is born at the receipt cost'
     r = admin_client.patch(f'/wcapi/receipt/{receipt_id}/',
                            {'lines': [{'id': line.pk, 'cost': {'unit': 5.0}}]},
                            content_type='application/json')
     assert r.status_code == 409 and r.json()['error']['code'] == 'layer_cost_fixed', r.content
     line.refresh_from_db()
-    assert line.inventory_layer.cost == layer_cost, 'a layer never changes'
+    assert line.inventory_layer.cost == layer_cost, 'the dock cost never changes (R3)'
 
 
-def test_a_request_cannot_receive_by_setting_active(admin_client):
+def test_a_held_line_is_received_by_setting_active_in_a_save(admin_client):
+    """R1: a save receives. The receive command is one way off hold; saving active is the other."""
     a = _item('Widget')
     po, (pa,) = _po((a, 10, PO_COST))
-    receipt_id = _data(_convert(admin_client, po.pk))['receipt_id']
+    receipt_id = _data(_convert(admin_client, po.pk, {'hold': True}))['receipt_id']
     line = ReceiptLine.objects.get(receipt_id=receipt_id)
     r = admin_client.patch(f'/wcapi/receipt/{receipt_id}/',
-                           {'lines': [{'id': line.pk, 'quantity': {'active': 10}}]},
+                           {'lines': [{'id': line.pk, 'quantity': {'active': 6}}]},
                            content_type='application/json')
-    assert r.status_code == 400 and r.json()['error']['code'] == 'receive_command', r.content
-    assert _stock(a) == (0, 0, 10)
+    assert r.status_code == 200, r.content
+    assert _stock(a) == (6, 6, 4) and _remaining(pa) == 4
+    line.refresh_from_db()
+    assert line.inventory_layer.quantity['received'] == 6
+
+
+def test_the_discounted_unit_and_a_header_freight_share_reach_the_layer_born_at_a_plain_save(admin_client):
+    """Found building readme 108 step 1: a line's door runs in its post_save, before the unit of work
+    computes the receipt's totals, so a layer born there read the totals as they stood before the
+    save — the discounted unit and the header freight share of the old quantities. The stock write
+    now waits for the totals, so each layer carries the engine's discounted unit and its share."""
+    from apps.products.models import Warehouse
+    a, b = _item('Widget'), _item('Gadget')
+    wh, _ = Warehouse.objects.get_or_create(code='MAIN', defaults={'name': 'Main', 'is_active': True})
+    vendor = Receipt._meta.get_field('vendor').related_model.objects.create(company='Plain Save Vendor')
+    r = admin_client.post('/wcapi/receipt/', {}, content_type='application/json')   # the new verb
+    assert r.status_code in (200, 201), r.content
+    receipt_id = r.json()['data']['id']
+    def put(body):
+        r = admin_client.put(f'/wcapi/receipt/{receipt_id}/', body, content_type='application/json')
+        assert r.status_code == 200, r.content
+    # The lines first (nothing received yet), then the freight they carry; then one save receives
+    # both, so the freight's split depends on both lines' totals at that save.
+    put({'vendor_id': vendor.pk, 'lines': [
+        {'item_fk_id': a.pk, 'item': {'item_id': a.pk}, 'warehouse_id': wh.pk, 'line_number': 10,
+         'quantity': {'active': 0, 'staged': 10}, 'cost': {'unit': 4.0, 'discount_percent': 10, 'precision': 2}},
+        {'item_fk_id': b.pk, 'item': {'item_id': b.pk}, 'warehouse_id': wh.pk, 'line_number': 20,
+         'quantity': {'active': 0, 'staged': 5}, 'cost': {'unit': 12.0, 'precision': 2}}]})
+    put({'allocations': {'freight': 30}})
+    la, lb = (ReceiptLine.objects.get(item_fk_id=i.pk) for i in (a, b))
+    assert _stock(a)[0] == 0
+    put({'lines': [{'id': la.pk, 'quantity': {'active': 10, 'staged': 10}},
+                   {'id': lb.pk, 'quantity': {'active': 5, 'staged': 5}}]})
+    la.refresh_from_db(); lb.refresh_from_db()
+    assert _stock(a)[0] == 10 and _stock(b)[0] == 5
+    for line in (la, lb):
+        layer = line.inventory_layer
+        totals = line.totals
+        assert layer.cost['unit_po'] == pytest.approx(float(totals['discounted_unit']))
+        assert layer.cost['freight'] == pytest.approx(float(totals['landed']['freight']) / line.quantity['active'], abs=1e-4)
+    shares = sum(float(l.totals['landed']['freight']) for l in (la, lb))
+    assert shares == pytest.approx(30), 'the freight is spread over both lines, not all on the first'
+    assert la.inventory_layer.cost['freight'] > 0 and lb.inventory_layer.cost['freight'] > 0
 
 
 def test_an_over_shipment_is_accepted_and_flagged_to_alice_once(admin_client):
@@ -182,10 +252,8 @@ def test_an_over_shipment_is_accepted_and_flagged_to_alice_once(admin_client):
     receipt_id = _data(r)['receipt_id']
     from apps.ai_assistant.services.notes import open_alice_actions
     notes = open_alice_actions('action_required', kind='over_receipt', purchase_line_id=pa.pk)
-    assert not notes.exists(), 'planned: nothing received yet'
-    assert _receive(admin_client, receipt_id).status_code == 200
     assert _stock(a)[0] == 12
-    assert notes.count() == 1
+    assert notes.count() == 1, 'received at the save, so flagged at the save'
     details = notes[0].config['alice']['details']
     assert (details['ordered'], details['received']) == (10, 12)
     line = ReceiptLine.objects.get(receipt_id=receipt_id)
@@ -313,12 +381,13 @@ def test_lines_sent_to_a_model_without_lines_are_refused_not_dropped(admin_clien
     assert item.name == 'No lines here'
 
 
-def test_a_saved_planned_receipt_says_what_is_not_yet_received(admin_client):
-    """Bill, 2026-11-11: he planned 5, saved, and looked for them in on_hand. The save says the
-    goods wait for Receive; once received it says nothing."""
+def test_a_held_receipt_says_what_is_not_yet_received(admin_client):
+    """Bill, 2026-11-11: a held receipt says what waits and how to receive it (R2); once received,
+    or never held, it says nothing."""
     a = _item('Widget')
     po, (pa,) = _po((a, 7, PO_COST))
-    receipt_id = _data(_convert(admin_client, po.pk, {'lines': [{'line_id': pa.pk, 'qty': 5}]}))['receipt_id']
+    receipt_id = _data(_convert(admin_client, po.pk, {'lines': [{'line_id': pa.pk, 'qty': 5}],
+                                                      'hold': True}))['receipt_id']
     r = admin_client.put(f'/wcapi/receipt/{receipt_id}/', {'comments': {'notes': 'at the dock'}},
                          content_type='application/json')
     assert r.status_code == 200, r.content

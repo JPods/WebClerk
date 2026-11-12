@@ -36,7 +36,7 @@ def _planned(qty=7, ordered=10):
         purchase=po, item={'item_id': item.pk, 'id_num': item.pk, 'description': 'Widget'},
         quantity={'active': ordered, 'staged': ordered}, cost={'unit': 4.00})
     out = run_command(Actor.system(), 'convert', 'purchase', po.pk,
-                      {'to': 'receipt', 'lines': [{'line_id': pol.pk, 'qty': qty}]})
+                      {'to': 'receipt', 'lines': [{'line_id': pol.pk, 'qty': qty}], 'hold': True})
     return item, ReceiptLine.objects.get(receipt_id=out['receipt_id'])
 
 
@@ -69,9 +69,8 @@ def test_receiving_moves_stock_and_creates_the_layer_in_one_pending():
 def test_a_received_quantity_cannot_be_edited():
     item, line, _ = _received(qty=7, ordered=10)
     line.quantity = {**line.quantity, 'active': 6, 'staged': 6}
-    with pytest.raises(Refused) as refused:
+    with pytest.raises(ValidationError, match='a layer never changes'):
         line.save()
-    assert refused.value.code == 'receive_command'
     assert _stock(item) == (7, 7, 3)
 
 

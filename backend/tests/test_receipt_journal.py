@@ -36,12 +36,15 @@ def _received_receipt(qty=10, freight=0):
     po = Purchase.objects.create(vendor_id=_vendor().pk, terms='N30')   # a complete purchase: the money steps refuse one without a vendor and terms (2026-11-06)
     pol = PurchaseLine.objects.create(purchase=po, item={'item_id': item.pk, 'description': 'Widget'},
                                       quantity={'active': qty, 'staged': qty}, cost=dict(COST))
-    out = _run('convert', 'purchase', po.pk, {'to': 'receipt', 'lines': [{'line_id': pol.pk}]})
+    # Saving the receipt receives the goods (Bill, 2026-11-11, R1). Freight entered on the receipt
+    # itself goes in before the goods land: a held receipt, then Receive (R2).
+    hold = {'hold': True} if freight else {}
+    out = _run('convert', 'purchase', po.pk, {'to': 'receipt', 'lines': [{'line_id': pol.pk}], **hold})
     receipt = Receipt.objects.get(pk=out['receipt_id'])
     if freight:
         receipt.allocations = {**(receipt.allocations or {}), 'freight': freight}
         receipt.save()
-    _run('receive', 'receipt', receipt.pk)
+        _run('receive', 'receipt', receipt.pk)
     receipt.refresh_from_db()
     return item, receipt
 
@@ -87,7 +90,7 @@ def test_nothing_received_is_refused_and_journalized_twice_is_refused():
     po = Purchase.objects.create(vendor_id=_vendor().pk, terms='N30')   # a complete purchase: the money steps refuse one without a vendor and terms (2026-11-06)
     pol = PurchaseLine.objects.create(purchase=po, item={'item_id': item.pk, 'description': 'Widget'},
                                       quantity={'active': 2, 'staged': 2}, cost=dict(COST))
-    planned = _run('convert', 'purchase', po.pk, {'to': 'receipt', 'lines': [{'line_id': pol.pk}]})
+    planned = _run('convert', 'purchase', po.pk, {'to': 'receipt', 'lines': [{'line_id': pol.pk}], 'hold': True})
     with pytest.raises(Refused) as refused:
         _run('journalize', 'receipt', planned['receipt_id'])
     assert refused.value.code == 'nothing_received'

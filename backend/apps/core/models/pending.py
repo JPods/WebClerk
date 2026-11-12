@@ -308,10 +308,12 @@ class Pending(CoreModel):
         if on_hand <= 0:
             raise ValidationError({'layer': f'Pending {self.pk} would create a layer '
                                             f'holding {on_hand}'})
-        # The receive command hands the layer its final landed cost (Bill, 2026-09-30: a layer is
-        # born at the receipt's cost and never changes). Otherwise, the line's totals as they stand.
-        landed = create.get('landed') or {}
-        if not landed and spec.get('line_id'):
+        # The one place a layer's cost is read: the receipt line's totals, which the writer computed
+        # before writing (line_door._write_after_totals, receive_receipt step 2): the discounted
+        # unit plus its share of the receipt's charges (Bill, 2026-11-11, R1/R3). An opening
+        # balance has no line and takes the unit cost it names.
+        landed = {}
+        if spec.get('line_id'):
             from apps.transactions.models import ReceiptLine
             from apps.transactions.services.pricing.totals_compute import landed_layer_cost
             line = ReceiptLine.objects.filter(pk=spec['line_id']).first()

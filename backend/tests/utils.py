@@ -78,8 +78,8 @@ def save_document(model_key, header_data, lines_data, actor=None):
 
 
 def received_receipt_line(receipt, **fields):
-    """A receipt line planned, then received by the receipt's receive command: nothing else sets a
-    receipt line's received quantity (Bill, 2026-09-30). ``quantity.active`` is what is received."""
+    """A receipt line held, then received by the receipt's receive command — the way off hold (Bill,
+    2026-11-11, R2; a plain save receives too, R1). ``quantity.active`` is what is received."""
     from apps.transactions.models import ReceiptLine
     from apps.transactions.services.receive_commands import receive_receipt
     quantity = dict(fields.pop('quantity', None) or {})

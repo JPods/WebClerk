@@ -426,4 +426,26 @@ def post_line_change(line, *, deleted: bool = False) -> None:
     never_saved = getattr(line, '_loaded', None) is None
     reason = (line.line_type if correction and not deleted
               else 'line deleted' if deleted else ('line added' if never_saved else 'line changed'))
+    if _header_model_name(header) == 'receipt' and isinstance(layer, dict) and layer.get('create'):
+        _write_after_totals(line, header, item_id, deltas, reason=reason, layer=layer)
+        return
     _write(line, item_id, deltas, reason=reason, layer=layer)
+
+
+def _write_after_totals(line, header, item_id: int, deltas: Dict[str, float], *, reason: str, layer) -> None:
+    """A receipt line's layer is born at its landed cost: the discounted unit plus its share of the
+    receipt's charges, which the totals engine allocates across all the receipt's lines (Bill,
+    2026-11-11, R1). A line's post_save comes before the totals, which the unit of work computes
+    once the whole document is saved, so the stock write waits for them: the receipt's totals are
+    computed, then the Pending is written and its applier reads the line's landed cost
+    (Pending.apply, the one place a layer's cost is read). Outside a unit it happens now."""
+    import uuid
+    from apps.core.services import unit_of_work as uow
+    from apps.transactions.services.pricing.totals_compute import recalculate_totals
+
+    def work():
+        recalculate_totals(header.pk, 'receipt')
+        _write(line, item_id, deltas, reason=reason, layer=layer)
+
+    if not uow.defer(('receipt_stock', line.pk, uuid.uuid4().hex), work):
+        work()

@@ -57,24 +57,20 @@ class ReceiptLine(BaseExecLineModel):
         super().save(*args, **kwargs)
 
     def _assert_received_is_fixed(self):
-        """What a receipt line has received is written by the receipt's receive command only, and a
-        received line's cost is fixed: its layer holds it (Bill, 2026-09-28/30)."""
+        """A received line's cost is fixed: its layer holds the dock cost (Bill, 2026-11-11, R3).
+        Its quantity is not: saving a receipt receives the goods (R1), so quantity.active comes
+        from a save like any line's, and the line door moves the stock."""
         from apps.core.services.door import Refused
         from apps.transactions.models.base_line_model import _envelope_changed
         stored = (type(self).objects.filter(pk=self.pk).values('quantity', 'cost').first()
                   if self.pk else None) or {}
         was = float((stored.get('quantity') or {}).get('active') or 0)
-        now = float((self.quantity or {}).get('active') or 0)
-        if abs(now - was) > 1e-9:
-            raise Refused(400, 'receive_command',
-                          "A receipt line's received quantity is set by the receipt's receive command: "
-                          'POST /wcapi/receipt/<id>/receive/ {"lines": [{"line_id", "qty"?}]}. '
-                          'Plan the quantity in quantity.staged.', {'line_id': self.pk})
         if was and _envelope_changed(stored.get('cost') or {}, self.cost or {}):
             raise Refused(409, 'layer_cost_fixed',
-                          'This line is received: its layer holds the cost, and a layer never changes. '
-                          'Correct it with a count workorder: a negative count at the old cost and a '
-                          'positive count at the new cost.', {'line_id': self.pk})
+                          'This line is received: its layer holds the dock cost, which never changes. '
+                          'Freight, duty and other charges are added to the layer later; a wrong unit '
+                          'cost is corrected with a count workorder: a negative count at the old cost '
+                          'and a positive count at the new cost.', {'line_id': self.pk})
 
     class Meta:
         db_table = "receipt_line"  # Singular to match existing table

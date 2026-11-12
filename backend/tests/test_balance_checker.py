@@ -36,8 +36,7 @@ def _received(qty=7, ordered=10):
         quantity={'active': ordered, 'staged': ordered}, cost={'unit': 4.00})
     out = run_command(Actor.system(), 'convert', 'purchase', po.pk,
                       {'to': 'receipt', 'lines': [{'line_id': pol.pk, 'qty': qty}]})
-    # The goods go on the shelf at the receipt's receive command (Bill, 2026-09-30).
-    run_command(Actor.system(), 'receive', 'receipt', out['receipt_id'], {})
+    # Saving the receipt put the goods on the shelf (Bill, 2026-11-11, R1).
     return item
 
 

@@ -155,9 +155,10 @@ class Receipt(TransactionBaseModel):
         super().save(*args, **kwargs)
 
     def _assert_landed_fixed_once_received(self):
-        """The landed costs spread onto a receipt's lines reach their layers when they are received,
-        and a layer never changes after (Bill, 2026-09-28/30). So once a line is received, the
-        receipt's allocations stand."""
+        """The charges spread onto a receipt's lines reach their layers when the lines are received,
+        and a received line's dock cost never changes (Bill, 2026-11-11, R3). So once a line is
+        received, the receipt's allocations stand: a later charge is its own entry, added to the
+        layers (readme 108, R4–R6)."""
         if not self.pk:
             return
         stored = type(self).objects.filter(pk=self.pk).values_list('allocations', flat=True).first() or {}
@@ -167,10 +168,10 @@ class Receipt(TransactionBaseModel):
         if _received(self):
             from apps.core.services.door import Refused
             raise Refused(409, 'layer_cost_fixed',
-                          'This receipt has received goods: their layers carry the landed cost, and a '
-                          'layer never changes. A later freight or duty bill is its own payable; to '
-                          'correct a cost, use a count workorder (a negative count at the old cost and '
-                          'a positive count at the new cost).', {'receipt_id': self.pk})
+                          'This receipt has received goods, and their layers hold the cost they landed '
+                          'at. A later freight, duty or other bill is its own entry, added to those '
+                          'layers. To enter charges before the goods land, convert with hold and '
+                          'receive afterwards.', {'receipt_id': self.pk})
 
     def __str__(self) -> str:  # pragma: no cover
         return f"R:{self.ida}" if self.ida else f"R:{self.pk}"

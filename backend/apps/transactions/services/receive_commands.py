@@ -1,18 +1,18 @@
-"""POST /wcapi/receipt/<id>/receive/ {lines?: [{line_id, qty?}]} — the goods go on the shelf.
+"""POST /wcapi/receipt/<id>/receive/ {lines?: [{line_id, qty?}]} — a held receipt's goods go on the shelf.
 
-Bill, 2026-09-30: goods are received when the receipt is issued against a purchase, as a step
-of its own; journalizing comes later. And 2026-09-28: a layer never re-costs. So a planned
-receipt holds its goods as staged (purchase→receipt convert), and receiving is the one moment a
-receipt line's stock moves:
+Bill, 2026-11-11 (readme 108): saving a receipt receives the goods (R1), and hold is a positive act
+(R2): a receipt converted with ``hold: true`` keeps its goods as staged, and this command is the way
+off hold. A received line's dock cost never changes (R3).
 
-1. each line's received quantity is set (``quantity.active``), here and nowhere else
-   (``ReceiptLine.save`` refuses it from a request);
+1. each line's received quantity is set (``quantity.active``) by an update, so the line's own save
+   and door do not run;
 2. the receipt's totals are computed for those quantities, so the landed shares exist;
-3. each line's stock Pending is written through the line door's writer with its landed cost in
-   the layer spec, so the layer is born at the receipt's final cost and never changes after.
+3. each line's stock Pending is written through the line door's writer; its applier reads the line's
+   landed cost from those totals (Pending.apply, the one place a layer's cost is read), as it does for
+   a line received by a save (line_door._write_after_totals).
 
 ``lines`` names the lines affected (the same rule as convert): only those, each at the qty given
-or else what it has planned and not received. A qty above the plan is accepted and flagged to
+or else what it has staged and not received. A qty above the plan is accepted and flagged to
 Alice, as an over-shipment is.
 """
 from __future__ import annotations
@@ -59,7 +59,7 @@ def receive_receipt(receipt, *, actor=None, lines=None) -> Dict[str, Any]:
     from apps.transactions.models.base_line_model import line_item_id
     from apps.transactions.services.line_door import _is_tracked
     from apps.transactions.services.line_manage import _receipt_layer
-    from apps.transactions.services.pricing.totals_compute import landed_layer_cost, recalculate_totals
+    from apps.transactions.services.pricing.totals_compute import recalculate_totals
     from apps.transactions.services.workorder_bom import _apply
 
     if receipt.dt_journaled:
@@ -107,8 +107,7 @@ def receive_receipt(receipt, *, actor=None, lines=None) -> Dict[str, Any]:
         if not _is_tracked(item_id):
             received.append({'line_id': line.pk, 'qty': qty, 'layer_id': None})
             continue
-        spec = _receipt_layer(line, receipt, create=True)
-        spec['create']['landed'] = landed_layer_cost(line.totals, (line.quantity or {}).get('active')) or {}
+        spec = _receipt_layer(line, receipt, create=True)   # its applier reads the landed cost
         _apply(line, item_id, {'on_rc': qty, 'on_hand': qty}, reason='receive', layer=spec)
         received.append({'line_id': line.pk, 'qty': qty, 'layer_id': line.inventory_layer_id})
 

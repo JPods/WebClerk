@@ -45,9 +45,7 @@ def _receive(item, qty, unit):
     pol = PurchaseLine.objects.create(purchase=po, item={'item_id': item.pk, 'description': item.name},
                                       quantity={'active': qty, 'staged': qty}, cost={'unit': unit, 'precision': 2})
     out = _run('convert', 'purchase', po.pk, {'to': 'receipt', 'lines': [{'line_id': pol.pk}]})
-    receipt = Receipt.objects.get(pk=out['receipt_id'])
-    _run('receive', 'receipt', receipt.pk)
-    return receipt
+    return Receipt.objects.get(pk=out['receipt_id'])     # saving it received the goods (R1)
 
 
 def _net(account, *sources):
