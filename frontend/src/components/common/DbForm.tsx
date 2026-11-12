@@ -32,6 +32,7 @@ import { selectCompanyInfo, selectLogos } from '@/store/slices/companySlice';
 import { convertedTarget, type ConvertedTarget } from '@/apps/transactions/utils/convertedTarget';
 import { useCustomerSearch, partyOf } from '@/apps/transactions/components/detail/CustomerSearch';
 import HeaderRenderer from '@/apps/transactions/components/detail/HeaderRenderer';
+import ReceiveButton from '@/apps/transactions/components/detail/ReceiveButton';
 import LineCardRenderer from '@/apps/transactions/components/detail/LineCardRenderer';
 import PanelSectionRenderer from '@/apps/transactions/components/detail/PanelSectionRenderer';
 import JsonSectionRenderer from '@/apps/transactions/components/detail/JsonSectionRenderer';
@@ -230,6 +231,10 @@ const DbFormView: React.FC<DbFormProps> = (props) => {
         {form.editTier === 'closed' && badge('red', 'closed')}
         {form.hold && <span data-wc="edit-hold-notice">{badge('amber', heldNotice(form.hold))}</span>}
         {designMode && badge('amber', 'DESIGN')}
+        {modelName === 'receipt' && (
+          <ReceiveButton record={data} hasChanges={form.hasChanges} saving={form.saving}
+            onSave={() => form.save({ keepEditing: true })} onReceived={form.fetchData} />
+        )}
       </div>
 
       {/* Toolbar — hidden when inline (DataBrowser has its own) */}
@@ -290,6 +295,7 @@ const DbFormView: React.FC<DbFormProps> = (props) => {
                   onOpenField={openField}
                   opensField={opensField}
                   onCreateOrg={modelName === 'contact' ? createOrg : undefined}
+                  onPickShipTo={form.withLines ? form.pickShipTo : undefined}
                   custSearch={form.withLines ? {
                     party: custSearch.party, open: custSearch.open, query: custSearch.query,
                     results: custSearch.results, searching: custSearch.searching, inputRef: custSearch.inputRef,

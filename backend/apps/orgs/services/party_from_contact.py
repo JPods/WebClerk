@@ -36,13 +36,15 @@ POINTERS = ('email_id', 'phone_id', 'address_id', 'domain_id')
 
 
 def party_values(contact, org) -> Dict[str, Dict[str, Any]]:
-    """What the contact gives a party: the address entry, the email entry, the phone entry."""
+    """What the contact gives a party: the address entry, the email entry, the phone entry.
+    ``org`` names the company when the contact has none; None for a document's ship-to."""
     from apps.communications.models import Address, Phone
     address = Address.objects.filter(pk=contact.address_id).only('full').first() if contact.address_id else None
     phone = Phone.objects.filter(pk=contact.phone_id).only('number').first() if contact.phone_id else None
     attention = (contact.attention or contact.get_full_name() or '').strip()
     return {
-        'addresses': {'contact_id': contact.pk, 'company': (contact.company or org.company or '').strip(),
+        'addresses': {'contact_id': contact.pk,
+                      'company': (contact.company or (org.company if org is not None else '') or '').strip(),
                       'attention': attention, 'full_address': (address.full if address else '') or '',
                       'instructions': ''},
         'emails': {'email_id': contact.email_id, 'email': contact.email or ''},

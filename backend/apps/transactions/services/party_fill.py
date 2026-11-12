@@ -11,6 +11,13 @@ sales tax (exempt, or the jurisdiction the org names, else the ship-to ZIP), and
 config.defaults.fields names (a carrier, a priority, days needed, a rep — what the org has no column
 for; the lead, readme 106). A vendor gives a purchase or receipt its terms, source and bill-to block;
 the ship-to stays the company's own.
+
+Two more fills of the ship-to block (Bill, 2026-11-11):
+- ``take_ship_to``: the form's ship-to search sends the signal ``_ship_to_from: {model, id}``
+  (contact or customer) with a save; the block is taken from that record — a drop shipment.
+  An explicit choice: it replaces what was there. A sale's tax follows the new address.
+- ``take_company_ship_to``: a purchase whose ship-to is blank takes the company's own — its
+  name and receiving address (company profile ``company.address_receiving``, else its address).
 """
 from __future__ import annotations
 
@@ -31,6 +38,78 @@ def take_party(ctx) -> None:
     for party in ('customer', 'vendor'):
         if party in names and party in ctx.changed and getattr(obj, f'{party}_id', None):
             _take(obj, getattr(obj, party), party, ctx.model_key, ctx.data, names)
+
+
+#: What a ship-to may be taken from (the form's tick box picks which is searched).
+SHIP_TO_SOURCES = ('contact', 'customer')
+
+
+def take_ship_to(ctx) -> None:
+    """The document's before_save: the ship-to block from the contact or customer the
+    ``_ship_to_from`` signal names. Refused, never dropped, when the signal is wrong."""
+    signal = ctx.data.get('_ship_to_from')
+    if signal is None:
+        return
+    from apps.core.services.door import Refused
+    from apps.core.services.record_serialize import visible_queryset
+    model, pk = (signal.get('model'), signal.get('id')) if isinstance(signal, dict) else (None, None)
+    if model not in SHIP_TO_SOURCES or not isinstance(pk, int) or isinstance(pk, bool):
+        raise Refused(400, 'bad_ship_to_from',
+                      'Say what to ship to: "_ship_to_from": {"model": "contact" or "customer", "id": <its id>}.',
+                      {'_ship_to_from': signal})
+    obj = ctx.obj
+    names = {f.name for f in obj._meta.concrete_fields}
+    if 'addresses' not in names:
+        raise Refused(400, 'no_ship_to', f'A {ctx.model_key} has no ship-to block.', {})
+    _cls, qs = visible_queryset(model, actor=ctx.actor)
+    source = qs.filter(pk=pk).first()
+    if source is None:
+        raise Refused(404, 'ship_to_from_not_found',
+                      f'{model.capitalize()} #{pk} is not one you can ship to.', {'_ship_to_from': signal})
+    if model == 'customer':
+        snapshot = source.build_company_snapshot()
+        block = _block(source, 'ship_to', snapshot, fallback=_block(source, 'bill_to', snapshot))
+    else:
+        from apps.orgs.services.party_from_contact import party_values
+        values = party_values(source, None)
+        block = {'addresses': {k: values['addresses'].get(k) for k in
+                               ('contact_id', 'company', 'attention', 'full_address', 'instructions')},
+                 'emails': {'email': values['emails']['email']},
+                 'phones': {'number': values['phones']['number']}}
+    _write_ship_to(obj, names, block)
+    if 'customer' in names and getattr(obj, 'customer_id', None) and 'finance' in names and 'finance' not in ctx.data:
+        _tax(obj, obj.customer, block['addresses'].get('full_address') or '')
+    who = block['addresses'].get('company') or block['addresses'].get('attention') or f'{model} #{pk}'
+    ctx.messages.append(f'Ship-to set from {model} {who}.')
+
+
+def take_company_ship_to(ctx) -> None:
+    """A purchase with no ship-to takes the company's: goods bought come to us unless someone
+    says otherwise (the ship-to search, a drop shipment). Only a blank block is filled."""
+    obj = ctx.obj
+    current = (obj.addresses or {}).get('ship_to') or {}
+    if current.get('company') or current.get('full_address'):
+        return
+    from apps.core.services.company_profile import company_config
+    company = company_config('company')
+    address = (company.get('address_receiving') or company.get('address_full') or '').strip()
+    name = (company.get('name') or company.get('legal_name') or '').strip()
+    if not (name or address):
+        return                                        # no company profile yet: nothing to take
+    names = {f.name for f in obj._meta.concrete_fields}
+    _write_ship_to(obj, names, {
+        'addresses': {'contact_id': None, 'company': name, 'attention': '', 'full_address': address,
+                      'instructions': ''},
+        'emails': {'email': company.get('email') or ''},
+        'phones': {'number': company.get('phone') or ''}})
+
+
+def _write_ship_to(obj, names: set, block: Dict[str, Dict]) -> None:
+    for aspect in ASPECTS:
+        if aspect in names:
+            current = dict(getattr(obj, aspect) or {})
+            current['ship_to'] = dict(block[aspect])
+            setattr(obj, aspect, current)
 
 
 def _take(obj, org, party: str, model_key: str, data: Dict[str, Any], names: set) -> None:

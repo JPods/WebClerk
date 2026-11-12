@@ -7,6 +7,7 @@ import { getNestedValue } from './FieldRow';
 import CardRenderer from '@/components/cards/CardRenderer';
 import type { CardSpec } from '@/components/cards';
 import { WIDGETS } from '@/components/widgets';
+import ShipToSearch, { type ShipToSource } from './ShipToSearch';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -32,6 +33,8 @@ export interface HeaderRendererProps {
   modelName: string;
   onChange: (field: string, value: unknown) => void;
   custSearch?: CustSearchProps;
+  /** The ship-to column's search: ship to any contact or customer (Bill, 2026-11-11). */
+  onPickShipTo?: (model: ShipToSource, id: number) => void;
   /** Named card specs from layout.card */
   cardSpecs?: Record<string, CardSpec>;
   /** Field behaviors from Setting config.behaviors — drives label styles and select options */
@@ -50,7 +53,7 @@ export interface HeaderRendererProps {
 // ---------------------------------------------------------------------------
 
 /** Render header — supports card-based layout, three-column layout, and rows layout */
-const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditing, modelName, onChange, custSearch, cardSpecs, behaviors = {}, onOpenField, opensField, onCreateOrg }) => {
+const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditing, modelName, onChange, custSearch, onPickShipTo, cardSpecs, behaviors = {}, onOpenField, opensField, onCreateOrg }) => {
   const opens = opensField ?? ((field: string) => !!communicationField(modelName, field));
 
   // ── Card-based layout (new: header.cards references named card specs) ──
@@ -116,6 +119,7 @@ const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditin
                   {custSearch.party === 'vendor' ? 'vendor ' : ''}#{typeof data[custSearch.party] === 'object' ? data[custSearch.party].id : data[custSearch.party]}
                 </span>
               )}
+              {col.title === 'ship_to' && isEditing && onPickShipTo && <ShipToSearch onPick={onPickShipTo} />}
               {col.title_ida && isEditing && custSearch && !custSearch.open && (
                 <button
                   type="button"

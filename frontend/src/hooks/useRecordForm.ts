@@ -229,6 +229,14 @@ export function useRecordForm(opts: RecordFormOptions) {
   }, [modelName, withLines]);
   const partyPicked = useRef<string | null>(null);
 
+  // The ship-to search's pick rides the save as a signal; the server fills the block from the
+  // contact or customer and the form reloads what it returns (Bill, 2026-11-11; party_fill.py).
+  const shipToPicked = useRef(false);
+  const pickShipTo = useCallback((model: 'contact' | 'customer', id: number) => {
+    shipToPicked.current = true;
+    setEditData((prev: any) => (prev ? { ...prev, _ship_to_from: { model, id } } : prev));
+  }, []);
+
   // Every line, removed ones included — they stay on screen marked deleted until the save.
   // If a child hands back a filtered array, the removed lines are merged back in, or the
   // `_delete` identification is lost and the rows would silently survive the save.
@@ -337,6 +345,12 @@ export function useRecordForm(opts: RecordFormOptions) {
     save({ keepEditing: true, report: false, message: `${party === 'vendor' ? 'Vendor' : 'Customer'} applied` });
   }, [editData, save]);
 
+  useEffect(() => {
+    if (!shipToPicked.current || !editData?._ship_to_from) return;
+    shipToPicked.current = false;
+    save({ keepEditing: true, report: false, message: 'Ship-to applied' });
+  }, [editData, save]);
+
   const addNew = useCallback(async () => {
     try {
       const { id: newId } = await newRecord(modelName);
@@ -403,7 +417,7 @@ export function useRecordForm(opts: RecordFormOptions) {
     data, editData, currentData, isEditing, loading, saving, saveBlocked, hasChanges,
     editTier, canEdit, isPendMode: editTier === 'pend', hold: hold.heldBy as HeldBy | null,
     withLines, preview, previewError,
-    fetchData, startEdit, cancel, setField, setLines, save, addNew, setData, setEditData,
+    fetchData, startEdit, cancel, setField, setLines, pickShipTo, save, addNew, setData, setEditData,
     comm: { card: commCard, spec: commCard && communicationField(modelName, commCard.field),
             open: openCommunication, close: closeCommunication, refresh: refreshCommunications },
   };

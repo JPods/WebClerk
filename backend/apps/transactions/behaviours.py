@@ -19,7 +19,7 @@ from typing import Any, Dict, List
 
 from apps.core.services.behaviours import HookContext, ModelBehaviour, register
 from apps.core.services.door import Refused
-from apps.transactions.services.party_fill import take_party
+from apps.transactions.services.party_fill import take_company_ship_to, take_party, take_ship_to
 from apps.transactions.services.reprice import reprice_lines
 from apps.transactions.services.browser_totals import check_preview
 
@@ -127,6 +127,9 @@ class DocumentBehaviour(ModelBehaviour):
 
     def before_save(self, ctx: HookContext) -> None:
         take_party(ctx)
+        take_ship_to(ctx)
+        if ctx.model_key == 'purchase':
+            take_company_ship_to(ctx)
         lines = ctx.data.get('lines')
         parent_model = getattr(ctx.obj, 'parent_model', None)
         if lines and parent_model and getattr(ctx.obj, 'parent_id', None):
@@ -142,7 +145,8 @@ class DocumentBehaviour(ModelBehaviour):
                               {'missing': missing})
 
     #: The figures the browser showed while editing (readme 107); compared after the save.
-    SIGNALS = {'_totals_preview': dict}
+    #: The ship-to search's pick (party_fill.take_ship_to).
+    SIGNALS = {'_totals_preview': dict, '_ship_to_from': dict}
 
     def after_save(self, ctx: HookContext) -> None:
         """A sell document whose party or price level changed reprices its lines (106 rule 5);
@@ -276,10 +280,11 @@ class ReceiptBehaviour(ModelBehaviour):
     transfer check; after the save, each purchase line received past its active is flagged.
     It takes its vendor's terms and bill-to like every document (party_fill)."""
 
-    SIGNALS = {'_totals_preview': dict}
+    SIGNALS = {'_totals_preview': dict, '_ship_to_from': dict}
 
     def before_save(self, ctx: HookContext) -> None:
         take_party(ctx)
+        take_ship_to(ctx)
 
     def after_save(self, ctx: HookContext) -> None:
         flag_over_receipts(ctx.obj)
