@@ -27,11 +27,10 @@ from __future__ import annotations
 import re
 from typing import Any, Dict, Optional
 
+from common.schemas.aspects import roles_filled_by
+
 #: What each party gives: the document fields and the org fields they come from.
 SCALARS = {'customer': ('terms', 'price_level', 'source_name'), 'vendor': ('terms', 'source_name')}
-#: The blocks a party fills on the document. A vendor's own bill_to block is who we buy from:
-#: on the purchase it is the ``vendor`` block.
-ROLES = {'customer': ('bill_to', 'ship_to'), 'vendor': ('vendor',)}
 ASPECTS = ('addresses', 'emails', 'phones')
 _ZIP = re.compile(r'\b(\d{5})(?:-\d{4})?\s*$')
 
@@ -89,7 +88,7 @@ def take_ship_to(ctx) -> None:
 
 
 def take_company_blocks(ctx) -> None:
-    """A purchase's blank bill-to and ship-to take the company's own: we are billed, and goods
+    """The blocks the table gives to the company (a purchase's bill-to and ship-to) take the company's own when blank: we are billed, and goods
     bought come to us unless someone says otherwise (the ship-to search, a drop shipment).
     Only a blank block is filled."""
     from types import SimpleNamespace
@@ -102,7 +101,10 @@ def take_company_blocks(ctx) -> None:
     snapshot = {'contact_id': None, 'attention': '', 'full_address': (company.get('address_full') or '').strip(),
                 'email': company.get('email') or '', 'phone': company.get('phone') or ''}
     bill_to = _block(own, 'bill_to', snapshot)
-    blocks = {'bill_to': bill_to, 'ship_to': _block(own, 'ship_to', snapshot, fallback=bill_to)}
+    blocks = {role: _block(own, 'ship_to', snapshot, fallback=bill_to) if role == 'ship_to' else bill_to
+              for role in roles_filled_by(ctx.model_key, 'company')}
+    if not blocks:
+        return
     names = {f.name for f in obj._meta.concrete_fields}
     for role, block in blocks.items():
         current = (obj.addresses or {}).get(role) or {}
@@ -133,11 +135,11 @@ def _take(obj, org, party: str, model_key: str, data: Dict[str, Any], names: set
             setattr(obj, field, named_term(value) if field == 'terms' else value)
 
     snapshot = org.build_company_snapshot()          # contact-driven: attention, address, phone, email
+    # The blocks this party fills on this document (the one table: aspects.DOCUMENT_PARTIES).
+    # The org's own bill_to block is who it is; a ship_to it has not split is the same.
     party_block = _block(org, 'bill_to', snapshot)
-    if party == 'vendor':
-        blocks = {'vendor': party_block}
-    else:
-        blocks = {'bill_to': party_block, 'ship_to': _block(org, 'ship_to', snapshot, fallback=party_block)}
+    blocks = {role: _block(org, 'ship_to', snapshot, fallback=party_block) if role == 'ship_to' else party_block
+              for role in roles_filled_by(model_key, party)}
     for aspect in ASPECTS:
         if aspect not in names or aspect in data:
             continue
@@ -159,7 +161,7 @@ def _take(obj, org, party: str, model_key: str, data: Dict[str, Any], names: set
         if value not in (None, ''):
             setattr(obj, field, value)
     if party == 'customer' and 'finance' in names and 'finance' not in data:
-        _tax(obj, org, blocks['ship_to']['addresses'].get('full_address', ''))
+        _tax(obj, org, blocks.get('ship_to', party_block)['addresses'].get('full_address', ''))
 
 
 def _listed(model_key: str, field: str, value: Any) -> Optional[str]:

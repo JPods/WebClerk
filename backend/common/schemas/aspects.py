@@ -48,52 +48,59 @@ class PhoneEntry(BaseModel):
         extra = "allow"
 
 
-# ── Transaction aspects (bill_to / ship_to) ─────────────────────
-
-class TransactionAddresses(BaseModel):
-    """addresses aspect on Quote, Order, Invoice, Purchase."""
-    bill_to: AddressEntry = Field(default_factory=AddressEntry)
-    ship_to: AddressEntry = Field(default_factory=AddressEntry)
-
-    class Config:
-        extra = "allow"
-
-
-class TransactionEmails(BaseModel):
-    """emails aspect on Quote, Order, Invoice, Purchase."""
-    bill_to: EmailEntry = Field(default_factory=EmailEntry)
-    ship_to: EmailEntry = Field(default_factory=EmailEntry)
-
-    class Config:
-        extra = "allow"
-
-
-class TransactionPhones(BaseModel):
-    """phones aspect on Quote, Order, Invoice, Purchase."""
-    bill_to: PhoneEntry = Field(default_factory=PhoneEntry)
-    ship_to: PhoneEntry = Field(default_factory=PhoneEntry)
-
-    class Config:
-        extra = "allow"
+# ── Document parties: the one list ──────────────────────────────
+# Which party blocks each document carries, and who fills each (Bill, 2026-11-12). Everything
+# that needs to know reads this table: the schema classes below (and so the access leaves,
+# apps/core/services/field_leaves), the party fill (apps/transactions/services/party_fill)
+# and the check that layouts and stored access sets name only these (tests/test_document_parties).
+# A block is filled by the document's 'customer' or 'vendor' when that party is picked, by the
+# 'company' (our own profile) when blank, or by nobody (None: the person, or a conversion).
+SALE_PARTIES = {'bill_to': 'customer', 'ship_to': 'customer'}
+DOCUMENT_PARTIES = {
+    'quote': SALE_PARTIES, 'order': SALE_PARTIES, 'invoice': SALE_PARTIES,
+    'workorder': SALE_PARTIES,                     # a requisition carries no party blocks
+    # Who we buy from, and our own bill-to and ship-to.
+    'purchase': {'vendor': 'vendor', 'bill_to': 'company', 'ship_to': 'company'},
+    # A receipt shows its purchase's vendor; its own blocks are filled by nobody.
+    'receipt': {'bill_to': None, 'ship_to': None},
+}
+ASPECT_ENTRIES = {'addresses': AddressEntry, 'emails': EmailEntry, 'phones': PhoneEntry}
 
 
-# ── Purchase aspects (vendor / bill_to / ship_to) ───────────────
-# A purchase names who we buy from in its own block (Bill, 2026-11-12); its bill-to and
-# ship-to are the company's own.
-
-class PurchaseAddresses(TransactionAddresses):
-    """addresses aspect on Purchase."""
-    vendor: AddressEntry = Field(default_factory=AddressEntry)
+def party_roles(model_key: str) -> tuple:
+    """The party blocks a document carries, in the table's order; () for a model with none."""
+    return tuple(DOCUMENT_PARTIES.get(model_key, {}))
 
 
-class PurchaseEmails(TransactionEmails):
-    """emails aspect on Purchase."""
-    vendor: EmailEntry = Field(default_factory=EmailEntry)
+def roles_filled_by(model_key: str, source: str) -> tuple:
+    """The blocks ``source`` ('customer', 'vendor' or 'company') fills on this document."""
+    return tuple(role for role, by in DOCUMENT_PARTIES.get(model_key, {}).items() if by == source)
 
 
-class PurchasePhones(TransactionPhones):
-    """phones aspect on Purchase."""
-    vendor: PhoneEntry = Field(default_factory=PhoneEntry)
+def _aspect_class(name: str, aspect: str, roles) -> type:
+    from pydantic import create_model
+    entry = ASPECT_ENTRIES[aspect]
+    cls = create_model(name, __config__={'extra': 'allow'},
+                       **{role: (entry, Field(default_factory=entry)) for role in roles})
+    cls.__doc__ = f'{aspect} aspect: {", ".join(roles)}.'
+    cls.__module__ = __name__
+    return cls
+
+
+def aspect_class_name(model_key: str, aspect: str) -> str:
+    """'PurchaseAddresses' for a document with its own roles; 'TransactionAddresses' for a sale's."""
+    own = DOCUMENT_PARTIES.get(model_key) not in (None, SALE_PARTIES) and \
+        tuple(DOCUMENT_PARTIES[model_key]) != tuple(SALE_PARTIES)
+    return f"{model_key.capitalize() if own else 'Transaction'}{aspect.capitalize()}"
+
+
+# One class per distinct set of roles, named for its document (TransactionAddresses for a sale's
+# bill_to / ship_to; PurchaseAddresses adds vendor), built from the table — never typed twice.
+for _model, _parties in DOCUMENT_PARTIES.items():
+    for _aspect in ASPECT_ENTRIES:
+        _name = aspect_class_name(_model, _aspect)
+        if _name not in globals():
+            globals()[_name] = _aspect_class(_name, _aspect, tuple(_parties))
 
 
 # ── OrgBase aspects (prime / bill_to / ship_to) ─────────────────

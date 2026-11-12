@@ -128,8 +128,7 @@ class DocumentBehaviour(ModelBehaviour):
     def before_save(self, ctx: HookContext) -> None:
         take_party(ctx)
         take_ship_to(ctx)
-        if ctx.model_key == 'purchase':
-            take_company_blocks(ctx)
+        take_company_blocks(ctx)          # the blocks the party table gives to the company
         lines = ctx.data.get('lines')
         parent_model = getattr(ctx.obj, 'parent_model', None)
         if lines and parent_model and getattr(ctx.obj, 'parent_id', None):

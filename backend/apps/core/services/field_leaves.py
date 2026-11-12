@@ -123,10 +123,11 @@ for _m in ORG_MODELS:
         f'{_m}.metrics': 'common.schemas.record_aspects:PeriodMetrics',
     })
 FIELD_SCHEMAS['item.stats'] = f'{_OA}:RecordStats'
-# A purchase's party blocks: the vendor's beside the company's own bill-to and ship-to.
-FIELD_SCHEMAS.update({'purchase.addresses': f'{_AS}:PurchaseAddresses',
-                      'purchase.emails': f'{_AS}:PurchaseEmails',
-                      'purchase.phones': f'{_AS}:PurchasePhones'})
+# A document's party blocks come from the one table (common/schemas/aspects.DOCUMENT_PARTIES).
+from common.schemas.aspects import ASPECT_ENTRIES, DOCUMENT_PARTIES, aspect_class_name  # noqa: E402
+for _doc in DOCUMENT_PARTIES:
+    for _aspect in ASPECT_ENTRIES:
+        FIELD_SCHEMAS[f'{_doc}.{_aspect}'] = f'{_AS}:{aspect_class_name(_doc, _aspect)}'
 
 TRANSACTION_HEADER_SCHEMAS = {
     'company': f'{_TE}:TransactionCompany',
