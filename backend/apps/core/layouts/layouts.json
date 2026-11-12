@@ -20099,28 +20099,28 @@
         "title": "vendor",
         "fields": [
          {
-          "field": "purchase.company",
-          "label": ".company",
+          "field": "company.name",
+          "label": "company",
           "type": "readonly"
          },
          {
-          "field": "purchase.phone",
-          "label": ".phone",
+          "field": "phones.vendor.number",
+          "label": "phone",
           "type": "readonly"
          },
          {
-          "field": "purchase.attention",
-          "label": ".attention",
+          "field": "addresses.vendor.attention",
+          "label": "attention",
           "type": "readonly"
          },
          {
-          "field": "purchase.address_full",
-          "label": ".address_full",
+          "field": "addresses.vendor.full_address",
+          "label": "address",
           "type": "readonly"
          },
          {
-          "field": "purchase.email",
-          "label": ".email",
+          "field": "emails.vendor.email",
+          "label": "email",
           "type": "readonly"
          }
         ],

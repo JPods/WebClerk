@@ -226,6 +226,13 @@ def _header(source, source_type: str, target_type: str, is_sell_side: bool,
         header["contact_id"] = contact_id
     if vendor_id is not None:
         header["vendor_id"] = vendor_id
+    if source_type == "purchase" and target_type == "receipt":
+        # The receipt's vendor block is its purchase's, as it stood (readme 109): a snapshot,
+        # not the vendor's values of today. The party fill leaves an aspect the payload carries.
+        for aspect in ("addresses", "emails", "phones"):
+            block = (getattr(source, aspect, None) or {}).get("vendor")
+            if block:
+                header[aspect] = {"vendor": copy.deepcopy(block)}
     header["refs"] = {**copy.deepcopy(header.get("refs") or {}),
                       "source": {"converted_from": source_type, f"{source_type}_id": source.pk}}
     return header

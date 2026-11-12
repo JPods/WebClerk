@@ -27,7 +27,7 @@ from __future__ import annotations
 import re
 from typing import Any, Dict, Optional
 
-from common.schemas.aspects import roles_filled_by
+from common.schemas.aspects import party_roles, roles_filled_by
 
 #: What each party gives: the document fields and the org fields they come from.
 SCALARS = {'customer': ('terms', 'price_level', 'source_name'), 'vendor': ('terms', 'source_name')}
@@ -63,7 +63,7 @@ def take_ship_to(ctx) -> None:
                       {'_ship_to_from': signal})
     obj = ctx.obj
     names = {f.name for f in obj._meta.concrete_fields}
-    if 'addresses' not in names:
+    if 'addresses' not in names or 'ship_to' not in party_roles(ctx.model_key):
         raise Refused(400, 'no_ship_to', f'A {ctx.model_key} has no ship-to block.', {})
     _cls, qs = visible_queryset(model, actor=ctx.actor)
     source = qs.filter(pk=pk).first()

@@ -67,7 +67,7 @@ def test_who_fills_what():
     assert roles_filled_by('purchase', 'vendor') == ('vendor',)
     assert roles_filled_by('purchase', 'company') == ('bill_to', 'ship_to')
     assert roles_filled_by('quote', 'customer') == ('bill_to', 'ship_to')
-    assert roles_filled_by('quote', 'company') == () and roles_filled_by('receipt', 'vendor') == ()
+    assert roles_filled_by('quote', 'company') == () and roles_filled_by('receipt', 'vendor') == ('vendor',)
 
 
 # ── readme 109 P4: one home for the counterparty's contact details ──────────────

@@ -397,3 +397,33 @@ def test_a_held_receipt_says_what_is_not_yet_received(admin_client):
     r = admin_client.put(f'/wcapi/receipt/{receipt_id}/', {'comments': {'notes': 'shelved'}},
                          content_type='application/json')
     assert not any('not yet received' in m for m in r.json()['data'].get('messages', [])), r.json()
+
+
+def test_a_receipt_carries_its_purchases_vendor_block_as_it_stood(admin_client):
+    """Readme 109: the receipt's one party block is the vendor, copied from the purchase — a
+    snapshot, so a vendor who moves later does not move on the receipt. Read on the wire."""
+    a = _item('RCV-VEND-A')
+    po, _ = _po((a, 2, {'unit': '5.00'}))
+    then = {'contact_id': None, 'company': 'Parts Inc', 'attention': 'Sal',
+            'full_address': '9 Mill St, Denver, CO 80201', 'instructions': ''}
+    Purchase.objects.filter(pk=po.pk).update(addresses={'vendor': then}, phones={'vendor': {'number': '303-555-0100'}})
+    Vendor.objects.filter(pk=po.vendor_id).update(addresses={'bill_to': {**then, 'full_address': 'Moved Away 1'}})
+    receipt_id = _data(_convert(admin_client, po.pk))['receipt_id']
+    record = admin_client.get(f'/wcapi/receipt/{receipt_id}/', HTTP_HOST='localhost').json()
+    record = record.get('data', record)
+    record = record.get('record', record)
+    assert record['addresses'] == {'vendor': then}
+    assert record['phones']['vendor']['number'] == '303-555-0100'
+    assert set(record['company']) == {'id', 'ida', 'name', 'is_individual'}
+
+
+def test_a_receipt_has_no_ship_to_to_search_for(admin_client):
+    a = _item('RCV-NOSHIP-A')
+    po, _ = _po((a, 1, {'unit': '5.00'}))
+    receipt = Receipt.objects.get(pk=_data(_convert(admin_client, po.pk, {'hold': True}))['receipt_id'])
+    import json
+    r = admin_client.put(f'/wcapi/receipt/{receipt.pk}/',
+                         json.dumps({'id': receipt.pk, 'version': receipt.version,
+                                     '_ship_to_from': {'model': 'customer', 'id': 1}}),
+                         content_type='application/json', HTTP_HOST='localhost')
+    assert r.status_code == 400 and 'no_ship_to' in r.content.decode(), r.content

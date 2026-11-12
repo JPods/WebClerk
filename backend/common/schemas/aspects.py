@@ -61,8 +61,9 @@ DOCUMENT_PARTIES = {
     'workorder': SALE_PARTIES,                     # a requisition carries no party blocks
     # Who we buy from, and our own bill-to and ship-to.
     'purchase': {'vendor': 'vendor', 'bill_to': 'company', 'ship_to': 'company'},
-    # A receipt shows its purchase's vendor; its own blocks are filled by nobody.
-    'receipt': {'bill_to': None, 'ship_to': None},
+    # A receipt carries who the goods came from — its purchase's vendor block as it was when
+    # they arrived (convert copies it), else the vendor's own. It has no bill-to or ship-to.
+    'receipt': {'vendor': 'vendor'},
 }
 ASPECT_ENTRIES = {'addresses': AddressEntry, 'emails': EmailEntry, 'phones': PhoneEntry}
 
