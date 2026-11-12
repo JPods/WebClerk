@@ -89,13 +89,14 @@ def test_what_the_same_payload_carries_is_the_persons(admin, company):
     assert 'ship_to' not in q.addresses or not q.addresses['ship_to'].get('company')
 
 
-def test_a_vendor_gives_a_purchase_its_terms_and_bill_to_only(admin, company):
+def test_a_vendor_gives_a_purchase_its_terms_and_vendor_block_only(admin, company):
     seller = Vendor.objects.create(company='Parts Inc', terms='N10', addresses={'bill_to': {**BILL, 'company': 'Parts Inc'}})
     po = Purchase.objects.get(pk=new_record(_as(admin), 'purchase', {}).obj_id)
     po = _pick(admin, po, 'purchase', 'vendor', seller)
     assert po.terms == 'N10'
-    assert po.addresses['bill_to']['company'] == 'Parts Inc'
-    assert not (po.addresses.get('ship_to') or {}).get('company'), "the ship-to stays the company's own"
+    assert po.addresses['vendor']['company'] == 'Parts Inc'
+    assert (po.addresses.get('bill_to') or {}).get('company') != 'Parts Inc', "the bill-to is the company's own"
+    assert (po.addresses.get('ship_to') or {}).get('company') != 'Parts Inc', "the ship-to is the company's own"
 
 
 def test_an_exempt_customer_carries_no_sales_tax(admin, company):

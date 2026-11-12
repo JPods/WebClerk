@@ -28,7 +28,9 @@ def company(model_defaults):
     config = dict(profile.config or {})
     config['company'] = {**(config.get('company') or {}), 'name': 'Home Co', 'phone': '918-555-0001',
                          'email': 'dock@home.test', 'address_full': '1 Office Way, Tulsa, OK 74135',
-                         'address_receiving': '3 Dock Rd, Tulsa, OK 74135'}
+                         'addresses': {'ship_to': {'contact_id': None, 'company': 'Home Co Dock', 'attention': 'Receiving',
+                                                   'full_address': '3 Dock Rd, Tulsa, OK 74135', 'instructions': ''}},
+                         'phones': {'ship_to': {'number': '918-555-0002'}}}
     Setting.objects.filter(pk=profile.pk).update(config=config)
     cache_service.delete(cache_service.make_key(COMPANY_CACHE, 'company'))
     yield profile
@@ -49,21 +51,83 @@ def _save(admin, doc, model_key, **fields):
     return doc
 
 
-def test_a_new_purchase_ships_to_the_companys_receiving_address(admin, company):
+def test_a_new_purchase_ships_to_the_companys_ship_to(admin, company):
     po = _new(admin, 'purchase', Purchase)
-    assert po.addresses['ship_to']['company'] == 'Home Co'
+    assert po.addresses['ship_to']['company'] == 'Home Co Dock'
+    assert po.addresses['ship_to']['attention'] == 'Receiving'
     assert po.addresses['ship_to']['full_address'] == '3 Dock Rd, Tulsa, OK 74135'
-    assert po.phones['ship_to']['number'] == '918-555-0001'
-    assert po.emails['ship_to']['email'] == 'dock@home.test'
+    assert po.phones['ship_to']['number'] == '918-555-0002'
+    assert po.emails['ship_to']['email'] == 'dock@home.test', "no ship-to email: the bill-to's"
 
 
-def test_picking_the_vendor_leaves_the_companys_ship_to(admin, company):
+def test_a_new_purchase_is_billed_to_the_company(admin, company):
+    """No bill_to block in the profile: the company's name and main address."""
+    po = _new(admin, 'purchase', Purchase)
+    assert po.addresses['bill_to']['company'] == 'Home Co'
+    assert po.addresses['bill_to']['full_address'] == '1 Office Way, Tulsa, OK 74135'
+    assert po.phones['bill_to']['number'] == '918-555-0001'
+
+
+def test_the_companys_own_bill_to_block_wins_and_a_blank_ship_to_is_the_bill_to(admin, company):
+    from apps.core.services.cache import cache_service
+    company.refresh_from_db()
+    config = dict(company.config)
+    config['company'] = {**config['company'], 'addresses': {'bill_to': {
+        'contact_id': None, 'company': 'Home Co AP', 'attention': 'Payables',
+        'full_address': 'PO Box 7, Tulsa, OK 74101', 'instructions': ''}}, 'phones': {}}
+    Setting.objects.filter(pk=company.pk).update(config=config)
+    cache_service.delete(cache_service.make_key(COMPANY_CACHE, 'company'))
+    po = _new(admin, 'purchase', Purchase)
+    assert po.addresses['bill_to']['company'] == 'Home Co AP'
+    assert po.addresses['bill_to']['attention'] == 'Payables'
+    assert po.addresses['ship_to']['full_address'] == 'PO Box 7, Tulsa, OK 74101'
+
+
+def test_picking_the_vendor_fills_the_vendor_block_and_leaves_the_companys(admin, company):
     vendor = Vendor.objects.create(company='Parts Inc', addresses={'bill_to': {
         'contact_id': None, 'company': 'Parts Inc', 'attention': '', 'full_address': '9 Mill St, Denver, CO 80201',
         'instructions': ''}})
     po = _save(admin, _new(admin, 'purchase', Purchase), 'purchase', vendor_id=vendor.pk)
-    assert po.addresses['bill_to']['company'] == 'Parts Inc'
+    assert po.addresses['vendor']['company'] == 'Parts Inc'
+    assert po.addresses['vendor']['full_address'] == '9 Mill St, Denver, CO 80201'
+    assert po.addresses['bill_to']['company'] == 'Home Co'
     assert po.addresses['ship_to']['full_address'] == '3 Dock Rd, Tulsa, OK 74135'
+
+
+def test_the_migration_moves_the_vendor_out_of_bill_to(admin, company):
+    """0054: an old purchase's bill_to held the vendor; the stored layout and the profile follow."""
+    import importlib
+    from types import SimpleNamespace
+    m = importlib.import_module('apps.transactions.migrations.0054_purchase_vendor_block')
+    old = SimpleNamespace(addresses={'bill_to': {'company': 'Parts Inc', 'full_address': '9 Mill St'}, 'ship_to': {}},
+                          emails={'bill_to': {'email': 'ap@parts.test'}}, phones={})
+    moved = m.vendor_block(old)
+    assert moved['addresses'] == {'vendor': {'company': 'Parts Inc', 'full_address': '9 Mill St'}, 'ship_to': {}}
+    assert moved['emails'] == {'vendor': {'email': 'ap@parts.test'}} and 'phones' not in moved
+    assert m.vendor_block(SimpleNamespace(**moved, phones={})) == {}, 'done once'
+
+    columns = [{'title': 'bill_to', 'title_ida': True, 'fields': [
+        {'type': 'readonly', 'field': 'addresses.bill_to.company', 'label': 'company'}]}, {'title': 'ship_to', 'fields': []}]
+    layout = m.vendor_layout({'form': {'default': {'sections': [{'type': 'header', 'columns': columns}]}}})
+    out = layout['form']['default']['sections'][0]['columns']
+    assert [c['title'] for c in out] == ['vendor', 'bill_to', 'ship_to']
+    assert out[0]['fields'][0]['field'] == 'addresses.vendor.company' and out[0]['title_ida']
+    assert out[1]['fields'][0] == {'field': 'addresses.bill_to.company', 'label': 'company'}
+    assert m.vendor_layout(layout) == layout, 'done once'
+
+    config = m.company_ship_to({'company': {'name': 'Home Co', 'address_receiving': '3 Dock Rd'}})
+    assert 'address_receiving' not in config['company']
+    assert config['company']['addresses']['ship_to']['full_address'] == '3 Dock Rd'
+    assert config['company']['addresses']['ship_to']['company'] == 'Home Co'
+
+
+def test_the_shipped_purchase_layout_names_the_vendor(db):
+    import json, pathlib
+    from django.conf import settings
+    layouts = json.loads((pathlib.Path(settings.BASE_DIR) / 'apps/core/layouts/layouts.json').read_text())
+    columns = layouts['purchase']['form']['default']['sections'][0]['columns']
+    assert [c['title'] for c in columns][:3] == ['vendor', 'bill_to', 'ship_to']
+    assert columns[0]['fields'][0]['field'] == 'addresses.vendor.company'
 
 
 def test_a_ship_to_someone_typed_is_kept(admin, company):

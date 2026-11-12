@@ -3672,7 +3672,6 @@
           "website": "jpods.com",
           "legal_name": "JPods LLC",
           "address_full": "Tulsa, OK 74135",
-          "address_receiving": "",
           "registration_number": ""
         },
         "pricing": {
@@ -63658,35 +63657,60 @@
                   "layout": "three-column",
                   "columns": [
                     {
-                      "title": "bill_to",
+                      "title": "vendor",
                       "fields": [
                         {
                           "type": "readonly",
-                          "field": "addresses.bill_to.company",
+                          "field": "addresses.vendor.company",
                           "label": "company"
                         },
                         {
                           "type": "readonly",
-                          "field": "addresses.bill_to.attention",
+                          "field": "addresses.vendor.attention",
                           "label": "attention"
                         },
                         {
                           "type": "readonly",
-                          "field": "addresses.bill_to.full_address",
+                          "field": "addresses.vendor.full_address",
                           "label": "address"
                         },
                         {
                           "type": "readonly",
-                          "field": "phones.bill_to.number",
+                          "field": "phones.vendor.number",
                           "label": "phone"
                         },
                         {
                           "type": "readonly",
-                          "field": "emails.bill_to.email",
+                          "field": "emails.vendor.email",
                           "label": "email"
                         }
                       ],
                       "title_ida": true
+                    },
+                    {
+                      "title": "bill_to",
+                      "fields": [
+                        {
+                          "field": "addresses.bill_to.company",
+                          "label": "company"
+                        },
+                        {
+                          "field": "addresses.bill_to.attention",
+                          "label": "attention"
+                        },
+                        {
+                          "field": "addresses.bill_to.full_address",
+                          "label": "address"
+                        },
+                        {
+                          "field": "phones.bill_to.number",
+                          "label": "phone"
+                        },
+                        {
+                          "field": "emails.bill_to.email",
+                          "label": "email"
+                        }
+                      ]
                     },
                     {
                       "title": "ship_to",
@@ -300901,38 +300925,38 @@
           "is_individual": false
         },
         "addresses": {
-          "bill_to": {
-            "company": "Diamond Pro Equipment",
-            "attention": "Lisa Wang",
-            "contact_id": 10633,
-            "full_address": "555 Park Row, Boise ID 83701",
-            "instructions": "Attn: Accounts Payable"
-          },
           "ship_to": {
             "company": "Diamond Pro Equipment",
             "attention": "Lisa Wang",
             "contact_id": 10633,
             "full_address": "42 Elm Way, Denver CO 80201",
             "instructions": "Dock 3, call before delivery"
+          },
+          "vendor": {
+            "company": "Diamond Pro Equipment",
+            "attention": "Lisa Wang",
+            "contact_id": 10633,
+            "full_address": "555 Park Row, Boise ID 83701",
+            "instructions": "Attn: Accounts Payable"
           }
         },
         "emails": {
-          "bill_to": {
-            "email": "userfa16a825@diamondpro.fake",
-            "email_id": null
-          },
           "ship_to": {
             "email": "user8ff98329@diamondpro.fake",
+            "email_id": null
+          },
+          "vendor": {
+            "email": "userfa16a825@diamondpro.fake",
             "email_id": null
           }
         },
         "phones": {
-          "bill_to": {
-            "number": "5555550109",
-            "phone_id": null
-          },
           "ship_to": {
             "number": "5555550141",
+            "phone_id": null
+          },
+          "vendor": {
+            "number": "5555550109",
             "phone_id": null
           }
         },
@@ -301151,39 +301175,39 @@
           "is_individual": false
         },
         "addresses": {
-          "bill_to": {
-            "company": "Crestview Co 54",
-            "attention": "Robin Klein",
-            "contact_id": 6833,
-            "full_address": "789 Industrial Blvd, Raleigh, NC 27601",
-            "instructions": ""
-          },
           "ship_to": {
             "company": "Crestview Co 54",
             "attention": "Reese Young",
             "contact_id": 5007,
             "full_address": "888 River Rd, Raleigh, NC 27601",
             "instructions": ""
+          },
+          "vendor": {
+            "company": "Crestview Co 54",
+            "attention": "Robin Klein",
+            "contact_id": 6833,
+            "full_address": "789 Industrial Blvd, Raleigh, NC 27601",
+            "instructions": ""
           }
         },
         "emails": {
-          "bill_to": {
-            "email": "taylor.abbott.6833@acme.fake",
-            "email_id": 18912
-          },
           "ship_to": {
             "email": "peyton.davis.5007@oakdale.fake",
             "email_id": 16834
+          },
+          "vendor": {
+            "email": "taylor.abbott.6833@acme.fake",
+            "email_id": 18912
           }
         },
         "phones": {
-          "bill_to": {
-            "number": "5555550156",
-            "phone_id": 7237
-          },
           "ship_to": {
             "number": "5555550171",
             "phone_id": 5229
+          },
+          "vendor": {
+            "number": "5555550156",
+            "phone_id": 7237
           }
         },
         "price_level": "retail",
@@ -301399,39 +301423,39 @@
           "is_individual": false
         },
         "addresses": {
-          "bill_to": {
-            "company": "Lakeside Partners 71",
-            "attention": "Riley Davis",
-            "contact_id": 4467,
-            "full_address": "333 Broadway, Columbus, OH 43201",
-            "instructions": ""
-          },
           "ship_to": {
             "company": "Lakeside Partners 71",
             "attention": "Blake Underwood",
             "contact_id": 7165,
             "full_address": "654 Maple Ct, Columbus, OH 43201",
             "instructions": ""
+          },
+          "vendor": {
+            "company": "Lakeside Partners 71",
+            "attention": "Riley Davis",
+            "contact_id": 4467,
+            "full_address": "333 Broadway, Columbus, OH 43201",
+            "instructions": ""
           }
         },
         "emails": {
-          "bill_to": {
-            "email": "pat.brooks.4467@harbor.fake",
-            "email_id": 19034
-          },
           "ship_to": {
             "email": "peyton.vance.7165@riverside.fake",
             "email_id": 16313
+          },
+          "vendor": {
+            "email": "pat.brooks.4467@harbor.fake",
+            "email_id": 19034
           }
         },
         "phones": {
-          "bill_to": {
-            "number": "5555550199",
-            "phone_id": 7352
-          },
           "ship_to": {
             "number": "5555550151",
             "phone_id": 4720
+          },
+          "vendor": {
+            "number": "5555550199",
+            "phone_id": 7352
           }
         },
         "price_level": "retail",
@@ -301644,39 +301668,39 @@
           "is_individual": false
         },
         "addresses": {
-          "bill_to": {
-            "company": "Lakeside Partners 97",
-            "attention": "Dana Davis",
-            "contact_id": 8758,
-            "full_address": "42 Elm Way, Boise, ID 83701",
-            "instructions": ""
-          },
           "ship_to": {
             "company": "Lakeside Partners 97",
             "attention": "Kelly Edwards",
             "contact_id": 722,
             "full_address": "222 Maple Ln, Boise, ID 83701",
             "instructions": ""
+          },
+          "vendor": {
+            "company": "Lakeside Partners 97",
+            "attention": "Dana Davis",
+            "contact_id": 8758,
+            "full_address": "42 Elm Way, Boise, ID 83701",
+            "instructions": ""
           }
         },
         "emails": {
-          "bill_to": {
-            "email": "jordan.vance.8758@prairie.fake",
-            "email_id": 16404
-          },
           "ship_to": {
             "email": "leslie.abbott.722@oakdale.fake",
             "email_id": 15511
+          },
+          "vendor": {
+            "email": "jordan.vance.8758@prairie.fake",
+            "email_id": 16404
           }
         },
         "phones": {
-          "bill_to": {
-            "number": "5555550182",
-            "phone_id": 4811
-          },
           "ship_to": {
             "number": "5555550131",
             "phone_id": 3916
+          },
+          "vendor": {
+            "number": "5555550182",
+            "phone_id": 4811
           }
         },
         "price_level": "retail",
@@ -301889,39 +301913,39 @@
           "is_individual": false
         },
         "addresses": {
-          "bill_to": {
-            "company": "Crestview Co 54",
-            "attention": "Robin Klein",
-            "contact_id": 6833,
-            "full_address": "789 Industrial Blvd, Raleigh, NC 27601",
-            "instructions": ""
-          },
           "ship_to": {
             "company": "Crestview Co 54",
             "attention": "Reese Young",
             "contact_id": 5007,
             "full_address": "888 River Rd, Raleigh, NC 27601",
             "instructions": ""
+          },
+          "vendor": {
+            "company": "Crestview Co 54",
+            "attention": "Robin Klein",
+            "contact_id": 6833,
+            "full_address": "789 Industrial Blvd, Raleigh, NC 27601",
+            "instructions": ""
           }
         },
         "emails": {
-          "bill_to": {
-            "email": "taylor.abbott.6833@acme.fake",
-            "email_id": 18912
-          },
           "ship_to": {
             "email": "peyton.davis.5007@oakdale.fake",
             "email_id": 16834
+          },
+          "vendor": {
+            "email": "taylor.abbott.6833@acme.fake",
+            "email_id": 18912
           }
         },
         "phones": {
-          "bill_to": {
-            "number": "5555550156",
-            "phone_id": 7237
-          },
           "ship_to": {
             "number": "5555550171",
             "phone_id": 5229
+          },
+          "vendor": {
+            "number": "5555550156",
+            "phone_id": 7237
           }
         },
         "price_level": "retail",
@@ -302156,39 +302180,39 @@
           "is_individual": false
         },
         "addresses": {
-          "bill_to": {
-            "company": "Lakeside Partners 71",
-            "attention": "Riley Davis",
-            "contact_id": 4467,
-            "full_address": "333 Broadway, Columbus, OH 43201",
-            "instructions": ""
-          },
           "ship_to": {
             "company": "Lakeside Partners 71",
             "attention": "Blake Underwood",
             "contact_id": 7165,
             "full_address": "654 Maple Ct, Columbus, OH 43201",
             "instructions": ""
+          },
+          "vendor": {
+            "company": "Lakeside Partners 71",
+            "attention": "Riley Davis",
+            "contact_id": 4467,
+            "full_address": "333 Broadway, Columbus, OH 43201",
+            "instructions": ""
           }
         },
         "emails": {
-          "bill_to": {
-            "email": "pat.brooks.4467@harbor.fake",
-            "email_id": 19034
-          },
           "ship_to": {
             "email": "peyton.vance.7165@riverside.fake",
             "email_id": 16313
+          },
+          "vendor": {
+            "email": "pat.brooks.4467@harbor.fake",
+            "email_id": 19034
           }
         },
         "phones": {
-          "bill_to": {
-            "number": "5555550199",
-            "phone_id": 7352
-          },
           "ship_to": {
             "number": "5555550151",
             "phone_id": 4720
+          },
+          "vendor": {
+            "number": "5555550199",
+            "phone_id": 7352
           }
         },
         "price_level": "retail",
@@ -302417,39 +302441,39 @@
           "is_individual": false
         },
         "addresses": {
-          "bill_to": {
-            "company": "Lakeside Partners 71",
-            "attention": "Riley Davis",
-            "contact_id": 4467,
-            "full_address": "333 Broadway, Columbus, OH 43201",
-            "instructions": ""
-          },
           "ship_to": {
             "company": "Lakeside Partners 71",
             "attention": "Blake Underwood",
             "contact_id": 7165,
             "full_address": "654 Maple Ct, Columbus, OH 43201",
             "instructions": ""
+          },
+          "vendor": {
+            "company": "Lakeside Partners 71",
+            "attention": "Riley Davis",
+            "contact_id": 4467,
+            "full_address": "333 Broadway, Columbus, OH 43201",
+            "instructions": ""
           }
         },
         "emails": {
-          "bill_to": {
-            "email": "pat.brooks.4467@harbor.fake",
-            "email_id": 19034
-          },
           "ship_to": {
             "email": "peyton.vance.7165@riverside.fake",
             "email_id": 16313
+          },
+          "vendor": {
+            "email": "pat.brooks.4467@harbor.fake",
+            "email_id": 19034
           }
         },
         "phones": {
-          "bill_to": {
-            "number": "5555550199",
-            "phone_id": 7352
-          },
           "ship_to": {
             "number": "5555550151",
             "phone_id": 4720
+          },
+          "vendor": {
+            "number": "5555550199",
+            "phone_id": 7352
           }
         },
         "price_level": "retail",
@@ -302643,39 +302667,39 @@
           "is_individual": false
         },
         "addresses": {
-          "bill_to": {
-            "company": "Valley Industries 99",
-            "attention": "Quinn Vance",
-            "contact_id": 6688,
-            "full_address": "888 River Rd, Denver, CO 80201",
-            "instructions": ""
-          },
           "ship_to": {
             "company": "Valley Industries 99",
             "attention": "Kelly Drake",
             "contact_id": 8557,
             "full_address": "42 Elm Way, Boise, ID 83701",
             "instructions": ""
+          },
+          "vendor": {
+            "company": "Valley Industries 99",
+            "attention": "Quinn Vance",
+            "contact_id": 6688,
+            "full_address": "888 River Rd, Denver, CO 80201",
+            "instructions": ""
           }
         },
         "emails": {
-          "bill_to": {
-            "email": "reese.ellis.6688@riverside.fake",
-            "email_id": 19222
-          },
           "ship_to": {
             "email": "drew.shaw.8557@probuild.fake",
             "email_id": 16242
+          },
+          "vendor": {
+            "email": "reese.ellis.6688@riverside.fake",
+            "email_id": 19222
           }
         },
         "phones": {
-          "bill_to": {
-            "number": "5555550104",
-            "phone_id": 7532
-          },
           "ship_to": {
             "number": "5555550180",
             "phone_id": 4649
+          },
+          "vendor": {
+            "number": "5555550104",
+            "phone_id": 7532
           }
         },
         "price_level": "wholesale",
@@ -302927,39 +302951,39 @@
           "is_individual": false
         },
         "addresses": {
-          "bill_to": {
-            "company": "Crestview Co 54",
-            "attention": "Robin Klein",
-            "contact_id": 6833,
-            "full_address": "789 Industrial Blvd, Raleigh, NC 27601",
-            "instructions": ""
-          },
           "ship_to": {
             "company": "Crestview Co 54",
             "attention": "Reese Young",
             "contact_id": 5007,
             "full_address": "888 River Rd, Raleigh, NC 27601",
             "instructions": ""
+          },
+          "vendor": {
+            "company": "Crestview Co 54",
+            "attention": "Robin Klein",
+            "contact_id": 6833,
+            "full_address": "789 Industrial Blvd, Raleigh, NC 27601",
+            "instructions": ""
           }
         },
         "emails": {
-          "bill_to": {
-            "email": "taylor.abbott.6833@acme.fake",
-            "email_id": 18912
-          },
           "ship_to": {
             "email": "peyton.davis.5007@oakdale.fake",
             "email_id": 16834
+          },
+          "vendor": {
+            "email": "taylor.abbott.6833@acme.fake",
+            "email_id": 18912
           }
         },
         "phones": {
-          "bill_to": {
-            "number": "5555550156",
-            "phone_id": 7237
-          },
           "ship_to": {
             "number": "5555550171",
             "phone_id": 5229
+          },
+          "vendor": {
+            "number": "5555550156",
+            "phone_id": 7237
           }
         },
         "price_level": "wholesale",
@@ -303176,39 +303200,39 @@
           "is_individual": false
         },
         "addresses": {
-          "bill_to": {
-            "company": "Lakeside Partners 71",
-            "attention": "Riley Davis",
-            "contact_id": 4467,
-            "full_address": "333 Broadway, Columbus, OH 43201",
-            "instructions": ""
-          },
           "ship_to": {
             "company": "Lakeside Partners 71",
             "attention": "Blake Underwood",
             "contact_id": 7165,
             "full_address": "654 Maple Ct, Columbus, OH 43201",
             "instructions": ""
+          },
+          "vendor": {
+            "company": "Lakeside Partners 71",
+            "attention": "Riley Davis",
+            "contact_id": 4467,
+            "full_address": "333 Broadway, Columbus, OH 43201",
+            "instructions": ""
           }
         },
         "emails": {
-          "bill_to": {
-            "email": "pat.brooks.4467@harbor.fake",
-            "email_id": 19034
-          },
           "ship_to": {
             "email": "peyton.vance.7165@riverside.fake",
             "email_id": 16313
+          },
+          "vendor": {
+            "email": "pat.brooks.4467@harbor.fake",
+            "email_id": 19034
           }
         },
         "phones": {
-          "bill_to": {
-            "number": "5555550199",
-            "phone_id": 7352
-          },
           "ship_to": {
             "number": "5555550151",
             "phone_id": 4720
+          },
+          "vendor": {
+            "number": "5555550199",
+            "phone_id": 7352
           }
         },
         "price_level": "retail",
@@ -303417,39 +303441,39 @@
           "is_individual": false
         },
         "addresses": {
-          "bill_to": {
-            "company": "Lakeside Partners 71",
-            "attention": "Riley Davis",
-            "contact_id": 4467,
-            "full_address": "333 Broadway, Columbus, OH 43201",
-            "instructions": ""
-          },
           "ship_to": {
             "company": "Lakeside Partners 71",
             "attention": "Blake Underwood",
             "contact_id": 7165,
             "full_address": "654 Maple Ct, Columbus, OH 43201",
             "instructions": ""
+          },
+          "vendor": {
+            "company": "Lakeside Partners 71",
+            "attention": "Riley Davis",
+            "contact_id": 4467,
+            "full_address": "333 Broadway, Columbus, OH 43201",
+            "instructions": ""
           }
         },
         "emails": {
-          "bill_to": {
-            "email": "pat.brooks.4467@harbor.fake",
-            "email_id": 19034
-          },
           "ship_to": {
             "email": "peyton.vance.7165@riverside.fake",
             "email_id": 16313
+          },
+          "vendor": {
+            "email": "pat.brooks.4467@harbor.fake",
+            "email_id": 19034
           }
         },
         "phones": {
-          "bill_to": {
-            "number": "5555550199",
-            "phone_id": 7352
-          },
           "ship_to": {
             "number": "5555550151",
             "phone_id": 4720
+          },
+          "vendor": {
+            "number": "5555550199",
+            "phone_id": 7352
           }
         },
         "price_level": "retail",
@@ -303667,39 +303691,39 @@
           "is_individual": false
         },
         "addresses": {
-          "bill_to": {
-            "company": "Lakeside Partners 71",
-            "attention": "Riley Davis",
-            "contact_id": 4467,
-            "full_address": "333 Broadway, Columbus, OH 43201",
-            "instructions": ""
-          },
           "ship_to": {
             "company": "Lakeside Partners 71",
             "attention": "Blake Underwood",
             "contact_id": 7165,
             "full_address": "654 Maple Ct, Columbus, OH 43201",
             "instructions": ""
+          },
+          "vendor": {
+            "company": "Lakeside Partners 71",
+            "attention": "Riley Davis",
+            "contact_id": 4467,
+            "full_address": "333 Broadway, Columbus, OH 43201",
+            "instructions": ""
           }
         },
         "emails": {
-          "bill_to": {
-            "email": "pat.brooks.4467@harbor.fake",
-            "email_id": 19034
-          },
           "ship_to": {
             "email": "peyton.vance.7165@riverside.fake",
             "email_id": 16313
+          },
+          "vendor": {
+            "email": "pat.brooks.4467@harbor.fake",
+            "email_id": 19034
           }
         },
         "phones": {
-          "bill_to": {
-            "number": "5555550199",
-            "phone_id": 7352
-          },
           "ship_to": {
             "number": "5555550151",
             "phone_id": 4720
+          },
+          "vendor": {
+            "number": "5555550199",
+            "phone_id": 7352
           }
         },
         "price_level": "retail",
@@ -303920,39 +303944,39 @@
           "is_individual": false
         },
         "addresses": {
-          "bill_to": {
-            "company": "Lakeside Partners 71",
-            "attention": "Riley Davis",
-            "contact_id": 4467,
-            "full_address": "333 Broadway, Columbus, OH 43201",
-            "instructions": ""
-          },
           "ship_to": {
             "company": "Lakeside Partners 71",
             "attention": "Blake Underwood",
             "contact_id": 7165,
             "full_address": "654 Maple Ct, Columbus, OH 43201",
             "instructions": ""
+          },
+          "vendor": {
+            "company": "Lakeside Partners 71",
+            "attention": "Riley Davis",
+            "contact_id": 4467,
+            "full_address": "333 Broadway, Columbus, OH 43201",
+            "instructions": ""
           }
         },
         "emails": {
-          "bill_to": {
-            "email": "pat.brooks.4467@harbor.fake",
-            "email_id": 19034
-          },
           "ship_to": {
             "email": "peyton.vance.7165@riverside.fake",
             "email_id": 16313
+          },
+          "vendor": {
+            "email": "pat.brooks.4467@harbor.fake",
+            "email_id": 19034
           }
         },
         "phones": {
-          "bill_to": {
-            "number": "5555550199",
-            "phone_id": 7352
-          },
           "ship_to": {
             "number": "5555550151",
             "phone_id": 4720
+          },
+          "vendor": {
+            "number": "5555550199",
+            "phone_id": 7352
           }
         },
         "price_level": "retail",
@@ -304568,35 +304592,35 @@
           "is_individual": false
         },
         "addresses": {
-          "bill_to": {
-            "company": "Pinnacle Systems 70",
-            "attention": "Drew Palmer",
-            "contact_id": 6048,
-            "full_address": "555 Park Row, Springfield, IL 62701",
-            "instructions": ""
-          },
           "ship_to": {
             "company": "Pinnacle Systems 70",
             "attention": "Quinn Vance",
             "contact_id": 710,
             "full_address": "321 Pine Ln, Springfield, IL 62701",
             "instructions": ""
+          },
+          "vendor": {
+            "company": "Pinnacle Systems 70",
+            "attention": "Drew Palmer",
+            "contact_id": 6048,
+            "full_address": "555 Park Row, Springfield, IL 62701",
+            "instructions": ""
           }
         },
         "emails": {
-          "bill_to": {
-            "email": "kelly.conrad.6048@lakeside.fake"
-          },
           "ship_to": {
             "email": "drew.drake.710@lakeside.fake"
+          },
+          "vendor": {
+            "email": "kelly.conrad.6048@lakeside.fake"
           }
         },
         "phones": {
-          "bill_to": {
-            "number": "5555550149"
-          },
           "ship_to": {
             "number": "5555550145"
+          },
+          "vendor": {
+            "number": "5555550149"
           }
         },
         "price_level": "retail",

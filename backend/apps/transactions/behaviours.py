@@ -19,7 +19,7 @@ from typing import Any, Dict, List
 
 from apps.core.services.behaviours import HookContext, ModelBehaviour, register
 from apps.core.services.door import Refused
-from apps.transactions.services.party_fill import take_company_ship_to, take_party, take_ship_to
+from apps.transactions.services.party_fill import take_company_blocks, take_party, take_ship_to
 from apps.transactions.services.reprice import reprice_lines
 from apps.transactions.services.browser_totals import check_preview
 
@@ -129,7 +129,7 @@ class DocumentBehaviour(ModelBehaviour):
         take_party(ctx)
         take_ship_to(ctx)
         if ctx.model_key == 'purchase':
-            take_company_ship_to(ctx)
+            take_company_blocks(ctx)
         lines = ctx.data.get('lines')
         parent_model = getattr(ctx.obj, 'parent_model', None)
         if lines and parent_model and getattr(ctx.obj, 'parent_id', None):

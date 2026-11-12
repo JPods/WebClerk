@@ -9,15 +9,18 @@ A customer gives a sale its terms, price level, source_name, bill-to and ship-to
 phones — the org's own blocks, else its company and primary contact), attention, ship_via and
 sales tax (exempt, or the jurisdiction the org names, else the ship-to ZIP), and whatever its own
 config.defaults.fields names (a carrier, a priority, days needed, a rep — what the org has no column
-for; the lead, readme 106). A vendor gives a purchase or receipt its terms, source and bill-to block;
-the ship-to stays the company's own.
+for; the lead, readme 106). A vendor gives a purchase or receipt its terms and
+source, and a purchase its ``vendor`` block (who we buy from); the bill-to and ship-to of a
+purchase are the company's own.
 
-Two more fills of the ship-to block (Bill, 2026-11-11):
+Three more fills (Bill, 2026-11-11 and 11-12):
 - ``take_ship_to``: the form's ship-to search sends the signal ``_ship_to_from: {model, id}``
   (contact or customer) with a save; the block is taken from that record — a drop shipment.
   An explicit choice: it replaces what was there. A sale's tax follows the new address.
-- ``take_company_ship_to``: a purchase whose ship-to is blank takes the company's own — its
-  name and receiving address (company profile ``company.address_receiving``, else its address).
+- ``take_company_blocks``: a purchase's blank bill-to and ship-to take the company's own, from
+  the company profile's ``company.addresses.bill_to`` / ``.ship_to`` (with ``phones`` and
+  ``emails`` beside them — the shape every org carries, ``contact_id`` included). A blank
+  ship-to is the bill-to; a blank bill-to is the company's name and main address.
 """
 from __future__ import annotations
 
@@ -26,7 +29,9 @@ from typing import Any, Dict, Optional
 
 #: What each party gives: the document fields and the org fields they come from.
 SCALARS = {'customer': ('terms', 'price_level', 'source_name'), 'vendor': ('terms', 'source_name')}
-ROLES = {'customer': ('bill_to', 'ship_to'), 'vendor': ('bill_to',)}
+#: The blocks a party fills on the document. A vendor's own bill_to block is who we buy from:
+#: on the purchase it is the ``vendor`` block.
+ROLES = {'customer': ('bill_to', 'ship_to'), 'vendor': ('vendor',)}
 ASPECTS = ('addresses', 'emails', 'phones')
 _ZIP = re.compile(r'\b(\d{5})(?:-\d{4})?\s*$')
 
@@ -76,39 +81,42 @@ def take_ship_to(ctx) -> None:
                                ('contact_id', 'company', 'attention', 'full_address', 'instructions')},
                  'emails': {'email': values['emails']['email']},
                  'phones': {'number': values['phones']['number']}}
-    _write_ship_to(obj, names, block)
+    _write_block(obj, names, 'ship_to', block)
     if 'customer' in names and getattr(obj, 'customer_id', None) and 'finance' in names and 'finance' not in ctx.data:
         _tax(obj, obj.customer, block['addresses'].get('full_address') or '')
     who = block['addresses'].get('company') or block['addresses'].get('attention') or f'{model} #{pk}'
     ctx.messages.append(f'Ship-to set from {model} {who}.')
 
 
-def take_company_ship_to(ctx) -> None:
-    """A purchase with no ship-to takes the company's: goods bought come to us unless someone
-    says otherwise (the ship-to search, a drop shipment). Only a blank block is filled."""
-    obj = ctx.obj
-    current = (obj.addresses or {}).get('ship_to') or {}
-    if current.get('company') or current.get('full_address'):
-        return
+def take_company_blocks(ctx) -> None:
+    """A purchase's blank bill-to and ship-to take the company's own: we are billed, and goods
+    bought come to us unless someone says otherwise (the ship-to search, a drop shipment).
+    Only a blank block is filled."""
+    from types import SimpleNamespace
     from apps.core.services.company_profile import company_config
+    obj = ctx.obj
     company = company_config('company')
-    address = (company.get('address_receiving') or company.get('address_full') or '').strip()
     name = (company.get('name') or company.get('legal_name') or '').strip()
-    if not (name or address):
-        return                                        # no company profile yet: nothing to take
+    own = SimpleNamespace(company=name, **{a: company.get(a) if isinstance(company.get(a), dict) else {}
+                                           for a in ASPECTS})
+    snapshot = {'contact_id': None, 'attention': '', 'full_address': (company.get('address_full') or '').strip(),
+                'email': company.get('email') or '', 'phone': company.get('phone') or ''}
+    bill_to = _block(own, 'bill_to', snapshot)
+    blocks = {'bill_to': bill_to, 'ship_to': _block(own, 'ship_to', snapshot, fallback=bill_to)}
     names = {f.name for f in obj._meta.concrete_fields}
-    _write_ship_to(obj, names, {
-        'addresses': {'contact_id': None, 'company': name, 'attention': '', 'full_address': address,
-                      'instructions': ''},
-        'emails': {'email': company.get('email') or ''},
-        'phones': {'number': company.get('phone') or ''}})
+    for role, block in blocks.items():
+        current = (obj.addresses or {}).get(role) or {}
+        if current.get('company') or current.get('full_address'):
+            continue
+        if block['addresses']['company'] or block['addresses']['full_address']:
+            _write_block(obj, names, role, block)      # else no company profile yet: nothing to take
 
 
-def _write_ship_to(obj, names: set, block: Dict[str, Dict]) -> None:
+def _write_block(obj, names: set, role: str, block: Dict[str, Dict]) -> None:
     for aspect in ASPECTS:
         if aspect in names:
             current = dict(getattr(obj, aspect) or {})
-            current['ship_to'] = dict(block[aspect])
+            current[role] = dict(block[aspect])
             setattr(obj, aspect, current)
 
 
@@ -125,9 +133,11 @@ def _take(obj, org, party: str, model_key: str, data: Dict[str, Any], names: set
             setattr(obj, field, named_term(value) if field == 'terms' else value)
 
     snapshot = org.build_company_snapshot()          # contact-driven: attention, address, phone, email
-    blocks = {'bill_to': _block(org, 'bill_to', snapshot)}
-    if 'ship_to' in ROLES[party]:
-        blocks['ship_to'] = _block(org, 'ship_to', snapshot, fallback=blocks['bill_to'])
+    party_block = _block(org, 'bill_to', snapshot)
+    if party == 'vendor':
+        blocks = {'vendor': party_block}
+    else:
+        blocks = {'bill_to': party_block, 'ship_to': _block(org, 'ship_to', snapshot, fallback=party_block)}
     for aspect in ASPECTS:
         if aspect not in names or aspect in data:
             continue
@@ -136,7 +146,7 @@ def _take(obj, org, party: str, model_key: str, data: Dict[str, Any], names: set
             current[role] = {**(current.get(role) or {}), **block[aspect]}
         setattr(obj, aspect, current)
     if 'attention' in names and 'attention' not in data:
-        obj.attention = blocks['bill_to']['addresses']['attention']
+        obj.attention = party_block['addresses']['attention']
     # The org's own defaults for its documents (config.defaults.fields — what the org has no
     # column for: a carrier, a priority, days needed, a rep), over the model's, under the payload.
     from apps.core.services.defaults import org_defaults, resolve
@@ -149,7 +159,7 @@ def _take(obj, org, party: str, model_key: str, data: Dict[str, Any], names: set
         if value not in (None, ''):
             setattr(obj, field, value)
     if party == 'customer' and 'finance' in names and 'finance' not in data:
-        _tax(obj, org, blocks.get('ship_to', blocks['bill_to'])['addresses'].get('full_address', ''))
+        _tax(obj, org, blocks['ship_to']['addresses'].get('full_address', ''))
 
 
 def _listed(model_key: str, field: str, value: Any) -> Optional[str]:

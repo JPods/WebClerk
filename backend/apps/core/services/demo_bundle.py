@@ -199,7 +199,8 @@ def sanitize_setting(setting: dict) -> dict:
             company["registration_number"] = ""
             company["phone"] = ""
             company["fax"] = ""
-            company["address_receiving"] = ""
+            for aspect in ("addresses", "phones", "emails"):      # its own bill-to / ship-to blocks
+                company.pop(aspect, None)
             address = company.get("address")
             if isinstance(address, dict):
                 address["street1"] = ""

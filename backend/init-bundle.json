@@ -3673,7 +3673,6 @@
           "website": "jpods.com",
           "legal_name": "JPods LLC",
           "address_full": "Tulsa, OK 74135",
-          "address_receiving": "",
           "registration_number": ""
         },
         "pricing": {
@@ -65855,35 +65854,60 @@
                   "layout": "three-column",
                   "columns": [
                     {
-                      "title": "bill_to",
+                      "title": "vendor",
                       "fields": [
                         {
                           "type": "readonly",
-                          "field": "addresses.bill_to.company",
+                          "field": "addresses.vendor.company",
                           "label": "company"
                         },
                         {
                           "type": "readonly",
-                          "field": "addresses.bill_to.attention",
+                          "field": "addresses.vendor.attention",
                           "label": "attention"
                         },
                         {
                           "type": "readonly",
-                          "field": "addresses.bill_to.full_address",
+                          "field": "addresses.vendor.full_address",
                           "label": "address"
                         },
                         {
                           "type": "readonly",
-                          "field": "phones.bill_to.number",
+                          "field": "phones.vendor.number",
                           "label": "phone"
                         },
                         {
                           "type": "readonly",
-                          "field": "emails.bill_to.email",
+                          "field": "emails.vendor.email",
                           "label": "email"
                         }
                       ],
                       "title_ida": true
+                    },
+                    {
+                      "title": "bill_to",
+                      "fields": [
+                        {
+                          "field": "addresses.bill_to.company",
+                          "label": "company"
+                        },
+                        {
+                          "field": "addresses.bill_to.attention",
+                          "label": "attention"
+                        },
+                        {
+                          "field": "addresses.bill_to.full_address",
+                          "label": "address"
+                        },
+                        {
+                          "field": "phones.bill_to.number",
+                          "label": "phone"
+                        },
+                        {
+                          "field": "emails.bill_to.email",
+                          "label": "email"
+                        }
+                      ]
                     },
                     {
                       "title": "ship_to",
