@@ -1,0 +1,82 @@
+{
+  "_meta": {
+    "what": "Opaque stubs for CodeMap's generated layer: the places where behaviour passes through a registry, hook or signal that a parser cannot follow. Each stub says where the parser goes blind, what explains it, and optionally how to list the real edges.",
+    "read_by": "~/Allie/scripts/wc-code-graph.py (build checks every anchor and every explained_by path; a missing one fails the build)",
+    "roots": {"repo": "this repository", "allie": "~/Allie", "docs": "webclerk-site/docs"},
+    "fields": "id, kind, name, why_opaque, anchor, enters_from, reaches, covers (globs over file::function), kinds, explained_by[], resolver, owner, dt_reviewed"
+  },
+  "stubs": [
+    {
+      "id": "opaque:save_door_behaviours",
+      "kind": "opaque",
+      "name": "Save door behaviours",
+      "why_opaque": "The door looks a model's behaviour up by model key at run time (behaviour_for) and calls before_<verb> / after_<verb> by name (ModelBehaviour.hook); no direct call exists in the code.",
+      "anchor": "backend:apps/core/services/behaviours.py::behaviour_for",
+      "enters_from": ["apps/core/services/verbs.py::before", "apps/core/services/verbs.py::after"],
+      "reaches": "resolved",
+      "covers": ["apps/core/services/behaviours.py::*", "apps/*/behaviours.py::*"],
+      "kinds": ["registry", "dynamic_attr"],
+      "explained_by": [
+        {"type": "readme", "root": "docs", "path": "architecture/lifecycle-discipline.md"},
+        {"type": "assessment", "root": "allie", "path": "readmes/assessments/closed/2026-09-22-save-door-steps-1-2.md"},
+        {"type": "test", "root": "repo", "path": "backend/tests/test_party_fill.py"}
+      ],
+      "resolver": {"type": "call_args", "callee": "apps/core/services/behaviours.py::register", "target_arg": 1, "label_args": [0]},
+      "owner": "wc3",
+      "dt_reviewed": "2026-11-12T00:00:00Z"
+    },
+    {
+      "id": "opaque:commands",
+      "kind": "opaque",
+      "name": "Commands (verbs on a model)",
+      "why_opaque": "POST /wcapi/<model>/<id>/<command>/ finds its base service in the COMMANDS table, filled by register_command from each app's ready(); the caller is a URL.",
+      "anchor": "backend:apps/core/services/verbs.py::run_command",
+      "enters_from": ["apps/core/services/verbs.py::run_command"],
+      "reaches": "resolved",
+      "covers": ["apps/core/services/verbs.py::*", "apps/*/services/*.py::register", "apps/*/services/*/*.py::register"],
+      "kinds": ["registry", "dynamic_call"],
+      "explained_by": [
+        {"type": "readme", "root": "docs", "path": "architecture/03-wcapi-gateway.md"}
+      ],
+      "resolver": {"type": "call_args", "callee": "apps/core/services/verbs.py::register_command", "target_arg": 2, "label_args": [0, 1]},
+      "owner": "wc3",
+      "dt_reviewed": "2026-11-12T00:00:00Z"
+    },
+    {
+      "id": "opaque:django_signals",
+      "kind": "opaque",
+      "name": "Django signals",
+      "why_opaque": "A handler runs when any code saves or deletes a row of its sender; the connection is made at import or in a register_* function, often with the sender passed in as a variable.",
+      "anchor": "backend:apps/transactions/signals.py::register_line_totals_signals",
+      "enters_from": [],
+      "reaches": "resolved (handlers); who fires them is unknown — any .save() or .delete() of the sender",
+      "covers": ["*"],
+      "kinds": ["signal"],
+      "explained_by": [
+        {"type": "tfts", "root": "allie", "path": "process/inbox/20261112T011400-tfts.md"},
+        {"type": "test", "root": "repo", "path": "backend/tests/test_purchase_to_receipt.py"}
+      ],
+      "resolver": {"type": "django_signals"},
+      "owner": "wc3",
+      "dt_reviewed": "2026-11-12T00:00:00Z"
+    },
+    {
+      "id": "opaque:celery_tasks",
+      "kind": "opaque",
+      "name": "Celery tasks and the beat schedule",
+      "why_opaque": "A task runs when the beat schedule in settings.py names it or code calls .delay(); the name is a string and the run is in another process.",
+      "anchor": "backend:webclerk3_api/celery.py::<module>",
+      "enters_from": [],
+      "reaches": "unknown",
+      "covers": ["*"],
+      "kinds": ["celery"],
+      "explained_by": [
+        {"type": "readme", "root": "allie", "path": "readmes/69-celery-architecture.md"},
+        {"type": "tfts", "root": "allie", "path": "process/inbox/20260927T181047-tfts.md"}
+      ],
+      "resolver": null,
+      "owner": "wc3",
+      "dt_reviewed": "2026-11-12T00:00:00Z"
+    }
+  ]
+}
