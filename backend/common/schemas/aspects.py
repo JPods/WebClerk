@@ -77,6 +77,25 @@ class TransactionPhones(BaseModel):
         extra = "allow"
 
 
+# ── Purchase aspects (vendor / bill_to / ship_to) ───────────────
+# A purchase names who we buy from in its own block (Bill, 2026-11-12); its bill-to and
+# ship-to are the company's own.
+
+class PurchaseAddresses(TransactionAddresses):
+    """addresses aspect on Purchase."""
+    vendor: AddressEntry = Field(default_factory=AddressEntry)
+
+
+class PurchaseEmails(TransactionEmails):
+    """emails aspect on Purchase."""
+    vendor: EmailEntry = Field(default_factory=EmailEntry)
+
+
+class PurchasePhones(TransactionPhones):
+    """phones aspect on Purchase."""
+    vendor: PhoneEntry = Field(default_factory=PhoneEntry)
+
+
 # ── OrgBase aspects (prime / bill_to / ship_to) ─────────────────
 
 class OrgAddresses(BaseModel):

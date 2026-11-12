@@ -182,3 +182,23 @@ def test_a_record_that_is_not_there_is_refused(admin, company):
         save_record(_as(admin), {'id': po.pk, 'version': po.version,
                                  '_ship_to_from': {'model': 'customer', 'id': 987654}}, model_key='purchase')
     assert e.value.status == 404
+
+
+def test_the_form_can_read_the_vendor_block(admin, company):
+    """The wire, not the row: the door projects out any leaf the definition's access set does
+    not name, and the form then draws the block's title over blanks (found 2026-11-12, after
+    0054 went out with the rows right and the screen empty)."""
+    from rest_framework.test import APIClient
+    vendor = Vendor.objects.create(company='Parts Inc', addresses={'bill_to': {
+        'contact_id': None, 'company': 'Parts Inc', 'attention': 'Sal', 'full_address': '9 Mill St, Denver, CO 80201',
+        'instructions': ''}}, phones={'bill_to': {'number': '303-555-0100'}})
+    po = _save(admin, _new(admin, 'purchase', Purchase), 'purchase', vendor_id=vendor.pk)
+    client = APIClient()
+    client.force_authenticate(admin)
+    body = client.get(f'/wcapi/purchase/{po.pk}/', HTTP_HOST='localhost').json()
+    record = body.get('data', body)
+    record = record.get('record', record)
+    for role, company_name in (('vendor', 'Parts Inc'), ('bill_to', 'Home Co'), ('ship_to', 'Home Co Dock')):
+        assert record['addresses'][role]['company'] == company_name, role
+    assert record['addresses']['vendor']['full_address'] == '9 Mill St, Denver, CO 80201'
+    assert record['phones']['vendor']['number'] == '303-555-0100'
