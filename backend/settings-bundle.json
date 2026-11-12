@@ -70486,24 +70486,6 @@
                         {
                           "field": "dt_received",
                           "label": "dt_received"
-                        },
-                        {
-                          "link": true,
-                          "field": "purchase.ida",
-                          "label": ".ida",
-                          "type": "readonly"
-                        },
-                        {
-                          "field": "config.ship_to.company",
-                          "label": ".company"
-                        },
-                        {
-                          "field": "config.ship_to.address1",
-                          "label": ".address1"
-                        },
-                        {
-                          "field": "config.ship_to.city_state_zip",
-                          "label": ".city_state_zip"
                         }
                       ]
                     },

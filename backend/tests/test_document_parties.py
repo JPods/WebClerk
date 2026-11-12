@@ -155,3 +155,10 @@ def test_no_shipped_definition_names_a_company_detail(bundle):
             text = json.dumps({'layout': setting['config'].get('layout'), 'access': setting['config'].get('access')})
             for detail in ('attention', 'full_address', 'phone', 'email', 'contact_id', 'domain'):
                 assert f'"company.{detail}"' not in text, f'{bundle} {key}: company.{detail}'
+
+
+def test_the_receipt_form_names_no_purchase_or_ship_to_field():
+    """Bill, 2026-11-12: a receipt has no ship-to, and the server sends it no ``purchase`` object."""
+    layouts = json.loads((BACKEND / 'apps/core/layouts/layouts.json').read_text())
+    text = json.dumps(layouts['receipt'])
+    assert '"purchase.' not in text and 'config.ship_to' not in text
