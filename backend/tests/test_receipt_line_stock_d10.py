@@ -1,11 +1,10 @@
-"""D10, as ruled 2026-09-28/30: receiving moves a receipt line's stock once, and then it is fixed.
+"""D10, as ruled 2026-11-11 (readme 108): a receipt line's quantity moves its stock AND its money.
 
-Bill, 2026-09-21: "every change in inventory and cash should generate a pending record" and
-"Layers must change with items." Bill, 2026-09-28/30: a layer never changes after it is born
-(its cost and its received quantity), goods go on the shelf at the receipt's receive command,
-and a correction is a count workorder. So receiving writes one Pending that moves on_hand,
-on_rc, on_po and creates the layer; after that the received quantity cannot be edited or the line
-deleted. This supersedes the 2026-09-21/26 rule that a receipt line edit moved stock and layer.
+D10 (2026-09-20): a receipt-line edit moved the money and not the stock. Bill, 2026-11-11: saving a
+receipt receives the goods (R1), the dock cost never changes (R3), and a received quantity may be
+corrected until the receipt is journalized ("Amendment confirmed"): the line's one layer moves by the
+difference, a reduction only while the layer still holds those units, and the receipt's journal posts
+the net. Journalized: refused. A received line is not deleted (a count workorder corrects it).
 """
 import pytest
 from django.core.exceptions import ValidationError
@@ -66,10 +65,63 @@ def test_receiving_moves_stock_and_creates_the_layer_in_one_pending():
     assert add.is_processed() and add.changes['layer']['line_id'] == line.pk
 
 
-def test_a_received_quantity_cannot_be_edited():
+def _correct(line, active):
+    line.refresh_from_db()
+    line.quantity = {**line.quantity, 'active': active, 'staged': active}
+    line.save()
+    line.refresh_from_db()
+
+
+@pytest.mark.usefixtures('chart_of_accounts')
+def test_a_received_quantity_corrected_down_moves_the_stock_the_layer_and_the_money():
+    """Bill's case, 2026-11-11: converted at 7, meant 5."""
+    from apps.accounts.services.journalize import journalize_receipt
+    from apps.products.models import InventoryMovement
     item, line, _ = _received(qty=7, ordered=10)
-    line.quantity = {**line.quantity, 'active': 6, 'staged': 6}
-    with pytest.raises(ValidationError, match='a layer never changes'):
+    _correct(line, 5)
+    assert _stock(item) == (5, 5, 5), 'on_hand, on_rc and the purchase line all follow'
+    assert line.inventory_layer.quantity['received'] == 5
+    assert line.inventory_layer.cost['unit_po'] == 4.0, 'the dock cost never changes'
+    moves = InventoryMovement.objects.filter(parent_model='receiptline', parent_id=line.pk,
+                                             movement_type=InventoryMovement.MOVEMENT_RECEIPT)
+    assert sorted(float(m.quantity) for m in moves) == [-2.0, 7.0]
+    out = journalize_receipt(line.receipt_id)
+    assert out['inventory'] == 20.0, 'the money is the 5 kept, not the 7 first received'
+    assert out['payable'] == 20.0 and out['received_not_billed'] == 0.0
+
+
+def test_a_received_quantity_corrected_up_moves_the_same_layer():
+    item, line, _ = _received(qty=7, ordered=10)
+    layer_id = line.inventory_layer_id
+    _correct(line, 9)
+    assert _stock(item) == (9, 9, 1)
+    assert line.inventory_layer_id == layer_id and line.inventory_layer.quantity['received'] == 9
+
+
+def test_a_reduction_past_what_the_layer_holds_is_coached():
+    from apps.products.models import InventoryLayer
+    item, line, _ = _received(qty=7, ordered=10)
+    # 3 of the 7 have left the shelf (an issue against this layer).
+    layer = line.inventory_layer
+    InventoryLayer.objects.filter(pk=layer.pk).update(quantity={**layer.quantity, 'issued': 3})
+    line.quantity = {**line.quantity, 'active': 2, 'staged': 2}
+    with pytest.raises(Refused) as refused:
+        line.save()
+    assert refused.value.code == 'received_already_used'
+    assert '3 of the 7' in str(refused.value) and 'count workorder' in str(refused.value)
+    _correct(line, 3)
+    assert line.inventory_layer.quantity['received'] == 3, 'down to what has left the shelf is fine'
+
+
+@pytest.mark.usefixtures('chart_of_accounts')
+def test_a_journalized_receipt_line_is_not_corrected():
+    from apps.accounts.services.journalize import journalize_receipt
+    from apps.transactions.models.base_line_model import JournalizedLineError
+    item, line, _ = _received(qty=7, ordered=10)
+    journalize_receipt(line.receipt_id)
+    line.refresh_from_db()
+    line.quantity = {**line.quantity, 'active': 5, 'staged': 5}
+    with pytest.raises(JournalizedLineError):
         line.save()
     assert _stock(item) == (7, 7, 3)
 

@@ -297,12 +297,11 @@ class Pending(CoreModel):
             return
 
         if spec.get('layer_id'):
-            # A layer's received quantity never changes after birth (Bill, 2026-09-28): a received
-            # receipt line cannot be edited or deleted (receipt_line.py, hard_delete.py), so a
-            # Pending asking to move an existing layer's received is a fault, never applied.
-            raise ValidationError({'layer': f'Pending {self.pk} would change layer '
-                                            f'{spec["layer_id"]} by {on_hand}; a layer never changes. '
-                                            'Correct stock with a count workorder.'})
+            # A layer's cost never changes; its quantity moves only from its own receipt line, until
+            # that receipt is journalized (readme 108, "Amendment confirmed", Bill 2026-11-11 —
+            # replaces the 2026-09-28 "a received receipt line cannot be edited"). The line's save
+            # coaches a reduction past what the layer holds (receipt_line.py); this is the backstop.
+            return self._move_received_layer(item_id, spec['layer_id'], on_hand, data)
 
         create = spec.get('create') or {}
         if on_hand <= 0:
@@ -389,6 +388,41 @@ class Pending(CoreModel):
             if isinstance(consumed, dict):
                 history.append(consumed)
         return history
+
+    def _move_received_layer(self, item_id, layer_id, on_hand, data):
+        """A received receipt line's quantity corrected before its receipt is journalized: its one
+        layer's received moves by the difference, at the layer's own cost, with a receipt movement
+        of the difference that the receipt's journal posts (readme 108, "Amendment confirmed")."""
+        from decimal import Decimal
+        from django.core.exceptions import ValidationError
+        from apps.products.models.inventory_layer import InventoryLayer, InventoryMovement
+        from apps.products.services.inventory.inventory_layers import fill_deficits, recalc_average_cost
+        from apps.transactions.models import ReceiptLine
+
+        layer = InventoryLayer.objects.select_for_update().filter(pk=layer_id).first()
+        if layer is None:
+            raise ValidationError({'layer': f'Pending {self.pk} names layer {layer_id}, which is gone'})
+        line = (ReceiptLine.objects.select_related('receipt').filter(pk=layer.parent_id).first()
+                if layer.parent_model == 'receiptline' else None)
+        if line is None or line.receipt.dt_journaled:
+            raise ValidationError({'layer': f'Pending {self.pk} would change layer {layer_id} by {on_hand}; '
+                                            'only an unjournalized receipt line moves its layer. Correct '
+                                            'stock with a count workorder.'})
+        if layer.remaining_qty() + on_hand < 0:
+            raise ValidationError({'layer': f'Pending {self.pk} would take {-on_hand} from layer {layer_id}, '
+                                            f'which holds {layer.remaining_qty()}'})
+        q = dict(layer.quantity or {})
+        q['received'] = float(Decimal(str(q.get('received', 0) or 0)) + on_hand)
+        layer.quantity = q
+        layer.save(update_fields=['quantity'])
+        InventoryMovement.objects.create(
+            item_id=item_id, warehouse=layer.warehouse, inventory_layer=layer,
+            site_code=layer.warehouse.site_code, movement_type=InventoryMovement.MOVEMENT_RECEIPT,
+            quantity=on_hand, reason=str(data.get('reason') or 'line changed')[:120],
+            parent_model=layer.parent_model, parent_id=layer.parent_id)
+        recalc_average_cost(item_id)
+        if on_hand > 0:
+            fill_deficits(layer, parent_model='receiptline', parent_id=line.pk)
 
     def _apply_line_specs(self, item_id, specs, data, config):
         """Carry out what the line door decided a line's change does to the layers (plan §16d).

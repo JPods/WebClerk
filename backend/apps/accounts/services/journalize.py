@@ -940,8 +940,11 @@ def journalize_receipt(receipt_id: int) -> dict:
             continue
         item_gls = _get_item_gls(move.item_id) if move.item_id else {}
         inv_account = item_gls.get('inventory') or _role('inventory')
-        rows.append((inv_account, value, Decimal('0'), 'inventory', str(move.pk)))
-        rows.append((rnb, Decimal('0'), value, 'inventory', str(move.pk)))
+        # A received quantity corrected down before journalizing is a negative movement: it nets
+        # as Cr inventory / Dr received_not_billed (readme 108, "Amendment confirmed").
+        debit, credit = (inv_account, rnb) if value > 0 else (rnb, inv_account)
+        rows.append((debit, abs(value), Decimal('0'), 'inventory', str(move.pk)))
+        rows.append((credit, Decimal('0'), abs(value), 'inventory', str(move.pk)))
 
     # Shortages this receipt filled (inventory_layers.fill_deficits): those units were shipped or
     # used before they were received. Their cost is the layer's; if the document that took them
@@ -982,6 +985,8 @@ def journalize_receipt(receipt_id: int) -> dict:
 
     debits = sum(r[1] for r in rows)
     credits = sum(r[2] for r in rows)
+    inventory_net = (sum(r[1] for r in rows if r[0] != rnb and r[3] == 'inventory')
+                     - sum(r[2] for r in rows if r[0] != rnb and r[3] == 'inventory'))
     if debits != credits:
         return {'created': 0, 'status': 'exception', 'source_id': receipt_id, 'source_model': 'receipt',
                 'error': f'Out of balance: debits {debits} credits {credits}'}
@@ -1004,9 +1009,9 @@ def journalize_receipt(receipt_id: int) -> dict:
         Receipt.objects.filter(pk=receipt_id).update(dt_journaled=now, dt_modified=now)
 
     return {'created': len(rows), 'receipt_ida': receipt.ida,
-            'inventory': float(sum(r[1] for r in rows if r[3] == 'inventory')),
+            'inventory': float(inventory_net),
             'payable': float(payable),
-            'received_not_billed': float(sum(r[2] for r in rows if r[3] == 'inventory') - payable)}
+            'received_not_billed': float(inventory_net - payable)}
 
 
 def _standing_event_ids(GlJournal, source_id: int, source_model: str) -> set:

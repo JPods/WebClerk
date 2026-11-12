@@ -71,6 +71,20 @@ class ReceiptLine(BaseExecLineModel):
                           'Freight, duty and other charges are added to the layer later; a wrong unit '
                           'cost is corrected with a count workorder: a negative count at the old cost '
                           'and a positive count at the new cost.', {'line_id': self.pk})
+        now = float((self.quantity or {}).get('active') or 0)
+        if was and now < was - 1e-9 and self.inventory_layer_id:
+            # A received quantity is corrected until the receipt is journalized (readme 108,
+            # "Amendment confirmed"); a reduction only takes back what the layer still holds.
+            from apps.products.models import InventoryLayer
+            layer = InventoryLayer.objects.filter(pk=self.inventory_layer_id).first()
+            held = float(layer.remaining_qty()) if layer else 0.0
+            if was - now > held + 1e-9:
+                gone = round(was - held, 6)
+                raise Refused(409, 'received_already_used',
+                              f'{gone:g} of the {was:g} received on this line have already left the shelf '
+                              f'(shipped, used or scrapped), so this line can come down to {gone:g} at the '
+                              f'least. A count workorder corrects the rest.',
+                              {'line_id': self.pk, 'received': was, 'held': held, 'lowest': gone})
 
     class Meta:
         db_table = "receipt_line"  # Singular to match existing table
