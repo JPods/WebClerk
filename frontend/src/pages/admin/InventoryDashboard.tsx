@@ -10,11 +10,11 @@
  *   3. Warehouse — inventory by warehouse with reorder alerts
  *   4. Reconcile — physical count vs system, variance adjustments
  *
- * Receiving at the dock is two commands (Bill, 2026-09-27 and 2026-09-30):
- *   POST /wcapi/purchase/<id>/convert/ {to: 'receipt', lines: [{line_id, qty}]} plans the receipt
- *   — only the lines affected, each at the qty entered; it keeps the PO line's cost — and
- *   POST /wcapi/receipt/<id>/receive/ puts the goods on the shelf in the default warehouse, each
- *   layer born at the receipt's cost. More than is left is taken and flagged to Alice.
+ * Receiving at the dock is one command (Bill, 2026-11-11, readme 108: saving a receipt receives):
+ *   POST /wcapi/purchase/<id>/convert/ {to: 'receipt', lines: [{line_id, qty}]} saves the receipt
+ *   — only the lines affected, each at the qty entered, at the PO line's cost — and that save
+ *   puts the goods on the shelf in the default warehouse, each layer born at the receipt's cost.
+ *   More than is left is taken and flagged to Alice.
  * The other tabs go through manageAction → backend services:
  *   - corrections: a count workorder (api/workorderApi.saveCorrection)
  *   - get_item_inventory_summary (inventory_stacks.py)
@@ -313,8 +313,8 @@ function ReceiveTab() {
     const results: string[] = [];
     let hasError = false;
 
-    // The goods are here: plan the receipt for the lines affected (convert), then receive it,
-    // which moves on_po -> on_hand and on_rc and creates each layer at the receipt's cost.
+    // The goods are here: the convert saves the receipt for the lines affected, and that save
+    // moves on_po -> on_hand and on_rc and creates each layer at the receipt's cost.
     try {
       const res = await apiClient.post(`/wcapi/purchase/${selectedPO.id}/convert/`, {
         to: "receipt",
@@ -324,7 +324,6 @@ function ReceiveTab() {
         })),
       });
       const data = res.data?.data?.result || {};
-      await apiClient.post(`/wcapi/receipt/${data.receipt_id}/receive/`, {});
       results.push(
         `Receipt ${data.receipt_ida || data.receipt_id}: ${linesToReceive.length} line(s) received`
       );

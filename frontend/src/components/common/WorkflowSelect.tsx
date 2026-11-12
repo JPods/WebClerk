@@ -70,10 +70,10 @@ const ACTION_CONFIGS: Record<string, ActionDef[]> = {
     { key: 'link_transaction_to_campaign', label: 'Link Campaign', needsDialog: true },
   ],
   receipt: [
-    // Bill, 2026-09-30: the goods go on the shelf here, and each layer is born at the
-    // receipt's cost, which never changes after.
+    // Bill, 2026-11-11 (readme 108): saving a receipt receives its goods; this is the way off
+    // hold, for a receipt converted with Hold ticked.
     { key: 'receive', label: 'Receive', command: 'receive',
-      confirm: "Put this receipt's planned goods on the shelf? Their cost is fixed from then on.",
+      confirm: "Put this held receipt's goods on the shelf? Their cost is fixed from then on.",
       params: () => ({}) },
     { key: 'journalize', label: 'Journalize', command: 'journalize',
       confirm: 'Post what this receipt received (inventory) and what it owes the vendor (payable)? This locks the receipt.',
@@ -144,7 +144,7 @@ const WorkflowSelect: React.FC<WorkflowSelectProps> = ({ modelName, record, onCo
   const dispatch = useDispatch();
   const [loading, setLoading] = useState(false);
   // A conversion asks its quantities first (Bill, 2026-11-11): one save at the number meant.
-  const [asking, setAsking] = useState<{ action: ActionDef; rows: ConvertRow[] } | null>(null);
+  const [asking, setAsking] = useState<{ action: ActionDef; rows: ConvertRow[]; toReceipt: boolean; hold: boolean } | null>(null);
   const actions = ACTION_CONFIGS[modelName] || [];
 
   const run = useCallback(async (action: ActionDef, extra: Record<string, unknown> = {}) => {
@@ -172,9 +172,10 @@ const WorkflowSelect: React.FC<WorkflowSelectProps> = ({ modelName, record, onCo
       dispatch(showToast({ message: 'Enter a quantity above 0 on at least one line.', type: 'info' }));
       return;
     }
-    const { action } = asking;
+    const { action, hold } = asking;
     setAsking(null);
-    void run(action, lines ? { lines } : {});
+    // Hold is a positive act (Bill, 2026-11-11, R2): sent only when ticked.
+    void run(action, { ...(lines ? { lines } : {}), ...(hold ? { hold: true } : {}) });
   }, [asking, run, dispatch]);
 
   const handleChange = useCallback(async (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -194,7 +195,11 @@ const WorkflowSelect: React.FC<WorkflowSelectProps> = ({ modelName, record, onCo
       // The lines and what is left of each, editable; Enter takes them as shown. A record
       // loaded without its lines falls back to the plain question.
       const rows = convertRows(record);
-      if (rows.length) { setAsking({ action, rows }); return; }
+      if (rows.length) {
+        const toReceipt = (action.params ? action.params(record || {}) : {}).to === 'receipt';
+        setAsking({ action, rows, toReceipt, hold: false });
+        return;
+      }
     }
     if (action.confirm && !confirm(action.confirm)) return;
     // Destructive actions require a second confirmation
@@ -241,6 +246,13 @@ const WorkflowSelect: React.FC<WorkflowSelectProps> = ({ modelName, record, onCo
               ))}
             </tbody>
           </table>
+          {asking.toReceipt && (
+            <label data-wc="convert-hold" style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 10 }}>
+              <input type="checkbox" checked={asking.hold}
+                onChange={(e) => setAsking({ ...asking, hold: e.target.checked })} />
+              <span>Hold: the goods are not here yet. On hand does not move until Workflow → Receive.</span>
+            </label>
+          )}
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 12 }}>
             <button type="button" onClick={() => setAsking(null)} className="px-3 py-1 rounded"
               style={{ border: '1px solid var(--db-border, #dee2e6)', fontSize: 'inherit' }}>Cancel</button>
