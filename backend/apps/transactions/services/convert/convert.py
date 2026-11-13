@@ -292,7 +292,7 @@ def _target_lines(source_lines, source_type: str, target_type: str,
         }
         line.update({key: value for key, value in carried.items() if value})
         from apps.transactions.services import line_contacts
-        if f'{target_type}line' in line_contacts.LINE_DOCUMENTS:
+        if f'{target_type}line' in line_contacts.LINE_DOCUMENTS and line_contacts.is_on(target_type):
             people = line_contacts.carried(src_line)       # the warranty holder goes with the line
             if people:
                 line["refs"]["contacts"] = people

@@ -26,9 +26,22 @@ def _no_pending_dispatch(monkeypatch):
                         lambda *args, **kwargs: None)
 
 
+def _switch(model_key, on):
+    """The document's switch as a staff member sets it in the Defaults console."""
+    from apps.core.models import Setting
+    from apps.core.services import definition
+    s = Setting.objects.get(purpose='wc:model', parent_model=model_key)
+    s.config = {**s.config, 'defaults': {**s.config['defaults'], 'features': {'line_contacts': on}}}
+    s._setting_create_authorized = True
+    s.save()
+    definition.clear(model_key)
+
+
 @pytest.fixture
 def roles(model_defaults):
     select_lists.add_value('contact', 'transaction_role', 'warranty_holder', label='Warranty Holder')
+    for model_key in ('quote', 'order', 'invoice'):
+        _switch(model_key, True)
 
 
 @pytest.fixture
@@ -217,3 +230,47 @@ def test_the_holder_goes_with_the_line_from_quote_to_order_to_invoice(roles, sto
     invoice_line = InvoiceLine.objects.get(invoice=invoice)
     assert invoice_line.refs['contacts'][0]['role'] == 'warranty_holder'
     assert _links(holder, 'invoice') == [invoice.pk]
+
+
+def test_a_fresh_installation_has_line_contacts_turned_off(model_defaults):
+    from apps.core.services.defaults import feature_on, shipped_defaults
+    assert shipped_defaults('invoice')['features'] == {'line_contacts': False}
+    assert 'features' not in shipped_defaults('purchase')
+    assert not feature_on('invoice', 'line_contacts') and not feature_on('purchase', 'line_contacts')
+
+
+def test_turned_off_nobody_new_is_named_and_who_is_named_stays(admin, roles, store, holder):
+    inv, (line,) = _invoice(store)
+    line = _name(admin, inv, line, [{'role': 'warranty_holder', 'contact_id': holder.pk}])
+    _switch('invoice', False)
+    other = Contact.objects.create(email='lee.other@example.com', name_first='Lee', name_last='Other')
+    with pytest.raises(Refused) as refused:
+        _name(admin, inv, line, line.refs['contacts'] + [{'role': 'warranty_holder', 'contact_id': other.pk}])
+    assert refused.value.code == 'line_contacts_off'
+    assert 'Defaults' in str(refused.value)
+    line = _name(admin, inv, line, line.refs['contacts'])            # an echo of who is named saves
+    assert [r['contact_id'] for r in line.refs['contacts']] == [holder.pk]
+    line = _name(admin, inv, line, [])                                # and they can be taken off
+    assert _links(holder, 'invoice_line') == []
+
+
+def test_convert_carries_nobody_to_a_document_whose_switch_is_off(roles, store, holder):
+    quote = Quote.objects.create(status='active', customer_id=store.id)
+    QuoteLine.objects.create(quote=quote, item={'description': 'Sofa warranty'},
+                             price={'unit': 100.0, 'precision': 2}, cost={'unit': 60.0},
+                             quantity={'active': 1, 'precision': 2},
+                             refs={'contacts': [{'role': 'warranty_holder', 'contact_id': holder.pk}]})
+    _switch('order', False)
+    order = Order.objects.get(pk=convert_quote_to_order(quote.pk)['order_id'])
+    assert not (OrderLine.objects.get(order=order).refs or {}).get('contacts')
+
+
+def test_the_switch_is_a_default_the_definition_checks(model_defaults):
+    from apps.core.services.defaults import checked_defaults
+    assert checked_defaults('invoice', {'features': {'line_contacts': True}})['features'] == {'line_contacts': True}
+    with pytest.raises(ValueError, match='no switch'):
+        checked_defaults('invoice', {'features': {'line_people': True}})
+    with pytest.raises(ValueError, match='no switch'):
+        checked_defaults('purchase', {'features': {'line_contacts': True}})
+    with pytest.raises(ValueError, match='true or false'):
+        checked_defaults('invoice', {'features': {'line_contacts': 'yes'}})

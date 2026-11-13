@@ -3,7 +3,8 @@
  * default.console where all such defaults can be seen compared and aligned").
  *
  * Storage is per model: each row is a model's own wc:model Setting, config.defaults =
- * {fields, formatting}. Comparison is here: models down, fields across; a shared field whose
+ * {fields, formatting, features}. A feature is a switch a model has (line_contacts on a quote,
+ * order and invoice; Bill, 2026-11-12): a tick box in the row of each model that has it. Comparison is here: models down, fields across; a shared field whose
  * value differs between the models that have it is marked. A cell saves through the door into
  * that model's Setting (the gate refuses a field the model lacks or a value off its list, with
  * coaching), and the row reloads what the server kept. The console's own wc:console Setting
@@ -21,6 +22,8 @@ export interface DefaultsRow {
   version: number;
   fields: Record<string, unknown>;
   formatting: Record<string, unknown>;
+  /** The model's switches (config.defaults.features); a model without a switch has no key. */
+  features?: Record<string, boolean>;
   lists: Record<string, { value: string; label?: string }[]>;
 }
 
@@ -34,6 +37,13 @@ export function disagreements(rows: DefaultsRow[], field: string): Set<string> {
   const [majority] = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
   if (counts.size === 1) return new Set();
   return new Set(present.filter((r) => String(r.fields[field]) !== majority).map((r) => r.model));
+}
+
+/** Every switch any model has, in the order first met. */
+export function featuresOf(rows: DefaultsRow[]): string[] {
+  const out: string[] = [];
+  for (const r of rows) for (const k of Object.keys(r.features || {})) if (!out.includes(k)) out.push(k);
+  return out;
 }
 
 /** The columns: the shared fields first, then every other field any model names, then formatting. */
@@ -65,13 +75,14 @@ const DefaultsConsole: React.FC = () => {
       setRows((def.models || []).filter((m: string) => byModel.has(m)).map((m: string) => {
         const s = byModel.get(m);
         const d = s.config?.defaults || {};
-        return { model: m, settingId: s.id, version: s.version, fields: d.fields || {}, formatting: d.formatting || {}, lists: s.config?.selectlists || {} };
+        return { model: m, settingId: s.id, version: s.version, fields: d.fields || {}, formatting: d.formatting || {}, features: d.features || {}, lists: s.config?.selectlists || {} };
       }));
     } catch (e: any) { setError(`Could not read the definitions: ${e?.message || e}`); }
   }, []);
   useEffect(() => { load(); }, [load]);
 
   const columns = useMemo(() => consoleDef ? columnsOf(rows, consoleDef.shared) : [], [rows, consoleDef]);
+  const switches = useMemo(() => featuresOf(rows), [rows]);
   const marked = useMemo(() => {
     const m = new Map<string, Set<string>>();
     for (const f of consoleDef?.shared || []) m.set(f, disagreements(rows, f));
@@ -85,6 +96,16 @@ const DefaultsConsole: React.FC = () => {
     try {
       await saveRecord('setting', { id: row.settingId, version: row.version, config: { defaults: { [block]: { [field]: typed } } } });
       dispatch(showToast({ message: `${row.model} ${field} = ${value || '(none)'}`, type: 'success' }));
+    } catch (err: any) {
+      dispatch(showToast({ message: `Not saved: ${refusalMessage(err)}`, type: 'error' }));
+    }
+    load();
+  }, [dispatch, load]);
+
+  const saveSwitch = useCallback(async (row: DefaultsRow, name: string, on: boolean) => {
+    try {
+      await saveRecord('setting', { id: row.settingId, version: row.version, config: { defaults: { features: { [name]: on } } } });
+      dispatch(showToast({ message: `${row.model} ${name.replace(/_/g, ' ')} turned ${on ? 'on' : 'off'}`, type: 'success' }));
     } catch (err: any) {
       dispatch(showToast({ message: `Not saved: ${refusalMessage(err)}`, type: 'error' }));
     }
@@ -107,6 +128,7 @@ const DefaultsConsole: React.FC = () => {
             <th style={cell}>model</th>
             {columns.map((c) => <th key={c} style={{ ...cell, fontWeight: 600 }}>{c}</th>)}
             {consoleDef.formatting.map((c) => <th key={c} style={{ ...cell, fontWeight: 600, color: 'var(--db-text-dim, #6b7280)' }}>{c}</th>)}
+            {switches.map((c) => <th key={c} style={{ ...cell, fontWeight: 600 }} title="A switch: on or off for this model">{c.replace(/_/g, ' ')}</th>)}
           </tr>
         </thead>
         <tbody>
@@ -147,6 +169,15 @@ const DefaultsConsole: React.FC = () => {
                   </td>
                 );
               })}
+              {switches.map((name) => (
+                <td key={name} style={{ ...cell, textAlign: 'center' }}>
+                  {r.features && name in r.features ? (
+                    <input type="checkbox" checked={r.features[name] === true} data-wc-switch={`${r.model}.${name}`}
+                      aria-label={`${r.model} ${name.replace(/_/g, ' ')}`}
+                      onChange={(e) => saveSwitch(r, name, e.target.checked)} />
+                  ) : null}
+                </td>
+              ))}
             </tr>
           ))}
         </tbody>

@@ -13,7 +13,9 @@ One list, four places, one writer (this module):
     contact.refs.links.<doc>        [{id}]   their documents
     contact.refs.links.serial       [{id}]   the serials
 
-A quote, order and invoice line carries the list, and convert carries it forward. The role is
+A quote, order and invoice line carries the list, and convert carries it forward. Each document's definition has the
+switch (``config.defaults.features.line_contacts``, off in a fresh installation): off, nobody
+new is named, and who is already named stays. The role is
 on the list each installation edits: the contact definition's ``selectlists.transaction_role``
 (a person who saves a role not on it is asked first and may add it — select_lists.py).
 ``contact_id`` is the pointer; the rest of an entry is what the contact read when it was first
@@ -79,6 +81,24 @@ def _role_is_listed(role: str, actor) -> None:
                   {'model_name': ROLE_LIST_MODEL, 'unlisted': off, 'may_add': may_add})
 
 
+#: The switch in each document's definition: config.defaults.features.line_contacts
+#: (core/services/defaults.py FEATURES). Off: nobody new is named; who is named stays.
+FEATURE = 'line_contacts'
+
+
+def is_on(doc: str) -> bool:
+    from apps.core.services.defaults import feature_on
+    return feature_on(doc, FEATURE)
+
+
+def _is_on(doc: str, line) -> None:
+    if not is_on(doc):
+        raise Refused(400, 'line_contacts_off',
+                      f'Contacts on {doc} lines are turned off. A staff member turns them on in '
+                      f'Defaults: {doc}, line contacts.',
+                      {'line_id': line.pk, 'model_name': doc, 'feature': FEATURE})
+
+
 def _text(value) -> str:
     return '' if value is None else str(value)
 
@@ -87,7 +107,8 @@ def settle(line, before_refs=None) -> None:
     """Before the line saves: each contact entry is whole. Refuses an entry with no role or no
     contact, a role not on the list, and a contact that does not exist. An entry already stored
     with the same role and contact keeps what it copied; a new one copies from the contact."""
-    if document_key(line) is None:
+    doc = document_key(line)
+    if doc is None:
         return
     refs = line.refs if isinstance(line.refs, dict) else {}
     raw = refs.get('contacts')
@@ -120,6 +141,7 @@ def settle(line, before_refs=None) -> None:
         if (role, contact_id) in stored:
             out.append(stored[(role, contact_id)])
             continue
+        _is_on(doc, line)
         _role_is_listed(role, actor)
         contact = Contact.objects.filter(pk=contact_id).first()
         if contact is None:

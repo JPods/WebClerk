@@ -12,6 +12,7 @@ import SpecPanel from '../panels/SpecPanel';
 import { LinkedRecordsPanel } from '@/apps/common/components/panels/LinkedRecordsPanel';
 import CollapsiblePanel from '@/apps/common/components/CollapsiblePanel';
 import CommissionPanel from '../panels/CommissionPanel';
+import LineContactsPanel, { type LineContact } from '../panels/LineContactsPanel';
 import { TransactionItemSearch, resolveItemCode, resolveItemDescription, resolveQtyAvailable } from '../TransactionItemSearch';
 import { priceLines } from '../../services/linePricing';
 import type { ItemSearchResult } from '../TransactionItemSearch';
@@ -34,6 +35,8 @@ export interface LineCardRendererProps {
   onEnterCash?: () => void;
   /** The document's model: a receipt shows planned/received, warehouse, lot and serial. */
   modelName?: string;
+  /** The document's switch (config.defaults.features.line_contacts): the people a line names. */
+  lineContacts?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -41,7 +44,7 @@ export interface LineCardRendererProps {
 // ---------------------------------------------------------------------------
 
 /** Render the line card -- DataGrid with line card config, no LinesCard component */
-const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEditing, isLocked, onLinesChange, onEnterCash, modelName }) => {
+const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEditing, isLocked, onLinesChange, onEnterCash, modelName, lineContacts }) => {
   const fmt = useFormatting();
   // Removed lines stay in the list — greyed out, struck through, zero qty —
   // until the save deletes the row. Escape a delete by closing the window.
@@ -49,6 +52,7 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
   const windowManager = useWindowManager();
   const dispatch = useDispatch();
   const [showItemSearch, setShowItemSearch] = useState(false);
+  const [showContacts, setShowContacts] = useState(false);
   const isSellSide = section.family === 'sell';
   const companyInventory = useSelector((s: any) => s.company?.inventory) || {};
   const authUser = useAppSelector((s) => s.auth.user);
@@ -204,6 +208,14 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
     onLinesChange(newLines);
   }, [lc.canEdit, lc.selectedId, lines, lc.records, onLinesChange]);
 
+  // The people the selected line names (readme 110): the panel edits refs.contacts.
+  const handleLineContacts = useCallback((contacts: LineContact[]) => {
+    if (lc.selectedId == null) return;
+    onLinesChange(lines.map((l: any, i: number) => (lc.records[i]?.id !== lc.selectedId || l._removed) ? l
+      : { ...l, refs: { ...(l.refs || {}), contacts }, _dirty: true }));
+  }, [lc.selectedId, lc.records, lines, onLinesChange]);
+  const selectedContactCount = Array.isArray(selectedLine?.refs?.contacts) ? selectedLine.refs.contacts.length : 0;
+
   // Selection-aware footer calculations
   const activeRecords = lc.selectedLineIds.size > 0
     ? lc.records.filter(r => lc.selectedLineIds.has(r.id))
@@ -248,6 +260,12 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
             <button type="button" onClick={() => lc.setShowCommission(!lc.showCommission)}
               className={`px-1.5 py-0.5 rounded transition-colors ${lc.showCommission ? 'bg-purple-600 text-white' : 'text-slate-500 dark:text-slate-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/30'}`}
               title="Commission columns (C)">C</button>
+          )}
+          {lineContacts && (
+            <button type="button" data-wc-subpanel="contacts" onClick={() => setShowContacts((v) => !v)}
+              className={`px-1.5 py-0.5 rounded transition-colors ${showContacts ? 'bg-blue-600 text-white' : 'text-slate-500 dark:text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30'}`}
+              title="Contacts on the selected line: warranty holder and other roles">
+              P{selectedContactCount > 0 ? selectedContactCount : ''}</button>
           )}
         </span>
         {lc.selectedId != null && (
@@ -390,6 +408,13 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
         <div className="border-t border-purple-200 max-h-[300px] overflow-y-auto" style={{ background: 'var(--db-surface, #fff)' }}>
           <CommissionPanel lines={lines} selectedIds={lc.selectedLineIds} />
         </div>
+      )}
+      {showContacts && lineContacts && (
+        <CollapsiblePanel key={`contacts-${lc.selectedId ?? ''}`} collapsible={false}
+          label={`Contacts${lc.selectedLineRecord?.item_code ? ` ${lc.selectedLineRecord.item_code}` : ''}`}>
+          <LineContactsPanel line={selectedLine && !selectedLine._removed ? selectedLine : null}
+            canEdit={lc.canEdit} onChange={handleLineContacts} />
+        </CollapsiblePanel>
       )}
       {lc.activePanel !== 'none' && lc.activePanel !== 'margin' && (
         // A frame per sub-panel and item: a count declared by one never shows on another.

@@ -48,9 +48,41 @@ SHIPPED_FIELDS: Dict[str, Dict[str, Any]] = {
 }
 
 
+#: Switches a model's definition carries beside its field defaults: ``config.defaults.features``
+#: = ``{<name>: true|false}`` (Bill, 2026-11-12: "a default to turn this line/serial contact on
+#: and off"). name → the models that have the switch and what a fresh installation starts with.
+#: ``line_contacts``: the people a line names by role and the serial it issues carries
+#: (readme 110; transactions/services/line_contacts.py).
+FEATURES: Dict[str, Dict[str, Any]] = {
+    'line_contacts': {'models': SELL, 'shipped': False},
+}
+
+
+def shipped_features(model_key: str) -> Dict[str, bool]:
+    """The switches this model has, each as a fresh installation starts with it."""
+    return {name: bool(f['shipped']) for name, f in FEATURES.items() if model_key in f['models']}
+
+
 def shipped_defaults(model_key: str) -> Dict[str, Any]:
     """The block a model's definition is seeded with."""
-    return {'fields': dict(SHIPPED_FIELDS.get(model_key, {})), 'formatting': dict(SHIPPED_FORMATTING)}
+    block = {'fields': dict(SHIPPED_FIELDS.get(model_key, {})), 'formatting': dict(SHIPPED_FORMATTING)}
+    if shipped_features(model_key):
+        block['features'] = shipped_features(model_key)
+    return block
+
+
+def model_features(model_key: str) -> Dict[str, bool]:
+    """The model's switches from its definition, the shipped value where it names none."""
+    from apps.core.services import definition
+    shipped = shipped_features(model_key)
+    return definition.part(model_key, ('defaults', 'features'),
+                           lambda raw: {**shipped, **{k: bool(v) for k, v in raw.items() if k in shipped}}
+                           if isinstance(raw, dict) else dict(shipped))
+
+
+def feature_on(model_key: str, name: str) -> bool:
+    """Whether this model's switch ``name`` is on. A model without the switch has it off."""
+    return bool(model_features(model_key).get(name))
 
 
 def model_defaults(model_key: str) -> Dict[str, Any]:
@@ -116,11 +148,22 @@ def checked_defaults(model_key: str, defaults: Any) -> Dict[str, Any]:
     schema, extra forbidden, then the model's own columns), a value with a list in the
     definition is stored in the list's spelling, terms as a Term's ida; ``formatting`` holds
     only the four keys."""
+    switches = shipped_features(model_key)
     if defaults in (None, {}):
-        return {'fields': {}, 'formatting': dict(SHIPPED_FORMATTING)}
-    if not isinstance(defaults, dict) or set(defaults) - {'fields', 'formatting'}:
-        raise ValueError(f'{model_key} config.defaults holds "fields" and "formatting", nothing else: '
-                         f'{sorted(defaults) if isinstance(defaults, dict) else type(defaults).__name__}.')
+        return {'fields': {}, 'formatting': dict(SHIPPED_FORMATTING), **({'features': switches} if switches else {})}
+    if not isinstance(defaults, dict) or set(defaults) - {'fields', 'formatting', 'features'}:
+        raise ValueError(f'{model_key} config.defaults holds "fields", "formatting" and "features", nothing '
+                         f'else: {sorted(defaults) if isinstance(defaults, dict) else type(defaults).__name__}.')
+    features = defaults.get('features') or {}
+    if not isinstance(features, dict):
+        raise ValueError(f'{model_key} config.defaults.features is an object of switches.')
+    unknown = sorted(set(features) - set(switches))
+    if unknown:
+        has = ', '.join(sorted(switches)) or 'none'
+        raise ValueError(f'{model_key} has no switch {", ".join(unknown)}; its switches: {has}.')
+    not_bool = sorted(k for k, v in features.items() if not isinstance(v, bool))
+    if not_bool:
+        raise ValueError(f'{model_key} switch {", ".join(not_bool)} is true or false.')
     fields = defaults.get('fields') or {}
     formatting = defaults.get('formatting') or {}
     if not isinstance(fields, dict) or not isinstance(formatting, dict):
@@ -130,7 +173,10 @@ def checked_defaults(model_key: str, defaults: Any) -> Dict[str, Any]:
         raise ValueError(f'{model_key} config.defaults.formatting takes {", ".join(FORMATTING_KEYS)}; '
                          f'not {", ".join(unknown)}.')
     fields = _checked_fields(model_key, fields)
-    return {'fields': fields, 'formatting': {**SHIPPED_FORMATTING, **formatting}}
+    out = {'fields': fields, 'formatting': {**SHIPPED_FORMATTING, **formatting}}
+    if switches:
+        out['features'] = {**switches, **features}
+    return out
 
 
 def _checked_fields(model_key: str, fields: Dict[str, Any]) -> Dict[str, Any]:

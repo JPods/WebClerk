@@ -71,6 +71,8 @@ export interface DetailLayout {
   behaviors?: Record<string, any>;
   /** config.defaults.formatting of the definition (utils/formatting). */
   formatting?: Formatting;
+  /** config.defaults.features of the definition: the model's switches (line_contacts). */
+  features?: Record<string, boolean>;
 }
 
 // Cache layouts by model name
@@ -115,6 +117,7 @@ export function useDetailLayout(modelName: string) {
           // Attach behaviors from Setting — drives label styles and select options
           parsed.behaviors = fieldBehaviorsOf(setting?.config);
           parsed.formatting = formattingOf(setting?.config);
+          parsed.features = setting?.config?.defaults?.features || {};
           layoutCache.set(modelName, parsed);
           setLayout(parsed);
         } else {

@@ -313,6 +313,7 @@ const DbFormView: React.FC<DbFormProps> = (props) => {
                     isLocked={form.editTier === 'closed'}
                     onLinesChange={form.setLines}
                     modelName={modelName}
+                    lineContacts={(activeLayout?.features ?? layout?.features)?.line_contacts === true}
                     onEnterCash={isCashIn ? () => setShowAddCash(true) : undefined}
                   />
                   {/* The documents around this one, under its lines (Bill, 2026-10-25) */}

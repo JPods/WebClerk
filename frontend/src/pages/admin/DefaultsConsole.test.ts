@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { columnsOf, disagreements, type DefaultsRow } from './DefaultsConsole';
+import { columnsOf, disagreements, featuresOf, type DefaultsRow } from './DefaultsConsole';
 
 const row = (model: string, fields: Record<string, unknown>): DefaultsRow =>
   ({ model, settingId: 1, version: 1, fields, formatting: {}, lists: {} });
@@ -18,5 +18,11 @@ describe('DefaultsConsole — compare, not store', () => {
   it('lays the shared fields first, then whatever any model names', () => {
     const rows = [row('item', { status: 'active' }), row('quote', { terms: 'N30', ship_via: 'ups' })];
     expect(columnsOf(rows, ['terms', 'priority'])).toEqual(['terms', 'priority', 'status', 'ship_via']);
+  });
+
+  it('shows a switch column for every switch any model has', () => {
+    const rows = [row('quote', {}), { ...row('invoice', {}), features: { line_contacts: true } }, { ...row('order', {}), features: { line_contacts: false } }];
+    expect(featuresOf(rows)).toEqual(['line_contacts']);
+    expect(featuresOf([row('item', {})])).toEqual([]);
   });
 });

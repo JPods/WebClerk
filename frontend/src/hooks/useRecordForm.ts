@@ -22,6 +22,7 @@ import { useEditHold, type HeldBy } from '@/hooks/useEditHold';
 import type { DetailLayout } from '@/hooks/useDetailLayout';
 import { useFormDraft, type DraftGetter } from '@/hooks/useFormDraft';
 import { changedFields } from '@/utils/changedFields';
+import { contactsToSend } from '@/apps/transactions/components/panels/LineContactsPanel';
 import { applyDerived } from '@/utils/derivedFields';
 import { checkJsonLimits, describeJsonLimitProblems, jsonLimitsLoaded, loadJsonLimits } from '@/utils/jsonLimits';
 import { COMMUNICATION_FIELDS, communicationField, communicationValue, showsCommunication } from '@/utils/communicationFields';
@@ -38,6 +39,17 @@ export const DISPLAY_ONLY_KEYS = ['customer_config', 'customer_company', 'parent
 /** What the browser reports of its preview at save; the server says if what it saved differs
  *  (browser_totals.check_preview). */
 const PREVIEW_REPORT_KEYS = ['amount', 'tax', 'shipping', 'other', 'total'] as const;
+
+/** Of a line's refs the form writes only the people it names (readme 110): the links, the
+ *  source and the keywords are the server's, and an echo of them is refused or would replace
+ *  them. A line whose contacts did not change sends no refs. */
+export function lineRefsToSend(body: Record<string, any>, loaded?: Record<string, any>): Record<string, any> {
+  if (!body.refs || typeof body.refs !== 'object') return body;
+  const { refs, ...rest } = body;
+  const now = contactsToSend(refs.contacts);
+  const before = contactsToSend(loaded?.refs?.contacts);
+  return JSON.stringify(now) === JSON.stringify(before) ? rest : { ...rest, refs: { contacts: now } };
+}
 
 /** Orgs whose primary contact's name, email, phone and address they show (PrimaryContactCard). */
 export const ORGS_WITH_CONTACTS = ['customer', 'vendor', 'manufacturer', 'rep'];
@@ -314,9 +326,9 @@ export function useRecordForm(opts: RecordFormOptions) {
       const editedHeader: Record<string, any> = { ...editData };
       for (const k of ["lines", ...DISPLAY_ONLY_KEYS]) delete editedHeader[k];
       const loadedById = new Map<number, any>((data?.lines || []).map((l: any) => [l.id, l]));
-      const linesToSend = dirtyLines.map((l: any) => isPersistedLine(l)
+      const linesToSend = dirtyLines.map((l: any) => lineRefsToSend(isPersistedLine(l)
         ? { ...changedFields(loadedById.get(l.id), l), _dirty: true }
-        : withoutEmpties(l));
+        : withoutEmpties(l), loadedById.get(l.id)));
       const header: Record<string, any> = changedFields(data, editedHeader);
       // The figures the person saw: the server compares them with what it saved and says so.
       // Not on the party pick: its save reprices the lines, so the figures change by right.

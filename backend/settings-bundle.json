@@ -39199,6 +39199,9 @@
             "locale": "en-US",
             "date_format": "short",
             "number_precision": 2
+          },
+          "features": {
+            "line_contacts": false
           }
         },
         "searches": [],
@@ -52653,6 +52656,9 @@
             "locale": "en-US",
             "date_format": "short",
             "number_precision": 2
+          },
+          "features": {
+            "line_contacts": false
           }
         },
         "searches": [],
@@ -62173,6 +62179,9 @@
             "locale": "en-US",
             "date_format": "short",
             "number_precision": 2
+          },
+          "features": {
+            "line_contacts": false
           }
         },
         "searches": [],
