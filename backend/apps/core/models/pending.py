@@ -308,7 +308,7 @@ class Pending(CoreModel):
             raise ValidationError({'layer': f'Pending {self.pk} would create a layer '
                                             f'holding {on_hand}'})
         # The one place a layer's cost is read: the receipt line's totals, which the writer computed
-        # before writing (line_door._write_after_totals, receive_receipt step 2): the discounted
+        # before writing (line_door._write_after_totals): the discounted
         # unit plus its share of the receipt's charges (Bill, 2026-11-11, R1/R3). An opening
         # balance has no line and takes the unit cost it names.
         landed = {}

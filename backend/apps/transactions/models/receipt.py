@@ -171,8 +171,8 @@ class Receipt(TransactionBaseModel):
             raise Refused(409, 'layer_cost_fixed',
                           'This receipt has received goods, and their layers hold the cost they landed '
                           'at. A later freight, duty or other bill is its own entry, added to those '
-                          'layers. To enter charges before the goods land, convert with hold and '
-                          'receive afterwards.', {'receipt_id': self.pk})
+                          'layers. Charges known when the goods arrive go on the receipt in the save '
+                          'that receives them.', {'receipt_id': self.pk})
 
     def __str__(self) -> str:  # pragma: no cover
         return f"R:{self.ida}" if self.ida else f"R:{self.pk}"

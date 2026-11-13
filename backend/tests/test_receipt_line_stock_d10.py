@@ -22,7 +22,7 @@ def _complete_vendor():
     from apps.orgs.models import Vendor
     Term.objects.get_or_create(ida='N30', defaults={'name': 'N30', 'is_active': True})
     return Vendor.objects.create(company='Complete Vendor')
-def _planned(qty=7, ordered=10):
+def _received(qty=7, ordered=10):
     from apps.core.services.door import Actor
     from apps.core.services.verbs import run_command
     from apps.products.models import Item, Warehouse
@@ -35,16 +35,8 @@ def _planned(qty=7, ordered=10):
         purchase=po, item={'item_id': item.pk, 'id_num': item.pk, 'description': 'Widget'},
         quantity={'active': ordered, 'staged': ordered}, cost={'unit': 4.00})
     out = run_command(Actor.system(), 'convert', 'purchase', po.pk,
-                      {'to': 'receipt', 'lines': [{'line_id': pol.pk, 'qty': qty}], 'hold': True})
-    return item, ReceiptLine.objects.get(receipt_id=out['receipt_id'])
-
-
-def _received(qty=7, ordered=10):
-    from apps.transactions.services.receive_commands import receive_receipt
-    item, line = _planned(qty, ordered)
-    out = receive_receipt(line.receipt)
-    line.refresh_from_db()
-    return item, line, out
+                      {'to': 'receipt', 'lines': [{'line_id': pol.pk, 'qty': qty}]})
+    return item, ReceiptLine.objects.get(receipt_id=out['receipt_id']), out
 
 
 def _stock(item):
@@ -57,7 +49,6 @@ def test_receiving_moves_stock_and_creates_the_layer_in_one_pending():
     from apps.core.models import Pending
     item, line, out = _received(qty=7, ordered=10)
     assert _stock(item) == (7, 7, 3)
-    assert out['received'] == [{'line_id': line.pk, 'qty': 7, 'layer_id': line.inventory_layer_id}]
     assert line.inventory_layer.quantity['received'] == 7
     assert line.inventory_layer.serial_batch == line.serial_batch
     add = Pending.objects.get(record_id=str(item.pk), purpose='inventory_line_add',
@@ -148,9 +139,11 @@ def test_a_planned_line_may_leave_a_partly_received_receipt():
 
 
 def test_a_receipt_line_needs_a_warehouse_to_land_in():
-    from apps.transactions.services.receive_commands import receive_receipt
-    item, line = _planned()
-    type(line).objects.filter(pk=line.pk).update(warehouse=None)
+    from apps.products.models import Warehouse
+    from apps.transactions.models import ReceiptLine
+    item, line, _ = _received(qty=7, ordered=10)
+    Warehouse.objects.all().update(is_active=False)
     with pytest.raises(ValidationError):
-        receive_receipt(line.receipt)
-    assert _stock(item) == (0, 0, 10)
+        ReceiptLine.objects.create(receipt=line.receipt, item=line.item, quantity={'active': 2},
+                                   cost={'unit': 4.00}, warehouse=None)
+    assert _stock(item) == (7, 7, 3)

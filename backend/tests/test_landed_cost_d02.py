@@ -123,13 +123,17 @@ def test_the_landed_cost_is_fixed_on_the_layer_when_received():
     from apps.core.models.pending import Pending
     from apps.core.services.door import Refused
     from apps.products.models import Item, Warehouse
-    from apps.transactions.services.receive_commands import receive_receipt
+    from apps.core.services.door import Actor
+    from apps.core.services.save import save_record
     item, other = Item.objects.create(name='D02 item'), Item.objects.create(name='D02 other')
     wh = Warehouse.objects.create(name='D02 WH', code='D02WH')
     r = _receipt(freight=10, duty=4)
     first = _planned_line(r, 10, 7, 6.00, item, wh)
-    _planned_line(r, 20, 4, 12.50, other, wh)
-    receive_receipt(r)
+    second = _planned_line(r, 20, 4, 12.50, other, wh)
+    # Both lines are received in one save, so each layer is born with its share of the charges.
+    save_record(Actor.system(), {'id': r.pk, 'lines': [
+        {'id': first.pk, 'quantity': {'active': 7}}, {'id': second.pk, 'quantity': {'active': 4}}]},
+        model_key='receipt')
     first.refresh_from_db()
     layer = first.inventory_layer
     # freight 4.57 / 7 = 0.6529, duty 1.83 / 7 = 0.2614

@@ -36,16 +36,13 @@ def _received_receipt(qty=10, freight=0):
     po = Purchase.objects.create(vendor_id=_vendor().pk, terms='N30')   # a complete purchase: the money steps refuse one without a vendor and terms (2026-11-06)
     pol = PurchaseLine.objects.create(purchase=po, item={'item_id': item.pk, 'description': 'Widget'},
                                       quantity={'active': qty, 'staged': qty}, cost=dict(COST))
-    # Saving the receipt receives the goods (Bill, 2026-11-11, R1). Freight entered on the receipt
-    # itself goes in before the goods land: a held receipt, then Receive (R2).
-    hold = {'hold': True} if freight else {}
-    out = _run('convert', 'purchase', po.pk, {'to': 'receipt', 'lines': [{'line_id': pol.pk}], **hold})
+    # Saving the receipt receives the goods (Bill, 2026-11-11, R1), and there is no hold (Bill,
+    # 2026-11-13): freight known at the dock is on the receipt in the save that receives.
+    from apps.core.services.door import Actor
+    from apps.transactions.services.convert.convert import convert_record
+    out = convert_record(Actor.system(), 'purchase', po.pk, 'receipt',
+                         stamp={'allocations': {'freight': freight}} if freight else None)
     receipt = Receipt.objects.get(pk=out['receipt_id'])
-    if freight:
-        receipt.allocations = {**(receipt.allocations or {}), 'freight': freight}
-        receipt.save()
-        _run('receive', 'receipt', receipt.pk)
-    receipt.refresh_from_db()
     return item, receipt
 
 
@@ -90,9 +87,12 @@ def test_nothing_received_is_refused_and_journalized_twice_is_refused():
     po = Purchase.objects.create(vendor_id=_vendor().pk, terms='N30')   # a complete purchase: the money steps refuse one without a vendor and terms (2026-11-06)
     pol = PurchaseLine.objects.create(purchase=po, item={'item_id': item.pk, 'description': 'Widget'},
                                       quantity={'active': 2, 'staged': 2}, cost=dict(COST))
-    planned = _run('convert', 'purchase', po.pk, {'to': 'receipt', 'lines': [{'line_id': pol.pk}], 'hold': True})
+    from apps.transactions.models import ReceiptLine
+    empty = Receipt.objects.create(vendor_id=po.vendor_id, terms='N30', parent_model='purchase', parent_id=po.pk)
+    ReceiptLine.objects.create(receipt=empty, item=pol.item, quantity={'active': 0, 'staged': 2},
+                               cost=dict(COST), parent_line_id=pol.pk)
     with pytest.raises(Refused) as refused:
-        _run('journalize', 'receipt', planned['receipt_id'])
+        _run('journalize', 'receipt', empty.pk)
     assert refused.value.code == 'nothing_received'
 
 

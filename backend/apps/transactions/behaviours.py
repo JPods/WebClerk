@@ -295,21 +295,6 @@ class ReceiptBehaviour(ModelBehaviour):
     def after_save(self, ctx: HookContext) -> None:
         flag_over_receipts(ctx.obj)
         check_preview(ctx)
-        coach_not_received(ctx)
-
-
-def coach_not_received(ctx: HookContext) -> None:
-    """A held receipt (converted with ``hold: true``) says what waits and how to receive it (Bill,
-    2026-11-11, R2). Saving a receipt that is not held receives its goods, so nothing waits."""
-    from apps.transactions.models import ReceiptLine
-    waiting = 0.0
-    for q in ReceiptLine.objects.filter(receipt_id=ctx.obj.pk).values_list('quantity', flat=True):
-        q = q if isinstance(q, dict) else {}
-        waiting += max(float(q.get('staged') or 0) - float(q.get('active') or 0), 0.0)
-    if waiting > 0:
-        ctx.messages.append(
-            f"{waiting:g} planned on this receipt and not yet received: on hand has not moved. "
-            f"Workflow → Receive puts them on the shelf.")
 
 
 def flag_over_receipts(receipt) -> None:

@@ -78,16 +78,9 @@ def save_document(model_key, header_data, lines_data, actor=None):
 
 
 def received_receipt_line(receipt, **fields):
-    """A receipt line held, then received by the receipt's receive command — the way off hold (Bill,
-    2026-11-11, R2; a plain save receives too, R1). ``quantity.active`` is what is received."""
+    """A receipt line, received as it is saved (Bill, 2026-11-13: a receipt has no hold).
+    ``quantity.active`` is what is received."""
     from apps.transactions.models import ReceiptLine
-    from apps.transactions.services.receive_commands import receive_receipt
-    quantity = dict(fields.pop('quantity', None) or {})
-    active = float(quantity.pop('active', 0) or 0)
-    quantity['staged'] = max(float(quantity.get('staged') or 0), active)
-    quantity['active'] = 0
-    line = ReceiptLine.objects.create(receipt=receipt, quantity=quantity, **fields)
-    if active:
-        receive_receipt(receipt, lines=[{'line_id': line.pk, 'qty': active}])
+    line = ReceiptLine.objects.create(receipt=receipt, **fields)
     line.refresh_from_db()
     return line

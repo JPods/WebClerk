@@ -81,8 +81,8 @@ class OrderViewSet(_VisibleActions):
 
 
 class PurchaseViewSet(_VisibleActions):
-    """Actions on a purchase. Writes go through /wcapi/save/; receiving is the purchase's
-    receive command (services/receive_commands.py)."""
+    """Actions on a purchase. Writes go through /wcapi/save/; a receipt saved against it
+    receives the goods."""
 
     model_key = 'purchase'
     serializer_class = PurchaseSerializer

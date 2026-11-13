@@ -69,11 +69,7 @@ const ACTION_CONFIGS: Record<string, ActionDef[]> = {
     { key: 'link_transaction_to_campaign', label: 'Link Campaign', needsDialog: true },
   ],
   receipt: [
-    // Bill, 2026-11-11 (readme 108): saving a receipt receives its goods; this is the way off
-    // hold, for a receipt converted with Hold ticked.
-    { key: 'receive', label: 'Receive', command: 'receive',
-      confirm: "Put this held receipt's goods on the shelf? Their cost is fixed from then on.",
-      params: () => ({}) },
+    // Saving a receipt receives its goods; there is no hold (Bill, 2026-11-13).
     { key: 'journalize', label: 'Journalize', command: 'journalize',
       confirm: 'Post what this receipt received (inventory) and what it owes the vendor (payable)? This locks the receipt.',
       params: () => ({}) },

@@ -124,7 +124,9 @@ function flattenLine(line: any, idx: number): any {
     item_code: itemCode,
     description,
     qty: isRemoved ? 0 : qty,
-    planned: isRemoved ? 0 : Number(line.quantity?.staged ?? 0),
+    // What the source asked of this line when it was made; asked − active did not ship or arrive.
+    asked: isRemoved ? 0 : Number(line.quantity?.staged ?? 0),
+    short: isRemoved ? 0 : Math.max(Number(line.quantity?.staged ?? 0) - Number(line.quantity?.active ?? 0), 0),
     received: Number(line.quantity?.active ?? 0),
     remaining: isRemoved ? 0 : remaining,
     remain: isRemoved ? 0 : remaining,
@@ -164,6 +166,7 @@ export function useLineCard(options: UseLineCardOptions) {
   const isSellSide = family === 'sell';
   const isExecSide = !isSellSide;
   const isReceipt = modelName === 'receipt';
+  const isInvoice = modelName === 'invoice';
   const canEdit = isEditing && !isLocked;
   const currency = useSelector(selectCurrency);
 
@@ -200,17 +203,17 @@ export function useLineCard(options: UseLineCardOptions) {
         const newQty = Number(value);
         const isComplete = updated.quantity?.is_complete;
         const remaining = isComplete ? 0 : newQty;
-        return { ...updated, quantity: { ...updated.quantity, active: newQty, staged: newQty, remaining } };
+        // A saved invoice line keeps what its order asked (staged): asked − qty did not ship.
+        const staged = isInvoice && updated.id ? updated.quantity?.staged : newQty;
+        return { ...updated, quantity: { ...updated.quantity, active: newQty, staged, remaining } };
       }
       case "received": {
         // Saving a receipt receives the goods (Bill, 2026-11-11, readme 108 R1): the number typed
-        // is what is on the shelf at the save, and the plan follows it.
+        // is what is on the shelf at the save. A saved line keeps what its purchase asked.
         const got = Number(value);
-        return { ...updated, quantity: { ...updated.quantity, active: got, staged: got } };
+        const staged = updated.id ? updated.quantity?.staged : got;
+        return { ...updated, quantity: { ...updated.quantity, active: got, staged } };
       }
-      case "planned":
-        // A held receipt's plan only: nothing moves until it is received.
-        return { ...updated, quantity: { ...updated.quantity, staged: Number(value) } };
       case "description":
         return { ...updated, item: { ...updated.item, description: String(value) } };
       case "unit_price": {
@@ -365,9 +368,13 @@ export function useLineCard(options: UseLineCardOptions) {
     });
     if (isReceipt) {
       // Received (active) is what the user edits and what a save puts on the shelf (Bill,
-      // 2026-11-11, readme 108 R1); planned (staged) is the plan of a held receipt.
+      // 2026-11-11, readme 108 R1); asked is what the purchase had left when the receipt was made.
       cols.push({ name: 'received', field: 'received', width: '80px', sortable: true });
-      cols.push({ name: 'planned', field: 'planned', width: '70px', sortable: true });
+      cols.push({ name: 'asked', field: 'asked', width: '70px', sortable: true });
+    } else if (isInvoice) {
+      // What the order asked and did not ship stays on the order; the invoice shows it (Bill, 2026-11-13).
+      cols.push({ name: 'qty', field: 'qty', width: '80px', sortable: true });
+      cols.push({ name: 'not shipped', field: 'short', width: '80px', sortable: true });
     } else {
       cols.push({ name: 'qty', field: 'qty', width: '80px', sortable: true });
       cols.push({ name: 'remain', field: 'remaining', width: '55px', sortable: true });
@@ -417,7 +424,7 @@ export function useLineCard(options: UseLineCardOptions) {
     }
 
     return cols;
-  }, [isSellSide, isExecSide, isReceipt, showCommission]);
+  }, [isSellSide, isExecSide, isReceipt, isInvoice, showCommission]);
 
   const colWidths = useMemo(() => {
     const w: Record<string, number> = {};
@@ -427,7 +434,8 @@ export function useLineCard(options: UseLineCardOptions) {
 
   const fieldBehaviors = useMemo(() => ({
     qty: { type: 'number', precision: currency.qty_precision, bulkEditable: true },
-    planned: { type: 'number', precision: currency.qty_precision },
+    asked: { type: 'number', precision: currency.qty_precision, calculated: true },
+    short: { type: 'number', precision: currency.qty_precision, calculated: true },
     received: { type: 'number', precision: currency.qty_precision },
     remaining: { type: 'number', precision: currency.qty_precision, calculated: true },
     remain: { type: 'number', precision: currency.qty_precision, calculated: true },

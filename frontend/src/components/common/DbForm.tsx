@@ -233,7 +233,7 @@ const DbFormView: React.FC<DbFormProps> = (props) => {
         {designMode && badge('amber', 'DESIGN')}
         {modelName === 'receipt' && (
           <ReceiveButton record={data} hasChanges={form.hasChanges} saving={form.saving}
-            onSave={() => form.save({ keepEditing: true })} onReceived={form.fetchData} />
+            onSave={() => form.save({ keepEditing: true })} />
         )}
       </div>
 

@@ -155,7 +155,6 @@ def file_small_sting(actor: Actor, *, complaint: str, severity=3, model_name: st
     from apps.core.models import Action, Contact
     from apps.core.services.save import save_record
     from apps.transactions.models import Receipt
-    from apps.transactions.services.receive_commands import receive_receipt
 
     complaint = (complaint or '').strip()
     if not complaint:
@@ -222,12 +221,10 @@ def file_small_sting(actor: Actor, *, complaint: str, severity=3, model_name: st
             'contact_id': payee_id, 'parent_model': 'action', 'parent_id': action.pk,
             'terms': term,
             'lines': [{'item': {'description': f'{action.ida}: {complaint}'[:500]},
-                       'quantity': {'staged': 1},
+                       'quantity': {'active': 1},
                        'cost': {'unit': float(amount), 'precision': 2}}],
         })
         receipt = Receipt.objects.get(pk=saved.obj_id)
-        receive_receipt(receipt, actor=system)
-        receipt.refresh_from_db()
         total = Decimal(str((receipt.totals or {}).get('total') or 0)).quantize(Decimal('0.01'))
         if total != amount:
             raise Refused(500, 'sting_payable', f'The sting payable came to {total}, not {amount}; '

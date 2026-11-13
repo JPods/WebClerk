@@ -1,14 +1,13 @@
 """Receiving is a convert, like order→invoice (Bill, 2026-09-27, R3).
 
-POST /wcapi/purchase/<id>/convert/ {to: 'receipt', lines?: [{line_id, qty?}], hold?} saves a receipt
+POST /wcapi/purchase/<id>/convert/ {to: 'receipt', lines?: [{line_id, qty?}]} saves a receipt
 through the door: without lines, everything left on the purchase; with them, only those lines, each at
 the qty given. A receipt line keeps the purchase line's whole cost, and the two costs are independent
 after that. More than is left is accepted and flagged to Alice.
 
 Bill, 2026-11-11 (readme 108): saving a receipt receives the goods (R1) — on_hand, on_rc, the purchase
-line's remaining and the layer move at the save, at the best known cost. Hold is a positive act (R2):
-``hold: true`` keeps the goods staged until POST /wcapi/receipt/<id>/receive/. A received line's dock
-cost never changes (R3).
+line's remaining and the layer move at the save, at the cost cited. There is no hold (Bill,
+2026-11-13: a receipt is made when the goods are here). A received line's dock cost never changes (R3).
 """
 import pytest
 
@@ -58,11 +57,6 @@ def _po(*lines):
     return po, pols
 
 
-def _receive(client, receipt_id, body=None):
-    return client.post(f'/wcapi/receipt/{receipt_id}/receive/', body or {},
-                       content_type='application/json')
-
-
 def _stock(item):
     item.refresh_from_db()
     q = item.quantity
@@ -97,46 +91,15 @@ def test_a_saved_receipt_takes_everything_left_and_receives_it(admin_client):
         assert Pending.objects.filter(record_id=str(item.pk), purpose='inventory_line_add',
                                       changes__layer__line_id=line.pk).count() == 1
     assert _remaining(pa) == 0 and _remaining(pb) == 0
-    r = _receive(admin_client, receipt.pk)
-    assert r.status_code == 400 and r.json()['error']['code'] == 'nothing_to_receive', r.content
 
 
-def test_a_held_receipt_waits_until_received(admin_client):
-    """R2: hold is a positive act, and Receive is the way off hold."""
-    a, b = _item('Widget'), _item('Gadget')
-    po, (pa, pb) = _po((a, 10, PO_COST), (b, 5, {'unit': 9.5}))
-    r = _convert(admin_client, po.pk, {'hold': True})
-    assert r.status_code == 200, r.content
-    receipt = Receipt.objects.get(pk=_data(r)['receipt_id'])
-    lines = {line.parent_line_id: line for line in ReceiptLine.objects.filter(receipt=receipt)}
-    assert (lines[pa.pk].quantity['staged'], lines[pa.pk].quantity['active']) == (10, 0)
-    assert _stock(a) == (0, 0, 10), 'held: nothing on the shelf, still on order'
-    assert not any(line.inventory_layer_id for line in lines.values())
-    assert _remaining(pa) == 10
-
-    r = _receive(admin_client, receipt.pk)
-    assert r.status_code == 200, r.content
-    assert _stock(a) == (10, 10, 0) and _stock(b) == (5, 5, 0)
-    assert _remaining(pa) == 0 and _remaining(pb) == 0
-    line = ReceiptLine.objects.get(pk=lines[pa.pk].pk)
-    assert line.inventory_layer.quantity['received'] == 10
-
-
-@pytest.mark.parametrize('hold, code', [('yes', 'bad_hold'), (1, 'bad_hold')])
-def test_hold_is_true_or_false(admin_client, hold, code):
+def test_a_receipt_has_no_receive_command(admin_client):
+    """Bill, 2026-11-13: no hold, so nothing waits for a second step."""
     a = _item('Widget')
     po, _ = _po((a, 10, PO_COST))
-    r = _convert(admin_client, po.pk, {'hold': hold})
-    assert r.status_code == 400 and r.json()['error']['code'] == code, r.content
-    assert not Receipt.objects.exists()
-
-
-def test_only_a_receipt_holds(admin_client):
-    a = _item('Widget')
-    order, _line = _order(a, 4)
-    r = admin_client.post(f'/wcapi/order/{order.pk}/convert/', {'to': 'purchase', 'hold': True},
-                          content_type='application/json')
-    assert r.status_code == 400 and r.json()['error']['code'] == 'hold_not_receipt', r.content
+    receipt_id = _data(_convert(admin_client, po.pk))['receipt_id']
+    r = admin_client.post(f'/wcapi/receipt/{receipt_id}/receive/', {}, content_type='application/json')
+    assert r.status_code == 404 and r.json()['error']['code'] == 'unknown_command', r.content
 
 
 def test_a_partial_receipt_then_what_is_left_then_nothing(admin_client):
@@ -157,30 +120,19 @@ def test_a_partial_receipt_then_what_is_left_then_nothing(admin_client):
 def test_named_lines_receive_only_those(admin_client):
     a, b = _item('Widget'), _item('Gadget')
     po, (pa, pb) = _po((a, 10, PO_COST), (b, 5, {'unit': 9.5}))
-    receipt_id = _data(_convert(admin_client, po.pk, {'hold': True}))['receipt_id']
-    lb = ReceiptLine.objects.get(receipt_id=receipt_id, parent_line_id=pb.pk)
-    la = ReceiptLine.objects.get(receipt_id=receipt_id, parent_line_id=pa.pk)
-    assert _receive(admin_client, receipt_id, {'lines': [{'line_id': lb.pk}]}).status_code == 200
+    assert _convert(admin_client, po.pk, {'lines': [{'line_id': pb.pk}]}).status_code == 200
     assert _stock(a) == (0, 0, 10) and _stock(b) == (5, 5, 0)
-    assert _receive(admin_client, receipt_id, {'lines': [{'line_id': la.pk, 'qty': 4}]}).status_code == 200
+    assert _convert(admin_client, po.pk, {'lines': [{'line_id': pa.pk, 'qty': 4}]}).status_code == 200
     assert _stock(a) == (4, 4, 6)
 
 
-def test_the_cost_is_edited_while_held_and_fixed_once_received(admin_client):
+def test_the_cost_is_fixed_once_received(admin_client):
     a = _item('Widget')
     po, (pa,) = _po((a, 10, PO_COST))
     pa.refresh_from_db()
-    receipt_id = _data(_convert(admin_client, po.pk, {'hold': True}))['receipt_id']
-    line = ReceiptLine.objects.get(receipt_id=receipt_id)
-    r = admin_client.patch(f'/wcapi/receipt/{receipt_id}/',
-                           {'lines': [{'id': line.pk, 'cost': {'unit': 4.25}}]},
-                           content_type='application/json')
-    assert r.status_code == 200, r.content
     before = dict(pa.cost)
-    pa.refresh_from_db()
-    assert pa.cost == before, 'a receipt cost never writes back to the purchase'
-    assert _receive(admin_client, receipt_id).status_code == 200
-    line.refresh_from_db()
+    receipt_id = _data(_convert(admin_client, po.pk))['receipt_id']
+    line = ReceiptLine.objects.get(receipt_id=receipt_id)
     layer_cost = dict(line.inventory_layer.cost)
     r = admin_client.patch(f'/wcapi/receipt/{receipt_id}/',
                            {'lines': [{'id': line.pk, 'cost': {'unit': 5.0}}]},
@@ -188,13 +140,16 @@ def test_the_cost_is_edited_while_held_and_fixed_once_received(admin_client):
     assert r.status_code == 409 and r.json()['error']['code'] == 'layer_cost_fixed', r.content
     line.refresh_from_db()
     assert line.inventory_layer.cost == layer_cost, 'the dock cost never changes (R3)'
+    pa.refresh_from_db()
+    assert pa.cost == before, 'a receipt cost never writes back to the purchase'
 
 
-def test_a_held_line_is_received_by_setting_active_in_a_save(admin_client):
-    """R1: a save receives. The receive command is one way off hold; saving active is the other."""
+def test_a_received_quantity_is_corrected_by_a_save(admin_client):
+    """The vendor sent less than was asked: the line's quantity is lowered, and the stock, the layer
+    and the purchase line's remaining follow. What the purchase asked stays on the line as staged."""
     a = _item('Widget')
     po, (pa,) = _po((a, 10, PO_COST))
-    receipt_id = _data(_convert(admin_client, po.pk, {'hold': True}))['receipt_id']
+    receipt_id = _data(_convert(admin_client, po.pk))['receipt_id']
     line = ReceiptLine.objects.get(receipt_id=receipt_id)
     r = admin_client.patch(f'/wcapi/receipt/{receipt_id}/',
                            {'lines': [{'id': line.pk, 'quantity': {'active': 6}}]},
@@ -203,6 +158,7 @@ def test_a_held_line_is_received_by_setting_active_in_a_save(admin_client):
     assert _stock(a) == (6, 6, 4) and _remaining(pa) == 4
     line.refresh_from_db()
     assert line.inventory_layer.quantity['received'] == 6
+    assert (line.quantity['staged'], line.quantity['active']) == (10, 6)
 
 
 def test_the_discounted_unit_and_a_header_freight_share_reach_the_layer_born_at_a_plain_save(admin_client):
@@ -381,24 +337,6 @@ def test_lines_sent_to_a_model_without_lines_are_refused_not_dropped(admin_clien
     assert item.name == 'No lines here'
 
 
-def test_a_held_receipt_says_what_is_not_yet_received(admin_client):
-    """Bill, 2026-11-11: a held receipt says what waits and how to receive it (R2); once received,
-    or never held, it says nothing."""
-    a = _item('Widget')
-    po, (pa,) = _po((a, 7, PO_COST))
-    receipt_id = _data(_convert(admin_client, po.pk, {'lines': [{'line_id': pa.pk, 'qty': 5}],
-                                                      'hold': True}))['receipt_id']
-    r = admin_client.put(f'/wcapi/receipt/{receipt_id}/', {'comments': {'notes': 'at the dock'}},
-                         content_type='application/json')
-    assert r.status_code == 200, r.content
-    assert any('5 planned on this receipt and not yet received' in m for m in r.json()['data'].get('messages', [])), r.json()
-    assert _stock(a)[0] == 0
-    assert _receive(admin_client, receipt_id).status_code == 200
-    r = admin_client.put(f'/wcapi/receipt/{receipt_id}/', {'comments': {'notes': 'shelved'}},
-                         content_type='application/json')
-    assert not any('not yet received' in m for m in r.json()['data'].get('messages', [])), r.json()
-
-
 def test_a_receipt_carries_its_purchases_vendor_block_as_it_stood(admin_client):
     """Readme 109: the receipt's one party block is the vendor, copied from the purchase — a
     snapshot, so a vendor who moves later does not move on the receipt. Read on the wire."""
@@ -420,7 +358,7 @@ def test_a_receipt_carries_its_purchases_vendor_block_as_it_stood(admin_client):
 def test_a_receipt_has_no_ship_to_to_search_for(admin_client):
     a = _item('RCV-NOSHIP-A')
     po, _ = _po((a, 1, {'unit': '5.00'}))
-    receipt = Receipt.objects.get(pk=_data(_convert(admin_client, po.pk, {'hold': True}))['receipt_id'])
+    receipt = Receipt.objects.get(pk=_data(_convert(admin_client, po.pk))['receipt_id'])
     import json
     r = admin_client.put(f'/wcapi/receipt/{receipt.pk}/',
                          json.dumps({'id': receipt.pk, 'version': receipt.version,
