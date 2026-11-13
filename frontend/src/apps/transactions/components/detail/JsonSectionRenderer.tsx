@@ -1,21 +1,36 @@
 /* LastChecked: 2026-08-18 | WhereUsed: TransactionDetail, OrgDetail | WhoCreated: Claude */
 /**
- * JsonSectionRenderer — renders JSON envelope fields in a collapsible panel.
+ * JsonSectionRenderer — the form's json panel: every JSON object the record's model has that
+ * the viewer may see (Bill, 2026-11-12: list all objects in the panel rather than fold them
+ * into metadata, prefs or refs).
  *
- * Uses JsonTree from JsonTreeWidget for each JSON field on the record.
- * Collapsed by default — users expand to inspect raw data.
+ * The list is the server's: GET /wcapi/<model>/fields/ → json_objects, the model's JSON columns
+ * with at least one leaf this role may view. The layout's json_tree section only orders them
+ * (`fields`: those first, in that order) and hides them (`hide`). A form whose layout has no
+ * json_tree section gets the panel at its end (DbForm). Only objects with content are drawn.
  */
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import type { JsonTreeSection } from '@/hooks/useDetailLayout';
 import { JsonTree } from '@/components/widgets/JsonTreeWidget';
 import CollapsiblePanel from '@/apps/common/components/CollapsiblePanel';
+import { getJsonObjects } from '@/api/wcapi';
 
-// Default JSON envelope fields to show when section.fields is not specified
-const DEFAULT_JSON_FIELDS = [
-  'config', 'metadata', 'prefs', 'refs', 'comments', 'actions',
-  'totals', 'sell', 'cost', 'tax', 'financial', 'metrics',
-  'connections', 'relations', 'quantity', 'physical',
-];
+const cache = new Map<string, Promise<string[]>>();
+
+/** The model's JSON objects this viewer may see, once per model per page load. */
+export function loadJsonObjects(modelName: string): Promise<string[]> {
+  if (!cache.has(modelName)) {
+    cache.set(modelName, getJsonObjects(modelName).catch((err) => { cache.delete(modelName); throw err; }));
+  }
+  return cache.get(modelName)!;
+}
+
+/** The panel's list: the layout's order first, then the rest as the model has them; hidden ones out.
+ *  A name the layout lists that the server does not give (not the model's, or not this role's) is dropped. */
+export function orderedObjects(available: string[], order: string[] = [], hide: string[] = []): string[] {
+  const first = order.filter((f) => available.includes(f));
+  return [...first, ...available.filter((f) => !first.includes(f))].filter((f) => !hide.includes(f));
+}
 
 interface JsonSectionRendererProps {
   section: JsonTreeSection;
@@ -28,7 +43,23 @@ interface JsonSectionRendererProps {
 const JsonSectionRenderer: React.FC<JsonSectionRendererProps> = ({
   section, data, isEditing, modelName, onChange,
 }) => {
-  const fieldList = section.fields || DEFAULT_JSON_FIELDS;
+  const [available, setAvailable] = useState<string[] | null>(null);
+  const [failed, setFailed] = useState<string | null>(null);
+  useEffect(() => {
+    let stale = false;
+    setAvailable(null); setFailed(null);
+    loadJsonObjects(modelName)
+      .then((names) => { if (!stale) setAvailable(names); })
+      .catch((err) => { if (!stale) setFailed(err?.message || 'request failed'); });
+    return () => { stale = true; };
+  }, [modelName]);
+
+  if (failed) {
+    return <div className="px-2 py-1 db-font-sm" style={{ color: 'var(--db-accent-red, #dc3545)' }}
+      data-wc="json-panel-error">The json panel could not read this model's objects: {failed}</div>;
+  }
+  if (available === null) return null;
+  const fieldList = orderedObjects(available, section.fields, section.hide);
 
   // Only show fields that exist on the record and have content
   const activeFields = fieldList.filter(f => {

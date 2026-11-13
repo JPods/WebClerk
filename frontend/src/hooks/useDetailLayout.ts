@@ -51,7 +51,10 @@ export interface JsonTreeSection {
   type: 'json_tree';
   label?: string;
   collapsed?: boolean;
+  /** The order: these objects first. The panel lists every JSON object the viewer may see. */
   fields?: string[];
+  /** Objects this form's panel does not show. */
+  hide?: string[];
 }
 
 export type LayoutSection = HeaderSection | LineCardSection | TabsSection | PanelSection | JsonTreeSection;

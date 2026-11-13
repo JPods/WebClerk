@@ -5,7 +5,12 @@ GET /wcapi/<model_name>/fields/?id=<pk>
 Returns what this user may see and change, by role (the model's wc:model Setting), and —
 when an id is given — what the record's own state locks:
 
-    {"view": [...], "edit": [...], "locked": [...], "journalized": bool}
+    {"view": [...], "edit": [...], "locked": [...], "journalized": bool, "json_objects": [...]}
+
+``json_objects`` is every JSON object the model has that this user may see any part of, in the
+model's own order: what a form's json panel lists (Bill, 2026-11-12: list all objects in the
+panel rather than fold them into metadata, prefs or refs). A layout orders or hides them; a new
+object shows on every form without a layout change.
 
 A journalized document locks its total and the values that make it up. Cash,
 comments and operational fields stay editable (Bill, 2026-09-17). The UI shows a
@@ -28,6 +33,14 @@ def locked_fields_for(record) -> list:
     if record is None or not getattr(record, 'dt_journaled', 0):
         return []
     return [name for name in JOURNALIZED_LOCKED if hasattr(record, name)]
+
+
+def json_objects_for(model, view_fields) -> list:
+    """The model's JSON columns of which the viewer may see at least one leaf, in model order."""
+    from django.db import models as dj
+    seen = {str(path).split('.')[0] for path in view_fields}
+    return [f.name for f in model._meta.concrete_fields
+            if isinstance(f, dj.JSONField) and f.name in seen]
 
 
 class FieldRulesView(APIView):
@@ -77,5 +90,6 @@ class FieldRulesView(APIView):
             'edit_deny': denied_edit,
             'locked': locked,
             'journalized': bool(record is not None and getattr(record, 'dt_journaled', 0)),
+            'json_objects': json_objects_for(model, view_fields),
             'source': 'rbac',
         })

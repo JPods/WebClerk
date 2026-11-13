@@ -161,6 +161,13 @@ async function wcapiGet<T>(path: string, config?: any): Promise<T> {
   return read.then((data) => structuredClone(data));
 }
 
+/** What a model's JSON panel lists: GET /wcapi/<model>/fields/ → json_objects, the model's JSON
+ *  objects this viewer may see any part of (core/views/field_rules_view.py). */
+export async function getJsonObjects(model_name: string): Promise<string[]> {
+  const rules = await wcapiGet<{ json_objects?: string[] }>(`${resolveModelName(model_name)}/fields/`);
+  return rules?.json_objects || [];
+}
+
 async function wcapiPost<T>(path: string, body: any, extraHeaders?: Record<string, string>): Promise<T> {
   const config = extraHeaders ? { headers: extraHeaders } : undefined;
   const res = await apiClient.post<ApiEnvelope<T>>(`/wcapi/${path}`, body, config);

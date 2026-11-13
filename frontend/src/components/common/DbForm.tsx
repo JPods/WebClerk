@@ -360,6 +360,11 @@ const DbFormView: React.FC<DbFormProps> = (props) => {
               return null;
           }
         })}
+        {/* Every form has the json panel: one whose layout names none gets it here (Bill, 2026-11-12) */}
+        {!sections.some((s: any) => s.type === 'json_tree') && (
+          <JsonSectionRenderer section={{ type: 'json_tree', label: 'json' }} data={currentData} isEditing={isEditing}
+            modelName={modelName} onChange={form.setField} />
+        )}
       </div>
 
       {/* Cards floating over the record */}
