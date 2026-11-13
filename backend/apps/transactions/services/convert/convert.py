@@ -253,7 +253,11 @@ def _target_lines(source_lines, source_type: str, target_type: str,
             # Goods stay on order until received, so the purchase line's remaining counts only
             # what was received; what open receipts already plan is not left to plan again.
             remaining = round(remaining - planned_not_received(src_line), 6)
-        if remaining <= 0:
+        # What is left goes, a credit line (a negative quantity) included (Bill, 2026-11-13). A
+        # line received or invoiced past its quantity has a remaining of the other sign: that is
+        # not something left to convert.
+        ordered = float(src_qty.get("active", 0) or 0)
+        if remaining == 0 or (remaining > 0) != (ordered > 0):
             continue
         # A document discount line moved into allocations; it travels there, not as a line.
         if isinstance(getattr(src_line, "metadata", None), dict) and src_line.metadata.get("document_discount"):
@@ -309,6 +313,48 @@ def _target_lines(source_lines, source_type: str, target_type: str,
         # refuses a path no line has (order → purchase failed on lines.price.*, 2026-10-25).
         lines.append({k: v for k, v in line.items() if k.startswith("_") or k in target_fields})
     return lines
+
+
+def _fill_from_stock(lines: List[dict]) -> tuple:
+    """Order → invoice (Bill, 2026-11-13): each line invoices what the order has left, up to what
+    the item has in stock; the rest stays on the order line. Stock is counted down in line order,
+    so two lines of one item do not both take it. A credit line (a negative quantity) and a line
+    whose item holds no stock (labor, freight) go whole. The invoice line keeps what was asked
+    as ``staged`` and what ships as ``active``; ``staged − active`` is what did not ship.
+
+    Returns (the lines to save, [(label, asked, shipped)] for each line that ships short).
+    """
+    from apps.products.models import Item
+    from apps.transactions.behaviours import stock_available
+    from apps.transactions.services.line_door import _is_tracked
+
+    def item_id_of(line):
+        item = line.get("item") or {}
+        return item.get("id") or item.get("item_id")
+
+    ids = {int(item_id_of(line)) for line in lines if item_id_of(line)}
+    items = {i.pk: i for i in Item.objects.select_for_update().filter(pk__in=ids)}
+    left = {pk: max(stock_available(item), 0.0) for pk, item in items.items() if _is_tracked(pk)}
+
+    kept, short = [], []
+    for line in lines:
+        quantity = line.get("quantity") or {}
+        asked = float(quantity.get("active") or 0)
+        item_id = item_id_of(line)
+        item_id = int(item_id) if item_id else None
+        if asked <= 0 or item_id not in left:
+            kept.append(line)
+            continue
+        shipped = round(min(asked, left[item_id]), 6)
+        left[item_id] = round(left[item_id] - shipped, 6)
+        if shipped < asked:
+            item = items[item_id]
+            short.append((item.sku or item.ida or str(item_id), asked, shipped))
+        if shipped <= 0:
+            continue
+        line["quantity"] = {**quantity, "active": shipped, "staged": asked}
+        kept.append(line)
+    return kept, short
 
 
 def planned_not_received(purchase_line) -> float:
@@ -406,6 +452,14 @@ def convert_record(actor, source_type: str, source_id: int, target_type: str, *,
     header.update(header_extra)
     header.update(copy.deepcopy(stamp or {}))
     lines = (take or list)(copy.deepcopy(built))
+    short = []
+    if (source_type, target_type) == ("order", "invoice") and take is None:
+        lines, short = _fill_from_stock(lines)
+        if not lines:
+            raise _refuse("nothing_in_stock",
+                          "Nothing on this order is in stock to invoice: "
+                          + ", ".join(f"{label} needs {asked:g}" for label, asked, _ in short) + ".",
+                          {"short": [{"item": label, "asked": asked} for label, asked, _ in short]})
     if target_type == "receipt":
         # Saving a receipt receives the goods (Bill, 2026-11-11, R1): each line is saved with what
         # was asked as active, and its door moves on_hand / on_rc, the layer and the purchase line's
@@ -426,6 +480,10 @@ def convert_record(actor, source_type: str, source_id: int, target_type: str, *,
         forwarded = relink_deposits(source, result.obj)
 
     messages = list(result.messages or [])
+    if short:
+        messages.append("Not everything shipped. " + "; ".join(
+            f"{label}: {shipped:g} of {asked:g} invoiced, {asked - shipped:g} stays on the order"
+            for label, asked, shipped in short) + ".")
     if target_type == "purchase" and not getattr(result.obj, "vendor_id", None):
         # Saved all the same (Bill, 2026-11-08: never a silent empty purchase); the release
         # gate (validate_status.REQUIRES) keeps refusing until a vendor is named.

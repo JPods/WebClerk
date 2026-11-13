@@ -37,6 +37,14 @@ def _line_qty(line_data: Dict[str, Any]) -> float:
     return float(qty.get('active', 0) or 0)
 
 
+def stock_available(item) -> float:
+    """What an invoice may take of an item: its available stock (on hand less allocated), or its
+    on hand where nothing is allocated. The one figure the transfer check refuses on and a
+    conversion fills from."""
+    qty = dict((item.quantity if item else None) or {})
+    return float(qty.get('available', qty.get('on_hand', 0)) or 0)
+
+
 def check_transfer(model_key: str, parent_model: str, lines: List[Dict[str, Any]]) -> None:
     """Refuse new lines that take more than their source has left, or more stock than
     there is.
@@ -101,8 +109,7 @@ def check_transfer(model_key: str, parent_model: str, lines: List[Dict[str, Any]
         items = {i.pk: i for i in Item.objects.select_for_update().filter(pk__in=list(by_item))}
         for item_id, required in by_item.items():
             item = items.get(item_id)
-            qty = dict((item.quantity if item else None) or {})
-            available = float(qty.get('available', qty.get('on_hand', 0)) or 0)
+            available = stock_available(item)
             if item is None or required > available + 1e-9:
                 sku = (item.sku or item.ida) if item else str(item_id)
                 raise Refused(
