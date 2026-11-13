@@ -72,6 +72,13 @@ def _settlement(header, model_name: str):
     return received, _d(stored.get('adjusted', 0)), received
 
 
+def balance_of(total, settled, adjusted=0) -> Decimal:
+    """What is still owed on a document: total − settled − adjusted. The one formula
+    (readme 111): compute_totals, update_received, update_paid, the Receipt model and the
+    payable's status all call it. ``settled`` is received (AR) or paid (AP)."""
+    return _d(_d(total) - _d(settled) - _d(adjusted))
+
+
 def _resolve_header_and_lines(transaction_id: int, model_name: str):
     """Load the header and its lines. Returns (header, lines_queryset).
 
@@ -177,10 +184,30 @@ def _recalculate_locked(transaction_id: int, model_name: str) -> Dict[str, Any]:
     # ── Validate against Pydantic schema (PJPV Layer 1) ─────────
     totals = _validate_totals(totals)
 
+    # ── Commission: computed here from each line's totals, never taken from the payload
+    #    (readme 111). The document's is the sum of its lines'. ──
+    from apps.transactions.services.pricing.commission_compute import (
+        settle_line_commission, sum_header_commission)
+    line_list = list(lines)
+    header_accrued = bool((getattr(header, 'commission', None) or {}).get('accrued'))
+    line_commission = {}
+    if hasattr(header, 'commission') and not header_accrued:
+        for line in line_list:
+            if not getattr(line, 'is_active', True):
+                continue
+            settled = settle_line_commission(getattr(line, 'commission', None),
+                                             computed['line_totals'].get(line.pk) or line.totals)
+            line_commission[line.pk] = settled if settled is not None else getattr(line, 'commission', None)
+
     # ── Persist to header ──────────────────────────────────────────
     header.totals = totals
 
     update_fields = ['totals']
+    header_commission = sum_header_commission(getattr(header, 'commission', None),
+                                              line_commission.values()) if line_commission else None
+    if header_commission is not None and header_commission != header.commission:
+        header.commission = header_commission
+        update_fields.append('commission')
     if tax_decisions or computed['landed_decisions']:
         update_fields.append('metadata')
     header.save(update_fields=update_fields)
@@ -189,10 +216,16 @@ def _recalculate_locked(transaction_id: int, model_name: str) -> Dict[str, Any]:
     #    journalized document's lock stops both) — queryset update, no signals ──
     LineModel = lines.model if hasattr(lines, 'model') else None
     if LineModel is not None:
-        for line in lines:
+        for line in line_list:
+            changed = {}
             new = computed['line_totals'].get(line.pk)
             if new is not None and new != (line.totals or {}):
-                LineModel.objects.filter(pk=line.pk).update(totals=new)
+                changed['totals'] = new
+            comm = line_commission.get(line.pk)
+            if comm is not None and comm != getattr(line, 'commission', None):
+                changed['commission'] = comm
+            if changed:
+                LineModel.objects.filter(pk=line.pk).update(**changed)
 
     # A ledger echoes its primary record: rebuild whenever the total changes; when only
     # the settlement moved (a journal repair), re-spread it over the ledgers (Fable, fix #2).
@@ -612,7 +645,7 @@ def compute_totals(header, lines, model_name: str) -> Dict[str, Any]:
     margin_pc = float(_d(doc['margin'] / doc['amount'] * 100)) if doc['amount'] > 0 else 0.0
 
     received, adjusted, settled = _settlement(header, model_name)
-    balance = doc['total'] - settled - adjusted
+    balance = balance_of(doc['total'], settled, adjusted)
     state = ''
     if model_name == 'invoice':
         from apps.transactions.services.cash.cash_pending import cash_state
@@ -664,7 +697,7 @@ def update_received(
     totals = getattr(header, 'totals', None) or {}
     adjusted = _d(totals.get('adjusted', 0)) if new_adjusted is None else _d(new_adjusted)
     total = _d(totals.get('total', 0))
-    new_balance = _d(total - new_received - adjusted)
+    new_balance = balance_of(total, new_received, adjusted)
 
     from apps.transactions.services.cash.cash_pending import cash_state
 
@@ -710,11 +743,8 @@ def update_paid(
     new_paid = _d(new_paid)
     totals = getattr(header, 'totals', None) or {}
     total = _d(totals.get('total', 0))
-    # balance = total − paid − adjusted, the same formula compute_totals and the Receipt
-    # model use. This one had dropped 'adjusted', so a written-off payable read as still
-    # owing (found 2026-09-20).
     adjusted = _d(totals.get('adjusted', 0))
-    new_balance = _d(total - new_paid - adjusted)
+    new_balance = balance_of(total, new_paid, adjusted)
 
     totals['paid'] = float(new_paid)
     totals['balance'] = float(new_balance)
@@ -743,11 +773,9 @@ def recalculate_line(
     line_id: int,
     model_name: str,
 ) -> Dict[str, Any]:
-    """Recalculate a single line's extended values and update parent totals.
+    """Save one line (its envelopes are normalized) and recompute its document's totals.
 
-    Delegates extended computation to the model's save() method, which calls
-    ensure_json_defaults() → _calculate_extended_cost() (all lines) and
-    _calculate_extended_price() (sell-side lines). Single source of truth.
+    A line's amounts are computed by compute_totals with its document, nowhere else.
 
     Returns the line-level result plus the parent totals result.
     """
@@ -763,7 +791,7 @@ def recalculate_line(
     except LineModel.DoesNotExist:
         raise ValueError(f"{model_name} #{line_id} not found")
 
-    # Save the line — ensure_json_defaults() recomputes all extended values
+    # Save the line — ensure_json_defaults() normalizes its envelopes
     update_fields = ['cost']
     if hasattr(line, 'price'):
         update_fields.append('price')

@@ -64,7 +64,8 @@ def percent_of_goods_shipping(ship_via: str, goods: Decimal) -> Decimal | None:
     if not svc or svc.get('rate_method') != 'percent_of_goods':
         return None
     pct = Decimal(str(svc.get('rate_percent') or 0))
-    return (goods * pct / Decimal(100)).quantize(Decimal('0.01'))
+    from common.decimals import money
+    return money(goods * pct / Decimal(100))
 
 
 def get_freight_factor(weight: float, shipper: dict) -> float:
@@ -96,12 +97,12 @@ def estimate_freight(lines: list[dict], ship_via: str, shipper_setting: dict) ->
 
     shipper = find_shipper_for_service(ship_via, shipper_setting)
     if not shipper:
-        return round(total_weight * DEFAULT_RATE * DEFAULT_FACTOR, 2)
+        return float(money(Decimal(str(total_weight)) * Decimal(str(DEFAULT_RATE)) * Decimal(str(DEFAULT_FACTOR))))
 
     rate = shipper.get('rate_per_lb', {}).get(ship_via, DEFAULT_RATE)
     factor = get_freight_factor(total_weight, shipper)
 
-    return round(total_weight * rate * factor, 2)
+    return float(money(Decimal(str(total_weight)) * Decimal(str(rate)) * Decimal(str(factor))))
 
 
 def reconcile_freight(orders_with_actuals: list[dict], shipper_setting: dict) -> list[dict]:

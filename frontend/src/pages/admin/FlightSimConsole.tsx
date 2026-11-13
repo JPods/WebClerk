@@ -409,7 +409,7 @@ const FlightSimConsole: React.FC = () => {
 
   useEffect(() => { if (itemId) refreshArray(); }, [itemId, refreshArray]);
 
-  /** Create a blank transaction record with simple qq ida.
+  /** Create a blank transaction record.
    *  The simulator's tax jurisdiction (test_8%) and carrier (test_4%) override the
    *  customer's normal defaults, so every run gives the same numbers. A user may
    *  change them back; the outcome then changes (Bill, 2026-09-19). */

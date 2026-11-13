@@ -784,12 +784,8 @@ class LineItemService:
         return max_line_num + 1
     
     def _recalculate_line(self, line) -> None:
-        """Recalculate extended values on a line.
-
-        Delegates to the model's ensure_json_defaults() which calls
-        _calculate_extended_cost() (all lines) and _calculate_extended_price()
-        (sell-side lines). Single source of truth — no independent computation.
-        """
+        """Normalize the line's envelopes (ensure_json_defaults). It computes no amounts:
+        a line's amounts come from compute_totals when its document's totals are recomputed."""
         line.ensure_json_defaults()
     
     def _extract_price_from_search(self, search_result: Dict[str, Any]) -> Optional[float]:

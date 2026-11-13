@@ -141,7 +141,8 @@ class Receipt(TransactionBaseModel):
             t[leaf] = float(alloc.get(leaf, 0) or 0)
         t.setdefault('total', 0)
         t.setdefault('paid', 0)
-        t['balance'] = float(t.get('total', 0)) - float(t.get('paid', 0)) - float(t.get('adjusted', 0) or 0)
+        from apps.transactions.services.pricing.totals_compute import balance_of
+        t['balance'] = float(balance_of(t.get('total', 0), t.get('paid', 0), t.get('adjusted', 0)))
         self.allocations = alloc
         self.totals = t
 

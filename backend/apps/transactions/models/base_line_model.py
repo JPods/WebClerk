@@ -876,10 +876,8 @@ class BaseSellLineModel(BaseLineCore):
 class BaseExecLineModel(BaseLineCore):
     """Exec-side line base for Purchase, WorkOrder, Receipt.
 
-    No price envelope — exec lines track cost only.
-    Auto-computes cost.extended on save via BaseLineCore._calculate_extended_cost()
-    (runs in ensure_json_defaults). Single source of truth — same computation
-    used by BaseSellLineModel for the cost side.
+    No price envelope — exec lines track cost only. A line's amounts are computed with its
+    document by compute_totals (services/pricing/totals_compute.py), nowhere else.
 
     See: readmes/topics/transactions/transactions-totals.md §1
     """

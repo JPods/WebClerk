@@ -41,18 +41,6 @@ export class Dec {
     return new Dec((q + bump) * step);
   }
 
-  /** Round half to even — Decimal.quantize with the default context rounding, which the
-   *  server uses in one place: the ship-via percent-of-goods charge (fulfillment_freight.py). */
-  quantizeHalfEven(places: number): Dec {
-    const step = 10n ** BigInt(SCALE - places);
-    const q = this.m / step;
-    const r = this.m % step;
-    const twice = r < 0n ? -r * 2n : r * 2n;
-    let bump = 0n;
-    if (twice > step || (twice === step && (q % 2n !== 0n))) bump = this.m < 0n ? -1n : 1n;
-    return new Dec((q + bump) * step);
-  }
-
   isZero(): boolean { return this.m === 0n; }
   gt(o: Dec): boolean { return this.m > o.m; }
   gte(o: Dec): boolean { return this.m >= o.m; }

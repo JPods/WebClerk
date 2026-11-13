@@ -5,6 +5,8 @@ from decouple import config
 import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
 
+import common.decimals  # noqa: F401  sets the one rounding rule (half-up) for the process — readme 111
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # User data lives outside the repo — uploads, media, backups (logs, bundles, chroma: WORK_DIR).

@@ -110,7 +110,7 @@ function percentOfGoodsShipping(shipVia: string, goods: Dec, services: ShippingS
     return keys.has(wanted);
   });
   if (!svc || svc.rate_method !== 'percent_of_goods') return null;
-  return goods.mul(dec(svc.rate_percent || 0, -1)).div(dec(100)).quantizeHalfEven(2);
+  return goods.mul(dec(svc.rate_percent || 0, -1)).div(dec(100)).quantize(2);
 }
 
 type Good = { line: any; qty: Dec; unit: Dec; lineUnit: Dec; places: number };

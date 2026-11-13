@@ -13,7 +13,7 @@ This command used to set on_hand to 100 directly, with no Pending and no layer. 
 how wc_demo came to hold 5004 units against 13 in layers. Bill: "We have done it
 regularly. From now on even in demo data we should make inventory changes that comply."
 
-For each item (not deleted; qq/zz scratch items included — the assessors read them):
+For each item:
 
 - its item Pendings become history: processed ones are marked
   ``config.epoch = 'before-reset-<date>'``; unprocessed ones are voided

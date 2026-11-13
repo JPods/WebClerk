@@ -40,10 +40,11 @@ describe('dec — Decimal arithmetic, half-up', () => {
     expect(dec(0.1).add(dec(0.2)).toString()).toBe('0.3');
     expect(dec(7, 6).mul(dec(8.975, 6)).quantize(2).toNumber()).toBe(62.83);
   });
-  it('rounds half to even where the server does (percent-of-goods shipping)', () => {
-    expect(dec('0.125', -1).quantizeHalfEven(2).toNumber()).toBe(0.12);
-    expect(dec('0.135', -1).quantizeHalfEven(2).toNumber()).toBe(0.14);
+  it('rounds half up, the one rule (Bill, 2026-11-12)', () => {
     expect(dec('0.125', -1).quantize(2).toNumber()).toBe(0.13);
+    expect(dec('0.135', -1).quantize(2).toNumber()).toBe(0.14);
+    expect(dec('0.124', -1).quantize(2).toNumber()).toBe(0.12);
+    expect(dec('-0.125', -1).quantize(2).toNumber()).toBe(-0.13);
   });
   it('coerces as Decimal(str(value)) and answers 0 for nonsense', () => {
     expect(dec('42.5').toNumber()).toBe(42.5);

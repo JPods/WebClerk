@@ -1,33 +1,8 @@
 """
-AI Audit Service — Automated Calculation & Consistency Checks
-
-Creates Audit records when r25 (frontend) submitted values diverge from
-wc3 (backend) authoritative recalculations.  The backend is always the
-final word on dollar amounts; this service logs the discrepancies so they
-can be reviewed, trended, and used to improve the r25 calculation layer.
-
-Primary consumers:
-  - BaseSellLineModel._calculate_extended_price()  → price/cost extended audit
-  - normalize_quantity_map()                        → quantity consistency audit
-
-Audit records use the accounts.Audit model:
-  purpose   — "ai_calculation_audit" or "ai_quantity_audit"
-  name      — human-readable summary
-  conflicts — { field, submitted, calculated, delta, tolerance }
-  changes   — { field, from, to }  (what wc3 corrected)
-  actions   — reserved for future auto-actions
-  recommendations — hints for devs
-  rating    — severity (0=info, 1=warning, 2=error)
-  refs.links — links to the transaction and line
-
-Usage:
-    from apps.accounts.services.ai_audit import check_extended_prices, check_quantity
-
-    # In _calculate_extended_price():
-    check_extended_prices(line_instance, pre_values)
-
-    # In normalize_quantity_map() or save():
-    check_quantity(line_instance, submitted_qty)
+Quantity audit — records when a line's submitted quantity map differs from the server's
+normalized one (accounts.Audit, purpose "ai_quantity_audit"). Called from BaseLineCore.
+ensure_json_defaults. Money is not compared here: the browser's totals preview is checked
+against the saved figures in one place, transactions/services/browser_totals.check_preview.
 """
 
 import logging
@@ -40,10 +15,6 @@ logger = logging.getLogger("ai_audit")
 # Configuration
 # ---------------------------------------------------------------------------
 
-# Absolute tolerance for extended price comparisons (in base currency units).
-# Differences at or below this threshold are considered rounding noise.
-PRICE_TOLERANCE = Decimal("0.02")
-
 # Absolute tolerance for quantity comparisons.
 QUANTITY_TOLERANCE = Decimal("0.001")
 
@@ -54,61 +25,6 @@ WRITE_AUDIT_RECORDS = True
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
-
-def check_extended_prices(
-    line: Any,
-    submitted_price_extended: float | None,
-    submitted_cost_extended: float | None,
-) -> list[dict]:
-    """Compare r25-submitted extended values against wc3's recalculation.
-
-    Call this AFTER _calculate_extended_price() has written the authoritative
-    values onto `line.price["amount"]` and `line.cost["extended"]`.
-
-    Returns a list of discrepancy dicts (empty if everything matches).
-    """
-    discrepancies: list[dict] = []
-
-    # --- Price extended ---
-    if submitted_price_extended is not None and hasattr(line, "price") and line.price:
-        wc3_extended = line.price.get("amount", 0) or 0
-        delta = abs(Decimal(str(submitted_price_extended)) - Decimal(str(wc3_extended)))
-        if delta > PRICE_TOLERANCE:
-            disc = _build_discrepancy(
-                line=line,
-                field="price.amount",
-                submitted=submitted_price_extended,
-                calculated=wc3_extended,
-                delta=float(delta),
-                tolerance=float(PRICE_TOLERANCE),
-            )
-            discrepancies.append(disc)
-
-    # --- Cost extended ---
-    if submitted_cost_extended is not None and hasattr(line, "cost") and line.cost:
-        wc3_extended = line.cost.get("extended", 0) or 0
-        delta = abs(Decimal(str(submitted_cost_extended)) - Decimal(str(wc3_extended)))
-        if delta > PRICE_TOLERANCE:
-            disc = _build_discrepancy(
-                line=line,
-                field="cost.extended",
-                submitted=submitted_cost_extended,
-                calculated=wc3_extended,
-                delta=float(delta),
-                tolerance=float(PRICE_TOLERANCE),
-            )
-            discrepancies.append(disc)
-
-    if discrepancies:
-        _log_and_persist(
-            purpose="ai_calculation_audit",
-            line=line,
-            discrepancies=discrepancies,
-            severity=1,  # warning
-        )
-
-    return discrepancies
-
 
 def check_quantity(
     line: Any,
@@ -304,7 +220,7 @@ def _create_audit_record(
             recommendations={
                 "source": "ai_audit",
                 "severity": severity,
-                "check": "r25 lineItemService.calculateLine() vs wc3 _calculate_extended_price()",
+                "check": "submitted quantity map vs the server's normalized one",
                 "fields": fields_affected,
             },
             rating=severity,

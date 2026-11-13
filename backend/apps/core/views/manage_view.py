@@ -24,13 +24,11 @@ Actions:
     get_price_matrix           — every level's price, qty breaks and cost for the item grid
     apply_line_pricing         — resolve and write price on a saved sell line
   Tax Calculation:
-    calculate_line_tax         — compute tax for a single line extended price
-    calculate_transaction_tax  — compute and update tax for all lines of a transaction
     get_tax_jurisdictions      — list active tax jurisdictions with rates
     lookup_tax_jurisdiction    — resolve the rate for a ZIP/state/jurisdiction id (record → company default → state rates)
   Totals Recalculation:
     recalculate_totals         — recompute header totals from all lines
-    recalculate_line           — recompute single line extended + update parent totals
+    recalculate_line           — save one line and recompute its document's totals
   Document Conversion Chain (converting is POST /wcapi/<source>/<id>/convert/ {to}):
     get_conversion_history         — trace parent/child chain for a transaction
   Shipping / Packing Workflow:
@@ -805,7 +803,6 @@ _ACTION_DISPATCH = {
     "get_price_matrix": lambda p: __import__('apps.products.services.price_resolver', fromlist=['get_price_matrix']).get_price_matrix(p['item_id']),
     "apply_line_pricing": lambda p: __import__('apps.products.services.price_resolver', fromlist=['apply_line_pricing']).apply_line_pricing(p['model_name'], p['line_id'], p.get('customer_id'), p.get('qty')),
     # ── Tax Calculation ──
-    "calculate_line_tax": lambda p: __import__('apps.accounts.services.tax_calculation', fromlist=['calculate_line_tax']).calculate_line_tax(p['line_price_extended'], p.get('tax_jurisdiction_id'), p.get('tax_rate')),
     # calculate_transaction_tax removed — use recalculate_totals (single engine)
     "lookup_tax_jurisdiction": lambda p: __import__('apps.transactions.services.pricing.tax_resolve', fromlist=['lookup_tax_jurisdiction']).lookup_tax_jurisdiction(zip_code=p.get('zip_code', ''), state=p.get('state', ''), jurisdiction_id=int(p.get('jurisdiction_id') or 0)) or {},
     "get_tax_jurisdictions": lambda p: __import__('apps.accounts.services.tax_calculation', fromlist=['get_tax_jurisdictions']).get_tax_jurisdictions(),

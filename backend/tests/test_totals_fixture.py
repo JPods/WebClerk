@@ -114,6 +114,9 @@ CASES = [
          [line(1, 3, 12.71, cost=8.97), line(2, 1, 0.37)],
          finance=TAX10, ship_via='ups', services=UPS, allocations={'shipping': 5}),
     case('ship_via_not_percent', 'invoice', [line(1, 3, 12.71)], finance=TAX10, ship_via='Pickup', services=UPS),
+    # 2.5% of 1.00 is 0.025: half-up is 0.03; Python's default half-even gave 0.02 (readme 111).
+    case('ship_via_percent_rounds_half_up', 'invoice', [line(1, 1, 1.00)], ship_via='ups',
+         services=[{'name': 'UPS Ground', 'aliases': ['ups'], 'rate_method': 'percent_of_goods', 'rate_percent': 2.5}]),
     case('line_shipping_and_handling_envelope', 'order',
          [line(1, 2, 10, ship=3.5, handling=1.25)], finance=TAX10),
 

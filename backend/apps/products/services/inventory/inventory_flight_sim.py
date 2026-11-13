@@ -340,7 +340,7 @@ def get_flight_by_invoice(invoice_ida: str) -> Dict[str, Any]:
     # Exact ida match
     invoice = Invoice.objects.filter(ida=invoice_ida).first()
     if not invoice:
-        # The number people type: "1023" matches "1023-inv" (and "1023-inv-qq")
+        # The number people type: "1023" matches "1023-inv"
         invoice = Invoice.objects.filter(ida__istartswith=f'{invoice_ida}-').order_by('ida').first()
     if not invoice:
         # Record id as a last resort

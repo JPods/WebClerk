@@ -330,7 +330,9 @@ def create_commission_invoice(
                 # Share of goods: Σ line extended is totals.amount
                 goods = (order.totals or {}).get('amount', 0) or 0
                 if goods > 0:
-                    comm_amount = round(header_total * (src_price / goods), 2)
+                    from decimal import Decimal
+                    from common.decimals import money
+                    comm_amount = float(money(Decimal(str(header_total)) * Decimal(str(src_price)) / Decimal(str(goods))))
 
         if not comm_amount:
             continue

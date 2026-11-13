@@ -219,7 +219,10 @@ def _refresh_receipt_status(receipt) -> None:
     reversed receipt stayed 'paid' with nothing paid on it (Fable)."""
     from apps.transactions.services.cash.cash_pending_receipt import _applied
     paid = _applied(receipt_id=receipt.pk)
-    balance = _d((receipt.totals or {}).get('total')) - paid
+    from apps.transactions.services.pricing.totals_compute import balance_of
+    totals = receipt.totals or {}
+    # total − paid − adjusted: a payable written off in part is paid (readme 111, finding 2).
+    balance = balance_of(totals.get('total'), paid, totals.get('adjusted'))
     status = 'paid' if (paid and balance <= 0) else ('partially_paid' if paid else 'open')
     if receipt.status != status:
         receipt.status = status

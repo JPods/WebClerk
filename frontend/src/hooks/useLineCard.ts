@@ -17,6 +17,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { selectCurrency } from '@/store/slices/companySlice';
 import { lineKey } from '@/apps/transactions/utils/lineHelpers';
+import { dec } from '@/apps/transactions/services/dec';
 import type { RichColumn } from '@/components/common/DataGrid';
 import { useItemImagePopup } from '@/components/common/ItemImagePopup';
 import { useItemCard } from '@/components/common/ItemCard';
@@ -236,6 +237,9 @@ export function useLineCard(options: UseLineCardOptions) {
         return { ...updated, tax: { ...updated.tax, sales_rate: newRate, rate_source: 'line' } };
       }
       case "comm_rate": {
+        // A preview for speed of view. The save recomputes every commission amount on the
+        // server from the rate (commission_compute.settle_line_commission, readme 111); the
+        // figures below mirror its formula, half-up, and are replaced by the server's.
         const newRate = Number(value);
         const priceExt = updated.totals?.amount ?? 0;
         const costExt = updated.totals?.cost ?? 0;
@@ -245,8 +249,9 @@ export function useLineCard(options: UseLineCardOptions) {
         const levelFactor = existingReps[0]?.level_factor ?? 1.0;
         const splitPct = existingReps[0]?.split_pct ?? 100;
         const baseAmount = basis === 'margin' ? (priceExt - costExt) : priceExt;
-        const amount = Math.round(baseAmount * (newRate / 100) * levelFactor * (splitPct / 100) * 100) / 100;
-        const effRate = Math.round(newRate * levelFactor * (splitPct / 100) * 10000) / 10000;
+        const amount = dec(baseAmount, -1).mul(dec(newRate, -1)).div(dec(100)).mul(dec(levelFactor, -1))
+          .mul(dec(splitPct, -1)).div(dec(100)).quantize(2).toNumber();
+        const effRate = dec(newRate, -1).mul(dec(levelFactor, -1)).mul(dec(splitPct, -1)).div(dec(100)).quantize(4).toNumber();
         const newRep = {
           ...(existingReps[0] || {}),
           rate_pct: newRate,
@@ -264,7 +269,7 @@ export function useLineCard(options: UseLineCardOptions) {
           commission: {
             ...existingComm,
             reps: [newRep, ...otherReps],
-            total: Math.round((amount + otherTotal) * 100) / 100,
+            total: dec(amount).add(dec(otherTotal)).toNumber(),
             basis,
           },
         };

@@ -24,10 +24,7 @@ from .ledger_sync_processor import (
     process_ledger_sync_for_invoice,
 )
 
-from .ai_audit import (
-    check_extended_prices,
-    check_quantity,
-)
+from .ai_audit import check_quantity
 
 __all__ = [
     # Terms/Ledger creation
@@ -45,6 +42,5 @@ __all__ = [
     'process_ledger_sync_pending',
     'process_ledger_sync_for_invoice',
     # AI Audit
-    'check_extended_prices',
     'check_quantity',
 ]

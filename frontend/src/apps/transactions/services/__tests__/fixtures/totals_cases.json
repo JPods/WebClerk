@@ -1905,6 +1905,100 @@
    }
   },
   {
+   "name": "ship_via_percent_rounds_half_up",
+   "model": "invoice",
+   "header": {
+    "finance": {},
+    "tax": {},
+    "allocations": {},
+    "ship_via": "ups",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": {
+      "unit": 1.0,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0
+     },
+     "cost": {
+      "unit": 0,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    }
+   ],
+   "context": {
+    "tax_policy": {},
+    "shipping_services": [
+     {
+      "name": "UPS Ground",
+      "aliases": [
+       "ups"
+      ],
+      "rate_method": "percent_of_goods",
+      "rate_percent": 2.5
+     }
+    ],
+    "customer_exempt": false,
+    "settlement": {
+     "received": 0,
+     "adjusted": 0,
+     "settled": 0
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": 1.0,
+     "discount": 0.0,
+     "taxable": 0.0,
+     "tax": 0.0,
+     "shipping": 0.03,
+     "other": 0.0,
+     "finance_charge": 0.0,
+     "cost": 0.0,
+     "margin": 1.0,
+     "total": 1.03,
+     "margin_pc": 100.0,
+     "received": 0.0,
+     "adjusted": 0.0,
+     "balance": 1.03,
+     "cash_state": "open"
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 1.0,
+      "amount": 1.0,
+      "discount": 0.0,
+      "taxable": 0.0,
+      "tax_rate": 0.0,
+      "rate_source": "header",
+      "tax": 0.0,
+      "shipping": 0.03,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 0.0,
+      "margin": 1.0,
+      "total": 1.03
+     }
+    ]
+   }
+  },
+  {
    "name": "line_shipping_and_handling_envelope",
    "model": "order",
    "header": {

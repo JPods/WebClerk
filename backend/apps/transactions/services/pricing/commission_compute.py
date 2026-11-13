@@ -66,6 +66,95 @@ DEFAULT_LEVEL_FACTORS = {
 }
 
 
+# ---------------------------------------------------------------------------
+# The one commission formula (readme 111; Bill, 2026-11-12: "the source of truth is the server")
+# ---------------------------------------------------------------------------
+
+def _dec(value) -> Decimal:
+    try:
+        return Decimal(str(value if value not in (None, '') else 0))
+    except Exception:
+        return Decimal(0)
+
+
+def commission_base(basis: str, amount, cost) -> Decimal:
+    """What the rate is applied to: the line's margin, or its amount (revenue; a 'script'
+    basis falls back to revenue until scripts run)."""
+    return _dec(amount) - _dec(cost) if basis == 'margin' else _dec(amount)
+
+
+def rep_amount(base, rate_pct, level_factor=1, split_pct=100) -> Decimal:
+    """base × rate % × level factor × split %, in cents, half-up."""
+    from common.decimals import money
+    return money(_dec(base) * _dec(rate_pct) / 100 * _dec(level_factor) * _dec(split_pct) / 100)
+
+
+def effective_rate(rate_pct, level_factor=1, split_pct=100) -> float:
+    """rate % × level factor × split %, to four places, half-up."""
+    from decimal import ROUND_HALF_UP
+    rate = _dec(rate_pct) * _dec(level_factor) * _dec(split_pct) / 100
+    return float(rate.quantize(Decimal('0.0001'), rounding=ROUND_HALF_UP))
+
+
+def settle_line_commission(commission, line_totals):
+    """A line's commission with every amount computed here, from the rates the entry carries
+    and the line's own totals. The save calls this with the totals (totals_compute.
+    _recalculate_locked), so an amount the browser showed is a preview and is never what is
+    stored. Returns None when there is nothing to compute: no reps, or already accrued."""
+    if not isinstance(commission, dict) or commission.get('accrued'):
+        return None
+    reps = commission.get('reps')
+    if not isinstance(reps, list) or not reps:
+        return None
+    totals = line_totals if isinstance(line_totals, dict) else {}
+    out_reps, total = [], Decimal(0)
+    for rep in reps:
+        if not isinstance(rep, dict):
+            continue
+        basis = rep.get('basis') or commission.get('basis') or 'revenue'
+        level = rep.get('level_factor', 1) if rep.get('level_factor') is not None else 1
+        split = rep.get('split_pct', 100) if rep.get('split_pct') is not None else 100
+        amount = rep_amount(commission_base(basis, totals.get('amount', 0), totals.get('cost', 0)),
+                            rep.get('rate_pct', 0), level, split)
+        total += amount
+        out_reps.append({**rep, 'effective_rate': effective_rate(rep.get('rate_pct', 0), level, split),
+                         'amount': float(amount)})
+    return {**commission, 'reps': out_reps, 'total': float(total)}
+
+
+def sum_header_commission(header_commission, line_commissions):
+    """The document's commission as the sum of its lines': each rep's amount and the total.
+    Returns None when no line names a rep (a document may carry a commission of its own,
+    which is then left as it is) or when the document's commission is already accrued."""
+    current = header_commission if isinstance(header_commission, dict) else {}
+    if current.get('accrued'):
+        return None
+    by_rep, order, total, any_reps = {}, [], Decimal(0), False
+    for comm in line_commissions:
+        if not isinstance(comm, dict):
+            continue
+        for rep in comm.get('reps') or []:
+            if not isinstance(rep, dict):
+                continue
+            any_reps = True
+            rid = rep.get('rep_id', 0)
+            if rid not in by_rep:
+                by_rep[rid] = Decimal(0)
+                order.append(rep)
+            by_rep[rid] += _dec(rep.get('amount', 0))
+            total += _dec(rep.get('amount', 0))
+    if not any_reps:
+        return None
+    known = {r.get('rep_id', 0): r for r in (current.get('reps') or []) if isinstance(r, dict)}
+    reps = []
+    for rep in order:
+        rid = rep.get('rep_id', 0)
+        base = known.get(rid) or {k: rep.get(k) for k in ('rep_id', 'rep_ida', 'name', 'rate_pct', 'split_pct', 'basis')}
+        reps.append({**base, 'amount': float(by_rep[rid])})
+    return {**empty_commission(), **current, 'reps': reps, 'total': float(total),
+            'basis': current.get('basis') or (order[0].get('basis') or 'revenue')}
+
+
 def empty_commission() -> dict:
     """Empty commission object — the schema for header and line."""
     return {
@@ -88,7 +177,7 @@ def empty_rep_entry(rep_id: int = 0, rep_ida: str = '', name: str = '',
         'rate_pct': rate_pct,
         'split_pct': split_pct,
         'level_factor': level_factor,
-        'effective_rate': round(rate_pct * level_factor / 100 * (split_pct / 100) * 100, 4),
+        'effective_rate': effective_rate(rate_pct, level_factor, split_pct),
         'basis': basis,
         'amount': 0.0,
         'override': False,
@@ -161,9 +250,8 @@ def calculate_line_commission(
 
     Returns: commission object for the line
     """
-    margin = line_price_extended - line_cost_extended
     reps = []
-    total = 0.0
+    total = Decimal(0)
 
     for config in rep_configs:
         rate_pct = config.get('rate_pct', 0)
@@ -175,19 +263,8 @@ def calculate_line_commission(
         level_factors = config.get('level_factors', DEFAULT_LEVEL_FACTORS)
         level_factor = level_factors.get(price_level or 'retail', 1.0)
 
-        # Calculate base amount
-        if basis == 'margin':
-            base_amount = margin
-        elif basis == 'script':
-            # Script execution would go here — for now, fall back to revenue
-            base_amount = line_price_extended
-        else:  # revenue (default)
-            base_amount = line_price_extended
-
-        # rate × level_factor × split
-        amount = round(base_amount * (rate_pct / 100) * level_factor * (split_pct / 100), 2)
-
-        effective_rate = round(rate_pct * level_factor * (split_pct / 100), 4)
+        amount = rep_amount(commission_base(basis, line_price_extended, line_cost_extended),
+                            rate_pct, level_factor, split_pct)
 
         reps.append({
             'rep_id': config.get('rep_id', 0),
@@ -196,9 +273,9 @@ def calculate_line_commission(
             'rate_pct': rate_pct,
             'split_pct': split_pct,
             'level_factor': level_factor,
-            'effective_rate': effective_rate,
+            'effective_rate': effective_rate(rate_pct, level_factor, split_pct),
             'basis': basis,
-            'amount': amount,
+            'amount': float(amount),
             'override': False,
             'override_reason': '',
         })
@@ -206,7 +283,7 @@ def calculate_line_commission(
 
     return {
         'reps': reps,
-        'total': round(total, 2),
+        'total': float(total),
         'basis': basis_override or (rep_configs[0].get('basis', 'revenue') if rep_configs else ''),
         'accrued': False,
         'dt_accrued': 0,
@@ -664,7 +741,7 @@ def scale_commission_on_cash(invoice_id: int) -> dict:
     scaled_reps = []
     for rep in comm.get('reps', []):
         original = rep.get('amount', 0)
-        scaled = round(original * cash_fraction, 2)
+        scaled = float(rep_amount(original, 100, cash_fraction))
         rep['amount_scaled'] = scaled
         rep['cash_fraction'] = cash_fraction
         scaled_reps.append({
