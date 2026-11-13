@@ -508,6 +508,15 @@ def journalize_invoice(invoice_id: int) -> dict:
     if not postings:
         return {'created': 0, 'error': 'No amounts to post'}
 
+    # A credit (a negative quantity: a return, a credit memo) arrives as a negative amount on its
+    # usual side. It posts on the other side; the writer below writes only amounts above zero, so
+    # left negative it posted nothing and the invoice locked all the same (found 2026-11-13).
+    for data in postings.values():
+        for side, other in (('debit', 'credit'), ('credit', 'debit')):
+            if data[side] < 0:
+                data[other] += -data[side]
+                data[side] = Decimal('0')
+
     # Verify balance — with FX rounding absorption for foreign currency
     finance = invoice.finance or {}
     has_fx = bool(finance.get('exchange_rate') and finance.get('exchange_rate') != 1)
