@@ -175,23 +175,11 @@ class InquiryAsk(BaseModel):
         extra = 'forbid'
 
 
-# qq — tester exemption (Bill, 2026-09-18, one month): remove InquiryTester and
-# InquiryLimits.testing once testing is done; grep "qq" finds every piece.
-class InquiryTester(BaseModel):
-    """A mailbox exempt from the inquiry limits until a sunset."""
-    email: str                                # matched by mailbox: name+tag@x counts as name@x
-    until_utc: str                            # ISO-8601 Z; the exemption ends here
-
-    class Config:
-        extra = 'forbid'
-
-
 class InquiryLimits(BaseModel):
     """Spam limits for a public inquiry form. Per visitor IP is also capped in code
     (REST_FRAMEWORK throttle rates 'inquiry' / 'inquiry_form')."""
     links_per_mailbox_per_day: int = 3        # link emails to one mailbox per UTC day
     one_open_per_contact: bool = True         # a repeat submission is added to the open inquiry
-    testing: list[InquiryTester] = []         # qq — tester exemption, remove after testing
 
     class Config:
         extra = 'forbid'

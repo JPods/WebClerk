@@ -20,8 +20,7 @@ Limits (Report config.inquiry.limits, InquiryLimits): per visitor IP (Cloudflare
 CF-Connecting-IP) via the throttle rates; link emails per mailbox per UTC day (name+tag@x
 counts as name@x) — so nobody can flood someone else's inbox through us; one open inquiry
 per Contact per site — a repeat is added to it as a comment. Counters live in the shared
-cache (CACHE_URL). A tester mailbox listed in limits.testing skips every limit until its
-until_utc (qq — temporary; grep "qq" to remove). Every refusal is logged with its reason.
+cache (CACHE_URL). Every refusal is logged with its reason. No mailbox is exempt.
 
 Who answers and what the form asks: the site's Report (category='form',
 config.inquiry = common InquiryForm, apps/core/models/action_pydantic.py). No login.
@@ -95,25 +94,6 @@ def _mailbox(email: str) -> str:
     """name+tag@domain → name@domain, lowercased: one mailbox, one count."""
     local, _, domain = (email or '').strip().lower().partition('@')
     return f"{local.split('+', 1)[0]}@{domain}"
-
-
-# qq — tester exemption (Bill, 2026-09-18, one month). Remove _tester and its callers after testing.
-def _tester(form: dict, email: str):
-    """The limits.testing entry for this mailbox while its window is open, else None."""
-    mailbox = _mailbox(email)
-    now = datetime.now(timezone.utc)
-    for entry in (form.get('limits') or {}).get('testing') or []:
-        if _mailbox(entry['email']) != mailbox:
-            continue
-        try:
-            until = datetime.fromisoformat(entry['until_utc'].replace('Z', '+00:00'))
-        except ValueError:
-            logger.error('[INQUIRY] tester %s has an unreadable until_utc %r', entry['email'], entry['until_utc'])
-            return None
-        if now < until:
-            return entry
-        logger.info('[INQUIRY] tester window for %s ended %s — limits apply', mailbox, entry['until_utc'])
-    return None
 
 
 def _client_ip(request) -> str:
@@ -196,18 +176,12 @@ def _token_id(token: str) -> str:
 
 
 class InquiryThrottle(ScopedRateThrottle):
-    """Per visitor IP (CF-Connecting-IP), counted in the shared cache. A tester's own start
-    request is not counted."""
+    """Per visitor IP (CF-Connecting-IP), counted in the shared cache."""
 
     def get_ident(self, request):
         return _client_ip(request)
 
     def allow_request(self, request, view):
-        if request.path.endswith('/start/'):          # qq — tester exemption, remove after testing
-            data = getattr(request, 'data', {}) or {}
-            email, site = str(data.get('email') or ''), str(data.get('site') or '')
-            if email and site in settings.INQUIRY_SITES and _tester(_site_form(site), email):
-                return True
         allowed = super().allow_request(request, view)
         if not allowed:
             _refused('ip_rate', request, request.path)
@@ -244,15 +218,14 @@ class InquiryStartView(_Public):
         # Link emails per mailbox per UTC day — nobody floods someone else's inbox through us.
         form = _site_form(fields['site'])
         limit = ((form.get('limits') or {}).get('links_per_mailbox_per_day')) or 3
-        if not _tester(form, fields['email']):        # qq — tester exemption, remove after testing
-            day = datetime.now(timezone.utc).strftime('%Y%m%d')
-            key = 'inq:links:' + hashlib.sha256(f"{_mailbox(fields['email'])}:{day}".encode()).hexdigest()
-            cache.add(key, 0, timeout=26 * 3600)
-            if cache.incr(key) > limit:
-                _refused('mailbox_daily', request, f"limit={limit}")
-                return Response({'ok': False, 'errors': {'email': (
-                    f'We have already sent {limit} links to this address today — '
-                    'please use one of those, or try again tomorrow.')}}, status=429)
+        day = datetime.now(timezone.utc).strftime('%Y%m%d')
+        key = 'inq:links:' + hashlib.sha256(f"{_mailbox(fields['email'])}:{day}".encode()).hexdigest()
+        cache.add(key, 0, timeout=26 * 3600)
+        if cache.incr(key) > limit:
+            _refused('mailbox_daily', request, f"limit={limit}")
+            return Response({'ok': False, 'errors': {'email': (
+                f'We have already sent {limit} links to this address today — '
+                'please use one of those, or try again tomorrow.')}}, status=429)
 
         token = signing.dumps(fields, salt=SALT)
         link = request.build_absolute_uri(f"{site['form_url']}?t={token}")
@@ -337,7 +310,7 @@ class InquiryView(_Public):
             config['inquiry'].update(contact_id=contact.pk, contact_created=created)
             # One open inquiry per Contact per site: a repeat is added to it, not a new Action.
             one_open = (form.get('limits') or {}).get('one_open_per_contact', True)
-            if one_open and not _tester(form, payload['email']):   # qq — tester exemption, remove after testing
+            if one_open:
                 existing = (Action.objects.select_for_update()
                             .filter(action_type='inquiry', status='open',
                                     config__inquiry__contact_id=contact.pk,
