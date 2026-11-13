@@ -32,7 +32,6 @@ import { selectCompanyInfo, selectLogos } from '@/store/slices/companySlice';
 import { convertedTarget, type ConvertedTarget } from '@/apps/transactions/utils/convertedTarget';
 import { useCustomerSearch, partyOf } from '@/apps/transactions/components/detail/CustomerSearch';
 import HeaderRenderer from '@/apps/transactions/components/detail/HeaderRenderer';
-import ReceiveButton from '@/apps/transactions/components/detail/ReceiveButton';
 import LineCardRenderer from '@/apps/transactions/components/detail/LineCardRenderer';
 import PanelSectionRenderer from '@/apps/transactions/components/detail/PanelSectionRenderer';
 import JsonSectionRenderer from '@/apps/transactions/components/detail/JsonSectionRenderer';
@@ -231,10 +230,6 @@ const DbFormView: React.FC<DbFormProps> = (props) => {
         {form.editTier === 'closed' && badge('red', 'closed')}
         {form.hold && <span data-wc="edit-hold-notice">{badge('amber', heldNotice(form.hold))}</span>}
         {designMode && badge('amber', 'DESIGN')}
-        {modelName === 'receipt' && (
-          <ReceiveButton record={data} hasChanges={form.hasChanges} saving={form.saving}
-            onSave={() => form.save({ keepEditing: true })} />
-        )}
       </div>
 
       {/* Toolbar — hidden when inline (DataBrowser has its own) */}
