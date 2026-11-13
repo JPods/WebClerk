@@ -1,24 +1,19 @@
 """
-seed_databrowser — Create initial DataBrowser layouts + one fake record per model.
+seed_databrowser — Create initial DataBrowser layouts.
 
 Usage:
-    ./bin/python manage.py seed_databrowser              # both layouts + fake records
-    ./bin/python manage.py seed_databrowser --layouts     # layouts only
-    ./bin/python manage.py seed_databrowser --fakes       # fake records only
+    ./bin/python manage.py seed_databrowser              # layouts
     ./bin/python manage.py seed_databrowser --force       # overwrite existing layouts
 
 Layouts are saved as Setting records with purpose="wc:workbench_fields".
 Each includes a named "initial" view that Alice can use as a baseline
 to compare against user-submitted layouts.
 
-Fake records are marked with metadata.health = "fake" so they can be
-filtered or deleted later.
+This command makes no records. Every record is a real record (Bill, 2026-11-13).
 """
 from django.core.management.base import BaseCommand
-from django.db import transaction
 from apps.core.constants.model_registry import MODEL_REGISTRY, get_model_meta
 from apps.core.models.setting import Setting
-import json, time, uuid as uuid_mod
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -100,10 +95,6 @@ LAYOUTS = {
 }
 
 
-def _now_ms():
-    return int(time.time() * 1000)
-
-
 def _filter_valid_fields(model_cls, field_names):
     """Return only field names that actually exist on the model."""
     valid = {f.name for f in model_cls._meta.get_fields()}
@@ -111,27 +102,13 @@ def _filter_valid_fields(model_cls, field_names):
 
 
 class Command(BaseCommand):
-    help = 'Seed DataBrowser initial layouts and/or fake records for all models'
+    help = 'Seed DataBrowser initial layouts for all models'
 
     def add_arguments(self, parser):
-        parser.add_argument('--layouts', action='store_true', help='Seed layouts only')
-        parser.add_argument('--fakes', action='store_true', help='Seed fake records only')
         parser.add_argument('--force', action='store_true', help='Overwrite existing layouts')
 
     def handle(self, *args, **options):
-        do_layouts = options.get('layouts', False)
-        do_fakes = options.get('fakes', False)
-        force = options.get('force', False)
-
-        # Default: do both
-        if not do_layouts and not do_fakes:
-            do_layouts = True
-            do_fakes = True
-
-        if do_layouts:
-            self._seed_layouts(force)
-        if do_fakes:
-            self._seed_fakes()
+        self._seed_layouts(options.get('force', False))
 
     def _seed_layouts(self, force):
         self.stdout.write(self.style.MIGRATE_HEADING('Seeding DataBrowser layouts...'))
@@ -217,155 +194,3 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(
             f'Layouts: {created} created, {updated} updated, {skipped} skipped (use --force to overwrite)'
         ))
-
-    def _seed_fakes(self):
-        self.stdout.write(self.style.MIGRATE_HEADING('Seeding fake records...'))
-        created = skipped = errors = 0
-
-        for model_key in sorted(MODEL_REGISTRY.keys()):
-            meta = get_model_meta(model_key)
-            if not meta:
-                continue
-
-            # Skip line models — they need parent FKs
-            if meta.kind == 'line':
-                skipped += 1
-                continue
-
-            try:
-                model_cls = meta.import_model()
-            except Exception as e:
-                self.stdout.write(self.style.WARNING(f'  Skip {model_key}: {e}'))
-                errors += 1
-                continue
-
-            try:
-                # Check if fake already exists
-                has_metadata = any(
-                    f.name == 'metadata' for f in model_cls._meta.get_fields() if hasattr(f, 'column')
-                )
-                has_ida = any(
-                    f.name == 'ida' for f in model_cls._meta.get_fields() if hasattr(f, 'column')
-                )
-                if has_metadata:
-                    existing = model_cls.objects.filter(metadata__health='fake').first()
-                elif has_ida:
-                    existing = model_cls.objects.filter(ida__startswith='fake-').first()
-                else:
-                    existing = None
-                if existing:
-                    skipped += 1
-                    continue
-
-                with transaction.atomic():
-                    obj = self._create_fake(model_cls, model_key, meta)
-                    if obj:
-                        created += 1
-                        self.stdout.write(f'  Created fake {model_key} #{obj.pk}')
-                    else:
-                        skipped += 1
-            except Exception as e:
-                errors += 1
-                self.stdout.write(self.style.WARNING(f'  Error {model_key}: {e}'))
-
-        self.stdout.write(self.style.SUCCESS(
-            f'Fakes: {created} created, {skipped} skipped, {errors} errors'
-        ))
-
-    def _create_fake(self, model_cls, model_key, meta):
-        """Create a single fake record with sensible defaults."""
-        now = _now_ms()
-        fields = {f.name: f for f in model_cls._meta.get_fields() if hasattr(f, 'column')}
-        kwargs = {}
-
-        # Metadata with health=fake marker
-        if 'metadata' in fields:
-            kwargs['metadata'] = {'health': 'fake', 'created_by': 'seed_databrowser'}
-
-        # Standard fields
-        if 'ida' in fields:
-            kwargs['ida'] = f'fake-{model_key}'
-        if 'name' in fields and fields['name'].__class__.__name__ == 'CharField':
-            kwargs['name'] = f'Fake {meta.singular}'
-        if 'display_name' in fields:
-            kwargs['display_name'] = f'Fake {meta.singular}'
-        if 'description' in fields and fields['description'].__class__.__name__ in ('CharField', 'TextField'):
-            kwargs['description'] = f'Fake {meta.singular} for DataBrowser testing'
-        if 'status' in fields:
-            kwargs['status'] = 'active'
-        if 'is_active' in fields:
-            kwargs['is_active'] = True
-        if 'dt_created' in fields:
-            kwargs['dt_created'] = now
-        if 'dt_modified' in fields:
-            kwargs['dt_modified'] = now
-        if 'uuid' in fields:
-            kwargs['uuid'] = str(uuid_mod.uuid4())
-        if 'version' in fields:
-            kwargs['version'] = 1
-
-        # JSON fields — empty dicts
-        for fname in ('refs', 'prefs', 'comments', 'actions', 'data'):
-            if fname in fields and fields[fname].__class__.__name__ == 'JSONField':
-                kwargs.setdefault(fname, {})
-
-        # Model-specific defaults
-        if model_key in ('customer', 'vendor', 'manufacturer', 'employee', 'rep'):
-            kwargs['org_type'] = model_key
-            kwargs.setdefault('email', f'fake-{model_key}@example.com')
-            kwargs.setdefault('phone', '555-000-0000')
-        elif model_key == 'contact':
-            kwargs['email'] = f'fake@example.com'
-            kwargs['name_first'] = 'Fake'
-            kwargs['name_last'] = 'Contact'
-            kwargs['role'] = 'user'
-        elif model_key == 'item':
-            kwargs.setdefault('kind', 'product')
-            kwargs.setdefault('uom', 'ea')
-            kwargs.setdefault('price', {'base': 0})
-            kwargs.setdefault('cost', {'standard': 0})
-        elif model_key == 'setting':
-            kwargs['purpose'] = 'fake_seed'
-            kwargs['config'] = {'health': 'fake'}
-        elif model_key == 'gl_account':
-            kwargs['ida'] = 'fake-00000'
-            kwargs['type'] = 'asset'
-            kwargs['category'] = 'cash'
-        elif model_key == 'currency':
-            kwargs['code'] = 'ZZF'
-            kwargs['symbol'] = 'F'
-            kwargs['precision'] = 2
-        elif model_key == 'term':
-            kwargs.setdefault('days_due', 0)
-        elif model_key == 'warehouse':
-            kwargs['code'] = 'ZZ-FAKE'
-        elif model_key in ('invoice', 'order', 'quote', 'purchase', 'workorder', 'requisition'):
-            kwargs.setdefault('total', 0)
-            if 'balance' in fields:
-                kwargs.setdefault('balance', 0)
-
-        # Skip models that require complex FK setup we can't easily satisfy
-        required_fks = [
-            f for f in model_cls._meta.get_fields()
-            if hasattr(f, 'related_model') and f.related_model is not None
-            and hasattr(f, 'null') and not f.null
-            and f.name not in kwargs
-            and hasattr(f, 'column')
-        ]
-        if required_fks:
-            # Can't create without required FKs
-            return None
-
-        try:
-            obj = model_cls(**kwargs)
-            obj.full_clean()
-            obj.save()
-            return obj
-        except Exception:
-            # Try without full_clean (some models have complex validation)
-            try:
-                obj = model_cls(**kwargs)
-                obj.save()
-                return obj
-            except Exception:
-                raise
