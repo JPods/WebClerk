@@ -65961,31 +65961,6 @@
                       "title_ida": true
                     },
                     {
-                      "title": "bill_to",
-                      "fields": [
-                        {
-                          "field": "addresses.bill_to.company",
-                          "label": "company"
-                        },
-                        {
-                          "field": "addresses.bill_to.attention",
-                          "label": "attention"
-                        },
-                        {
-                          "field": "addresses.bill_to.full_address",
-                          "label": "address"
-                        },
-                        {
-                          "field": "phones.bill_to.number",
-                          "label": "phone"
-                        },
-                        {
-                          "field": "emails.bill_to.email",
-                          "label": "email"
-                        }
-                      ]
-                    },
-                    {
                       "title": "ship_to",
                       "fields": [
                         {
@@ -66129,6 +66104,9 @@
                   "type": "json_tree",
                   "label": "json",
                   "fields": [
+                    "addresses",
+                    "emails",
+                    "phones",
                     "config",
                     "totals",
                     "cost",

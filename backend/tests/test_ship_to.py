@@ -126,7 +126,7 @@ def test_the_shipped_purchase_layout_names_the_vendor(db):
     from django.conf import settings
     layouts = json.loads((pathlib.Path(settings.BASE_DIR) / 'apps/core/layouts/layouts.json').read_text())
     columns = layouts['purchase']['form']['default']['sections'][0]['columns']
-    assert [c['title'] for c in columns][:3] == ['vendor', 'bill_to', 'ship_to']
+    assert [c['title'] for c in columns][:2] == ['vendor', 'ship_to']     # bill_to column removed 2026-11-12
     assert columns[0]['fields'][0]['field'] == 'addresses.vendor.company'
 
 

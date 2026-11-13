@@ -162,3 +162,15 @@ def test_the_receipt_form_names_no_purchase_or_ship_to_field():
     layouts = json.loads((BACKEND / 'apps/core/layouts/layouts.json').read_text())
     text = json.dumps(layouts['receipt'])
     assert '"purchase.' not in text and 'config.ship_to' not in text
+
+
+def test_the_purchase_form_has_no_bill_to_column():
+    """Bill, 2026-11-12: "Remove the bill_to in the purchase form. If it needs to be changed
+    users can make the change in the addresses object." The block stays on the document."""
+    layouts = json.loads((BACKEND / 'apps/core/layouts/layouts.json').read_text())
+    header = layouts['purchase']['form']['default']['sections'][0]
+    assert [c['title'] for c in header['columns']] == ['vendor', 'ship_to', 'purchase']
+    assert 'bill_to' in party_roles('purchase')
+    panel = next(s for s in layouts['purchase']['form']['default']['sections'] if s.get('type') == 'json_tree')
+    assert panel['fields'][:3] == ['addresses', 'emails', 'phones'], 'where the bill-to is changed now'
+
