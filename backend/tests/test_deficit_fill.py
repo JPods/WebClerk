@@ -44,9 +44,7 @@ def _receive(item, qty, unit):
     po = Purchase.objects.create(vendor_id=_complete_vendor().pk, terms='N30')
     pol = PurchaseLine.objects.create(purchase=po, item={'item_id': item.pk, 'description': item.name},
                                       quantity={'active': qty, 'staged': qty}, cost={'unit': unit, 'precision': 2})
-    from apps.core.services.door import Actor
-    from apps.transactions.services.convert.convert import convert_and_save
-    out = convert_and_save(Actor.system(), 'purchase', po.pk, 'receipt', named={pol.pk: None})
+    out = _run('convert', 'purchase', po.pk, {'to': 'receipt', 'lines': [{'line_id': pol.pk}]})
     return Receipt.objects.get(pk=out['receipt_id'])     # saving it received the goods (R1)
 
 

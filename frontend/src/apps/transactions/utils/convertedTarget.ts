@@ -1,7 +1,6 @@
-/** What a convert command made: the target model and its id. The server saves the parent only
- *  (Bill, 2026-11-13); the form that opens it asks for its proposed lines and holds them unsaved
- *  until the first save (utils/proposedLines.ts). Null for any other result. One reader for
- *  every host. */
+/** What a convert command made: the target model and its id. The server saves the target with
+ *  its lines (Bill, 2026-11-08: "save with lines"), so the host only opens it. Null for any
+ *  other result. One reader for every host. */
 export interface ConvertedTarget { model: string; id: number }
 
 export function convertedTarget(result: any): ConvertedTarget | null {

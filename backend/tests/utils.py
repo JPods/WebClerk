@@ -84,26 +84,3 @@ def received_receipt_line(receipt, **fields):
     line = ReceiptLine.objects.create(receipt=receipt, **fields)
     line.refresh_from_db()
     return line
-
-
-def convert_then_save(client, source, pk, to, lines=None, body=None):
-    """The two steps a person takes (Bill, 2026-11-13): convert makes the parent, its first save
-    names the lines. ``lines``: [{line_id, qty?}] — only those; None — everything proposed.
-    Returns the convert's response, or the first response that was refused."""
-    made = client.post(f'/wcapi/{source}/{pk}/convert/', {'to': to, **(body or {})},
-                       content_type='application/json')
-    if made.status_code != 200:
-        return made
-    data = made.json()['data']
-    target_id = data.get('result', data)[f'{to}_id']
-    if lines is None:
-        proposed = client.post(f'/wcapi/{to}/{target_id}/propose/', {}, content_type='application/json')
-        if proposed.status_code != 200:
-            return proposed
-        data = proposed.json()['data']
-        sent = [{'_from': line['_from']} for line in data.get('result', data)['lines']]
-    else:
-        sent = [{'_from': row['line_id'],
-                 **({'quantity': {'active': row['qty']}} if 'qty' in row else {})} for row in lines]
-    saved = client.put(f'/wcapi/{to}/{target_id}/', {'lines': sent}, content_type='application/json')
-    return made if saved.status_code == 200 else saved

@@ -572,15 +572,6 @@ async function addUnlistedIfAsked(err: any): Promise<boolean> {
  * save like any other record: PUT /wcapi/<model>/<id>/ or POST /wcapi/<model>/. The lines
  * ride in `lines`; a removed line carries `_delete: true`. Totals are the server's.
  */
-/** The lines a converted document with none yet would take from its source — computed by the
- *  server each time, nothing saved (Bill, 2026-11-13). Empty for any other document. */
-export async function proposeLines(model_name: string, id: number): Promise<{ lines: any[]; messages: string[] }> {
-  const res = await apiClient.post(`/wcapi/${resolveModelName(model_name)}/${id}/propose/`, {});
-  const data = res.data?.data ?? res.data;
-  const result = data?.result ?? data;
-  return { lines: result?.lines || [], messages: result?.messages || [] };
-}
-
 export async function saveTransactionWithLines(model_name: string, payload: any) {
   const resolved = resolveModelName(model_name);
   // Strip read-only and calculated fields — only send what the server needs

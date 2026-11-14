@@ -66,8 +66,6 @@ def test_a_negative_receipt_line_is_refused():
     # The refusal is the layer's, raw; nothing moves.
     from django.core.exceptions import ValidationError
     with pytest.raises(ValidationError, match='would create a layer holding -3'):
-        from apps.core.services.door import Actor
-        from apps.transactions.services.convert.convert import convert_and_save
-        convert_and_save(Actor.system(), 'purchase', po.pk, 'receipt')
+        _run('convert', 'purchase', po.pk, {'to': 'receipt'})
     item.refresh_from_db()
     assert item.quantity['on_hand'] == 5

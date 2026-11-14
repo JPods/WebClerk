@@ -1,8 +1,8 @@
 """Receiving is a convert, like order→invoice (Bill, 2026-09-27, R3).
 
-POST /wcapi/purchase/<id>/convert/ {to: 'receipt'} makes the receipt's parent; its first save names
-the lines ({_from: purchase line id, quantity?}) and receives them (Bill, 2026-11-13): every proposed
-line, or only those named, each at the qty given. A receipt line keeps the purchase line's whole cost, and the two costs are independent
+POST /wcapi/purchase/<id>/convert/ {to: 'receipt', lines?: [{line_id, qty?}]} saves a receipt
+through the door: without lines, everything left on the purchase; with them, only those lines, each at
+the qty given. A receipt line keeps the purchase line's whole cost, and the two costs are independent
 after that. More than is left is accepted and flagged to Alice.
 
 Bill, 2026-11-11 (readme 108): saving a receipt receives the goods (R1) — on_hand, on_rc, the purchase
@@ -30,9 +30,8 @@ def admin_client(client, django_user_model):
 
 
 def _convert(client, pk, body=None, source='purchase'):
-    """Convert, then the first save (Bill, 2026-11-13): the save is what receives."""
-    from tests.utils import convert_then_save
-    return convert_then_save(client, source, pk, 'receipt', lines=(body or {}).get('lines'))
+    return client.post(f'/wcapi/{source}/{pk}/convert/', {'to': 'receipt', **(body or {})},
+                       content_type='application/json')
 
 
 def _data(r):
@@ -228,6 +227,8 @@ def test_a_receipt_within_the_order_raises_no_flag(admin_client):
 
 
 @pytest.mark.parametrize('lines, code', [
+    ([], 'lines_required'),
+    ([{'qty': 1}], 'line_id_required'),
     ([{'line_id': 'PA', 'qty': 0}], 'qty_not_positive'),
     ([{'line_id': 'PA', 'qty': -2}], 'qty_not_positive'),
     ([{'line_id': 'OTHER', 'qty': 1}], 'no_lines'),
@@ -242,7 +243,7 @@ def test_refusals_are_coached_and_receive_nothing(admin_client, lines, code):
                       for row in lines]}
     r = _convert(admin_client, po.pk, body)
     assert r.status_code == 400 and r.json()['error']['code'] == code, r.content
-    assert not ReceiptLine.objects.exists()
+    assert not Receipt.objects.exists()
     assert _stock(a) == held, 'nothing moved'
 
 
@@ -292,8 +293,9 @@ def test_order_to_invoice_still_refuses_more_than_is_left(admin_client):
     order, line = _order(a, 4)
     # A person's named-line invoice passes the door: invoice lines declare the leaves the
     # convert copies (Bill, 2026-09-28). Only the quantity is refused.
-    from tests.utils import convert_then_save
-    r = convert_then_save(admin_client, 'order', order.pk, 'invoice', lines=[{'line_id': line.pk, 'qty': 5}])
+    r = admin_client.post(f'/wcapi/order/{order.pk}/convert/',
+                          {'to': 'invoice', 'lines': [{'line_id': line.pk, 'qty': 5}]},
+                          content_type='application/json')
     assert r.status_code == 400, r.content
     assert b'transfer_exceeds_remaining' in r.content
 
@@ -303,8 +305,9 @@ def test_a_person_invoices_named_order_lines(admin_client):
     Item.objects.filter(pk=a.pk).update(quantity={'on_hand': 50, 'on_po': 0, 'on_rc': 0,
                                                   'allocated': 0, 'available': 50})
     order, line = _order(a, 4)
-    from tests.utils import convert_then_save
-    r = convert_then_save(admin_client, 'order', order.pk, 'invoice', lines=[{'line_id': line.pk, 'qty': 3}])
+    r = admin_client.post(f'/wcapi/order/{order.pk}/convert/',
+                          {'to': 'invoice', 'lines': [{'line_id': line.pk, 'qty': 3}]},
+                          content_type='application/json')
     assert r.status_code == 200, r.content
     from apps.transactions.models import InvoiceLine
     (inv_line,) = InvoiceLine.objects.filter(refs__source__order_line_id=line.pk)
@@ -315,8 +318,8 @@ def test_order_to_purchase_still_takes_the_item_cost(admin_client):
     a = _item('Widget')
     Item.objects.filter(pk=a.pk).update(cost={'standard': 3.0})
     order, line = _order(a, 4)
-    from tests.utils import convert_then_save
-    r = convert_then_save(admin_client, 'order', order.pk, 'purchase')
+    r = admin_client.post(f'/wcapi/order/{order.pk}/convert/', {'to': 'purchase'},
+                          content_type='application/json')
     assert r.status_code == 200, r.content
     (saved,) = PurchaseLine.objects.filter(purchase_id=_data(r)['purchase_id'])
     assert saved.cost['unit'] == 3.0, 'a purchase pays the item cost, not the sell estimate'

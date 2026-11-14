@@ -10,12 +10,10 @@
  *   3. Warehouse — inventory by warehouse with reorder alerts
  *   4. Reconcile — physical count vs system, variance adjustments
  *
- * Receiving at the dock is a convert and a save (Bill, 2026-11-11, readme 108: saving a receipt
- * receives; 2026-11-13: convert makes the parent, the first save posts the lines):
- *   POST /wcapi/purchase/<id>/convert/ {to: 'receipt'} makes the receipt;
- *   PUT /wcapi/receipt/<id>/ {lines: [{_from: <PO line id>, quantity: {active}}]} saves only the
- *   lines affected, each at the qty entered, at the PO line's cost — and that save puts the
- *   goods on the shelf in the default warehouse, each layer born at the receipt's cost.
+ * Receiving at the dock is one command (Bill, 2026-11-11, readme 108: saving a receipt receives):
+ *   POST /wcapi/purchase/<id>/convert/ {to: 'receipt', lines: [{line_id, qty}]} saves the receipt
+ *   — only the lines affected, each at the qty entered, at the PO line's cost — and that save
+ *   puts the goods on the shelf in the default warehouse, each layer born at the receipt's cost.
  *   More than is left is taken and flagged to Alice.
  * The other tabs go through manageAction → backend services:
  *   - corrections: a count workorder (api/workorderApi.saveCorrection)
@@ -315,18 +313,17 @@ function ReceiveTab() {
     const results: string[] = [];
     let hasError = false;
 
-    // The goods are here: convert makes the receipt, and its first save names the lines affected
-    // (Bill, 2026-11-13). That save moves on_po -> on_hand and on_rc and creates each layer at
-    // the receipt's cost.
+    // The goods are here: the convert saves the receipt for the lines affected, and that save
+    // moves on_po -> on_hand and on_rc and creates each layer at the receipt's cost.
     try {
-      const res = await apiClient.post(`/wcapi/purchase/${selectedPO.id}/convert/`, { to: "receipt" });
-      const data = res.data?.data?.result || {};
-      await apiClient.put(`/wcapi/receipt/${data.receipt_id}/`, {
+      const res = await apiClient.post(`/wcapi/purchase/${selectedPO.id}/convert/`, {
+        to: "receipt",
         lines: linesToReceive.map((line) => ({
-          _from: line.id,
-          quantity: { active: receiveQtys[line.id] || 0 },
+          line_id: line.id,
+          qty: receiveQtys[line.id] || 0,
         })),
       });
+      const data = res.data?.data?.result || {};
       results.push(
         `Receipt ${data.receipt_ida || data.receipt_id}: ${linesToReceive.length} line(s) received`
       );

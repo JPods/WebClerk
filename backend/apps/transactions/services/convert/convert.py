@@ -14,20 +14,13 @@ readmes/assessments/2026-09-24-one-route-per-verb.md §14, §14a.
 The target is saved through the save door as the caller — their create rights and scope
 decide, the target's own hooks run — with its header built here from the source and passed
 as ``server_set``, so a role that may not type lineage, tax setup or commission still
-carries them forward.
-
-Convert saves the parent only (Bill, 2026-11-13: "save the record to get the ida, but keep the
-lines as an array without ida while users adjust quantities … the inventory changes will not
-save until the user saves the parent transaction for the first time"). Its lines are proposed
-(``propose``: what the source has left; an invoice filled from stock) and held unsaved by the
-form. The first save sends each as ``{_from: <source line id>, quantity?: {active}}`` and the
-server builds the line from its source line (``author_proposed``), so stock, Pendings and the
-ledger move once, at the quantity the person settled on. This replaces his 2026-11-08 "save
-with lines". The two faults that ruling answered are met another way: an abandoned convert is a
-parent with no lines, accepted and swept as an untouched new record; and a source line already
-on the document is refused, so stale lines are never seeded twice (1056-inv). A caller with
-nobody to adjust (shipping, a simulation, a test) uses ``convert_and_save``: the same two steps.
-A purchase born without a vendor is saved and coached: pick a vendor before release.
+carries them forward. The target is saved WITH its lines in the same unit: everything the
+source has left, or the lines the caller names (``lines: [{line_id, qty?}]``, as shipping does).
+Bill, 2026-11-08: "Save with lines" — the person reviews and edits a saved planned document, so
+nothing is lost by navigating away; this replaces his 2026-09-27 "review before save" for
+conversions (an unsaved review left a header-only purchase, 1028-po, and re-seeded stale lines
+onto a saved invoice, 1056-inv). A purchase born without a vendor is saved and coached: pick a
+vendor before release (validate_status refuses the release until then).
 
 Design rules (from Bill):
   1. Commission populates at the earliest chain point and flows forward.
@@ -43,7 +36,7 @@ from __future__ import annotations
 import copy
 import logging
 from decimal import Decimal
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from django.apps import apps as dj_apps
 from django.db import transaction
@@ -318,14 +311,12 @@ def _target_lines(source_lines, source_type: str, target_type: str,
     return lines
 
 
-def _fill_from_stock(lines: List[dict], fixed=frozenset()) -> tuple:
+def _fill_from_stock(lines: List[dict]) -> tuple:
     """Order → invoice (Bill, 2026-11-13): each line invoices what the order has left, up to what
     the item has in stock; the rest stays on the order line. Stock is counted down in line order,
     so two lines of one item do not both take it. A credit line (a negative quantity) and a line
     whose item holds no stock (labor, freight) go whole. The invoice line keeps what was asked
     as ``staged`` and what ships as ``active``; ``staged − active`` is what did not ship.
-    A line whose ``_from`` is in ``fixed`` carries a quantity a person set: it stands whole and
-    counts against the stock the other lines may take.
 
     Returns (the lines to save, [(label, asked, shipped)] for each line that ships short).
     """
@@ -350,10 +341,6 @@ def _fill_from_stock(lines: List[dict], fixed=frozenset()) -> tuple:
         if asked <= 0 or item_id not in left:
             kept.append(line)
             continue
-        if line.get("_from") in fixed:
-            left[item_id] = max(round(left[item_id] - asked, 6), 0.0)
-            kept.append(line)
-            continue
         shipped = round(min(asked, left[item_id]), 6)
         left[item_id] = round(left[item_id] - shipped, 6)
         if shipped < asked:
@@ -366,67 +353,55 @@ def _fill_from_stock(lines: List[dict], fixed=frozenset()) -> tuple:
     return kept, short
 
 
-def _source_of(obj) -> tuple:
-    """(source type, source id) a converted document names in ``refs.source``, or (None, None)."""
-    source = ((getattr(obj, "refs", None) or {}).get("source") or {})
-    source_type = source.get("converted_from")
-    return (source_type, source.get(f"{source_type}_id")) if source_type else (None, None)
+def _take_named(lines_named, source_type: str) -> Callable[[List[dict]], List[dict]]:
+    """``lines: [{line_id, qty?}]`` — the source lines affected (Bill, 2026-09-27): only those,
+    each at the qty given or else at what is left. Whether a qty above what is left may stand
+    is the target's rule (check_transfer refuses it for an invoice; a receipt takes it)."""
+    wanted: Dict[int, Optional[float]] = {}
+    for row in lines_named:
+        if not isinstance(row, dict) or row.get("line_id") in (None, ""):
+            raise _refuse("line_id_required", 'Each line names its "line_id".')
+        qty = row.get("qty")
+        if qty not in (None, ""):
+            try:
+                qty = float(qty)
+            except (TypeError, ValueError):
+                raise _refuse("bad_qty", f'Line {row["line_id"]}: "{qty}" is not a quantity.')
+            if qty <= 0:
+                raise _refuse("qty_not_positive",
+                              f'Line {row["line_id"]}: convert a quantity above 0 ({qty:g} was asked).')
+        wanted[int(row["line_id"])] = None if qty in (None, "") else qty
 
-
-def _source_line_id(line: dict, source_type: str):
-    """The source line a built line came from: a receipt line's parent_line_id, else refs.source."""
-    return (line.get("parent_line_id")
-            or ((line.get("refs") or {}).get("source") or {}).get(f"{source_type}_line_id"))
-
-
-def _lines_already_on(obj, target_type: str, source_type: str) -> set:
-    """Source line ids this document's saved lines already came from."""
-    taken = set()
-    for line in obj.lines.all():
-        source_line = (getattr(line, "parent_line_id", None)
-                       or ((getattr(line, "refs", None) or {}).get("source") or {}).get(
-                           f"{source_type}_line_id"))
-        if source_line:
-            taken.add(int(source_line))
-    return taken
-
-
-def _built_from_source(source, source_type: str, target_type: str,
-                       line_ids: Optional[List[int]] = None) -> List[Dict[str, Any]]:
-    """The lines the source has left for this target, each with ``_from``: its source line."""
-    try:
-        source_lines = _get_lines(source, source_type, line_ids)
-    except ConversionError as e:
-        raise _refuse("no_lines", str(e)) from e
-    built = _target_lines(source_lines, source_type, target_type, PAIRS[(source_type, target_type)])
-    for line in built:
-        line["_from"] = int(_source_line_id(line, source_type))
-    return built
-
-
-def _short_message(short) -> str:
-    return "Not everything shipped. " + "; ".join(
-        f"{label}: {shipped:g} of {asked:g} invoiced, {asked - shipped:g} stays on the order"
-        for label, asked, shipped in short) + "."
-
-
-def _nothing_in_stock(short):
-    return _refuse("nothing_in_stock",
-                   "Nothing on this order is in stock to invoice: "
-                   + ", ".join(f"{label} needs {asked:g}" for label, asked, _ in short) + ".",
-                   {"short": [{"item": label, "asked": asked} for label, asked, _ in short]})
+    def take(built_lines):
+        kept = []
+        for line in built_lines:
+            source_line_id = (((line.get("refs") or {}).get("source") or {}).get(f"{source_type}_line_id")
+                              or line.get("parent_line_id"))
+            if source_line_id not in wanted:
+                continue
+            qty = wanted[source_line_id]
+            if qty is not None:
+                line["quantity"] = {**line["quantity"], "active": qty, "staged": qty,
+                                      "remaining": qty}
+            kept.append(line)
+        return kept
+    return take
 
 
 @transaction.atomic
 def convert_record(actor, source_type: str, source_id: int, target_type: str, *,
-                   contact_id: Optional[int] = None,
-                   vendor_id: Optional[int] = None) -> Dict[str, Any]:
+                   line_ids: Optional[List[int]] = None, contact_id: Optional[int] = None,
+                   vendor_id: Optional[int] = None,
+                   take: Optional[Callable[[List[dict]], List[dict]]] = None,
+                   stamp: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """Convert ``source_type`` #``source_id`` to a new ``target_type``, as ``actor``.
 
-    The parent only is saved: it has its ida, its link to the source and the new-record mark
-    (``config.is_new``), and no lines, so nothing moves. Its lines are proposed (``propose``)
-    and saved by the first save (``author_proposed``). Refused when the source has nothing left,
-    or, for an invoice, nothing in stock: no parent is made for a document that cannot have lines.
+    The target is saved once with its lines — one save, its hooks once, the transfer check in
+    the same unit. Without ``take`` every line the source has left goes; with it,
+    ``take(built_lines)`` names the lines to keep and their quantities (shipping, the named
+    path). ``stamp`` is more of the header the server authors (a shipping record), carried
+    like the rest. A receipt receives its goods when it is saved: there is no hold (Bill,
+    2026-11-13: a receipt is made when the goods are here).
     """
     from apps.core.services.save import save_record
 
@@ -444,27 +419,50 @@ def convert_record(actor, source_type: str, source_id: int, target_type: str, *,
     if getattr(source, "dt_journaled", 0):
         from apps.core.services.door import Refused
         raise Refused(409, "locked", f"{source_type} {source_id} is journalized; it cannot be converted.")
+    try:
+        source_lines = _get_lines(source, source_type, line_ids)
+    except ConversionError as e:
+        raise _refuse("no_lines", str(e)) from e
 
-    built = _built_from_source(source, source_type, target_type)
-    if not built:
-        raise _refuse("nothing_to_convert", "No convertible lines (every line has remaining 0).")
-    messages = []
-    if (source_type, target_type) == ("order", "invoice"):
-        lines, short = _fill_from_stock(built)
-        if not lines:
-            raise _nothing_in_stock(short)
-        if short:
-            messages.append(_short_message(short))
-
+    if target_type == "receipt":
+        # Vendor, contact and terms inherit from the purchase on save.
+        header_extra = {"source_type": "purchase_receipt"}
+    else:
+        header_extra = {}
     if target_type == "purchase" and vendor_id is None:
         vendor_id = getattr(source, "vendor_id", None)     # the person may set it on the saved purchase
     header = _header(source, source_type, target_type, is_sell_side, contact_id, vendor_id)
-    if target_type == "receipt":
-        # Vendor, contact and terms inherit from the purchase on save.
-        header["source_type"] = "purchase_receipt"
-    result = save_record(actor, {}, model_key=target_type, server_set=header, new=True)
+    built = _target_lines(source_lines, source_type, target_type, is_sell_side)
+    if not built:
+        raise _refuse("nothing_to_convert", "No convertible lines (every line has remaining 0).")
 
-    messages = list(result.messages or []) + messages
+    header.update(header_extra)
+    header.update(copy.deepcopy(stamp or {}))
+    lines = (take or list)(copy.deepcopy(built))
+    short = []
+    if (source_type, target_type) == ("order", "invoice") and take is None:
+        lines, short = _fill_from_stock(lines)
+        if not lines:
+            raise _refuse("nothing_in_stock",
+                          "Nothing on this order is in stock to invoice: "
+                          + ", ".join(f"{label} needs {asked:g}" for label, asked, _ in short) + ".",
+                          {"short": [{"item": label, "asked": asked} for label, asked, _ in short]})
+    # The lines are the server's too, built from the source: they ride with the header past the
+    # role's field filter, so a role that may convert but may not type a line's fields still
+    # gets its document whole (a USER's convert was refused on lines.item.id_num, 2026-11-08).
+    header["lines"] = lines
+    result = save_record(actor, {}, model_key=target_type, server_set=header)
+
+    forwarded = 0
+    if (source_type, target_type) == ("order", "invoice"):
+        from apps.transactions.services.cash.cash_door import relink_deposits
+        forwarded = relink_deposits(source, result.obj)
+
+    messages = list(result.messages or [])
+    if short:
+        messages.append("Not everything shipped. " + "; ".join(
+            f"{label}: {shipped:g} of {asked:g} invoiced, {asked - shipped:g} stays on the order"
+            for label, asked, shipped in short) + ".")
     if target_type == "purchase" and not getattr(result.obj, "vendor_id", None):
         # Saved all the same (Bill, 2026-11-08: never a silent empty purchase); the release
         # gate (validate_status.REQUIRES) keeps refusing until a vendor is named.
@@ -472,197 +470,22 @@ def convert_record(actor, source_type: str, source_id: int, target_type: str, *,
     return {
         f"{target_type}_id": result.obj_id,
         f"{target_type}_ida": getattr(result.obj, "ida", ""),
+        "lines_saved": len(lines),
+        "cash_entries_forwarded": forwarded,
         "messages": messages,
     }
 
 
-def proposed_lines(obj, target_type: str, fill: bool = True) -> tuple:
-    """(lines, messages): what a converted document with no lines yet would take from its source.
-
-    Computed from the source each time, never stored: a stored draft would be a second copy
-    that goes stale. Each line carries ``_from``; nothing is saved. Empty for a document that
-    was not converted, already has lines, or is journalized. ``fill=False`` leaves an invoice's
-    lines at what the order has left, not yet cut to stock (the save cuts them).
-    """
-    source_type, source_id = _source_of(obj)
-    if not source_type or (source_type, target_type) not in PAIRS:
-        return [], []
-    if getattr(obj, "dt_journaled", 0) or obj.lines.exists():
-        return [], []
-    source = _get_model(source_type).objects.filter(pk=source_id).first()
-    if source is None or getattr(source, "dt_journaled", 0):
-        return [], []
-    try:
-        built = _built_from_source(source, source_type, target_type)
-    except Exception as e:                      # a source with no lines left proposes nothing
-        from apps.core.services.door import Refused
-        if not isinstance(e, Refused):
-            raise
-        return [], []
-    messages = []
-    if fill and (source_type, target_type) == ("order", "invoice"):
-        built, short = _fill_from_stock(built)
-        if short:
-            messages.append(_short_message(short))
-    for line in built:
-        line["_new"] = True
-    return built, messages
-
-
-def take_proposed(data: dict) -> Optional[List[Optional[int]]]:
-    """Pop ``_from`` off each line of a save's payload, before the role's field check sees the
-    lines: [source line id or None] in line order, or None when no line names one."""
-    lines = data.get("lines")
-    if not isinstance(lines, list) or not any(isinstance(l, dict) and "_from" in l for l in lines):
-        return None
-    froms = []
-    for line in lines:
-        value = line.pop("_from", None) if isinstance(line, dict) else None
-        if value is not None:
-            try:
-                value = int(value)
-            except (TypeError, ValueError):
-                raise _refuse("bad_from", f'"_from": "{value}" is not a source line id.')
-        froms.append(value)
-    return froms
-
-
-def author_proposed(obj, target_type: str, data: dict, froms: List[Optional[int]]) -> List[str]:
-    """The first save of a converted document's lines (called by the save door).
-
-    Each payload line that named ``_from`` is built by the server from that source line, as
-    convert built it before 2026-11-13; what the person sent for the line (already checked
-    against their role's fields) is laid over it. A quantity the person sent stands; a line sent
-    without one takes what its source has left and, for an invoice, what is in stock now. The
-    line keeps what was asked as ``staged``. Lines without ``_from`` pass as they are.
-    Returns messages for the save's reply.
-    """
-    lines = data.get("lines") or []
-    if len(lines) != len(froms):
-        raise _refuse("lines_changed", "The lines of this save changed while it was checked; save again.")
-    source_type, source_id = _source_of(obj)
-    if not source_type or (source_type, target_type) not in PAIRS:
-        raise _refuse("not_converted",
-                      f'This {target_type} was not converted from another document; '
-                      f'a line cannot name "_from".')
-    wanted = [f for f in froms if f is not None]
-    twice = sorted({f for f in wanted if wanted.count(f) > 1})
-    if twice:
-        raise _refuse("line_named_twice", f"{source_type} line(s) {twice} are named twice in this save.")
-    already = sorted(set(wanted) & _lines_already_on(obj, target_type, source_type))
-    if already:
-        raise _refuse("line_already_on_document",
-                      f"{source_type} line(s) {already} are already on this {target_type}. "
-                      f"Change the quantity on the line it has.", {"line_ids": already})
-    source = _get_model(source_type).objects.select_for_update().filter(pk=source_id).first()
-    if source is None:
-        raise _refuse("source_gone", f"{source_type} {source_id} no longer exists.")
-    if getattr(source, "dt_journaled", 0):
-        from apps.core.services.door import Refused
-        raise Refused(409, "locked", f"{source_type} {source_id} is journalized; it cannot be converted.")
-    built = {line["_from"]: line for line in
-             _built_from_source(source, source_type, target_type, wanted)}
-    nothing_left = sorted(f for f in wanted if f not in built)
-    if nothing_left:
-        raise _refuse("nothing_left_on_line",
-                      f"{source_type} line(s) {nothing_left} have nothing left to convert. "
-                      f"Remove them from this {target_type}.", {"line_ids": nothing_left})
-
-    authored, fixed = [], set()
-    for sent, source_line in zip(lines, froms):
-        if source_line is None:
-            authored.append(sent)
-            continue
-        line = built[source_line]
-        asked = line["quantity"]["active"]
-        for key, value in sent.items():
-            if key in ("id", "_new", "quantity"):
-                continue                       # a temporary id is the form's; the line is new
-            line[key] = ({**line[key], **value}
-                         if isinstance(value, dict) and isinstance(line.get(key), dict) else value)
-        sent_quantity = sent.get("quantity") if isinstance(sent.get("quantity"), dict) else {}
-        if sent_quantity.get("active") not in (None, ""):
-            try:
-                quantity = float(sent_quantity["active"])
-            except (TypeError, ValueError):
-                raise _refuse("bad_qty", f'{source_type} line {source_line}: '
-                                         f'"{sent_quantity["active"]}" is not a quantity.')
-            if quantity == 0 or (quantity > 0) != (asked > 0):
-                raise _refuse(
-                    "qty_not_positive",
-                    f"{source_type} line {source_line}: "
-                    + ("enter a quantity above 0" if asked > 0
-                       else "this is a credit line; enter a quantity below 0")
-                    + f", or remove the line ({quantity:g} was entered).")
-            line["quantity"] = {**line["quantity"], "active": quantity, "staged": asked}
-            fixed.add(source_line)
-        line["_dirty"] = True
-        authored.append(line)
-
-    messages = []
-    if (source_type, target_type) == ("order", "invoice"):
-        authored, short = _fill_from_stock(authored, fixed)
-        if short:
-            messages.append(_short_message(short))
-        if not authored:
-            raise _nothing_in_stock(short)
-        from apps.transactions.services.cash.cash_door import relink_deposits
-        relink_deposits(source, obj)
-    for line in authored:
-        line.pop("_from", None)
-    data["lines"] = authored
-    return messages
-
-
-def save_proposed(actor, target_type: str, target_id: int, *,
-                  named: Optional[Dict[int, Optional[float]]] = None,
-                  stamp: Optional[Dict[str, Any]] = None):
-    """The first save, for a caller with nobody to adjust: every proposed line as proposed, or
-    ``named`` {source line id: qty or None} — only those, at the qty given. ``stamp`` is more of
-    the header the server authors (a shipping record)."""
-    from apps.core.services.door import resolve_model
-    from apps.core.services.save import save_record
-    if named is None:
-        obj = resolve_model(target_type)[0].objects.get(pk=target_id)
-        # Every line the source has left: the save fills from stock and says what did not ship.
-        named = {line["_from"]: None for line in proposed_lines(obj, target_type, fill=False)[0]}
-    lines = [{"_from": source_line, **({"quantity": {"active": qty}} if qty is not None else {})}
-             for source_line, qty in named.items()]
-    return save_record(actor, {"lines": lines}, model_key=target_type, record_id=target_id,
-                       server_set=copy.deepcopy(stamp) if stamp else None)
-
-
-@transaction.atomic
-def convert_and_save(actor, source_type: str, source_id: int, target_type: str, *,
-                     contact_id: Optional[int] = None, vendor_id: Optional[int] = None,
-                     named: Optional[Dict[int, Optional[float]]] = None,
-                     stamp: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    """Convert, then the first save, in one unit: the two steps a person takes, for a caller
-    with nobody to adjust quantities (Bill, 2026-11-13: one path, two calls)."""
-    made = convert_record(actor, source_type, source_id, target_type,
-                          contact_id=contact_id, vendor_id=vendor_id)
-    target_id = made[f"{target_type}_id"]
-    saved = save_proposed(actor, target_type, target_id, named=named, stamp=stamp)
-    # The first save's messages are the current ones (stock is read again there).
-    messages = [m for m in made["messages"] if not m.startswith("Not everything shipped")]
-    return {**made, "lines_saved": saved.obj.lines.count(),
-            "messages": messages + list(saved.messages or [])}
-
-
 def convert_command(ctx) -> Dict[str, Any]:
-    """POST /wcapi/<source>/<id>/convert/ {to, vendor_id?, contact_id?}.
+    """POST /wcapi/<source>/<id>/convert/ {to, lines?: [{line_id, qty?}], vendor_id?, contact_id?}.
 
-    Makes the target's parent and returns its id; its lines are proposed and saved by its
-    first save (Bill, 2026-11-13).
+    ``lines`` names the source lines affected (Bill, 2026-09-27); the target is saved with
+    exactly those. Without it, the target is saved with everything the source has left
+    (Bill, 2026-11-08). Saving a receipt receives its goods at the cost cited (Bill, 2026-11-13).
     """
     to = (ctx.data.get("to") or "").lower()
     if not to:
         raise _refuse("to_required", f"Name what the {ctx.model_key} converts to: {{\"to\": ...}}.")
-    if ctx.data.get("lines") is not None:
-        raise _refuse("lines_go_in_the_save",
-                      f'Convert makes the {to}; name its lines in its first save: '
-                      f'PUT /wcapi/{to}/<id>/ {{"lines": [{{"_from": <{ctx.model_key} line id>, '
-                      f'"quantity": {{"active": n}}}}]}}.')
     from apps.core.services.door import Refused
     from apps.transactions.services import validate_status
     needs = validate_status.CONVERT_REQUIRES.get(to)
@@ -671,25 +494,21 @@ def convert_command(ctx) -> Dict[str, Any]:
         raise Refused(409, "incomplete_document",
                       validate_status.incomplete_coaching(ctx.model_key, f"convert to {to}", missing, needs),
                       {"missing": missing})
+    named = ctx.data.get("lines")
+    line_ids, take = None, None
+    if named is not None:
+        if not isinstance(named, list) or not named:
+            raise _refuse("lines_required", 'Name the lines affected: "lines": [{"line_id", "qty"?}].')
+        take = _take_named(named, ctx.model_key)
+        line_ids = [int(row["line_id"]) for row in named]
     return convert_record(ctx.actor, ctx.model_key, ctx.obj.pk, to,
-                          contact_id=ctx.data.get("contact_id"),
-                          vendor_id=ctx.data.get("vendor_id"))
-
-
-def propose_command(ctx) -> Dict[str, Any]:
-    """POST /wcapi/<target>/<id>/propose/ — the lines a converted document with none yet would
-    take from its source. Nothing is saved."""
-    lines, messages = proposed_lines(ctx.obj, ctx.model_key)
-    return {"lines": lines, "messages": messages}
+                          line_ids=line_ids, contact_id=ctx.data.get("contact_id"),
+                          vendor_id=ctx.data.get("vendor_id"), take=take)
 
 
 def _system(source="convert"):
     from apps.core.services.door import Actor
     return Actor.system(source=source)
-
-
-def _named(line_ids: Optional[List[int]]) -> Optional[Dict[int, Optional[float]]]:
-    return None if line_ids is None else {int(line_id): None for line_id in line_ids}
 
 
 # ---------------------------------------------------------------------------
@@ -698,27 +517,27 @@ def _named(line_ids: Optional[List[int]]) -> Optional[Dict[int, Optional[float]]
 
 def convert_quote_to_order(quote_id: int, line_ids: Optional[List[int]] = None,
                            contact_id: Optional[int] = None) -> Dict[str, Any]:
-    return convert_and_save(_system(), "quote", quote_id, "order", contact_id=contact_id,
-                            named=_named(line_ids))
+    return convert_record(_system(), "quote", quote_id, "order", line_ids=line_ids,
+                          contact_id=contact_id)
 
 
 def convert_order_to_invoice(order_id: int, line_ids: Optional[List[int]] = None,
                              contact_id: Optional[int] = None) -> Dict[str, Any]:
-    return convert_and_save(_system(), "order", order_id, "invoice", contact_id=contact_id,
-                            named=_named(line_ids))
+    return convert_record(_system(), "order", order_id, "invoice", line_ids=line_ids,
+                          contact_id=contact_id)
 
 
 def convert_order_to_purchase(order_id: int, line_ids: Optional[List[int]] = None,
                               vendor_id: Optional[int] = None,
                               contact_id: Optional[int] = None) -> Dict[str, Any]:
-    return convert_and_save(_system(), "order", order_id, "purchase", vendor_id=vendor_id,
-                            contact_id=contact_id, named=_named(line_ids))
+    return convert_record(_system(), "order", order_id, "purchase", line_ids=line_ids,
+                          vendor_id=vendor_id, contact_id=contact_id)
 
 
 def convert_quote_to_invoice(quote_id: int, line_ids: Optional[List[int]] = None,
                              contact_id: Optional[int] = None) -> Dict[str, Any]:
-    return convert_and_save(_system(), "quote", quote_id, "invoice", contact_id=contact_id,
-                            named=_named(line_ids))
+    return convert_record(_system(), "quote", quote_id, "invoice", line_ids=line_ids,
+                          contact_id=contact_id)
 
 
 # ---------------------------------------------------------------------------
@@ -829,5 +648,3 @@ def register() -> None:
     from apps.core.services.verbs import register_command
     for source in {s for s, _t in PAIRS}:
         register_command(source, "convert", convert_command)
-    for target in {t for _s, t in PAIRS}:
-        register_command(target, "propose", propose_command)

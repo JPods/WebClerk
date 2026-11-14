@@ -234,10 +234,10 @@ def ship_order(
 
     What was shipped is what ``confirm_pack`` recorded and no shipment has invoiced yet
     (order.metadata.shipping.packed_lines without an invoice_id). The one engine
-    (``convert_and_save``) makes the invoice from the order as ``actor`` and its first save
-    names the packed lines at the packed quantities, with the shipping record — so the
-    invoice lines name their order lines and each order line's remaining is recomputed
-    from its children.
+    (``convert_record``) builds the invoice from the order as ``actor``; the shipped
+    quantity replaces each line's remaining, and the invoice is saved once with its
+    lines and shipping record — so the invoice lines name their order lines and each
+    order line's remaining is recomputed from its children.
 
     This used to convert every remaining line whatever was packed, never saved the lines
     the engine returns for review (an invoice with no lines), and read result keys the
@@ -254,7 +254,7 @@ def ship_order(
     """
     from collections import defaultdict
 
-    from apps.transactions.services.convert.convert import convert_and_save
+    from apps.transactions.services.convert.convert import convert_record
 
     order = _get_order(order_id)
     order_meta = copy.deepcopy(getattr(order, "metadata", None) or {})
@@ -269,31 +269,38 @@ def ship_order(
     for pl in to_ship:
         shipped_qty[int(pl["line_id"])] += float(pl.get("qty_packed", 0) or 0)
 
-    left = {line.pk: float(((getattr(line, "quantity", None) or {}).get("remaining", 0)) or 0)
-            for line in _get_order_lines(order)}
-    nothing_left = sorted(line_id for line_id in shipped_qty if left.get(line_id, 0) <= 0)
-    if nothing_left:
-        raise ValueError(f"Order #{order_id}: packed line(s) {nothing_left} have "
-                         f"nothing left to invoice. Correct the pack before shipping.")
-    for line_id, qty in shipped_qty.items():
-        if qty > left[line_id]:
-            raise ValueError(f"Order line {line_id}: {qty} packed, but only "
-                             f"{left[line_id]} is left to invoice. Correct the pack before "
-                             f"shipping.")
-    shipped_lines = [line_id for line_id, qty in shipped_qty.items() if qty]
+    shipped_lines: list = []
 
-    # The two steps a person takes, in one unit (Bill, 2026-11-13): convert makes the invoice,
-    # its first save names the packed lines at the packed quantities, with the shipping record.
-    result = convert_and_save(
-        actor, "order", order_id, "invoice", contact_id=contact_id,
-        named={line_id: shipped_qty[line_id] for line_id in shipped_lines},
-        stamp={"metadata": {"shipping": {
-            "carrier": shipping_data.get("carrier", ""),
-            "tracking_number": shipping_data.get("tracking_number", ""),
-            "ship_date": shipping_data.get("ship_date", ""),
-            "freight_cost": float(shipping_data.get("freight_cost", 0) or 0),
-            "dt_shipped": _now_ms(),
-        }}})
+    def take(review_lines):
+        lines = shipped_lines
+        for review in review_lines:
+            source_line_id = ((review.get("refs") or {}).get("source") or {}).get("order_line_id")
+            qty = shipped_qty.pop(source_line_id, 0)
+            if not qty:
+                continue
+            remaining = float((review.get("quantity") or {}).get("remaining", 0) or 0)
+            if qty > remaining:
+                raise ValueError(f"Order line {source_line_id}: {qty} packed, but only "
+                                 f"{remaining} is left to invoice. Correct the pack before "
+                                 f"shipping.")
+            review["quantity"] = {**review["quantity"], "active": qty, "staged": qty,
+                                  "remaining": qty}
+            lines.append(review)
+        if shipped_qty:
+            raise ValueError(f"Order #{order_id}: packed line(s) {sorted(shipped_qty)} have "
+                             f"nothing left to invoice. Correct the pack before shipping.")
+        return lines
+
+    # One save: the invoice, its shipped lines and its shipping record together — the
+    # invoice's hooks run once, and the transfer check sees the lines (plan §14a.5).
+    result = convert_record(actor, "order", order_id, "invoice", line_ids=list(shipped_qty),
+                            contact_id=contact_id, take=take, stamp={"metadata": {"shipping": {
+                                "carrier": shipping_data.get("carrier", ""),
+                                "tracking_number": shipping_data.get("tracking_number", ""),
+                                "ship_date": shipping_data.get("ship_date", ""),
+                                "freight_cost": float(shipping_data.get("freight_cost", 0) or 0),
+                                "dt_shipped": _now_ms(),
+                            }}})
     invoice_id = result["invoice_id"]
 
     order = _get_order(order_id)            # its lines' remaining moved with the invoice

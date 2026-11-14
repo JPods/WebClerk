@@ -531,8 +531,6 @@ export interface TransactionLine {
   _dirty?: boolean;
   /** Line was created in this editing session, not yet in the database. */
   _new?: boolean;
-  /** A converted document's proposed line, before its first save: the source line it comes from. */
-  _from?: number;
   /**
    * User removed this line. Local display flag only — it keeps the line out
    * of the grid, out of getActiveLines() and out of the totals. Never sent.
