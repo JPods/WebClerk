@@ -65,7 +65,7 @@ CONSUMING = [('quote', 'order'), ('quote', 'invoice'), ('order', 'invoice')]
 
 @pytest.mark.django_db
 @pytest.mark.parametrize('pair', list(PAIRS), ids=lambda p: f'{p[0]}_to_{p[1]}')
-def test_the_target_is_saved_with_its_lines_at_the_convert(pair, customer):
+def test_convert_and_save_saves_the_target_with_its_lines(pair, customer):
     make, convert, Target, TargetLine, fk = PAIRS[pair]
     source, src_lines = make(customer)
     result = convert(source.pk)
@@ -109,14 +109,17 @@ def test_the_source_remaining_is_reduced_once(pair, customer):
 @pytest.mark.django_db
 @pytest.mark.parametrize('pair', list(PAIRS), ids=lambda p: f'{p[0]}_to_{p[1]}')
 def test_leaving_without_saving_loses_nothing(pair, customer):
-    """What the browser shows after the convert is the database: no unsaved review copy."""
-    make, convert, Target, TargetLine, fk = PAIRS[pair]
-    source, _ = make(customer)
-    result = convert(source.pk)
-    # A fresh read, as another window or a reload would make it, has the lines.
+    """Convert saves the parent; its lines are proposed from the source each time they are asked
+    for (Bill, 2026-11-13), so a reload or another window is offered the same lines."""
+    from apps.transactions.services.convert.convert import _system, convert_record, proposed_lines
+    make, _convert, Target, TargetLine, fk = PAIRS[pair]
+    source, src_lines = make(customer)
+    result = convert_record(_system(), pair[0], source.pk, pair[1])
     fresh = Target.objects.get(pk=result[f'{pair[1]}_id'])
-    assert fresh.lines.count() == 2
-    assert fresh.lines.filter(quantity__active__gt=0).count() == 2
+    assert fresh.lines.count() == 0
+    for _ask in range(2):
+        lines, _messages = proposed_lines(fresh, pair[1], fill=False)
+        assert {line['_from'] for line in lines} == {src.pk for src in src_lines}
 
 
 @pytest.mark.django_db
@@ -140,9 +143,9 @@ def test_a_purchase_with_a_vendor_is_not_coached(customer, vendor):
 
 @pytest.mark.django_db
 def test_a_second_save_of_the_converted_document_does_not_duplicate_its_lines(customer):
-    """The lines exist from the convert, with ids; a later save edits them by id. Nothing in
-    the browser holds an id-less copy any more (the review handoff is gone), so no save can
-    add the converted lines a second time (invoice 1056-inv's risk, 2026-11-08)."""
+    """Once the first save has written the lines they have ids; a later save edits them by id,
+    and a source line already on the document is refused (test_convert_proposes_lines), so no
+    save adds the converted lines a second time (invoice 1056-inv's risk, 2026-11-08)."""
     quote, _ = _quote(customer)
     result = convert_quote_to_order(quote.pk)
     order = Order.objects.get(pk=result['order_id'])
@@ -158,16 +161,14 @@ def test_a_second_save_of_the_converted_document_does_not_duplicate_its_lines(cu
 def test_a_quote_line_is_consumed_by_its_order_lines_and_its_invoice_lines_together(customer):
     """quote 10 → order 6 and, over the counter, invoice 3: the quote line has 1 left."""
     quote, (ql,) = _quote(customer, quantities=(10,))
-    from apps.transactions.services.convert.convert import _take_named
     convert_quote_to_order(quote.pk, line_ids=[ql.pk])          # takes all 10 ...
     order_line = OrderLine.objects.get(parent_line_id=ql.pk)
     save_document(model_key='order', header_data={'id': order_line.order_id},
                   lines_data=[{'id': order_line.pk, 'quantity': {**order_line.quantity, 'active': 6, 'staged': 6},
                                '_dirty': True}])                    # ... trimmed to 6
     ql.refresh_from_db(); assert ql.quantity['remaining'] == 4
-    from apps.transactions.services.convert.convert import convert_record, _system
-    convert_record(_system(), 'quote', quote.pk, 'invoice', line_ids=[ql.pk],
-                   take=_take_named([{'line_id': ql.pk, 'qty': 3}], 'quote'))
+    from apps.transactions.services.convert.convert import convert_and_save, _system
+    convert_and_save(_system(), 'quote', quote.pk, 'invoice', named={ql.pk: 3})
     ql.refresh_from_db(); assert ql.quantity['remaining'] == 1
     inv_line = InvoiceLine.objects.get(parent_line_id=ql.pk, refs__source__quote_line_id=ql.pk)
     assert inv_line.quantity['active'] == 3
@@ -193,11 +194,10 @@ def test_a_named_quantity_above_the_source_remaining_is_refused(customer):
     """The caller only names line ids and a qty; the transfer check in the same unit caps the
     qty at the source line's remaining, so nobody converts 50 of a remaining 3."""
     from apps.core.services.door import Refused
-    from apps.transactions.services.convert.convert import convert_record, _system, _take_named
+    from apps.transactions.services.convert.convert import convert_and_save, _system
     quote, (ql,) = _quote(customer, quantities=(3,))
     with pytest.raises(Refused) as exc:
-        convert_record(_system(), 'quote', quote.pk, 'order', line_ids=[ql.pk],
-                       take=_take_named([{'line_id': ql.pk, 'qty': 50}], 'quote'))
+        convert_and_save(_system(), 'quote', quote.pk, 'order', named={ql.pk: 50})
     assert exc.value.code == 'transfer_exceeds_remaining'
     assert Order.objects.filter(parent_id=quote.pk).count() == 0
     ql.refresh_from_db(); assert ql.quantity['remaining'] == 3

@@ -15,7 +15,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { getRecord, newRecord, saveRecord, saveTransactionWithLines } from '@/api/wcapi';
+import { getRecord, newRecord, proposeLines, saveRecord, saveTransactionWithLines } from '@/api/wcapi';
 import { showToast } from '@/store/slices/toastSlice';
 import { useWindowManager } from '@/context/WindowManagerContext';
 import { useEditHold, type HeldBy } from '@/hooks/useEditHold';
@@ -31,6 +31,7 @@ import { partyOf } from '@/apps/transactions/components/detail/CustomerSearch';
 import { getActiveLines, getRemovedLines, isPersistedLine } from '@/apps/transactions/services/lineItemService';
 import { computeTotals, settlementOf, type LineTotals } from '@/apps/transactions/services/totalsCompute';
 import { takeClosedDraft } from '@/hooks/closedDrafts';
+import { isProposed, proposedLineToSend, withProposed } from '@/apps/transactions/utils/proposedLines';
 import type { TransactionLine } from '@/apps/transactions/types/transactionTypes';
 
 /** Keys the screen shows but the document does not store; never sent on save. */
@@ -166,6 +167,9 @@ export function useRecordForm(opts: RecordFormOptions) {
   if (closedDraft.current === undefined) closedDraft.current = recordId ? takeClosedDraft(modelName, recordId) : null;
   useFormDraft({ recordId, data, editData, setEditData, setIsEditing, draft: draft ?? closedDraft.current, onRegisterDraft });
 
+  // The server's proposal for a converted document's first lines, by source line (_from).
+  const proposed = useRef<Map<number, any>>(new Map());
+
   // ── Fetch ────────────────────────────────────────────────────────
   const fetchData = useCallback(async () => {
     if (!recordId) return;
@@ -193,8 +197,23 @@ export function useRecordForm(opts: RecordFormOptions) {
           if (ct) record._contact = ct;
         } catch { /* contact not found */ }
       }
-      setData(record);
-      setEditData({ ...record });
+      // A converted document with no lines yet shows what its source has left, unsaved: the
+      // first save posts them (Bill, 2026-11-13). Asked of the server each load, never stored.
+      let shown = record;
+      let proposal: any[] = [];
+      if (withLines && record?.refs?.source?.converted_from && !(record.lines || []).length && !record.dt_journaled) {
+        try {
+          const offered = await proposeLines(modelName, recordId);
+          proposal = offered.lines;
+          shown = withProposed(record, proposal);
+          const said = [proposal.length ? 'These lines are not saved yet. Adjust the quantities, then save.' : '',
+                        ...offered.messages].filter(Boolean);
+          if (said.length) dispatch(showToast({ message: said.join(' '), type: 'info' }));
+        } catch { /* no proposal: the document opens with no lines */ }
+      }
+      proposed.current = new Map(proposal.map((line: any) => [line._from, line]));
+      setData(shown);
+      setEditData({ ...shown });
     } catch {
       dispatch(showToast({ message: `Failed to load ${modelName}`, type: 'error' }));
     } finally {
@@ -223,6 +242,14 @@ export function useRecordForm(opts: RecordFormOptions) {
       setIsEditing(true);
     }
   }, [autoEdit, canEdit, data]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Proposed lines are unsaved work: the form opens in edit so Save is at hand.
+  useEffect(() => {
+    if (proposed.current.size && canEdit && data && !isEditing) {
+      setEditData({ ...data });
+      setIsEditing(true);
+    }
+  }, [canEdit, data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Field and line changes ───────────────────────────────────────
   const setField = useCallback((field: string, value: unknown) => {
@@ -326,9 +353,11 @@ export function useRecordForm(opts: RecordFormOptions) {
       const editedHeader: Record<string, any> = { ...editData };
       for (const k of ["lines", ...DISPLAY_ONLY_KEYS]) delete editedHeader[k];
       const loadedById = new Map<number, any>((data?.lines || []).map((l: any) => [l.id, l]));
-      const linesToSend = dirtyLines.map((l: any) => lineRefsToSend(isPersistedLine(l)
-        ? { ...changedFields(loadedById.get(l.id), l), _dirty: true }
-        : withoutEmpties(l), loadedById.get(l.id)));
+      const linesToSend = dirtyLines.map((l: any) => isProposed(l)
+        ? proposedLineToSend(l, proposed.current.get(l._from))
+        : lineRefsToSend(isPersistedLine(l)
+          ? { ...changedFields(loadedById.get(l.id), l), _dirty: true }
+          : withoutEmpties(l), loadedById.get(l.id)));
       const header: Record<string, any> = changedFields(data, editedHeader);
       // The figures the person saw: the server compares them with what it saved and says so.
       // Not on the party pick: its save reprices the lines, so the figures change by right.

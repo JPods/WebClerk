@@ -408,7 +408,13 @@ def register_header_finance_recompute(header_model):
         if created or before is None:
             return
         if any((getattr(instance, f, None) or {}) != old for f, old in before.items()):
-            instance.update_sell_cost_totals(persist=True)
+            # Inside a save the recompute waits for the unit to close, as a line's does, under the
+            # same key: a save that sets freight and brings the document's first lines (a converted
+            # receipt's first save, 2026-11-13) is computed once, with its lines.
+            from apps.core.services import unit_of_work as uow
+            key = (instance._meta.model_name, instance.pk)
+            if not uow.defer(key, lambda: instance.update_sell_cost_totals(persist=True)):
+                instance.update_sell_cost_totals(persist=True)
 
 
 # Receipt included since 2026-09-20: its landed cost (allocations.freight / duty /

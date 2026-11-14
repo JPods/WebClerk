@@ -69,7 +69,9 @@ def test_transfer_selected_lines_only(customer_b):
 @pytest.mark.django_db
 def test_validation_errors(customer_c):
     order = Order.objects.create(status='confirmed', customer_id=customer_c.id)
-    with pytest.raises(Refused, match="Line IDs not found"):
-        convert_order_to_invoice(order.pk, line_ids=[999])
     with pytest.raises(Refused, match="No lines to convert"):
         convert_order_to_invoice(order.pk)
+    from apps.transactions.models import OrderLine
+    OrderLine.objects.create(order=order, quantity={'active': 1}, price={'unit': 1})
+    with pytest.raises(Refused, match="Line IDs not found"):
+        convert_order_to_invoice(order.pk, line_ids=[999])

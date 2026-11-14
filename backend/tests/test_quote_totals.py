@@ -316,10 +316,11 @@ class TestQuoteToOrderTransfer:
     def test_transfer_validation_errors(self):
         """What cannot be converted is refused, with the reason."""
         quote = Quote.objects.create(status='approved',)
-        with pytest.raises(Refused, match="Line IDs not found"):
-            convert_quote_to_order(quote.id, line_ids=[999, 1000])
         with pytest.raises(Refused, match="No lines to convert"):
             convert_quote_to_order(quote.id)
+        QuoteLine.objects.create(quote=quote, price={'unit': 1.0}, quantity={'active': 1})
+        with pytest.raises(Refused, match="Line IDs not found"):
+            convert_quote_to_order(quote.id, line_ids=[999, 1000])
 
     def test_quantity_conversion(self):
         """Quantity carried from quote line to order line: active/staged = quote

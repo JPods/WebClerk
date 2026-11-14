@@ -70,6 +70,7 @@ VERBS: Dict[str, Callable[[Actor, str, dict], Any]] = {
     'refund': _command('refund'),
     'receive': _command('receive'),
     'convert': _command('convert'),
+    'propose': _command('propose'),
     'allocate': _command('allocate'),
     'unallocate': _command('unallocate'),
     'apply_balance': _command('apply_balance'),

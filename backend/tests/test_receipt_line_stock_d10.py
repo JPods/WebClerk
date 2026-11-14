@@ -34,8 +34,8 @@ def _received(qty=7, ordered=10):
     pol = PurchaseLine.objects.create(
         purchase=po, item={'item_id': item.pk, 'id_num': item.pk, 'description': 'Widget'},
         quantity={'active': ordered, 'staged': ordered}, cost={'unit': 4.00})
-    out = run_command(Actor.system(), 'convert', 'purchase', po.pk,
-                      {'to': 'receipt', 'lines': [{'line_id': pol.pk, 'qty': qty}]})
+    from apps.transactions.services.convert.convert import convert_and_save
+    out = convert_and_save(Actor.system(), 'purchase', po.pk, 'receipt', named={pol.pk: qty})
     return item, ReceiptLine.objects.get(receipt_id=out['receipt_id']), out
 
 

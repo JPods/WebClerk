@@ -667,9 +667,20 @@ def _write(actor: Actor, obj, model_cls, model_key: str, norm_key: str, data: di
            is_update: bool, server_set: Optional[Dict[str, Any]] = None, new: bool = False):
     """Authorize, assign, before, persist, flush, after — inside one unit of work."""
     data = _wrap_i18n(model_cls, data, actor_language(actor))
+    # A converted document's first lines name the source line each came from (``_from``): the
+    # signal is taken off before the role's field check, and the server builds those lines
+    # after it (convert.author_proposed; Bill, 2026-11-13).
+    proposed = None
+    if is_update and isinstance(data.get('lines'), list):
+        from apps.transactions.services.convert.convert import take_proposed
+        proposed = take_proposed(data)
     data = _authorize(actor, obj, model_cls, model_key, data, is_update)
     if server_set:
         data.update(copy.deepcopy(server_set))
+    proposed_messages = []
+    if proposed is not None:
+        from apps.transactions.services.convert.convert import author_proposed
+        proposed_messages = author_proposed(obj, model_key, data, proposed)
     _results_are_computed(model_key, data)
     snapshot = _snapshot(obj)
     _assign(obj, data, model_cls, model_key, norm_key, is_update)
@@ -683,6 +694,7 @@ def _write(actor: Actor, obj, model_cls, model_key: str, norm_key: str, data: di
     # user's hook for this slot. Everything after the base is what every model gets.
     ctx = HookContext(actor=actor, verb='save', model_key=model_key, obj=obj, data=data,
                       is_update=is_update, changed=_changed(obj, snapshot))
+    ctx.messages += proposed_messages
     verbs.before(ctx)
     # What the before hooks assigned is part of what this save changed.
     ctx.changed = _changed(obj, snapshot)

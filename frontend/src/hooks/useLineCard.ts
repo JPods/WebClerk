@@ -204,14 +204,15 @@ export function useLineCard(options: UseLineCardOptions) {
         const isComplete = updated.quantity?.is_complete;
         const remaining = isComplete ? 0 : newQty;
         // A saved invoice line keeps what its order asked (staged): asked − qty did not ship.
-        const staged = isInvoice && updated.id ? updated.quantity?.staged : newQty;
+        // So does a proposed line of any converted document, before its first save.
+        const staged = (isInvoice && updated.id) || updated._from != null ? updated.quantity?.staged : newQty;
         return { ...updated, quantity: { ...updated.quantity, active: newQty, staged, remaining } };
       }
       case "received": {
         // Saving a receipt receives the goods (Bill, 2026-11-11, readme 108 R1): the number typed
         // is what is on the shelf at the save. A saved line keeps what its purchase asked.
         const got = Number(value);
-        const staged = updated.id ? updated.quantity?.staged : got;
+        const staged = updated.id || updated._from != null ? updated.quantity?.staged : got;
         return { ...updated, quantity: { ...updated.quantity, active: got, staged } };
       }
       case "description":

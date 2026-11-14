@@ -39,9 +39,9 @@ def _received_receipt(qty=10, freight=0):
     # Saving the receipt receives the goods (Bill, 2026-11-11, R1), and there is no hold (Bill,
     # 2026-11-13): freight known at the dock is on the receipt in the save that receives.
     from apps.core.services.door import Actor
-    from apps.transactions.services.convert.convert import convert_record
-    out = convert_record(Actor.system(), 'purchase', po.pk, 'receipt',
-                         stamp={'allocations': {'freight': freight}} if freight else None)
+    from apps.transactions.services.convert.convert import convert_and_save
+    out = convert_and_save(Actor.system(), 'purchase', po.pk, 'receipt',
+                           stamp={'allocations': {'freight': freight}} if freight else None)
     receipt = Receipt.objects.get(pk=out['receipt_id'])
     return item, receipt
 
