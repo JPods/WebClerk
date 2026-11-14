@@ -372,7 +372,7 @@ export function useLineCard(options: UseLineCardOptions) {
       cols.push({ name: 'received', field: 'received', width: '80px', sortable: true });
       cols.push({ name: 'asked', field: 'asked', width: '70px', sortable: true });
     } else if (isInvoice) {
-      // What the order asked and did not ship stays on the order; the invoice shows it (Bill, 2026-11-13).
+      // What the order asked and did not ship stays on the order; the invoice shows it as r_so, remaining on the sales order (Bill, 2026-11-14).
       cols.push({ name: 'qty', field: 'qty', width: '80px', sortable: true });
       // The grid keys a column by its name, so the name is the record's field; the heading is the label.
       cols.push({ name: 'short', field: 'short', width: '80px', sortable: true });
@@ -436,7 +436,7 @@ export function useLineCard(options: UseLineCardOptions) {
   const fieldBehaviors = useMemo(() => ({
     qty: { type: 'number', precision: currency.qty_precision, bulkEditable: true },
     asked: { type: 'number', precision: currency.qty_precision, calculated: true },
-    short: { type: 'number', label: 'not shipped', precision: currency.qty_precision, calculated: true },
+    short: { type: 'number', label: 'r_so', precision: currency.qty_precision, calculated: true },
     received: { type: 'number', precision: currency.qty_precision },
     remaining: { type: 'number', precision: currency.qty_precision, calculated: true },
     remain: { type: 'number', precision: currency.qty_precision, calculated: true },
