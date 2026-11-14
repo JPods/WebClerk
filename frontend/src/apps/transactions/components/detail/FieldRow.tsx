@@ -187,7 +187,7 @@ export function lockedFieldsForRecord(record: any): string[] {
  *  wasted space). The card sets this on its box; each FieldRow inside reads --wc-label-ch. */
 export function labelColumnStyle(labels: string[]): React.CSSProperties {
   const longest = labels.reduce((n, l) => Math.max(n, (l || '').length), 0);
-  return { ['--wc-label-ch' as any]: Math.min(Math.max(longest + 1, 4), 18) };
+  return { ['--wc-label-ch' as any]: Math.min(Math.max(longest + 0.5, 4), 18) };
 }
 
 export interface FieldRowProps {
