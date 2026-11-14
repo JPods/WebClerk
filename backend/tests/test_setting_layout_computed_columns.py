@@ -43,3 +43,17 @@ def test_computed_column_stays_when_its_source_is_viewable(django_user_model, cu
         'purpose': 'wc:model', 'parent_model': 'customer', 'config': customer_policy.config})
     fields = [c['field'] for c in served['config']['layout']['list']['default']['columns']]
     assert fields == ['ida', 'display_name', 'company']
+
+
+@pytest.mark.django_db
+def test_tab_names_are_not_filtered_as_fields(django_user_model, customer_policy):
+    """layout.tabs names panels, not fields (found 2026-11-13: the action card lost contacts)."""
+    user = django_user_model.objects.create_user(
+        email='admin2@example.fake', password=get_random_string(20), role='admin',
+        name_first='A', name_last='Dmin')
+    tabs = ['contacts', 'actions', 'touches', 'documents', 'files']
+    config = {**customer_policy.config,
+              'layout': {**customer_policy.config['layout'], 'tabs': list(tabs)}}
+    served = filter_setting_layout(Actor(user=user), {
+        'purpose': 'wc:model', 'parent_model': 'customer', 'config': config})
+    assert served['config']['layout']['tabs'] == tabs

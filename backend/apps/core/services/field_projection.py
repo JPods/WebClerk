@@ -151,7 +151,10 @@ def filter_setting_layout(actor, setting_data: dict) -> dict:
                     if not isinstance(item, (str, dict)) or
                     (isinstance(item, dict) and 'field' not in item) or column_allowed(item)]
         if isinstance(node, dict):
-            return {k: ([c for c in v if column_allowed(c)] if k == 'columns' and isinstance(v, list)
+            # layout.tabs names panels (contacts, touches, files), not fields: it is never
+            # filtered as columns. Found 2026-11-13: the action card lost its contacts tab.
+            return {k: (v if k == 'tabs'
+                        else [c for c in v if column_allowed(c)] if k == 'columns' and isinstance(v, list)
                         else filter_tree(v))
                     for k, v in node.items()}
         return node
