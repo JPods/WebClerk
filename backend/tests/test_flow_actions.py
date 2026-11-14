@@ -69,16 +69,7 @@ def test_order_to_invoice_action(django_user_model):
     resp = client.post(f'/wcapi/order/{so.pk}/convert/', {'to': 'invoice'}, format='json')
     assert resp.status_code == 200, resp.content  # type: ignore[attr-defined]
     result = resp.json()['data']['result']
-    # Convert makes the parent; its first save posts the proposed lines (Bill, 2026-11-13).
-    assert 'invoice_id' in result and 'lines_saved' not in result
-    proposed = client.post(f"/wcapi/invoice/{result['invoice_id']}/propose/", {}, format='json')
-    lines = proposed.json()['data']['result']['lines']
-    assert len(lines) == 1
-    saved = client.put(f"/wcapi/invoice/{result['invoice_id']}/",
-                       {'lines': [{'_from': lines[0]['_from']}]}, format='json')
-    assert saved.status_code == 200, saved.content  # type: ignore[attr-defined]
-    from apps.transactions.models import InvoiceLine
-    assert InvoiceLine.objects.filter(invoice_id=result['invoice_id']).count() == 1
+    assert 'invoice_id' in result and result['lines_saved'] == 1
 
 
 @pytest.mark.django_db
@@ -96,11 +87,9 @@ def test_receive_purchase_action(django_user_model):
         item={"item_id": item.id}, quantity={"active": 2, "staged": 2}, cost={"unit": 12.34}
     )
 
-    resp = client.post(f'/wcapi/purchase/{po.pk}/convert/', {"to": "receipt"}, format='json')
+    payload = {"to": "receipt", "lines": [{"line_id": pol.id, "qty": "2.0"}]}
+    resp = client.post(f'/wcapi/purchase/{po.pk}/convert/', payload, format='json')
     assert resp.status_code == 200, resp.content  # type: ignore[attr-defined]
     result = resp.json()['data']['result']
-    # Convert makes the parent; the first save names the lines and receives (Bill, 2026-11-13).
-    assert result['receipt_ida'] and 'lines' not in result
-    saved = client.put(f"/wcapi/receipt/{result['receipt_id']}/",
-                       {'lines': [{'_from': pol.id, 'quantity': {'active': "2.0"}}]}, format='json')
-    assert saved.status_code == 200, saved.content  # type: ignore[attr-defined]
+    # Saved with its lines (every conversion is, Bill 2026-11-08).
+    assert result['receipt_ida'] and result['lines_saved'] == 1 and 'lines' not in result
