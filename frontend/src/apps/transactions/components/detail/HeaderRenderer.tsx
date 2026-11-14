@@ -2,7 +2,7 @@
 import React from 'react';
 import { communicationField } from '@/utils/communicationFields';
 import { selectOptionsOf } from '@/utils/fieldBehaviorsOf';
-import FieldRow, { lockedFieldsForRecord } from './FieldRow';
+import FieldRow, { lockedFieldsForRecord, labelColumnStyle } from './FieldRow';
 import { getNestedValue } from './FieldRow';
 import CardRenderer from '@/components/cards/CardRenderer';
 import type { CardSpec } from '@/components/cards';
@@ -84,6 +84,9 @@ const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditin
   // ── Three-column layout (legacy: section.columns inline) ──
   if (section.layout === 'three-column' && section.columns) {
     const colCount = section.columns.length;
+    const labelOf = (f: any): string =>
+      (f.label === f.field && communicationField(modelName, f.field)?.label) || f.label
+      || (behaviors[f.field] || {}).label || f.field;
     // Weight columns: use col.weight if specified, otherwise auto-weight by field count
     const weights = section.columns.map((col: any) => {
       if (col.weight) return col.weight;
@@ -105,7 +108,8 @@ const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditin
           <div
             key={colIdx}
             className="rounded-lg p-3"
-            style={{ background: 'var(--db-surface, #fff)', border: '1px solid var(--db-border, #dee2e6)' }}
+            style={{ background: 'var(--db-surface, #fff)', border: '1px solid var(--db-border, #dee2e6)',
+                     ...labelColumnStyle((col.fields || []).map(labelOf)) }}
             data-component="HeaderRenderer"
             data-model={modelName}
             data-column={col.title}
@@ -202,7 +206,7 @@ const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditin
                 <FieldRow
                   key={f.field}
                   field={f.field}
-                  label={(f.label === f.field && communicationField(modelName, f.field)?.label) || f.label || beh.label || f.field}
+                  label={labelOf(f)}
                   data={data}
                   isEditing={isEditing}
                   options={options}

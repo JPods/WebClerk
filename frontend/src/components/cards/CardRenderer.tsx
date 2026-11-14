@@ -9,7 +9,7 @@
  * (light or dark) without Tailwind dark: prefix.
  */
 import React from 'react';
-import FieldRow from '@/apps/transactions/components/detail/FieldRow';
+import FieldRow, { labelColumnStyle } from '@/apps/transactions/components/detail/FieldRow';
 import { getCardComponent, getFooterComponent } from './cardRegistry';
 import type { CardSpec } from './cardRegistry';
 import { selectOptionsOf } from '@/utils/fieldBehaviorsOf';
@@ -67,6 +67,7 @@ const CardRenderer: React.FC<CardRendererProps> = ({ spec, data, isEditing, onCh
       border: '1px solid var(--db-border)',
       padding: 12,
       color: 'var(--db-text)',
+      ...labelColumnStyle(spec.fields.map((f) => f.label || (behaviors[f.field] || {}).label || f.field.split('.').pop() || f.field)),
     }}>
       {titleBar}
       {CardComponent ? (

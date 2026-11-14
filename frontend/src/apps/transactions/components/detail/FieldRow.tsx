@@ -183,6 +183,13 @@ export function lockedFieldsForRecord(record: any): string[] {
   return record?.dt_journaled ? JOURNALIZED_LOCKED : [];
 }
 
+/** A card's label column is as wide as its longest label, not a fixed 110px (Bill, 2026-11-14:
+ *  wasted space). The card sets this on its box; each FieldRow inside reads --wc-label-ch. */
+export function labelColumnStyle(labels: string[]): React.CSSProperties {
+  const longest = labels.reduce((n, l) => Math.max(n, (l || '').length), 0);
+  return { ['--wc-label-ch' as any]: Math.min(Math.max(longest + 1, 4), 18) };
+}
+
 export interface FieldRowProps {
   field: string;
   label: string;
@@ -301,7 +308,7 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
       {/* Label always visible — value area changes based on edit mode and field type */}
       <span
         className={`db-font-xs font-medium shrink-0 text-right truncate ${isClickable ? 'hover:underline cursor-pointer' : ''}`}
-        style={{ ...labelStyle, width: 110, maxWidth: 110 }}
+        style={{ ...labelStyle, width: 'calc(var(--wc-label-ch, 18) * 1ch)', maxWidth: 110 }}
         title={`${label} → ${pathDisplay}  |  ${ORG_ROLES.includes(leafName) && isRecordRef ? 'click: open in new window  |  ' : ''}Cmd+click: copy path`}
         onMouseDown={(e) => { if (e.shiftKey) e.preventDefault(); }}
         onClick={handleLabelClick}
