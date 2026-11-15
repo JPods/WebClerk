@@ -76,7 +76,10 @@ def save_ui_config(config_ui: dict, contact_id: int = None) -> dict:
         return {"saved": False, "reason": "no config_ui provided"}
 
     Contact = apps.get_model('core', 'Contact')
-    cid = contact_id or 8  # TODO: get from request.user when auth is wired
+    # The signed-in person (wcapi/manage passes _acting_user_id). No one signed in: nothing saved.
+    cid = contact_id
+    if not cid:
+        return {"saved": False, "reason": "no one is signed in"}
 
     try:
         contact = Contact.objects.get(id=cid)
@@ -97,7 +100,9 @@ def save_ui_config(config_ui: dict, contact_id: int = None) -> dict:
 def get_ui_config(contact_id: int = None) -> dict:
     """Return config.ui for a contact, with defaults filled in."""
     Contact = apps.get_model('core', 'Contact')
-    cid = contact_id or 8
+    cid = contact_id
+    if not cid:
+        return {**DEFAULT_UI_CONFIG}
 
     try:
         contact = Contact.objects.get(id=cid)

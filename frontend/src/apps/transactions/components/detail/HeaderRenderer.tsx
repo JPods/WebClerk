@@ -53,6 +53,11 @@ export interface HeaderRendererProps {
 // ---------------------------------------------------------------------------
 
 /** Render header — supports card-based layout, three-column layout, and rows layout */
+/** grid-template-columns for a header's cards: each card's weight, 1 when it has none. */
+export function columnTemplate(columns: any[]): string {
+  return (columns || []).map((c: any) => `minmax(0, ${Number(c?.weight) > 0 ? Number(c.weight) : 1}fr)`).join(' ');
+}
+
 const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditing, modelName, onChange, custSearch, onPickShipTo, cardSpecs, behaviors = {}, onOpenField, opensField, onCreateOrg }) => {
   const opens = opensField ?? ((field: string) => !!communicationField(modelName, field));
 
@@ -87,13 +92,10 @@ const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditin
     const labelOf = (f: any): string =>
       (f.label === f.field && communicationField(modelName, f.field)?.label) || f.label
       || (behaviors[f.field] || {}).label || f.field;
-    // Weight columns: use col.weight if specified, otherwise auto-weight by field count
-    const weights = section.columns.map((col: any) => {
-      if (col.weight) return col.weight;
-      const fieldCount = (col.fields || []).length;
-      return Math.max(fieldCount, 2);  // minimum 2 so link-only columns aren't crushed
-    });
-    const templateCols = weights.map((w: number) => `${w}fr`).join(' ');
+    // A card is as wide as its weight says (design mode: drag a card's edge); cards with no
+    // weight share the row equally. The number of fields in a card says how tall it is, not
+    // how wide (Bill, 2026-11-14).
+    const templateCols = columnTemplate(section.columns);
     return (
       <div className="grid gap-3" style={{ gridTemplateColumns: colCount <= 1 ? '1fr' : templateCols }}>
         {section.columns.map((col: any, colIdx: number) => {

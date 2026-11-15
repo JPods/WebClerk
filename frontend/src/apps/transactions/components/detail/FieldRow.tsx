@@ -343,7 +343,7 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
           return (
             <button type="button" onClick={e => onOpen(e.currentTarget)} data-source={pathDisplay}
               className="flex-1 min-w-0 truncate text-left db-font-sm px-2 py-0.5 rounded hover:underline"
-              style={{ color: shown ? 'var(--db-text, #1e293b)' : 'var(--db-text-muted, #6c757d)', maxWidth: 240,
+              style={{ color: shown ? 'var(--db-text, #1e293b)' : 'var(--db-text-muted, #6c757d)',
                        border: '1px dashed var(--db-border, #cbd5e1)', background: 'transparent' }}
               title={shown ? `Open ${label} to edit` : `Add ${label}`}>
               {shown || `+ add ${label}`}
@@ -387,7 +387,7 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
                 onKeyDown={(e) => { if (e.key === 'Escape') { setOrgQuery(''); setOrgResults([]); if (showLockBtn) setRefUnlocked(false); } }}
                 autoFocus
                 className="w-full db-font-sm px-2 py-0.5 rounded"
-                style={{ border: `1px solid var(--db-${showLockBtn ? 'accent' : 'border'}, #cbd5e1)`, background: 'var(--db-surface-alt, #fff)', color: 'var(--db-text, #1e293b)', maxWidth: 220 }}
+                style={{ border: `1px solid var(--db-${showLockBtn ? 'accent' : 'border'}, #cbd5e1)`, background: 'var(--db-surface-alt, #fff)', color: 'var(--db-text, #1e293b)' }}
               />
               {orgSearching && <span className="absolute right-2 top-0.5 db-font-xs text-slate-400">...</span>}
               {orgResults.length > 0 && (
@@ -444,7 +444,7 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
         if (isRecordRef && !refUnlocked) {
           return (
             <div className="flex-1 flex items-center gap-1 min-w-0">
-              <span className="db-font-sm truncate" style={{ color: 'var(--db-text, #1e293b)', maxWidth: 200 }}>
+              <span className="db-font-sm truncate" style={{ color: 'var(--db-text, #1e293b)' }}>
                 {(val as any)?.name || (val as any)?.ida || '—'}
               </span>
               {isEditing && (
@@ -489,7 +489,7 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
           value={typeof val === 'object' ? _firstScalar(val) : (val || '')}
           onChange={(e) => onChange(field, e.target.value)}
           className="flex-1 db-font-sm px-2 py-0.5 rounded cursor-pointer min-w-0"
-          style={{ border: '1px solid var(--db-border, #cbd5e1)', background: 'var(--db-surface-alt, #fff)', color: 'var(--db-text, #1e293b)', maxWidth: 240 }}
+          style={{ border: '1px solid var(--db-border, #cbd5e1)', background: 'var(--db-surface-alt, #fff)', color: 'var(--db-text, #1e293b)' }}
           title={pathDisplay}
           data-source={pathDisplay}
         >
@@ -502,12 +502,12 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
           value={displayVal === '—' ? '' : displayVal}
           onChange={(e) => onChange(field, e.target.value)}
           className="flex-1 db-font-sm px-2 py-0.5 rounded min-w-0"
-          style={{ border: '1px solid var(--db-border, #cbd5e1)', background: 'var(--db-surface-alt, #fff)', color: 'var(--db-text, #1e293b)', maxWidth: 240 }}
+          style={{ border: '1px solid var(--db-border, #cbd5e1)', background: 'var(--db-surface-alt, #fff)', color: 'var(--db-text, #1e293b)' }}
           title={pathDisplay}
           data-source={pathDisplay}
         />
       ) : (
-        <span className="flex-1 db-font-sm min-w-0 truncate" style={{ color: 'var(--db-text, #1e293b)', maxWidth: 240 }} title={isDate && val ? formatDt(val, 'datetime') : pathDisplay}>{typeof displayVal === 'string' ? displayVal.split('|')[0] : displayVal}</span>
+        <span className="flex-1 db-font-sm min-w-0 truncate" style={{ color: 'var(--db-text, #1e293b)' }} title={isDate && val ? formatDt(val, 'datetime') : pathDisplay}>{typeof displayVal === 'string' ? displayVal.split('|')[0] : displayVal}</span>
       ))}
     </div>
   );

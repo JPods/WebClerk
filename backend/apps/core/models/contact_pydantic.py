@@ -7,7 +7,7 @@ Adds contact-specific fields only.
 from __future__ import annotations
 
 import re
-from typing import Optional
+from typing import Any, Dict, Optional
 from pydantic import BaseModel, Field, field_validator
 
 from common.schemas.envelopes import (
@@ -160,6 +160,9 @@ class ContactUIConfig(_UIBlock):
     format: Optional[UIFormat] = None
     gantt: Optional[UIGantt] = None
     dedup: Optional[UIDedup] = None
+    # form.<model>.columns — the person's own arrangement of a form's header cards, laid over
+    # the company's form in the browser (frontend hooks/useDetailLayout.ts, Bill 2026-11-14).
+    form: Optional[Dict[str, Any]] = None
 
 
 class ContactConfig(ConfigBase):

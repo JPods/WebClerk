@@ -1,137 +1,175 @@
-/* LastChecked: 2026-08-03 | WhereUsed: DbForm | WhoCreated: Claude */
+/* LastChecked: 2026-11-14 | WhereUsed: DbForm | WhoCreated: Claude */
 /**
- * DesignMode — visual form designer overlay.
+ * DesignMode — arrange a form's header cards (Bill, 2026-11-14: "allow users to easily adjust
+ * fields and leafs important to them").
  *
- * When active, the form becomes a layout editor:
- * - Click a column → see available fields not yet placed
- * - Click a field → it's added to that column
- * - Drag to reorder (future)
- * - Shift+click a placed field → remove it
- * - Save → updates the model definition (config.layout.form.default)
- * - Reset → staff put the form back to the default; the old one is kept in the Log
- *
- * The form IS the designer. Same components, design overlay.
+ * The form under this panel is the preview: every change here redraws it at once.
+ * - Drag a field to move it, within a card or to another card.
+ * - Drag the bar between two cards to make one wider and the other narrower.
+ * - Click a card to list the model's leaves not yet placed (every leaf this viewer may see,
+ *   from wcapi/<model>/fields/); click one to place it.
+ * - Click a field's label to rename it; × removes the field.
+ * - Save for me     → the person's own Contact (config.ui.form.<model>.columns); laid over the
+ *                     company's form by useDetailLayout.
+ * - Save for everyone (staff) → the model's definition (config.layout.form.default).
+ * - Company form    → drop the person's own arrangement.
+ * - Reset to default (staff) → the definition's form back to the code's; the old one is logged.
  */
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useDispatch } from 'react-redux';
 import { showToast } from '@/store/slices/toastSlice';
-import { resetLayout, saveRecord } from '@/api/wcapi';
-import type { DetailLayout } from '@/hooks/useDetailLayout';
-
-// All possible fields a transaction form could show
-// PJPV: display/edit binds to JSON aspects, not scalar columns
-const ALL_FIELDS: Array<{ field: string; label: string; group: string; type?: string }> = [
-  // Bill To (from addresses/emails/phones JSON aspects)
-  { field: 'company', label: 'company', group: 'party' },
-  { field: 'addresses.bill_to.attention', label: 'attention', group: 'party' },
-  { field: 'phones.bill_to.number', label: 'phone', group: 'party' },
-  { field: 'emails.bill_to.email', label: 'email', group: 'party' },
-  { field: 'addresses.bill_to.full_address', label: 'address', group: 'party' },
-  { field: 'addresses.bill_to.instructions', label: 'instructions', group: 'party' },
-  // Ship To (from addresses/emails/phones JSON aspects)
-  { field: 'addresses.ship_to.attention', label: 'attention', group: 'ship' },
-  { field: 'phones.ship_to.number', label: 'phone', group: 'ship' },
-  { field: 'emails.ship_to.email', label: 'email', group: 'ship' },
-  { field: 'addresses.ship_to.full_address', label: 'address', group: 'ship' },
-  { field: 'addresses.ship_to.instructions', label: 'instructions', group: 'ship' },
-  { field: 'ship_via', label: 'ship via', group: 'ship', type: 'select' },
-  { field: 'conditions_description', label: 'conditions', group: 'ship', type: 'select' },
-  // Transaction
-  { field: 'price_level', label: 'price lvl', group: 'transaction', type: 'select' },
-  { field: 'terms', label: 'terms', group: 'transaction', type: 'select' },
-  { field: 'status', label: 'status', group: 'transaction', type: 'select' },
-  { field: 'dt_created', label: 'date', group: 'transaction', type: 'readonly' },
-  { field: 'dt_needed', label: 'need by', group: 'transaction' },
-  { field: 'source_name', label: 'source', group: 'transaction' },
-  { field: 'priority', label: 'priority', group: 'transaction' },
-  { field: 'parent_model', label: 'parent', group: 'transaction', type: 'readonly' },
-  { field: 'ida', label: 'id', group: 'transaction', type: 'readonly' },
-  { field: 'totals.total', label: 'total', group: 'transaction', type: 'readonly' },
-  { field: 'totals.balance', label: 'balance', group: 'transaction', type: 'readonly' },
-  { field: 'is_commission', label: 'commission', group: 'transaction' },
-  { field: 'line_increment', label: 'line inc', group: 'transaction' },
-];
+import { getViewLeaves, resetLayout, saveRecord } from '@/api/wcapi';
+import { myFormColumns, saveMyFormColumns, type DetailLayout } from '@/hooks/useDetailLayout';
 
 export interface DesignModeProps {
   layout: DetailLayout;
   modelName: string;
+  /** Staff may change the form for everyone and reset it to the code's default. */
+  isStaff?: boolean;
   onLayoutChange: (layout: DetailLayout) => void;
+  /** The saved form changed (mine or everyone's): the form reads it again. */
+  onSaved?: () => void;
 }
 
-const DesignMode: React.FC<DesignModeProps> = ({ layout, modelName, onLayoutChange }) => {
+type Spot = { col: number; idx: number };
+
+const weightOf = (col: any): number => (Number(col?.weight) > 0 ? Number(col.weight) : 1);
+
+/** Move one field to a spot; the spot is counted before the field is taken out. */
+export function moveField(columns: any[], from: Spot, to: Spot): any[] {
+  const next = JSON.parse(JSON.stringify(columns));
+  const [moved] = (next[from.col]?.fields || []).splice(from.idx, 1);
+  if (!moved || !next[to.col]) return columns;
+  const at = from.col === to.col && from.idx < to.idx ? to.idx - 1 : to.idx;
+  next[to.col].fields = next[to.col].fields || [];
+  next[to.col].fields.splice(Math.max(0, Math.min(at, next[to.col].fields.length)), 0, moved);
+  return next;
+}
+
+/** Shift width between card `left` and the card after it; `share` is the part of the row dragged. */
+export function shiftWeight(columns: any[], left: number, share: number): any[] {
+  const next = JSON.parse(JSON.stringify(columns));
+  const a = next[left], b = next[left + 1];
+  if (!a || !b) return columns;
+  const total = next.reduce((n: number, c: any) => n + weightOf(c), 0);
+  const pair = weightOf(a) + weightOf(b);
+  const least = Math.min(0.25, pair / 4);
+  const wa = Math.max(least, Math.min(pair - least, weightOf(a) + share * total));
+  a.weight = Math.round(wa * 100) / 100;
+  b.weight = Math.round((pair - wa) * 100) / 100;
+  return next;
+}
+
+const DesignMode: React.FC<DesignModeProps> = ({ layout, modelName, isStaff, onLayoutChange, onSaved }) => {
   const dispatch = useDispatch();
   const [activeColumn, setActiveColumn] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
+  const [leaves, setLeaves] = useState<string[]>([]);
+  const [find, setFind] = useState('');
+  const [drag, setDrag] = useState<Spot | null>(null);
+  const [over, setOver] = useState<Spot | null>(null);
+  const [hasMine, setHasMine] = useState(() => !!myFormColumns(modelName));
+  const rowRef = useRef<HTMLDivElement>(null);
 
-  // Find all fields currently placed on the form
-  const placedFields = useMemo(() => {
-    const placed = new Set<string>();
-    for (const section of layout.sections || []) {
-      if ((section as any).columns) {
-        for (const col of (section as any).columns) {
-          for (const f of col.fields || []) {
-            placed.add(f.field);
-          }
-        }
-      }
-    }
-    return placed;
-  }, [layout]);
+  useEffect(() => {
+    let live = true;
+    getViewLeaves(modelName).then((l) => { if (live) setLeaves(l); }).catch(() => { if (live) setLeaves([]); });
+    return () => { live = false; };
+  }, [modelName]);
 
-  // Fields available to add
-  const availableFields = useMemo(() => {
-    return ALL_FIELDS.filter(f => !placedFields.has(f.field));
-  }, [placedFields]);
+  const headerSection = layout.sections?.find((s: any) => s.type === 'header') as any;
+  const columns: any[] = headerSection?.columns || [];
 
-  // Add field to a column
-  const addField = useCallback((colIdx: number, field: typeof ALL_FIELDS[0]) => {
-    const newLayout = JSON.parse(JSON.stringify(layout));
-    const headerSection = newLayout.sections.find((s: any) => s.type === 'header');
-    if (headerSection?.columns?.[colIdx]) {
-      headerSection.columns[colIdx].fields.push({
-        field: field.field,
-        label: field.label,
-        type: field.type || 'editable',
-      });
-    }
-    onLayoutChange(newLayout);
-    setActiveColumn(null);
-    dispatch(showToast({ message: `Added ${field.label} to column ${colIdx + 1}`, type: 'success' }));
-  }, [layout, onLayoutChange, dispatch]);
+  const setColumns = useCallback((next: any[]) => {
+    const copy = JSON.parse(JSON.stringify(layout));
+    const header = copy.sections.find((s: any) => s.type === 'header');
+    if (!header) return;
+    header.columns = next;
+    onLayoutChange(copy);
+  }, [layout, onLayoutChange]);
 
-  // Remove field from a column
-  const removeField = useCallback((colIdx: number, fieldIdx: number) => {
-    const newLayout = JSON.parse(JSON.stringify(layout));
-    const headerSection = newLayout.sections.find((s: any) => s.type === 'header');
-    if (headerSection?.columns?.[colIdx]) {
-      const removed = headerSection.columns[colIdx].fields.splice(fieldIdx, 1);
-      onLayoutChange(newLayout);
-      dispatch(showToast({ message: `Removed ${removed[0]?.label || 'field'}`, type: 'info' }));
-    }
-  }, [layout, onLayoutChange, dispatch]);
+  const placed = useMemo(() => {
+    const names = new Set<string>();
+    columns.forEach((c) => (c.fields || []).forEach((f: any) => names.add(f.field)));
+    return names;
+  }, [columns]);
 
-  // Save the layout where useDetailLayout reads it: the model's definition
-  // (wc:model config.layout.form.default). A posted config merges into the stored one.
-  const saveLayout = useCallback(async () => {
+  // The leaves not placed: lines are the line card's, not the header's.
+  const available = useMemo(() => {
+    const q = find.trim().toLowerCase();
+    return leaves.filter((l) => !placed.has(l) && !l.startsWith('lines.') && (!q || l.toLowerCase().includes(q)));
+  }, [leaves, placed, find]);
+
+  const addField = (colIdx: number, leaf: string) => {
+    const next = JSON.parse(JSON.stringify(columns));
+    next[colIdx].fields = [...(next[colIdx].fields || []), { field: leaf, label: leaf.split('.').pop() || leaf }];
+    setColumns(next);
+  };
+  const removeField = (colIdx: number, idx: number) => {
+    const next = JSON.parse(JSON.stringify(columns));
+    next[colIdx].fields.splice(idx, 1);
+    setColumns(next);
+  };
+  const renameField = (colIdx: number, idx: number) => {
+    const f = columns[colIdx]?.fields?.[idx];
+    const label = window.prompt(`Label for ${f?.field}`, f?.label || '');
+    if (label == null || !label.trim()) return;
+    const next = JSON.parse(JSON.stringify(columns));
+    next[colIdx].fields[idx].label = label.trim();
+    setColumns(next);
+  };
+  const drop = (to: Spot) => {
+    if (drag) setColumns(moveField(columns, drag, to));
+    setDrag(null); setOver(null);
+  };
+
+  // Drag the bar between two cards: width moves from one to the other.
+  const startResize = (left: number, e: React.MouseEvent) => {
+    e.preventDefault(); e.stopPropagation();
+    const width = rowRef.current?.getBoundingClientRect().width || 1;
+    const startX = e.clientX;
+    const start = columns;
+    const move = (ev: MouseEvent) => setColumns(shiftWeight(start, left, (ev.clientX - startX) / width));
+    const up = () => { window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  };
+
+  const saveMine = () => {
+    saveMyFormColumns(modelName, columns);
+    setHasMine(true);
+    dispatch(showToast({ message: `Your ${modelName} form is saved. Others still see the company's.`, type: 'success' }));
+    onSaved?.();
+  };
+  const dropMine = () => {
+    saveMyFormColumns(modelName, null);
+    setHasMine(false);
+    dispatch(showToast({ message: `You now see the company's ${modelName} form.`, type: 'info' }));
+    onSaved?.();
+  };
+  // Where useDetailLayout reads the company's form: the model's definition. A posted config
+  // merges into the stored one. The person's own arrangement is dropped so they see what they saved.
+  const saveForEveryone = async () => {
     setSaving(true);
     try {
       const { getRecords } = await import('@/api/wcapi');
       const res = await getRecords('setting', { parent_model: modelName, purpose: 'wc:model', limit: 1 });
       const setting = res?.results?.[0];
-      if (setting) {
-        await saveRecord('setting', { id: setting.id, config: { layout: { form: { default: layout } } } });
-        dispatch(showToast({ message: 'Layout saved', type: 'success' }));
-      } else {
+      if (!setting) {
         dispatch(showToast({ message: `No model definition for ${modelName}`, type: 'error' }));
+      } else {
+        await saveRecord('setting', { id: setting.id, config: { layout: { form: { default: layout } } } });
+        saveMyFormColumns(modelName, null);
+        setHasMine(false);
+        dispatch(showToast({ message: `The ${modelName} form is saved for everyone`, type: 'success' }));
+        onSaved?.();
       }
-    } catch {
-      dispatch(showToast({ message: 'Failed to save layout', type: 'error' }));
+    } catch (err: any) {
+      dispatch(showToast({ message: err?.response?.data?.message || 'Failed to save the form', type: 'error' }));
     }
     setSaving(false);
-  }, [layout, modelName, dispatch]);
-
-  // Staff: the form back to the default, one part only (lists, help and access stay).
-  const resetForm = useCallback(async () => {
+  };
+  const resetForm = async () => {
     if (!window.confirm(`Reset the ${modelName} form to the default? The current form is kept in the Log.`)) return;
     try {
       await resetLayout(modelName, 'form');
@@ -139,69 +177,89 @@ const DesignMode: React.FC<DesignModeProps> = ({ layout, modelName, onLayoutChan
     } catch (err: any) {
       dispatch(showToast({ message: err?.response?.data?.message || 'Failed to reset the form', type: 'error' }));
     }
-  }, [modelName, dispatch]);
+  };
 
-  // Get columns from layout
-  const headerSection = layout.sections?.find((s: any) => s.type === 'header') as any;
-  const columns = headerSection?.columns || [];
+  const button = 'px-3 py-1 text-xs font-medium rounded disabled:opacity-50';
+  const outline = `${button} border border-amber-600 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40`;
+
+  if (!columns.length) {
+    return (
+      <div className="bg-amber-50 dark:bg-amber-900/20 border-2 border-dashed border-amber-400 rounded-lg p-3 mb-3 text-xs text-amber-700">
+        This form's header is made of named cards, not columns; it cannot be arranged here yet.
+      </div>
+    );
+  }
 
   return (
-    <div className="bg-amber-50 dark:bg-amber-900/20 border-2 border-dashed border-amber-400 rounded-lg p-3 mb-3">
-      <div className="flex items-center gap-3 mb-3">
-        <span className="text-xs font-bold text-amber-700 dark:text-amber-300">DESIGN MODE</span>
-        <span className="text-[10px] text-amber-600">Click a column to add fields. Shift+click a field to remove it.</span>
+    <div data-wc="design-mode" className="bg-amber-50 dark:bg-amber-900/20 border-2 border-dashed border-amber-400 rounded-lg p-3 mb-3">
+      <div className="flex items-center gap-2 mb-3 flex-wrap">
+        <span className="text-xs font-bold text-amber-700 dark:text-amber-300">LAYOUT</span>
+        <span className="text-[11px] text-amber-700">
+          Drag a field to move it. Drag the bar between cards to resize. Click a card to add a field.
+        </span>
         <span className="flex-1" />
-        <button onClick={resetForm} disabled={saving}
-          className="px-3 py-1 text-xs font-medium border border-amber-600 text-amber-700 dark:text-amber-300 rounded hover:bg-amber-100 dark:hover:bg-amber-900/40 disabled:opacity-50">
-          Reset to default
-        </button>
-        <button onClick={saveLayout} disabled={saving}
-          className="px-3 py-1 text-xs font-medium bg-amber-600 text-white rounded hover:bg-amber-700 disabled:opacity-50">
-          {saving ? 'Saving...' : 'Save Layout'}
-        </button>
+        {hasMine && <button data-wc="design-company" onClick={dropMine} disabled={saving} className={outline}>Company form</button>}
+        {isStaff && <button data-wc="design-reset" onClick={resetForm} disabled={saving} className={outline}>Reset to default</button>}
+        {isStaff && (
+          <button data-wc="design-save-all" onClick={saveForEveryone} disabled={saving} className={outline}>
+            {saving ? 'Saving...' : 'Save for everyone'}
+          </button>
+        )}
+        <button data-wc="design-save-mine" onClick={saveMine} disabled={saving}
+          className={`${button} bg-amber-600 text-white hover:bg-amber-700`}>Save for me</button>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div ref={rowRef} className="flex items-stretch">
         {columns.map((col: any, colIdx: number) => (
-          <div key={colIdx}
-            className={`border rounded-lg p-2 cursor-pointer transition-colors ${activeColumn === colIdx ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-amber-300 hover:border-blue-400'}`}
-            onClick={() => setActiveColumn(activeColumn === colIdx ? null : colIdx)}
-          >
-            <div className="text-[10px] font-bold text-slate-600 mb-1">{col.title}</div>
-            {(col.fields || []).map((f: any, fIdx: number) => (
-              <div key={f.field}
-                className="text-[10px] px-1.5 py-0.5 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-600 mb-0.5 flex items-center gap-1 group"
-                onClick={(e) => { if (e.shiftKey) { e.stopPropagation(); removeField(colIdx, fIdx); } }}
-                title="Shift+click to remove"
-              >
-                <span className="text-slate-500 w-12 text-right shrink-0"
-                  style={{ color: f.type === 'select' ? '#1e40af' : f.type === 'readonly' ? '#94a3b8' : '#64748b',
-                           fontStyle: f.type === 'readonly' ? 'italic' : undefined,
-                           fontWeight: f.type === 'search' ? 700 : undefined }}>
-                  {f.label}
-                </span>
-                <span className="text-[9px] text-slate-400 font-mono">{f.field}</span>
-                <span className="hidden group-hover:inline text-red-400 ml-auto text-[9px]">shift+click ✕</span>
-              </div>
-            ))}
-            {activeColumn === colIdx && (
-              <div className="mt-2 pt-2 border-t border-blue-200">
-                <div className="text-[9px] font-medium text-blue-600 mb-1">Available Fields:</div>
-                <div className="max-h-40 overflow-y-auto space-y-0.5">
-                  {availableFields.map(f => (
-                    <button key={f.field}
-                      onClick={(e) => { e.stopPropagation(); addField(colIdx, f); }}
-                      className="w-full text-left text-[10px] px-1.5 py-0.5 rounded hover:bg-blue-100 dark:hover:bg-blue-800 flex items-center gap-2"
-                    >
-                      <span className="text-blue-700 font-medium">{f.label}</span>
-                      <span className="text-slate-400 font-mono text-[9px]">{f.field}</span>
-                      <span className="text-slate-300 text-[9px] ml-auto">{f.group}</span>
-                    </button>
-                  ))}
+          <React.Fragment key={colIdx}>
+            <div data-wc="design-card"
+              className={`border rounded-lg p-2 cursor-pointer transition-colors min-w-0 ${activeColumn === colIdx ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-amber-300 hover:border-blue-400'}`}
+              style={{ flex: `${weightOf(col)} 1 0` }}
+              onClick={() => { setActiveColumn(activeColumn === colIdx ? null : colIdx); setFind(''); }}
+              onDragOver={(e) => { e.preventDefault(); setOver({ col: colIdx, idx: (col.fields || []).length }); }}
+              onDrop={(e) => { e.preventDefault(); drop(over && over.col === colIdx ? over : { col: colIdx, idx: (col.fields || []).length }); }}
+            >
+              <div className="text-[11px] font-bold text-slate-600 mb-1">{col.title}</div>
+              {(col.fields || []).map((f: any, fIdx: number) => (
+                <div key={f.field} data-wc="design-field" data-field={f.field} draggable
+                  onDragStart={(e) => { e.stopPropagation(); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', f.field); setDrag({ col: colIdx, idx: fIdx }); }}
+                  onDragEnd={() => { setDrag(null); setOver(null); }}
+                  onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setOver({ col: colIdx, idx: fIdx }); }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-[11px] px-1.5 py-0.5 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-600 mb-0.5 flex items-center gap-1 cursor-grab"
+                  style={over && drag && over.col === colIdx && over.idx === fIdx ? { borderTop: '2px solid #2563eb' } : undefined}
+                >
+                  <span className="shrink-0 hover:underline cursor-text" title="Click to rename"
+                    onClick={() => renameField(colIdx, fIdx)}>{f.label || f.field}</span>
+                  <span className="text-[10px] text-slate-400 font-mono truncate min-w-0">{f.field}</span>
+                  <button className="ml-auto text-red-400 hover:text-red-600 px-1" title="Remove from the form"
+                    onClick={() => removeField(colIdx, fIdx)}>×</button>
                 </div>
+              ))}
+              {activeColumn === colIdx && (
+                <div className="mt-2 pt-2 border-t border-blue-200" onClick={(e) => e.stopPropagation()}>
+                  <input data-wc="design-find" autoFocus value={find} onChange={(e) => setFind(e.target.value)}
+                    placeholder={`Find a field (${available.length} not placed)`}
+                    className="w-full text-[11px] px-1.5 py-0.5 mb-1 rounded border border-blue-200 bg-white dark:bg-slate-800" />
+                  <div className="max-h-40 overflow-y-auto space-y-0.5">
+                    {available.slice(0, 200).map((leaf) => (
+                      <button key={leaf} data-wc="design-leaf" onClick={() => addField(colIdx, leaf)}
+                        className="w-full text-left text-[11px] px-1.5 py-0.5 rounded hover:bg-blue-100 dark:hover:bg-blue-800 font-mono truncate">
+                        {leaf}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            {colIdx < columns.length - 1 && (
+              <div data-wc="design-resize" title="Drag to resize the cards beside this bar"
+                onMouseDown={(e) => startResize(colIdx, e)}
+                className="w-3 mx-0.5 shrink-0 cursor-col-resize flex items-center justify-center">
+                <div className="w-1 h-10 rounded bg-amber-400" />
               </div>
             )}
-          </div>
+          </React.Fragment>
         ))}
       </div>
     </div>

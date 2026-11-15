@@ -168,6 +168,12 @@ export async function getJsonObjects(model_name: string): Promise<string[]> {
   return rules?.json_objects || [];
 }
 
+/** Every leaf of a model this viewer may see: what a form's design mode offers to place. */
+export async function getViewLeaves(model_name: string): Promise<string[]> {
+  const rules = await wcapiGet<{ view?: string[] }>(`${resolveModelName(model_name)}/fields/`);
+  return rules?.view || [];
+}
+
 async function wcapiPost<T>(path: string, body: any, extraHeaders?: Record<string, string>): Promise<T> {
   const config = extraHeaders ? { headers: extraHeaders } : undefined;
   const res = await apiClient.post<ApiEnvelope<T>>(`/wcapi/${path}`, body, config);

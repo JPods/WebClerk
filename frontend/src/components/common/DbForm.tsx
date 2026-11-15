@@ -230,6 +230,14 @@ const DbFormView: React.FC<DbFormProps> = (props) => {
         {form.editTier === 'closed' && badge('red', 'closed')}
         {form.hold && <span data-wc="edit-hold-notice">{badge('amber', heldNotice(form.hold))}</span>}
         {designMode && badge('amber', 'DESIGN')}
+        <span className="flex-1" />
+        {/* Arrange this form's cards: for yourself, or (staff) for everyone. In the form itself
+            so the list's inline form has it too (its toolbar is the list's). */}
+        <button type="button" data-wc="design-toggle" onClick={toggleDesign}
+          title="Arrange the fields and cards of this form"
+          className="text-xs px-2 py-0.5 rounded border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
+          {designMode ? 'Done' : 'Layout'}
+        </button>
       </div>
 
       {/* Toolbar — hidden when inline (DataBrowser has its own) */}
@@ -263,7 +271,9 @@ const DbFormView: React.FC<DbFormProps> = (props) => {
 
       {designMode && activeLayout && (
         <div className="px-4 pt-3">
-          <DesignMode layout={activeLayout} modelName={modelName} onLayoutChange={(l) => setDesignLayout(l)} />
+          <DesignMode layout={activeLayout} modelName={modelName}
+            isStaff={!!(authUser?.is_staff || authUser?.is_superuser)}
+            onLayoutChange={(l) => setDesignLayout(l)} onSaved={toggleDesign} />
         </div>
       )}
 
