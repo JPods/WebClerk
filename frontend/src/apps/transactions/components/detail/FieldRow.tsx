@@ -298,7 +298,15 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
   const isLocked = (lockedFields || []).some(
     (locked) => field === locked || field.startsWith(`${locked}.`));
   const resolvedType = isLocked ? 'readonly' : baseType;
-  const labelStyle = useLabelStyle(resolvedType);
+  // A label keeps its colour when it cannot be entered: italic says "not enterable", the
+  // colour still says what the field is — blue a choice, green something to act on
+  // (Bill, 2026-11-14).
+  const kind = [nameType, options ? 'select' : '', isRecordRef ? 'action' : '', baseType]
+    .find((t) => t === 'select' || t === 'action');
+  const plainStyle = useLabelStyle(resolvedType);
+  const kindStyle = useLabelStyle(kind || resolvedType);
+  const labelStyle = resolvedType === 'readonly' && kind
+    ? { ...kindStyle, fontStyle: 'italic' as const } : plainStyle;
   const isClickable = resolvedType === 'select' || resolvedType === 'action' || resolvedType === 'search';
   // Show field path: always as title tooltip, visible subscript when data-show-paths is set
   const pathDisplay = field;
