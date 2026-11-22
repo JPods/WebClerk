@@ -15,7 +15,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { getRecord, newRecord, saveRecord, saveTransactionWithLines } from '@/api/wcapi';
+import { getRecord, RecordNotFound, newRecord, saveRecord, saveTransactionWithLines } from '@/api/wcapi';
 import { showToast } from '@/store/slices/toastSlice';
 import { useWindowManager } from '@/context/WindowManagerContext';
 import { useEditHold, type HeldBy } from '@/hooks/useEditHold';
@@ -195,8 +195,13 @@ export function useRecordForm(opts: RecordFormOptions) {
       }
       setData(record);
       setEditData({ ...record });
-    } catch {
-      dispatch(showToast({ message: `Failed to load ${modelName}`, type: 'error' }));
+    } catch (err) {
+      // Not found is shown in the page ("Record not found"); a toast is for a read that failed.
+      if (!(err instanceof RecordNotFound)) {
+        dispatch(showToast({ message: `Failed to load ${modelName}`, type: 'error' }));
+      }
+      setData(null);
+      setEditData(null);
     } finally {
       setLoading(false);
     }

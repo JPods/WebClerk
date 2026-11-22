@@ -459,11 +459,28 @@ export function clearOptionCache(modelName?: string): void {
   }
 }
 
+/** The record asked for does not exist, or this person may not see it (the server answers
+ *  both the same way: success with record null). */
+export class RecordNotFound extends Error {
+  constructor(public model: string, public id: number | string) {
+    super(`${model} ${id} was not found`);
+    this.name = 'RecordNotFound';
+  }
+}
+
+/** One record by id. Throws RecordNotFound rather than hand back an answer with no record:
+ *  callers read `res.record || res`, which took the empty answer itself for the record and
+ *  opened a blank, saveable form titled "#undefined" (found by the panel sweep, 2026-11-22). */
 export async function getRecord(model_name: string, id: number) {
   const resolved = resolveModelName(model_name);
-  return wcapiGet<GetDetailPayload>(`${resolved}/${id}/`, {
+  if (id === undefined || id === null || (id as unknown) === '') throw new RecordNotFound(resolved, String(id));
+  const payload = await wcapiGet<GetDetailPayload>(`${resolved}/${id}/`, {
     cache: false,
   } as any);
+  if (payload && typeof payload === 'object' && 'record' in payload && (payload as any).record == null) {
+    throw new RecordNotFound(resolved, id);
+  }
+  return payload;
 }
 
 // Computed property fields that don't exist as model columns — they cause envelope_invalid

@@ -31,7 +31,7 @@ const SWEEP_USER = process.env.WC_SWEEP_USER || 'claude@jpods.com';
 /** Records with linked data worth reading (the AF-2011 flight-sim chain, a BOM item, a customer
  *  with contacts). Every model's newest record is swept as well. */
 const PINNED: Record<string, number[]> = {
-  order: [171], invoice: [160], purchase: [53], receipt: [19], item: [687, 625], customer: [5604],
+  order: [171], invoice: [160], purchase: [53], item: [687, 625], customer: [5604],
 };
 
 /** Tabs that act rather than read: "+ link" saves a link on click. */
