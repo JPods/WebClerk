@@ -11,8 +11,8 @@ Usage:
   # Print to stdout
   python manage.py generate_ts_types
 
-  # Write to file (default: React2025 generated types)
-  python manage.py generate_ts_types --out ../React2025/src/generated/modelTypes.ts
+  # Write to file (default: the frontend generated types)
+  python manage.py generate_ts_types --out ../frontend/src/generated/modelTypes.ts
 
   # Single model
   python manage.py generate_ts_types --model customer
@@ -353,7 +353,7 @@ class Command(BaseCommand):
              *
              * Regenerate with:
              *   cd webClerk3 && python manage.py generate_ts_types \\
-             *     --out ../React2025/src/generated/modelTypes.ts
+             *     --out ../frontend/src/generated/modelTypes.ts
              */
 
             /* eslint-disable @typescript-eslint/no-explicit-any */

@@ -1,7 +1,7 @@
 """
 Management command: index_docs
 
-Crawls the project's documentation, code docstrings, and 4D methods,
+Reads the published readmes, the backend code and the React app,
 then indexes them into the document index (DocChunk rows) for RAG retrieval.
 
 Usage:
@@ -10,7 +10,6 @@ Usage:
     python manage.py index_docs --reset          # wipe and rebuild
     python manage.py index_docs --stats          # show index stats
 """
-import os
 import time
 from pathlib import Path
 
@@ -19,151 +18,111 @@ from django.core.management.base import BaseCommand
 
 from apps.ai_assistant.services.vector_store import VectorStoreManager
 
-# ── Source directories ──────────────────────────────────────────────
+# ── Where the sources are ───────────────────────────────────────────
+# Three roots, each named once in settings: the backend (BASE_DIR), the React app
+# (FRONTEND_DIR) and the published readmes (DOCS_DIR, which an instance may not have).
 
 BASE = Path(settings.BASE_DIR)
+FRONTEND = Path(settings.FRONTEND_DIR)
+DOCS = Path(settings.DOCS_DIR) if settings.DOCS_DIR else None
+REPO_ROOT = BASE.parent
 
-# Workspace roots (relative to the workspace, not just wc3)
-WORKSPACE_ROOT = BASE.parent  # /Users/.../CommerceExpert/
+# Folders never indexed: build output, dependencies, and set-aside material that would
+# teach Alice what we no longer do.
+SKIP_PARTS = frozenset({"__pycache__", "node_modules", ".git", "migrations", "venv", "venv312",
+                        "archive", "_archive", "junkdrawer", "__tests__", "dist"})
 
 SOURCE_CONFIGS = {
     "readmes": {
         "label": "Readmes & Documentation",
-        "paths": [
-            BASE / "readmes",
-            WORKSPACE_ROOT / "React2025" / "readmes",
-        ],
+        "paths": ([DOCS] if DOCS else []) + [FRONTEND / "src"],
         "extensions": {".md", ".txt", ".rst"},
         "type": "documentation",
     },
     "instructions": {
-        "label": "Copilot / Team Instructions",
-        "paths": [
-            BASE / ".github" / "instructions",
-            WORKSPACE_ROOT / "React2025" / ".github" / "instructions",
-        ],
+        "label": "Team Instructions",
+        "paths": [BASE / ".github" / "instructions", FRONTEND / ".github" / "instructions"],
         "extensions": {".md"},
         "type": "instructions",
     },
     "models": {
         "label": "Django Model Definitions",
-        "paths": [
-            BASE / "apps",
-            BASE / "common",
-        ],
+        "paths": [BASE / "apps", BASE / "common"],
         "extensions": {".py"},
         "file_patterns": ["models.py", "models/"],
         "type": "code_models",
     },
     "services": {
         "label": "Django Services & Business Logic",
-        "paths": [
-            BASE / "apps",
-        ],
+        "paths": [BASE / "apps"],
         "extensions": {".py"},
         "file_patterns": ["services/"],
         "type": "code_services",
     },
     "views": {
         "label": "Django Views & API Endpoints",
-        "paths": [
-            BASE / "apps",
-        ],
+        "paths": [BASE / "apps"],
         "extensions": {".py"},
         "file_patterns": ["views.py", "views/", "urls.py"],
         "type": "code_views",
     },
     "settings": {
         "label": "Django Settings & Configuration",
-        "paths": [
-            BASE / "webclerk3_api",
-        ],
+        "paths": [BASE / "webclerk3_api"],
         "extensions": {".py"},
         "file_patterns": ["settings.py", "urls.py", "celery.py"],
         "type": "code_config",
     },
     "tasks": {
         "label": "Celery Tasks & Management Commands",
-        "paths": [
-            BASE / "apps",
-        ],
+        "paths": [BASE / "apps"],
         "extensions": {".py"},
         "file_patterns": ["tasks.py", "tasks/", "management/commands/"],
         "type": "code_tasks",
     },
     "tests": {
         "label": "Test Files",
-        "paths": [
-            BASE / "tests",
-            BASE,  # root-level test_*.py files
-        ],
+        "paths": [BASE / "tests"],
         "extensions": {".py"},
         "file_patterns": ["test_", "conftest.py"],
         "type": "code_tests",
     },
     "common": {
         "label": "Common / Shared Utilities",
-        "paths": [
-            BASE / "common",
-        ],
+        "paths": [BASE / "common"],
         "extensions": {".py"},
         "type": "code_common",
     },
-    "4d_methods": {
-        "label": "4D Legacy Methods",
-        "paths": [
-            WORKSPACE_ROOT / "00WebClerk19" / "Project" / "Sources" / "Methods",
-            WORKSPACE_ROOT / "00WebClerk19" / "Project" / "Sources" / "Classes",
-            WORKSPACE_ROOT / "00WebClerk19" / "Project" / "Sources" / "DatabaseMethods",
-        ],
-        "extensions": {".4dm"},
-        "type": "4d_code",
-    },
-    "react_types": {
-        "label": "React TypeScript Types & Interfaces",
-        "paths": [
-            WORKSPACE_ROOT / "React2025" / "src" / "model",
-            WORKSPACE_ROOT / "React2025" / "src" / "type",
-        ],
+    "react_api": {
+        "label": "React API Layer & Types",
+        "paths": [FRONTEND / "src" / "api", FRONTEND / "src" / "type"],
         "extensions": {".ts", ".tsx"},
-        "type": "code_types",
+        "type": "code_react_api",
     },
-    "react_services": {
-        "label": "React API Services & SDK",
-        "paths": [
-            WORKSPACE_ROOT / "React2025" / "src" / "api",
-            WORKSPACE_ROOT / "React2025" / "src" / "apps",
-        ],
-        "extensions": {".ts", ".tsx"},
-        "file_patterns": ["Api.ts", "api.ts", "Service.ts", "service.ts", "SDK", "sdk"],
-        "type": "code_react_services",
-    },
-    "react_pages": {
+    "react_apps": {
         "label": "React Pages & Components",
-        "paths": [
-            WORKSPACE_ROOT / "React2025" / "src" / "apps",
-        ],
+        "paths": [FRONTEND / "src" / "apps"],
         "extensions": {".ts", ".tsx"},
-        "file_patterns": ["Page.tsx", "page.tsx"],
-        "type": "code_react_pages",
-    },
-    "copilot_context": {
-        "label": "Copilot Context Files",
-        "paths": [
-            BASE / ".copilot-context",
-        ],
-        "extensions": {".md", ".json"},
-        "type": "copilot_context",
+        "type": "code_react_apps",
     },
     "alice_knowledge": {
-        "label": "Alice Knowledge Base — Best Practices & Intelligence",
-        "paths": [
-            BASE / "apps" / "ai_assistant" / "data",
-        ],
+        "label": "Alice Knowledge Base",
+        "paths": [BASE / "apps" / "ai_assistant" / "data"],
         "extensions": {".md", ".json"},
         "type": "alice_knowledge",
     },
 }
+
+
+def doc_id_for(filepath: Path) -> str:
+    """A stable name for a file that does not carry this machine's folders: readmes/<path>
+    under DOCS_DIR, else the path inside the repository."""
+    if DOCS:
+        try:
+            return "readmes/" + filepath.relative_to(DOCS).as_posix()
+        except ValueError:
+            pass
+    return filepath.relative_to(REPO_ROOT).as_posix()
 
 
 class Command(BaseCommand):
@@ -207,7 +166,7 @@ class Command(BaseCommand):
             return
 
         if options["reset"]:
-            self.stdout.write(self.style.WARNING("Resetting vector store..."))
+            self.stdout.write(self.style.WARNING("Emptying the document index..."))
             vs.reset()
 
         sources = (
@@ -218,6 +177,7 @@ class Command(BaseCommand):
 
         total_files = 0
         total_chunks = 0
+        empty = []
         start_time = time.time()
 
         for key, config in sources.items():
@@ -227,6 +187,8 @@ class Command(BaseCommand):
 
             files = self._collect_files(config)
             self.stdout.write(f"Found {len(files)} files")
+            if not files:
+                empty.append(key)
 
             if options["dry_run"]:
                 for f in files[:10]:
@@ -241,11 +203,7 @@ class Command(BaseCommand):
                     if not content.strip():
                         continue
 
-                    # Build a doc_id that's workspace-relative
-                    try:
-                        doc_id = str(filepath.relative_to(WORKSPACE_ROOT))
-                    except ValueError:
-                        doc_id = str(filepath)
+                    doc_id = doc_id_for(filepath)
 
                     metadata = {
                         "source": key,
@@ -274,6 +232,12 @@ class Command(BaseCommand):
             f"  Chunks created: {total_chunks}\n"
             f"  Total in store: {stats['count']}"
         ))
+        if not DOCS:
+            self.stdout.write(self.style.WARNING(
+                "DOCS_DIR is not set: no published readmes are in the index."))
+        if empty:
+            self.stdout.write(self.style.WARNING(
+                f"Sources that found no files: {', '.join(empty)}. Check FRONTEND_DIR and DOCS_DIR."))
 
     def _collect_files(self, config: dict) -> list[Path]:
         """Collect all matching files for a source config."""
@@ -292,11 +256,7 @@ class Command(BaseCommand):
                 if filepath.suffix not in extensions:
                     continue
 
-                # Skip common noise
-                if any(
-                    part in filepath.parts
-                    for part in ("__pycache__", "node_modules", ".git", "migrations", "venv", "venv312")
-                ):
+                if SKIP_PARTS.intersection(filepath.relative_to(search_path).parts):
                     continue
 
                 # If file_patterns specified, only include matching paths

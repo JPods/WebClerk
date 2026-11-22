@@ -9,7 +9,6 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 from apps.core.models import Setting
 
-LOG_FILE = "/Users/williamjames/Documents/CommerceExpert/webClerk3/load_qa.log"
 
 
 class Command(BaseCommand):
@@ -31,7 +30,8 @@ class Command(BaseCommand):
         self.logger = logging.getLogger('load_qa')
         self.logger.setLevel(logging.DEBUG)
         self.logger.handlers = []
-        fh = logging.FileHandler(LOG_FILE, mode='w')
+        from django.conf import settings
+        fh = logging.FileHandler(str(settings.DATA_DIR / 'load_qa.log'), mode='w')
         fh.setLevel(logging.DEBUG)
         fh.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
         self.logger.addHandler(fh)
@@ -54,7 +54,11 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.setup_logging()
         
-        source_file = "/Users/williamjames/Documents/CommerceExpert/webClerk3/readmes/topics/qa/qa.json"
+        from django.conf import settings
+        if not settings.DOCS_DIR:
+            self.log('DOCS_DIR is not set: there is no qa.json to load', 'error')
+            return
+        source_file = str(settings.DOCS_DIR / 'operations' / 'qa.json')
         dry_run = options['dry_run']
         clear = options['clear']
         

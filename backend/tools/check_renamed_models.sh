@@ -16,7 +16,7 @@
 set -eo pipefail
 
 WC3_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-R25_ROOT="$(cd "$WC3_ROOT/../React2025" 2>/dev/null && pwd)" || R25_ROOT=""
+R25_ROOT="$(cd "$WC3_ROOT/../frontend" 2>/dev/null && pwd)" || R25_ROOT=""
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'

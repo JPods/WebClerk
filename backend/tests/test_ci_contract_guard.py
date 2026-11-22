@@ -41,15 +41,9 @@ SKIP_FILE_NAMES = {
     # Management commands use local defaults for dev convenience — not production paths
     'seed_jpods_demo.py',
     'code_standards.py',
-    'index_docs.py',
     'alice_deliberate.py',
     'dedup.py',
-    'load_qa.py',
     'export_data.py',
-    # Service files with local default paths for dev convenience
-    'watch_code.py',
-    'record_dedup.py',
-    'record_dedup 2.py',
 }
 
 def iter_text_files():

@@ -16,10 +16,9 @@ from django.core.management.base import BaseCommand
 from apps.core.models import Setting
 
 
-# Path to React2025 src/apps relative to webClerk3 manage.py
-R25_APPS_DIR = os.path.normpath(
-    os.path.join(os.path.dirname(__file__), '../../../../..', 'React2025', 'src', 'apps')
-)
+from django.conf import settings
+
+R25_APPS_DIR = str(settings.FRONTEND_DIR / 'src' / 'apps')
 
 # Layout file suffixes we track (matched case-insensitively at end of filename)
 LAYOUT_TYPES = ['Detail', 'List', 'Dialog', 'Panel']

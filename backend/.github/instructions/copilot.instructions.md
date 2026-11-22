@@ -425,9 +425,7 @@ Invoice Save (Phase 5)
 | URL routing | `webclerk3_api/urls.py` |
 | Settings | `webclerk3_api/settings.py` |
 | Tests | `tests/` (root) and `apps/*/tests/` |
-| Readmes | `readmes/` (numbered 00–09 for onboarding, topics/ for deep-dives) |
-| Copilot context (committed) | `.copilot-context/` (models, fixtures, imports, errors, maps) |
-| Context generator | `apps/ai_assistant/management/commands/generate_context.py` |
+| Readmes | `settings.DOCS_DIR` — the webclerk-site repository's `docs/` (published at webclerk.com/readmes) |
 | AI document index | `DocChunk` rows in the database (rebuild with `index_docs --reset`) |
 | Instruction sync check | `common/checks.py` (Django system check: copilot.W001/W002) |
 
@@ -444,62 +442,9 @@ Invoice Save (Phase 5)
 
 ---
 
-## 12. Copilot Context System
+## 12. Where things are
 
-The `.copilot-context/` directory contains **auto-generated, machine-readable reference files** committed to git for the whole team. These are indexed by the AI assistant (ChromaDB) and directly readable by Copilot.
-
-### Structure
-
-```
-.copilot-context/
-├── models/
-│   ├── model-reference.md     ← every Django model's fields, types, relations (80 models)
-│   └── model-hierarchy.md     ← CoreModel → BaseModel mixin chain overview
-├── fixtures/
-│   └── *.json                 ← golden API response shapes (one per model)
-├── imports/
-│   ├── django-imports.md      ← canonical Python import paths
-│   └── react-imports.md       ← canonical TypeScript import paths
-├── errors/
-│   └── error-patterns.md      ← curated known errors with diagnosis + fixes
-└── maps/
-    └── endpoint-map.md        ← all URL patterns with view classes
-```
-
-### Regeneration Rules (MANDATORY)
-
-Run `python manage.py generate_context` after **any** of the following:
-
-| Trigger | Why |
-|---------|-----|
-| `python manage.py makemigrations` | Model fields changed — reference & fixtures are stale |
-| Adding/removing a Django model | Model reference and hierarchy need updating |
-| Adding/changing URL patterns | Endpoint map is stale |
-| Adding new React services/hooks/pages | React import paths need updating |
-| Changing API response shapes | Fixtures need updating |
-
-**Shorthand — always pair migrations with context:**
-```bash
-python manage.py makemigrations
-python manage.py migrate
-python manage.py generate_context
-```
-
-After regenerating, reindex for the AI assistant:
-```bash
-python manage.py index_docs --source copilot_context
-```
-
-### Error Patterns
-
-When you encounter a new recurring error, add it to `.copilot-context/errors/error-patterns.md` with:
-- The error text
-- The cause
-- The fix
-
-This lets the AI debugger recognize the pattern immediately.
-
----
+Folders outside the backend are named once, in `settings.py`: `FRONTEND_DIR` (the React app, `../frontend`) and `DOCS_DIR` (the published readmes, the webclerk-site repository's `docs/`). Code reads those names; it never spells a path to another folder (`tests/test_locations.py`).
 
 ## 13. Instruction File Sync (MANDATORY)
 

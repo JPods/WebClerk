@@ -34,7 +34,6 @@ SCHEMA_FILE_PATTERNS = (
     r"^common/.+schema.+\.py$",
     r"^readmes/model-fields\.json$",
     r"^readmes/model-registry\.json$",
-    r"^\.copilot-context/models/.+\.md$",
 )
 
 
@@ -358,7 +357,7 @@ class Command(BaseCommand):
         no_report = bool(options.get("no_report"))
 
         repo_root = Path(settings.BASE_DIR)
-        r25_root = repo_root.parent / "React2025"
+        r25_root = Path(settings.FRONTEND_DIR)
 
         changed = list(files_opt) if files_opt is not None else _changed_files(repo_root, commit)
         changed = sorted(set(changed))

@@ -19,6 +19,15 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 # not the company's irreplaceable data — bundles, logs, digests, cache, scripts, certs. Code asks
 # common.work_folders.work_folder(name); the folders and their keep/backup rules are its manifest.
 WORK_DIR = Path(config('WORK_DIR', default=str(DATA_DIR.parent / 'work')))
+
+# The two folders outside the backend that code reads. Every reader uses these names;
+# nothing else may spell a path to them (tests/test_locations.py holds that).
+# FRONTEND_DIR: the React app, beside the backend in the same repository.
+# DOCS_DIR: the published readmes (the webclerk-site repository's docs/). An instance
+# without them sets DOCS_DIR= and the document index holds code only.
+FRONTEND_DIR = Path(config('FRONTEND_DIR', default=str(BASE_DIR.parent / 'frontend')))
+_docs_dir = config('DOCS_DIR', default=str(BASE_DIR.parent.parent.parent / 'sites' / 'webclerk-site' / 'docs'))
+DOCS_DIR = Path(_docs_dir) if _docs_dir else None
 (WORK_DIR / 'logs').mkdir(parents=True, exist_ok=True)
 os.chmod(WORK_DIR, 0o700)
 

@@ -66,7 +66,7 @@ DJANGO_TO_TS: dict[str, str] = {
 
 
 # ── R25 project root (sibling of webClerk3) ────────────────────────────────
-R25_ROOT = Path(settings.BASE_DIR).parent / "React2025"
+R25_ROOT = Path(settings.FRONTEND_DIR)
 
 
 class SchemaDriftDetector:

@@ -28,7 +28,9 @@ from django.db.models import Count
 
 log = logging.getLogger(__name__)
 
-DEDUP_JOURNAL_DIR = Path('/Users/williamjames/Documents/CommerceExpert/webclerk3_data/dedup_journal')
+from django.conf import settings
+
+DEDUP_JOURNAL_DIR = Path(settings.DATA_DIR) / 'dedup_journal'
 
 
 def _journal_record(model_name: str, record, action: str, context: str = ''):

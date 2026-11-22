@@ -237,7 +237,7 @@ CONNECTIONS = [
             'alice': {
                 'runs_on_server': True,
                 'mcp_port': 5010,
-                'vector_store': '/opt/andi/alice/.chroma_db_alice/',
+                'document_index': 'DocChunk rows in this database (manage.py index_docs)',
                 'escalation_connection': 'conn-alice-claude',
             },
         },

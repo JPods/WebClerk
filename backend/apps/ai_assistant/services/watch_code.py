@@ -27,7 +27,9 @@ import re
 import time
 from pathlib import Path
 
-REACT_ROOT = Path('/Users/williamjames/Documents/CommerceExpert/WebClerk/frontend/src')
+from django.conf import settings
+
+REACT_ROOT = Path(settings.FRONTEND_DIR) / 'src'
 
 # Anti-patterns to detect
 ANTI_PATTERNS = [

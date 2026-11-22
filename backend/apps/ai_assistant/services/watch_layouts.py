@@ -49,7 +49,7 @@ logger = logging.getLogger(__name__)
 
 
 # ── R25 project root (sibling of webClerk3) ────────────────────────────────
-R25_ROOT = Path(settings.BASE_DIR).parent / "React2025"
+R25_ROOT = Path(settings.FRONTEND_DIR)
 
 # ── Persistent data directories ────────────────────────────────────────────
 STATE_DIR = Path(settings.WORK_DIR) / "state"           # the work folder 'state' (was inside the repo)
