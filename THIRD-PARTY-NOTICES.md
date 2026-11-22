@@ -113,6 +113,7 @@ Last updated: 2026-09-03
 | [nomic-embed-text](https://ollama.com/library/nomic-embed-text) | Apache-2.0 (model weights) | Local embedding model for the document index; runs in Ollama |
 | [Nginx](https://nginx.org) | BSD-2-Clause | Reverse proxy (production) |
 | [Cloudflare](https://cloudflare.com) | Proprietary (service) | CDN, DNS, Access (production) |
+| [Anthropic API](https://www.anthropic.com) | Proprietary (service, optional) | Claude, called only through an owner's `claude_api` Connection; plain HTTPS, no SDK |
 
 ---
 

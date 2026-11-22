@@ -84,25 +84,6 @@ WC3_ITEM_SCHEMA = {
 }
 
 
-def _get_claude_client():
-    """Load Anthropic client using Alice's API key.
-
-    Key lookup order:
-    1. allie_api_keys.json -> keys.anthropic (dedicated Anthropic key)
-    2. ANTHROPIC_API_KEY environment variable
-    """
-    import anthropic
-    key_file = Path.home() / 'Allie' / 'config' / 'allie_api_keys.json'
-    if key_file.exists():
-        data = json.loads(key_file.read_text())
-        keys = data.get('keys', data)
-        api_key = keys.get('anthropic', '')
-        if api_key:
-            return anthropic.Anthropic(api_key=api_key)
-    # Fall back to environment variable
-    return anthropic.Anthropic()
-
-
 # ── File Reading ─────────────────────────────────────────────────────
 
 def read_source_file(path: Path) -> dict:
@@ -226,8 +207,15 @@ def _read_json(path: Path, file_hash: str, file_size: int) -> dict:
 # ── Pass 1: Column Mapping via Claude ────────────────────────────────
 
 def run_column_mapping(source_file: SourceFile, pass_log: PassLog) -> list[ColumnMap]:
-    """Ask Claude to map source columns to WC3 schema."""
-    client = _get_claude_client()
+    """Ask Claude to map source columns to WC3 schema, through the one door: the server's
+    'claude_api' Connection holds the key and model, and the call is recorded as a Bundle.
+    The sample rows are scrubbed of personal data before they leave the box."""
+    from apps.ai_assistant.services.pii_scrub import scrub_pii
+    from apps.sync.services import claude_api
+
+    sample_text, scrubbed = scrub_pii(json.dumps(source_file.sample_rows[:5], indent=2))
+    if scrubbed:
+        logger.info("Column mapping: %d personal-data values scrubbed from the sample rows", scrubbed)
 
     prompt = f"""You are Alice, a data conversion specialist for WebClerk (WC3).
 
@@ -236,7 +224,7 @@ A user has uploaded a data file. Map each source column to the correct WC3 field
 SOURCE COLUMNS: {json.dumps(source_file.raw_headers)}
 
 SAMPLE DATA (first rows):
-{json.dumps(source_file.sample_rows[:5], indent=2)}
+{sample_text}
 
 WC3 ITEM SCHEMA:
 {json.dumps(WC3_ITEM_SCHEMA, indent=2)}
@@ -255,22 +243,18 @@ If a column doesn't map to any WC3 field, set target_model and target_field to e
 strings and explain in reasoning. Respond with ONLY the JSON array, no other text."""
 
     t0 = time.time()
-    response = client.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=4096,
-        messages=[{"role": "user", "content": prompt}],
-        metadata={"user_id": "alice"},
-    )
+    reply = claude_api.ask(purpose='conversion_column_map', max_tokens=4096,
+                           messages=[{"role": "user", "content": prompt}])
     elapsed = time.time() - t0
 
     pass_log.llm_calls += 1
-    pass_log.llm_input_tokens += response.usage.input_tokens
-    pass_log.llm_output_tokens += response.usage.output_tokens
+    pass_log.llm_input_tokens += reply.usage['input_tokens']
+    pass_log.llm_output_tokens += reply.usage['output_tokens']
     pass_log.duration_seconds += elapsed
-    pass_log.llm_model = "claude-haiku-4-5-20251001"
+    pass_log.llm_model = reply.model
 
     # Parse Claude's response
-    text = response.content[0].text.strip()
+    text = reply.text.strip()
     if text.startswith('```'):
         text = text.split('\n', 1)[1].rsplit('```', 1)[0]
     mappings = json.loads(text)

@@ -189,20 +189,11 @@ def own_claude() -> bool:
 
 
 def ask_claude(question, local_answer, alice_answer, context_summary, mode):
-    """Call Claude with this server's own key (the Connection with channel 'claude_api').
+    """Call Claude through the one door (apps/sync/services/claude_api.py): this server's
+    'claude_api' Connection holds the key, and the call is recorded as a Bundle.
     Returns (answer, usage, model)."""
-    import anthropic
-    from apps.sync.services.connections import ConnectionUnavailable, active_connection, credentials
-
-    try:
-        conn = active_connection('claude_api')
-    except ConnectionUnavailable as e:
-        raise ValueError(f"No Claude API Connection: {e}")
-    api_key = credentials(conn).get('api_key', '')
-    if not api_key:
-        raise ValueError(f"Connection {conn.pk} ({conn.name}) has no credentials.api_key")
-
-    model = (conn.config or {}).get('model') or 'claude-sonnet-5-5'
+    from apps.sync.services import claude_api
+    from apps.sync.services.connections import ConnectionUnavailable
 
     system_prompt = (
         "You are Alice, a commerce assistant for WebClerk installations. "
@@ -218,19 +209,14 @@ def ask_claude(question, local_answer, alice_answer, context_summary, mode):
     if context_summary:
         user_parts.append(f"\nContext:\n{context_summary}")
 
-    client = anthropic.Anthropic(api_key=api_key)
-    response = client.messages.create(
-        model=model, max_tokens=2048,
-        system=system_prompt,
-        messages=[{"role": "user", "content": "\n".join(user_parts)}],
-    )
-
-    answer = response.content[0].text if response.content else ""
-    usage = {
-        'input_tokens': response.usage.input_tokens,
-        'output_tokens': response.usage.output_tokens,
-    }
-    return answer, usage, model
+    try:
+        reply = claude_api.ask(
+            purpose='alice_escalation', system=system_prompt, max_tokens=2048,
+            messages=[{"role": "user", "content": "\n".join(user_parts)}],
+        )
+    except ConnectionUnavailable as e:
+        raise ValueError(f"No Claude API Connection: {e}")
+    return reply.text, reply.usage, reply.model
 
 
 def escalate_to_wchq(
