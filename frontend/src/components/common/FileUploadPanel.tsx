@@ -103,6 +103,15 @@ const FileUploadPanel: React.FC<Props> = ({
           geolocation: geo,
         });
 
+        // A refused file is not attached to the record: say why and go on to the next.
+        if (result.quarantine.status === 'failed') {
+          dispatch(showToast({
+            message: `${pending.file.name} was refused: ${result.quarantine.reason}`,
+            type: "error", duration: 12000,
+          }));
+          continue;
+        }
+
         // The record lists the document; its other side is written by the save door.
         try {
           const parentRes = await getRecord(modelName, Number(recordId));
@@ -121,10 +130,21 @@ const FileUploadPanel: React.FC<Props> = ({
           dispatch(showToast({ message: `${pending.file.name} uploaded but not linked to this ${modelName}: ${err?.message || err}`, type: "error" }));
         }
 
-        dispatch(showToast({
-          message: `${pending.file.name} uploaded (${(pending.file.size / 1024).toFixed(0)}KB)`,
-          type: "success",
-        }));
+        if (result.quarantine.status === 'cleared') {
+          dispatch(showToast({
+            message: `${pending.file.name} uploaded (${(pending.file.size / 1024).toFixed(0)}KB)`,
+            type: "success",
+          }));
+        } else {
+          // Attached, but held: it cannot be opened until the check or the review is done.
+          const why = result.quarantine.status === 'sanitized'
+            ? 'checked; waiting for security review'
+            : result.quarantine.reason;
+          dispatch(showToast({
+            message: `${pending.file.name} is attached but held in quarantine: ${why}`,
+            type: "warning", duration: 12000,
+          }));
+        }
       } catch {
         dispatch(showToast({ message: `Failed to upload ${pending.file.name}`, type: "error" }));
       }

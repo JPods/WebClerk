@@ -157,6 +157,16 @@ export interface UploadDocumentResult {
   refLink: RefLink;
   /** Direct URL to the uploaded file */
   url?: string;
+  /** Where the file stands: every upload waits in quarantine until it is checked. */
+  quarantine: UploadQuarantine;
+}
+
+/** The backend's verdict on an upload (document.config.quarantine).
+ *  cleared: released to permanent storage. sanitized: checked, waiting for Athena.
+ *  pending: waiting for a check that could not run. failed: refused. */
+export interface UploadQuarantine {
+  status: 'pending' | 'failed' | 'sanitized' | 'cleared';
+  reason: string;
 }
 
 /** Progress callback for upload */
@@ -231,7 +241,7 @@ export async function uploadDocument(
     mime_type: string;
     has_exif?: boolean;
     has_geo?: boolean;
-    virus_status?: string;
+    quarantine?: { status?: UploadQuarantine['status']; reason?: string };
   }
 
   const uploadRes = await apiClient.post<UploadResponse | { data: UploadResponse }>(
@@ -257,6 +267,12 @@ export async function uploadDocument(
 
   const { document_id, path, checksum, is_duplicate, url, size_bytes, mime_type } = responseData;
   const docName = name || responseData.name || file.name;
+  // A document that was already on file (a duplicate) carries no verdict here: it was
+  // checked when it first arrived.
+  const quarantine: UploadQuarantine = {
+    status: responseData.quarantine?.status ?? 'cleared',
+    reason: responseData.quarantine?.reason ?? '',
+  };
 
   // Build Document record
   const document: DocumentRecord = {
@@ -266,7 +282,7 @@ export async function uploadDocument(
     mime_type,
     size_bytes,
     path: {
-      storage: 'local',
+      storage: quarantine.status === 'cleared' ? 'local' : 'quarantine',
       key: path,
       url,
     },
@@ -293,6 +309,7 @@ export async function uploadDocument(
     document,
     refLink,
     url,
+    quarantine,
   };
 }
 
