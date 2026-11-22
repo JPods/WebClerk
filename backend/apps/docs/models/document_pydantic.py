@@ -144,6 +144,9 @@ class DocumentQuarantine(BaseModel):
     athena_reviewer: Optional[int] = None
     threats_found: list[str] = Field(default_factory=list)
     actions_taken: list[str] = Field(default_factory=list)
+    virus_scan: str = ''                    # clean | infected | not_run
+    reason: str = ''                        # why it is waiting or was refused
+    released_at: Optional[int] = None       # epoch ms: moved to permanent storage
 
     class Config:
         extra = 'forbid'

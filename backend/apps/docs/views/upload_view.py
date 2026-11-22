@@ -82,6 +82,18 @@ def _build_storage_path(filename: str) -> Dict[str, str]:
     return {"key": key, "storage": "local"}
 
 
+def _quarantine_path(filename: str) -> Dict[str, str]:
+    """Where an upload waits until it is checked (document_sanitizer.release moves it)."""
+    ext = os.path.splitext(filename)[1]
+    return {"key": f"quarantine/document/{uuid.uuid4().hex}{ext}", "storage": "quarantine"}
+
+
+# Types a browser may show in place. Everything else is handed over as a download, so a
+# stored page or script can never run with this site's authority.
+INLINE_TYPES = frozenset({"image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp",
+                          "image/svg+xml", "application/pdf"})
+
+
 def document_file(doc) -> Optional[str]:
     """The file on disk for a document: its key under DATA_DIR, never a stored absolute path
     (one source of truth — the data folder can move, the key cannot go stale)."""
@@ -149,8 +161,8 @@ class DocumentUploadView(APIView):
             }
             return Response(payload, status=status.HTTP_200_OK)
 
-        # Write file to disk — Alice moves to cloud library later
-        storage = _build_storage_path(filename)
+        # Every upload lands in quarantine; the checks below decide whether it leaves.
+        storage = _quarantine_path(filename)
         file_path = os.path.join(str(settings.DATA_DIR), storage["key"])
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         upload.seek(0)
@@ -206,7 +218,7 @@ class DocumentUploadView(APIView):
             description=description,
             mime_type=mime_type,
             size_bytes=upload.size,
-            path={"storage": "local", "key": storage["key"], "url": ""},
+            path={"storage": "quarantine", "key": storage["key"], "url": ""},
             checksum=checksum,
             purpose=purpose,
             target_model=target_model,
@@ -219,8 +231,8 @@ class DocumentUploadView(APIView):
         doc.path["url"] = url
         doc.save(update_fields=["path"])
 
-        # Run sanitization immediately — strips active content
         quarantine = sanitize_document(doc, file_path=file_path)
+        storage = {"key": doc.path["key"], "storage": doc.path["storage"]}
 
         geo_data = (metadata.get("address", {}).get("geo", {})) if metadata else {}
         payload = {
@@ -267,23 +279,29 @@ class DocumentDownloadView(APIView):
         if not is_downloadable(doc):
             q = (doc.config or {}).get("quarantine", {})
             return Response(
-                {"error": "Document is in quarantine", "quarantine_status": q.get("status", "pending")},
+                {"error": "Document is in quarantine", "quarantine_status": q.get("status", "pending"),
+                 "reason": q.get("reason", "")},
                 status=status.HTTP_403_FORBIDDEN,
             )
+        inline = (doc.mime_type or "").lower() in INLINE_TYPES
 
         inline_bytes = _decode_inline_content(doc)
         if inline_bytes is not None:
             doc.increment_access()
             response = HttpResponse(inline_bytes, content_type=doc.mime_type or "application/octet-stream")
-            if doc.name:
-                response["Content-Disposition"] = f'inline; filename="{doc.name}"'
+            response["Content-Disposition"] = (
+                f'{"inline" if inline else "attachment"}; filename="{_safe_filename(doc.name)}"')
+            response["X-Content-Type-Options"] = "nosniff"
             return response
 
         full_path = document_file(doc)
         if not full_path or not os.path.exists(full_path):
             raise Http404("file not found")
         doc.increment_access()
-        return FileResponse(open(full_path, "rb"), as_attachment=False, filename=doc.name or None)
+        response = FileResponse(open(full_path, "rb"), as_attachment=not inline,
+                                filename=doc.name or None, content_type=doc.mime_type or None)
+        response["X-Content-Type-Options"] = "nosniff"
+        return response
 
 
 class DocumentDeleteView(APIView):
@@ -336,9 +354,10 @@ def _remove_file(full_path: str) -> None:
     """
     import logging
     log = logging.getLogger('console')
-    root = os.path.realpath(_uploads_root())
     target = os.path.realpath(full_path)
-    if os.path.commonpath([root, target]) != root:
+    roots = [os.path.realpath(_uploads_root()),
+             os.path.realpath(os.path.join(str(settings.DATA_DIR), "quarantine", "document"))]
+    if not any(os.path.commonpath([root, target]) == root for root in roots):
         log.info("[DOCS] Deleted document pointed outside uploads; file left: %s", full_path)
         return
     try:

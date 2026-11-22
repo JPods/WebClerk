@@ -1,38 +1,32 @@
-"""Document sanitization pipeline.
+"""Uploaded documents: quarantine, check, then release (Bill, 2026-11-22: "they are to be
+put in quarantine until checked. Then moved to a permanent location").
 
-Every uploaded file passes through sanitization before it can be served.
-This is a transformation, not a review — it strips active content so the
-document is structurally safe regardless of who uploaded it.
+Quarantine is a place, not only a flag. An upload is written under
+DATA_DIR/quarantine/document/ and its record says path.storage = 'quarantine'. It moves to
+permanent storage (uploads/document/YYYY/MM/, path.storage = 'local') only when:
 
-Three layers gate document access:
-    1. Sanitization (automatic) — strips threats, re-encodes where needed
-    2. Alice review (automatic)  — flags anomalies (informational, no gate)
-    3. Athena review (configurable) — authority check, required at WCHQ
+    1. a check that applies to its type has actually run and passed, and
+    2. Athena has cleared it, where the installation requires that (WCHQ does).
 
-Quarantine state lives in document.config.quarantine:
-    {
-        "status": "pending" | "sanitized" | "failed" | "cleared",
-        "sanitized": false,
-        "sanitized_at": null,
-        "alice_cleared": false,
-        "alice_cleared_at": null,
-        "athena_cleared": false,
-        "athena_cleared_at": null,
-        "athena_required": true,
-        "threats_found": [],
-        "actions_taken": []
-    }
+The checks are plain code, the same answer every time:
+    - a virus scan (ClamAV), when the scanner is running;
+    - executables are refused by their first bytes, whatever they are named;
+    - images are re-encoded (what is not an image fails); SVG has scripts removed;
+    - a PDF must be a PDF, and one that carries JavaScript, a launch action or an
+      embedded file is refused.
 
-A document is downloadable when:
-    sanitized AND (athena_cleared OR NOT athena_required)
+A scanner that is not running is not a pass. Images and SVG are made safe by their own
+check; every other type waits in quarantine (status 'pending') until a scan can run.
+`manage.py quarantine --recheck` runs the checks again on what is waiting.
+
+State lives in document.config.quarantine:
+    status: pending (waiting for a check) | failed (refused) |
+            sanitized (checked, waiting for Athena) | cleared (released)
 """
 import io
 import logging
 import os
 import re
-import struct
-from pathlib import Path
-from typing import Any
 
 from django.utils import timezone
 
@@ -56,6 +50,9 @@ def default_quarantine(athena_required: bool = True) -> dict:
         "athena_required": athena_required,
         "threats_found": [],
         "actions_taken": [],
+        "virus_scan": "",
+        "reason": "",
+        "released_at": None,
     }
 
 
@@ -70,7 +67,8 @@ def is_downloadable(doc) -> bool:
         return False
     if q.get("athena_required") and not q.get("athena_cleared"):
         return False
-    return True
+    path = doc.path if isinstance(doc.path, dict) else {}
+    return path.get("storage") != "quarantine"
 
 
 def athena_required_for_installation() -> bool:
@@ -129,201 +127,223 @@ def sanitize_svg(content: bytes) -> tuple[bytes, list[str]]:
     return cleaned.encode("utf-8"), threats
 
 
-def sanitize_image(file_path: str, mime_type: str) -> tuple[str, list[str]]:
-    """Re-encode image to strip EXIF exploits and embedded payloads.
+class CheckFailed(Exception):
+    """The file is refused. The message is the reason shown on the document."""
 
-    Returns (output_path, threats_found). Output overwrites input.
-    """
-    threats = []
+
+EXECUTABLE_STARTS = (
+    (b"MZ", "Windows executable"), (b"\x7fELF", "Linux executable"),
+    (b"\xcf\xfa\xed\xfe", "macOS executable"), (b"\xce\xfa\xed\xfe", "macOS executable"),
+    (b"\xca\xfe\xba\xbe", "macOS or Java executable"), (b"#!", "script with an interpreter line"),
+)
+# PDF features that run code or carry other files. /OpenAction and /AA are noted, not
+# refused: ordinary PDFs use them to open at a page.
+PDF_REFUSED = (b"/JS", b"/JavaScript", b"/Launch", b"/EmbeddedFile")
+PDF_NOTED = (b"/OpenAction", b"/AA")
+IMAGE_TYPES = {"image/jpeg": "JPEG", "image/jpg": "JPEG", "image/png": "PNG",
+               "image/gif": "GIF", "image/webp": "WEBP"}
+
+
+def refuse_executable(file_path: str) -> None:
+    with open(file_path, "rb") as f:
+        head = f.read(8)
+    for start, what in EXECUTABLE_STARTS:
+        if head.startswith(start):
+            raise CheckFailed(f"the file is a {what}")
+
+
+def sanitize_image(file_path: str, mime_type: str) -> list[str]:
+    """Re-encode the image in place, which drops metadata and anything hidden after the
+    picture. A file that will not open as its stated kind of image is refused."""
+    from PIL import Image
+    fmt = IMAGE_TYPES[mime_type]
+    notes = []
     try:
-        from PIL import Image
         img = Image.open(file_path)
-        fmt = "PNG" if "png" in mime_type.lower() else "JPEG"
-
-        # Check for EXIF data
-        if hasattr(img, "_getexif") and img._getexif():
-            threats.append("stripped EXIF metadata")
-
-        # Re-encode — this drops all metadata, embedded scripts, etc.
+        if (img.format or "").upper() != fmt:
+            raise CheckFailed(f"the file says {mime_type} but holds {img.format or 'no image'}")
+        if img.getexif():
+            notes.append("stripped EXIF metadata")
         out = io.BytesIO()
         if fmt == "JPEG":
-            img = img.convert("RGB")
-            img.save(out, format=fmt, quality=95)
+            img.convert("RGB").save(out, format=fmt, quality=95)
         else:
             img.save(out, format=fmt)
-
-        with open(file_path, "wb") as f:
-            f.write(out.getvalue())
-
-        threats.append(f"re-encoded as {fmt}")
-        return file_path, threats
-
-    except ImportError:
-        logger.warning("Pillow not installed — image sanitization skipped")
-        return file_path, ["pillow_not_available"]
+    except CheckFailed:
+        raise
     except Exception as e:
-        logger.error(f"Image sanitization failed: {e}")
-        return file_path, [f"sanitization_error: {e}"]
+        raise CheckFailed(f"the file is not a readable {fmt} image ({type(e).__name__})") from e
+    with open(file_path, "wb") as f:
+        f.write(out.getvalue())
+    notes.append(f"re-encoded as {fmt}")
+    return notes
 
 
-def sanitize_pdf(file_path: str) -> tuple[str, list[str]]:
-    """Scan PDF for JavaScript and strip it if found.
-
-    Does not re-render — preserves quality. Uses basic pattern matching
-    to find and remove /JS and /JavaScript entries.
-    """
-    threats = []
-    try:
-        with open(file_path, "rb") as f:
-            content = f.read()
-
-        # Check for embedded JavaScript
-        js_patterns = [b"/JS ", b"/JS(", b"/JavaScript", b"/OpenAction", b"/AA "]
-        found = [p.decode() for p in js_patterns if p in content]
-        if found:
-            threats.append(f"PDF contains active content markers: {', '.join(found)}")
-            # Remove /JS entries (basic sanitization)
-            cleaned = re.sub(rb'/JS\s*\([^)]*\)', b'/JS ()', content)
-            cleaned = re.sub(rb'/JavaScript\s*\([^)]*\)', b'/JavaScript ()', cleaned)
-            with open(file_path, "wb") as f:
-                f.write(cleaned)
-            threats.append("stripped JavaScript content from PDF")
-
-        return file_path, threats
-
-    except Exception as e:
-        logger.error(f"PDF sanitization failed: {e}")
-        return file_path, [f"pdf_sanitization_error: {e}"]
+def check_pdf(file_path: str) -> list[str]:
+    """A PDF must be a PDF and must not carry code or other files. Nothing is rewritten:
+    cutting pieces out of a PDF by pattern does not make it safe and can break it.
+    Limit: markers inside compressed object streams are not seen; the virus scan covers
+    those when it runs."""
+    with open(file_path, "rb") as f:
+        content = f.read()
+    if b"%PDF-" not in content[:1024]:
+        raise CheckFailed("the file says PDF but does not begin as one")
+    found = [m.decode() for m in PDF_REFUSED if re.search(re.escape(m) + rb"(?![A-Za-z])", content)]
+    if found:
+        raise CheckFailed(f"the PDF carries active content: {', '.join(found)}")
+    return [f"PDF has {m.decode()} (allowed)" for m in PDF_NOTED
+            if re.search(re.escape(m) + rb"(?![A-Za-z])", content)]
 
 
-def clamav_scan(file_path: str) -> tuple[bool, list[str]]:
-    """Scan file with ClamAV if available. Returns (clean, findings)."""
+def clamav_scan(file_path: str) -> tuple[str, list[str]]:
+    """Scan with ClamAV. Returns ('clean' | 'infected' | 'not_run', findings).
+    'not_run' is never treated as clean by the caller."""
+    from django.conf import settings
     try:
         import pyclamd
-        cd = pyclamd.ClamdUnixSocket('/tmp/clamd.sock')
+        cd = pyclamd.ClamdUnixSocket(settings.CLAMD_SOCKET)
         cd.ping()
-    except (ImportError, Exception):
-        # ClamAV not available — not a failure, just not installed
-        return True, ["clamav_not_available"]
-
+    except Exception as e:
+        return "not_run", [f"virus scanner not reachable at {settings.CLAMD_SOCKET} ({type(e).__name__})"]
     try:
         result = cd.scan_file(file_path)
-        if result is None:
-            return True, []
-        # result = {filepath: ('FOUND', 'virus_name')}
-        findings = []
-        for path, info in result.items():
-            findings.append(f"{info[1]} ({info[0]})")
-        return False, findings
     except Exception as e:
         logger.error(f"ClamAV scan error: {e}")
-        return True, [f"clamav_error: {e}"]
+        return "not_run", [f"virus scan error: {e}"]
+    if result is None:
+        return "clean", []
+    found = [f"{info[1]} ({info[0]})" for info in result.values() if info[0] == "FOUND"]
+    if found:
+        return "infected", found
+    # The scanner answered but could not read the file: that is not a scan.
+    return "not_run", [f"virus scanner could not read the file: {info[1]}" for info in result.values()]
+
+
+def check_file(file_path: str, mime: str) -> tuple[str, list[str], list[str], str]:
+    """Run every check that applies. Returns (verdict, findings, actions, virus_scan):
+    verdict 'pass' (a check ran and passed), 'fail' (refused), or 'unchecked' (nothing
+    that applies to this type could run)."""
+    findings, actions = [], []
+    scan, scan_findings = clamav_scan(file_path)
+    findings.extend(scan_findings)
+    if scan == "infected":
+        return "fail", findings, actions, scan
+    try:
+        refuse_executable(file_path)
+        type_checked = True
+        if "svg" in mime:
+            with open(file_path, "rb") as f:
+                cleaned, svg_notes = sanitize_svg(f.read())
+            with open(file_path, "wb") as f:
+                f.write(cleaned)
+            findings.extend(svg_notes)
+            actions.append("sanitized_svg")
+        elif mime in IMAGE_TYPES:
+            findings.extend(sanitize_image(file_path, mime))
+            actions.append("re_encoded_image")
+        elif mime == "application/pdf":
+            findings.extend(check_pdf(file_path))
+            actions.append("checked_pdf")
+            type_checked = False        # the PDF check has a stated limit: it needs the scan too
+        else:
+            type_checked = False
+    except CheckFailed as e:
+        findings.append(str(e))
+        return "fail", findings, actions, scan
+    if scan == "clean":
+        actions.append("virus_scanned")
+    return ("pass" if scan == "clean" or type_checked else "unchecked"), findings, actions, scan
 
 
 # ---------------------------------------------------------------------------
 # Main pipeline
 # ---------------------------------------------------------------------------
 
+def release(doc) -> str:
+    """Move a checked document's file out of quarantine into permanent storage and point
+    the record at it. Returns the new key. Does nothing if it is already released."""
+    from django.conf import settings
+    from apps.docs.views.upload_view import _build_storage_path
+    path = dict(doc.path) if isinstance(doc.path, dict) else {}
+    if path.get("storage") != "quarantine":
+        return path.get("key", "")
+    old = os.path.join(str(settings.DATA_DIR), path["key"])
+    key = _build_storage_path(path["key"])["key"]
+    new = os.path.join(str(settings.DATA_DIR), key)
+    os.makedirs(os.path.dirname(new), exist_ok=True)
+    os.replace(old, new)
+    doc.path = {**path, "storage": "local", "key": key}
+    return key
+
+
 def sanitize_document(doc, file_path: str | None = None) -> dict:
-    """Run the full sanitization pipeline on a document.
-
-    Called after upload. Updates doc.config.quarantine in place and saves.
-
-    Returns the quarantine dict.
-    """
+    """Check a quarantined document; release it if it passes and no Athena clearance is
+    owed. Safe to run again on a document that is still waiting. Returns the quarantine dict."""
     config = doc.config if isinstance(doc.config, dict) else {}
     athena_req = athena_required_for_installation()
-    q = config.get("quarantine") or default_quarantine(athena_req)
-    threats = []
-    actions = []
+    q = {**default_quarantine(athena_req), **(config.get("quarantine") or {})}
+    q["athena_required"] = athena_req
     mime = (doc.mime_type or "").lower()
+    now_ms = int(timezone.now().timestamp() * 1000)
 
-    # Resolve file path
     if not file_path:
         from apps.docs.views.upload_view import document_file
         file_path = document_file(doc)
 
-    # --- Inline content (stored in config) ---
+    # A drawing held in the record itself, not on disk
     inline_content = config.get("inline_content_b64")
+    inline_notes = []
     if inline_content and "svg" in mime:
         import base64
         import zlib
-        try:
-            compressed = base64.b64decode(inline_content.encode("ascii"))
-            encoding = config.get("inline_encoding", "")
-            raw = zlib.decompress(compressed) if encoding == "zlib+base64" else compressed
-            cleaned, svg_threats = sanitize_svg(raw)
-            threats.extend(svg_threats)
-            actions.append("sanitized_inline_svg")
-            # Re-encode
-            recompressed = zlib.compress(cleaned, level=9)
-            config["inline_content_b64"] = base64.b64encode(recompressed).decode("ascii")
-        except Exception as e:
-            threats.append(f"inline_svg_sanitization_error: {e}")
+        compressed = base64.b64decode(inline_content.encode("ascii"))
+        raw = zlib.decompress(compressed) if config.get("inline_encoding") == "zlib+base64" else compressed
+        cleaned, inline_notes = sanitize_svg(raw)
+        config["inline_content_b64"] = base64.b64encode(zlib.compress(cleaned, level=9)).decode("ascii")
 
-    # --- File on disk ---
     if file_path and os.path.exists(file_path):
-        # ClamAV scan
-        clean, scan_findings = clamav_scan(file_path)
-        if scan_findings:
-            threats.extend(scan_findings)
-        if not clean:
-            q["status"] = "failed"
-            q["sanitized"] = False
-            q["threats_found"] = threats
-            q["actions_taken"] = actions
-            config["quarantine"] = q
-            doc.config = config
-            doc.save(update_fields=["config"])
-            return q
+        verdict, findings, actions, scan = check_file(file_path, mime)
+    elif inline_content and "svg" in mime:
+        verdict, findings, actions, scan = "pass", [], ["sanitized_inline_svg"], "not_run"
+    else:
+        verdict, findings, actions, scan = "fail", ["the uploaded file is not in quarantine"], [], "not_run"
+    findings = inline_notes + findings
 
-        # Type-specific sanitization
-        if "svg" in mime:
+    q.update(threats_found=findings, actions_taken=actions, virus_scan=scan)
+    if verdict == "fail":
+        q.update(status="failed", sanitized=False, reason=findings[-1])
+    elif verdict == "unchecked":
+        q.update(status="pending", sanitized=False,
+                 reason="waiting for a virus scan: no check for this type of file could run")
+    else:
+        if file_path and os.path.exists(file_path):
+            import hashlib
+            hasher = hashlib.sha256()
             with open(file_path, "rb") as f:
-                content = f.read()
-            cleaned, svg_threats = sanitize_svg(content)
-            threats.extend(svg_threats)
-            with open(file_path, "wb") as f:
-                f.write(cleaned)
-            actions.append("sanitized_svg")
-
-        elif mime in ("image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"):
-            _, img_threats = sanitize_image(file_path, mime)
-            threats.extend(img_threats)
-            actions.append("re_encoded_image")
-
-        elif mime == "application/pdf":
-            _, pdf_threats = sanitize_pdf(file_path)
-            threats.extend(pdf_threats)
-            actions.append("scanned_pdf")
-
+                for chunk in iter(lambda: f.read(8192), b""):
+                    hasher.update(chunk)
+            if doc.checksum != hasher.hexdigest():
+                doc.checksum = hasher.hexdigest()
+                actions.append("checksum_updated")
+            doc.size_bytes = os.path.getsize(file_path)
+        q.update(sanitized=True, sanitized_at=now_ms, reason="")
+        if q["athena_required"] and not q.get("athena_cleared"):
+            q["status"] = "sanitized"
         else:
-            actions.append("scanned_only")
+            release(doc)
+            q.update(status="cleared", released_at=now_ms)
 
-        # Update checksum after sanitization
-        import hashlib
-        hasher = hashlib.sha256()
-        with open(file_path, "rb") as f:
-            for chunk in iter(lambda: f.read(8192), b""):
-                hasher.update(chunk)
-        new_checksum = hasher.hexdigest()
-        if doc.checksum != new_checksum:
-            doc.checksum = new_checksum
-            actions.append("checksum_updated")
-
-        # Update file size
-        doc.size_bytes = os.path.getsize(file_path)
-
-    now_ms = int(timezone.now().timestamp() * 1000)
-    q["sanitized"] = True
-    q["sanitized_at"] = now_ms
-    q["status"] = "sanitized" if athena_req else "cleared"
-    q["threats_found"] = threats
-    q["actions_taken"] = actions
+    meta = doc.metadata if isinstance(doc.metadata, dict) else {}
+    meta["virus"] = {**(meta.get("virus") or {}),
+                     "status": {"clean": "clean", "infected": "infected"}.get(scan, "skipped"),
+                     "scanner": "clamav" if scan != "not_run" else "",
+                     "scanned_at": now_ms if scan != "not_run" else 0,
+                     "threat": findings[0] if scan == "infected" else None,
+                     "quarantined": q["status"] != "cleared"}
+    doc.metadata = meta
     config["quarantine"] = q
     doc.config = config
-    doc.save(update_fields=["config", "checksum", "size_bytes"])
-
+    doc.save(update_fields=["config", "metadata", "path", "checksum", "size_bytes"])
     return q
 
 
@@ -342,11 +362,17 @@ def athena_clear_document(doc, reviewer_id: int = 0) -> dict:
     q["athena_cleared"] = True
     q["athena_cleared_at"] = now_ms
     q["status"] = "cleared"
+    q["released_at"] = now_ms
     q["athena_reviewer"] = reviewer_id
+    release(doc)
+    meta = doc.metadata if isinstance(doc.metadata, dict) else {}
+    if isinstance(meta.get("virus"), dict):
+        meta["virus"]["quarantined"] = False
+        doc.metadata = meta
 
     config["quarantine"] = q
     doc.config = config
-    doc.save(update_fields=["config"])
+    doc.save(update_fields=["config", "metadata", "path"])
     return q
 
 

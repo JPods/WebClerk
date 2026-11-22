@@ -28,6 +28,10 @@ WORK_DIR = Path(config('WORK_DIR', default=str(DATA_DIR.parent / 'work')))
 FRONTEND_DIR = Path(config('FRONTEND_DIR', default=str(BASE_DIR.parent / 'frontend')))
 _docs_dir = config('DOCS_DIR', default=str(BASE_DIR.parent.parent.parent / 'sites' / 'webclerk-site' / 'docs'))
 DOCS_DIR = Path(_docs_dir) if _docs_dir else None
+
+# The virus scanner's socket (ClamAV's clamd). Uploads other than images wait in
+# quarantine until a scan can run (apps/docs/services/document_sanitizer.py).
+CLAMD_SOCKET = config('CLAMD_SOCKET', default='/tmp/clamd.sock')
 (WORK_DIR / 'logs').mkdir(parents=True, exist_ok=True)
 os.chmod(WORK_DIR, 0o700)
 
