@@ -256,9 +256,9 @@ class DiagnoseView(APIView):
         if not checks['ollama']['ok']:
             actions.append('pull_model')
 
-        # 2. Chroma vector store
-        checks['chroma'] = self._check_chroma()
-        if not checks['chroma']['ok']:
+        # 2. Document index
+        checks['doc_index'] = self._check_doc_index()
+        if not checks['doc_index']['ok']:
             actions.append('reindex')
 
         # 3. Celery tasks registered
@@ -329,15 +329,15 @@ class DiagnoseView(APIView):
         except Exception as e:
             return {'ok': False, 'error': str(e), 'hint': 'Ollama not responding'}
 
-    def _check_chroma(self):
+    def _check_doc_index(self):
         try:
             rag = RAGService()
             stats = rag.vector_store.stats()
             if stats.get('count', 0) > 0:
                 return {'ok': True, 'chunks': stats['count']}
-            return {'ok': False, 'chunks': 0, 'hint': 'Vector store empty — run reindex'}
+            return {'ok': False, 'chunks': 0, 'hint': 'Document index empty — run reindex'}
         except Exception as e:
-            return {'ok': False, 'error': str(e), 'hint': 'Chroma not responding'}
+            return {'ok': False, 'error': str(e), 'hint': 'Document index could not be read'}
 
     def _check_celery_tasks(self):
         expected = [

@@ -428,7 +428,7 @@ Invoice Save (Phase 5)
 | Readmes | `readmes/` (numbered 00–09 for onboarding, topics/ for deep-dives) |
 | Copilot context (committed) | `.copilot-context/` (models, fixtures, imports, errors, maps) |
 | Context generator | `apps/ai_assistant/management/commands/generate_context.py` |
-| AI vector store (gitignored) | `.chroma_db/` (rebuild with `index_docs`) |
+| AI document index | `DocChunk` rows in the database (rebuild with `index_docs --reset`) |
 | Instruction sync check | `common/checks.py` (Django system check: copilot.W001/W002) |
 
 ---

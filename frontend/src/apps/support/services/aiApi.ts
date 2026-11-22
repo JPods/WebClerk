@@ -104,7 +104,8 @@ export interface AiHealthResponse {
   vector_store: {
     collection: string;
     count: number;
-    persist_dir: string;
+    documents: number;
+    embed_model: string;
   };
   status: "ok" | "degraded";
 }

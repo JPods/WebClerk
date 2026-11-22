@@ -6,5 +6,6 @@ from apps.ai_assistant.models.alice import (  # noqa: F401
     AliceObservation,
     AlicePreset,
 )
+from apps.ai_assistant.models.doc_chunk import DocChunk  # noqa: F401
 from apps.ai_assistant.models.episode import Episode  # noqa: F401
 from apps.ai_assistant.models.message import AiMessage  # noqa: F401

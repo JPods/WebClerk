@@ -1,5 +1,9 @@
 """
-Vector store manager — indexes documents into ChromaDB for RAG retrieval.
+Vector store manager — indexes documents for retrieval, in this instance's own database.
+
+Chunks and their embeddings are DocChunk rows. Embeddings come from the instance's own
+embedding model (services/embeddings.py); nearest-neighbour search is mimic.knn, a plain
+dot product over unit vectors. No separate vector database.
 
 Usage:
     from apps.ai_assistant.services.vector_store import VectorStoreManager
@@ -10,21 +14,17 @@ Usage:
 """
 import hashlib
 import logging
-import os
-from pathlib import Path
 
-import chromadb
 from django.conf import settings
+from django.db import transaction
+
+from mimic.knn import pack, top_k, unpack
+
+from . import embeddings
 
 logger = logging.getLogger(__name__)
 
-# Where to persist the vector DB on disk
-CHROMA_PERSIST_DIR = getattr(
-    settings,
-    "CHROMA_PERSIST_DIR",
-    os.path.join(settings.BASE_DIR, ".chroma_db"),
-)
-COLLECTION_NAME = getattr(settings, "CHROMA_COLLECTION", "commerce_expert_docs")
+COLLECTION_NAME = settings.DOC_COLLECTION
 
 # Chunk size for splitting long documents
 CHUNK_SIZE = 1500  # characters
@@ -48,33 +48,19 @@ def _chunk_text(text: str, chunk_size: int = CHUNK_SIZE, overlap: int = CHUNK_OV
 
 
 def _content_hash(content: str) -> str:
-    """Stable hash for dedup."""
-    return hashlib.md5(content.encode()).hexdigest()[:12]
+    """Stable hash, to tell whether a chunk changed."""
+    return hashlib.md5(content.encode(), usedforsecurity=False).hexdigest()[:12]
 
 
 class VectorStoreManager:
-    """Manages a ChromaDB collection for document retrieval."""
+    """Manages one collection of DocChunk rows for document retrieval."""
 
-    def __init__(self, persist_dir: str = CHROMA_PERSIST_DIR, collection_name: str = COLLECTION_NAME):
-        self.persist_dir = persist_dir
+    def __init__(self, collection_name: str = COLLECTION_NAME):
         self.collection_name = collection_name
-        self._client = None
-        self._collection = None
 
-    @property
-    def client(self) -> chromadb.ClientAPI:
-        if self._client is None:
-            self._client = chromadb.PersistentClient(path=self.persist_dir)
-        return self._client
-
-    @property
-    def collection(self) -> chromadb.Collection:
-        if self._collection is None:
-            self._collection = self.client.get_or_create_collection(
-                name=self.collection_name,
-                metadata={"hnsw:space": "cosine"},
-            )
-        return self._collection
+    def _rows(self):
+        from apps.ai_assistant.models import DocChunk
+        return DocChunk.objects.filter(collection=self.collection_name)
 
     def index_document(
         self,
@@ -83,79 +69,88 @@ class VectorStoreManager:
         metadata: dict | None = None,
     ) -> int:
         """
-        Index a document by splitting into chunks and upserting into ChromaDB.
-        Returns the number of chunks indexed.
+        Index a document: split into chunks, embed, and replace its rows.
+        Returns the number of chunks the document now has. A document whose chunks and
+        embedding model are unchanged is left as it is (no embedding call).
         """
+        from apps.ai_assistant.models import DocChunk
+
         chunks = _chunk_text(content)
+        hashes = [_content_hash(c) for c in chunks]
         meta = metadata or {}
+        model = embeddings.embed_model()
 
-        ids = []
-        documents = []
-        metadatas = []
+        existing = list(self._rows().filter(doc_id=doc_id).order_by("chunk_index")
+                        .values_list("content_hash", "embed_model", "metadata"))
+        unchanged = (
+            [h for h, _, _ in existing] == hashes
+            and all(m == model for _, m, _ in existing)
+            and all({k: v for k, v in md.items()
+                     if k not in ("doc_id", "chunk_index", "total_chunks")} == meta
+                    for _, _, md in existing)
+        )
+        if existing and unchanged:
+            return len(chunks)
 
-        for i, chunk in enumerate(chunks):
-            chunk_id = f"{doc_id}::chunk_{i}::{_content_hash(chunk)}"
-            chunk_meta = {
-                **meta,
-                "doc_id": doc_id,
-                "chunk_index": i,
-                "total_chunks": len(chunks),
-            }
-            ids.append(chunk_id)
-            documents.append(chunk)
-            metadatas.append(chunk_meta)
-
-        if ids:
-            self.collection.upsert(
-                ids=ids,
-                documents=documents,
-                metadatas=metadatas,
+        vectors = embeddings.embed_documents(chunks) if chunks else []
+        rows = [
+            DocChunk(
+                collection=self.collection_name, doc_id=doc_id, chunk_index=i,
+                content=chunk, content_hash=hashes[i],
+                metadata={**meta, "doc_id": doc_id, "chunk_index": i, "total_chunks": len(chunks)},
+                embedding=pack(vec), dim=len(vec), embed_model=model,
             )
-        return len(ids)
+            for i, (chunk, vec) in enumerate(zip(chunks, vectors))
+        ]
+        with transaction.atomic():
+            self._rows().filter(doc_id=doc_id).delete()
+            DocChunk.objects.bulk_create(rows)
+        return len(rows)
 
     def search(self, query: str, n_results: int = 5, where: dict | None = None) -> list[dict]:
         """
         Search for relevant document chunks.
-        Returns list of {content, metadata, distance}.
-        """
-        kwargs = {
-            "query_texts": [query],
-            "n_results": n_results,
-        }
-        if where:
-            kwargs["where"] = where
+        Returns list of {content, metadata, distance}, nearest first. distance is cosine
+        distance: 0 = same meaning, 1 = unrelated.
 
-        try:
-            results = self.collection.query(**kwargs)
-        except Exception as e:
-            logger.warning("Vector search failed: %s", e)
+        Raises embeddings.EmbeddingUnavailable when this instance cannot embed the query,
+        and ValueError when the index was built with a different embedding model.
+        """
+        rows = self._rows()
+        if where:
+            rows = rows.filter(metadata__contains=where)
+        model = embeddings.embed_model()
+        stale = rows.exclude(embed_model=model).values_list("embed_model", flat=True).first()
+        if stale is not None:
+            raise ValueError(
+                f"The document index was built with embedding model '{stale}', and this "
+                f"instance now uses '{model}'. Rebuild it: manage.py index_docs --reset")
+        if not rows.exists():
             return []
 
-        items = []
-        if results and results["documents"]:
-            for i, doc in enumerate(results["documents"][0]):
-                items.append({
-                    "content": doc,
-                    "metadata": results["metadatas"][0][i] if results["metadatas"] else {},
-                    "distance": results["distances"][0][i] if results["distances"] else None,
-                })
-        return items
+        q = embeddings.embed_query(query)
+        candidates = ((pk, unpack(bytes(emb))) for pk, emb in rows.values_list("pk", "embedding").iterator())
+        nearest = top_k(q, candidates, k=n_results)
+        found = {r.pk: r for r in self._rows().filter(pk__in=[pk for pk, _ in nearest])}
+        return [
+            {"content": found[pk].content, "metadata": found[pk].metadata, "distance": distance}
+            for pk, distance in nearest
+        ]
 
     def delete_document(self, doc_id: str) -> None:
         """Remove all chunks for a given document."""
-        # ChromaDB where filter on metadata
-        self.collection.delete(where={"doc_id": doc_id})
+        self._rows().filter(doc_id=doc_id).delete()
 
     def reset(self) -> None:
-        """Delete and recreate the collection."""
-        self.client.delete_collection(self.collection_name)
-        self._collection = None
+        """Delete every chunk in the collection."""
+        self._rows().delete()
         logger.info("Vector store collection '%s' reset", self.collection_name)
 
     def stats(self) -> dict:
         """Return basic stats about the collection."""
         return {
             "collection": self.collection_name,
-            "count": self.collection.count(),
-            "persist_dir": self.persist_dir,
+            "count": self._rows().count(),
+            "documents": self._rows().values("doc_id").distinct().count(),
+            "embed_model": embeddings.embed_model(),
         }

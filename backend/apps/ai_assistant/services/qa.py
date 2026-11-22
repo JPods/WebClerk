@@ -107,14 +107,8 @@ def answer_question(question: str, user_id: int | None = None,
     # Track the question in alice_log
     question_id = _log_question(question, topic, norm_key, user_id)
 
-    # Search vector store for relevant context
-    try:
-        from apps.ai_assistant.services.vector_store import VectorStoreService
-        vs = VectorStoreService()
-        results = vs.search(question, n_results=5, category=category)
-    except Exception:
-        # Fallback: try direct chromadb access
-        results = _vector_search_fallback(question, category)
+    # Search the document index for relevant context
+    results = _search_documents(question, category)
 
     # Determine if we have a good enough answer
     if not results or _is_low_confidence(results):
@@ -199,35 +193,23 @@ def _build_answer(question: str, results: list) -> str:
         return "\n\n".join(parts) if parts else "No relevant documentation found."
 
 
-def _vector_search_fallback(question: str, category: str | None = None) -> list:
-    """Direct chromadb search when VectorStoreService isn't available."""
+def _search_documents(question: str, category: str | None = None) -> list:
+    """The five nearest document chunks, as {content, source, distance}. An instance that
+    cannot embed (no LLM runtime) has no document answers: the reason is logged and the
+    question escalates."""
+    from apps.ai_assistant.services.embeddings import EmbeddingUnavailable
+    from apps.ai_assistant.services.vector_store import VectorStoreManager
     try:
-        import chromadb
-        from pathlib import Path
-        chroma_dir = str(Path.home() / "Allie" / ".chroma_db_alice")
-        client = chromadb.PersistentClient(path=chroma_dir)
-        collection = client.get_or_create_collection(
-            name="alice_commerce_knowledge",
-            metadata={"hnsw:space": "cosine"},
-        )
-        where = {"category": category} if category else None
-        results = collection.query(
-            query_texts=[question], n_results=5, where=where,
-        )
-        if not results or not results["documents"]:
-            return []
-        items = []
-        for i, doc in enumerate(results["documents"][0]):
-            meta = results["metadatas"][0][i] if results["metadatas"] else {}
-            dist = results["distances"][0][i] if results["distances"] else None
-            items.append({
-                "content": doc[:800],
-                "source": meta.get("doc_id", "?"),
-                "distance": round(dist, 4) if dist else None,
-            })
-        return items
-    except Exception:
+        found = VectorStoreManager().search(
+            question, n_results=5, where={"category": category} if category else None)
+    except EmbeddingUnavailable as e:
+        logger.warning("No document search for this question: %s", e)
         return []
+    return [{
+        "content": r["content"][:800],
+        "source": r["metadata"].get("doc_id", "?"),
+        "distance": round(r["distance"], 4),
+    } for r in found]
 
 
 # ── Frequency Tracking ───────────────────────────────────────────────

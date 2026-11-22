@@ -2,7 +2,7 @@
 Management command: index_docs
 
 Crawls the project's documentation, code docstrings, and 4D methods,
-then indexes them into ChromaDB for RAG retrieval.
+then indexes them into the document index (DocChunk rows) for RAG retrieval.
 
 Usage:
     python manage.py index_docs                  # index everything
@@ -167,7 +167,7 @@ SOURCE_CONFIGS = {
 
 
 class Command(BaseCommand):
-    help = "Index project documentation and code into ChromaDB for AI assistant RAG"
+    help = "Index project documentation and code into the document index for AI assistant RAG"
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -180,7 +180,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--reset",
             action="store_true",
-            help="Wipe the vector store before indexing",
+            help="Wipe the document index before indexing",
         )
         parser.add_argument(
             "--stats",
@@ -201,7 +201,8 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS(
                 f"Collection: {stats['collection']}\n"
                 f"Chunks indexed: {stats['count']}\n"
-                f"Persist dir: {stats['persist_dir']}"
+                f"Documents: {stats['documents']}\n"
+                f"Embedding model: {stats['embed_model']}"
             ))
             return
 

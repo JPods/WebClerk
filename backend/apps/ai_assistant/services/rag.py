@@ -25,6 +25,7 @@ import logging
 
 from .ollama_client import OllamaClient
 from .prompt_templates import wrap_query, get_available_modes
+from .embeddings import EmbeddingUnavailable
 from .vector_store import VectorStoreManager
 from .escalation import (
     score_confidence,
@@ -59,7 +60,12 @@ class RAGService:
         Search the vector store and build a context string.
         Returns (context_text, source_documents).
         """
-        results = self.vector_store.search(query, n_results=n_results)
+        try:
+            results = self.vector_store.search(query, n_results=n_results)
+        except EmbeddingUnavailable as e:
+            # No document context on this hardware; the answer and its confidence score say so.
+            logger.warning("Answering without document context: %s", e)
+            return "", []
 
         # Filter by relevance
         relevant = [r for r in results if r["distance"] is None or r["distance"] < MAX_DISTANCE]

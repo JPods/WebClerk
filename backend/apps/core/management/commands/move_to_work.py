@@ -1,9 +1,9 @@
 """Move working files into the work folders (Bill, 2026-09-27; common/work_folders.py).
 
     python manage.py move_to_work            # dry run: says what would move
-    python manage.py move_to_work --apply    # stop the server and Celery first (chroma is a live database)
+    python manage.py move_to_work --apply    # stop the server and Celery first
 
-Moves data/bundles, data/logs, data/chroma, data/import-digest, the repo's backend/logs and the
+Moves data/bundles, data/logs, data/import-digest, the repo's backend/logs and the
 layout state that lived inside the repo. A log already at the destination gets the old lines in front;
 any other file already there is left where it is and named. Bundle payload paths need no rewrite: they were 'bundles/…' under DATA_DIR and are
 'bundles/…' under WORK_DIR. Documents drop the absolute 'full' path; the key is the only path.
@@ -28,7 +28,6 @@ class Command(BaseCommand):
         moves = [
             (data / 'bundles', work_folder('bundles')),
             (data / 'logs', work_folder('logs')),
-            (data / 'chroma', work_folder('cache', 'chroma')),
             (data / 'import-digest', work_folder('imports/digest')),
             (base / 'logs', work_folder('logs')),
         ]

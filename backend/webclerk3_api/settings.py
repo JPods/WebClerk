@@ -9,7 +9,7 @@ import common.decimals  # noqa: F401  sets the one rounding rule (half-up) for t
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# User data lives outside the repo — uploads, media, backups (logs, bundles, chroma: WORK_DIR).
+# User data lives outside the repo — uploads, media, backups (logs, bundles: WORK_DIR).
 # Code is code, data is data. A git clean never touches user files.
 # Override with DATA_DIR in .env for server deployments.
 DATA_DIR = Path(config('DATA_DIR', default=str(BASE_DIR.parent.parent / 'data')))
@@ -981,5 +981,7 @@ INVENTORY_PENDING_AUTO_PROCESS = config('INVENTORY_PENDING_AUTO_PROCESS', defaul
 # Empty = no LLM on this hardware: Alice and Andi are passengers (log in, keep the bus and
 # rules, skip LLM work).
 OLLAMA_BASE_URL = config('OLLAMA_BASE_URL', default='')
-CHROMA_PERSIST_DIR = str(WORK_DIR / 'cache' / 'chroma')
-CHROMA_COLLECTION = 'commerce_expert_docs'
+# The document index (DocChunk rows) and the local model that embeds it. The model runs in this
+# instance's own LLM runtime (OLLAMA_BASE_URL); changing it means: manage.py index_docs --reset
+DOC_COLLECTION = 'commerce_expert_docs'
+EMBED_MODEL = config('EMBED_MODEL', default='nomic-embed-text')

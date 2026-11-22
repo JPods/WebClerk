@@ -83,7 +83,7 @@ else:
 
     # Python packages
     cd "$PROJECT_DIR"
-    for pkg in chromadb sentence_transformers httpx; do
+    for pkg in mimic httpx; do
         if python3 -c "import $pkg" 2>/dev/null; then
             success "Package '$pkg': installed"
         else
@@ -111,7 +111,7 @@ install_deps() {
         source venv312/bin/activate
     fi
 
-    pip install -q chromadb sentence-transformers httpx
+    pip install -q -r requirements.txt
     success "Python packages installed"
 }
 
@@ -147,6 +147,8 @@ setup_ollama() {
     # Pull the model
     info "Pulling model '$OLLAMA_MODEL' (this may take a while on first run)..."
     ollama pull "$OLLAMA_MODEL"
+    # The embedding model behind the document index (settings.EMBED_MODEL)
+    ollama pull "${EMBED_MODEL:-nomic-embed-text}"
     success "Model '$OLLAMA_MODEL' ready"
 }
 

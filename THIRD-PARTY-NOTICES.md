@@ -34,8 +34,7 @@ Last updated: 2026-09-03
 | [Stripe](https://github.com/stripe/stripe-python) | 11.3.0 | MIT | Payment gateway |
 | [PayPal REST SDK](https://github.com/paypal/PayPal-Python-SDK) | 1.13.2 | Apache-2.0 | Payment gateway |
 | [Sentry SDK](https://github.com/getsentry/sentry-python) | 2.35.0 | MIT | Error tracking |
-| [ChromaDB](https://www.trychroma.com) | 1.5.1 | Apache-2.0 | Vector store (Alice RAG) |
-| [sentence-transformers](https://www.sbert.net) | 5.2.3 | Apache-2.0 | Embedding models (Alice) |
+| mimic (JPods/framework, private for now) | 0.1.0 (commit 63c1b1d) | Apache-2.0 | Ours: plain-Python nearest-neighbour search for the document index (Alice RAG) |
 | [WeasyPrint](https://weasyprint.org) | 69.0+ | BSD-3-Clause | PDF generation |
 | [openpyxl](https://openpyxl.readthedocs.io) | 3.1.5+ | MIT | Excel export |
 | [python-docx](https://python-docx.readthedocs.io) | 1.2.0+ | MIT | Word document generation |
@@ -111,6 +110,7 @@ Last updated: 2026-09-03
 | [PostgreSQL](https://postgresql.org) | PostgreSQL License (MIT-like) | Primary database |
 | [Redis](https://redis.io) | RSALv2 / SSPLv1 (server); MIT (client) | Cache, Celery broker |
 | [Ollama](https://ollama.com) | MIT | Local LLM runtime (Alice, Allie) |
+| [nomic-embed-text](https://ollama.com/library/nomic-embed-text) | Apache-2.0 (model weights) | Local embedding model for the document index; runs in Ollama |
 | [Nginx](https://nginx.org) | BSD-2-Clause | Reverse proxy (production) |
 | [Cloudflare](https://cloudflare.com) | Proprietary (service) | CDN, DNS, Access (production) |
 

@@ -14,7 +14,7 @@
     "ship":           {"purpose": "labels and carrier manifests", "keep_days": 90, "backup": "none", "token": "none"},
     "logs":           {"purpose": "server, Celery, hook, sync and balance logs", "keep_days": 30, "backup": "none", "token": "none"},
     "debug":          {"purpose": "scratch: traces and one-off dumps", "keep_days": 7, "backup": "none", "token": "none"},
-    "cache":          {"purpose": "derived and rebuildable (chroma vectors); delete freely", "keep_days": null, "backup": "none", "token": "none"},
+    "cache":          {"purpose": "derived and rebuildable; delete freely", "keep_days": null, "backup": "none", "token": "none"},
     "state":          {"purpose": "small working state the server keeps (layout history, dismissals)", "keep_days": null, "backup": "local", "token": "none"},
     "scripts":        {"purpose": "company tools, run by a person; the server never executes anything here", "keep_days": null, "backup": "local", "token": "company"},
     "certs":          {"purpose": "certificates and keys; owner-only; never leaves the machine unencrypted", "keep_days": null, "backup": "local", "token": "company"}
