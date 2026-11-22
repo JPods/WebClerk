@@ -10,6 +10,7 @@
  * layers answered 500, ActionsPanel sent a filter the backend did not have.
  *
  * Read-only: every non-GET request is blocked and reported — opening a page must not write.
+ * Allowed: reads sent as POST, and the edit hold a record page takes and releases.
  * Signs in as claude@jpods.com (a refresh cookie minted by the backend), never as Bill.
  *
  * Fails on: a /wcapi/ read answered >= 400 (401 excepted, the client refreshes), a panel
@@ -193,7 +194,10 @@ test('every panel reads cleanly against the backend', async ({ page, context, ba
     if (req.method() === 'GET'
       || /^\/wcapi\/(token_refresh|logout)\/$/.test(pathname)
       || /^\/wcapi\/[a-z_]+\/\d+\/(totals|journal_preview)\/$/.test(pathname)
-      || (pathname === '/wcapi/_manage/' && /^(get|check)_/.test(action))) return route.continue();
+      // Opening a record takes an edit hold and leaving releases it (useEditHold, 2026-11-02):
+      // bookkeeping the page is meant to do, not a change to the record.
+      || /^\/wcapi\/[a-z_]+\/\d+\/(hold|release)\/$/.test(pathname)
+      || (pathname === '/wcapi/_manage/' && (/^(get|check)_/.test(action) || action === 'dd_card_metrics'))) return route.continue();
     findings.push({ page: new URL(page.url()).pathname, kind: 'write', detail: `${req.method()} ${new URL(req.url()).pathname}${action ? ` ${action}` : ''} (blocked) ${(req.postData() || '').slice(0, 200)}` });
     return route.abort();
   });

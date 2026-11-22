@@ -284,7 +284,9 @@ export const LinkedRecordsPanel: React.FC<LinkedRecordsPanelProps> = ({
     return rows?.results || [];
   }, [parentModel, parentId, linkedModel, byField, read]);
   const { records: readRows, loading, error, refresh, status } = usePanelRecords<Rec>(linkedModel,
-    { parentModel, parentId, linkedModel, byField }, { read: readLinked });
+    { parentModel, parentId, linkedModel, byField },
+    // No parent id yet (the record is still loading): wait, do not ask for record "undefined".
+    { read: readLinked, enabled: parentId != null });
   const [chip, setChip] = useState('');
   const records = useMemo(() => {
     // Rows come in the model's list order (the server's: asked, config.orderby, sequence, newest).
