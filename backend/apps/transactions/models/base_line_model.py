@@ -74,7 +74,8 @@ def default_quantity(transaction_type: str | None = None) -> Dict[str, Any]:
     The same three keys carry every document type:
       - active:     the quantity this line is acting on (the verb)
       - remaining:  active minus what has transferred downstream
-      - staged:     quantity committed from upstream (= active for standalone)
+      - staged:     the anchor: what the parent line had left when this line was made from it,
+                    kept through every later change to active (= active for standalone)
 
     Controls:
       - is_fixed:   whether quantity is locked from editing
@@ -609,6 +610,15 @@ class BaseLineCore(HardDeleteOnly, BaseModel):
             children_sum=getattr(self, "_children_sum", None),
             is_new=self._state.adding,
         )
+
+        # A line made from a parent keeps its anchor (Bill, 2026-11-24: "They need an anchor for
+        # the original parent value"): staged is what the parent had left when this line was
+        # made, and no later save moves it, whatever quantity the payload carries. The person
+        # changes active again and again; asked stays.
+        loaded = getattr(self, '_loaded', None)
+        if (not self._state.adding and self.parent_line_id and loaded
+                and loaded.get('parent_line_id') == self.parent_line_id):
+            self.quantity['staged'] = loaded['staged']
 
         # Step 4: AI audit — compare submitted vs normalized quantity
         if submitted_qty:

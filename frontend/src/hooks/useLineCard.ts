@@ -167,6 +167,7 @@ export function useLineCard(options: UseLineCardOptions) {
   const isExecSide = !isSellSide;
   const isReceipt = modelName === 'receipt';
   const isInvoice = modelName === 'invoice';
+  const isOrder = modelName === 'order';
   const canEdit = isEditing && !isLocked;
   const currency = useSelector(selectCurrency);
 
@@ -203,8 +204,9 @@ export function useLineCard(options: UseLineCardOptions) {
         const newQty = Number(value);
         const isComplete = updated.quantity?.is_complete;
         const remaining = isComplete ? 0 : newQty;
-        // A saved invoice line keeps what its order asked (staged): asked − qty did not ship.
-        const staged = isInvoice && updated.id ? updated.quantity?.staged : newQty;
+        // A line made from a parent keeps its anchor (staged): what the parent had left when the
+        // line was made. The person may change qty again and again; asked stays (Bill, 2026-11-24).
+        const staged = updated.parent_line_id ? updated.quantity?.staged : newQty;
         return { ...updated, quantity: { ...updated.quantity, active: newQty, staged, remaining } };
       }
       case "received": {
@@ -379,6 +381,8 @@ export function useLineCard(options: UseLineCardOptions) {
     } else {
       cols.push({ name: 'qty', field: 'qty', width: '80px', sortable: true });
       cols.push({ name: 'remain', field: 'remaining', width: '55px', sortable: true });
+      // An order shows what its quote had left when the order was made: the anchor a changed qty is read against.
+      if (isOrder) cols.push({ name: 'asked', field: 'asked', width: '70px', sortable: true });
     }
 
     if (isSellSide) {
@@ -425,7 +429,7 @@ export function useLineCard(options: UseLineCardOptions) {
     }
 
     return cols;
-  }, [isSellSide, isExecSide, isReceipt, isInvoice, showCommission]);
+  }, [isSellSide, isExecSide, isReceipt, isInvoice, isOrder, showCommission]);
 
   const colWidths = useMemo(() => {
     const w: Record<string, number> = {};

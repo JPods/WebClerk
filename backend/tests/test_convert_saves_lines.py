@@ -201,3 +201,30 @@ def test_a_named_quantity_above_the_source_remaining_is_refused(customer):
     assert exc.value.code == 'transfer_exceeds_remaining'
     assert Order.objects.filter(parent_id=quote.pk).count() == 0
     ql.refresh_from_db(); assert ql.quantity['remaining'] == 3
+
+
+@pytest.mark.django_db
+def test_an_order_line_keeps_what_its_quote_had_left_through_every_change(customer):
+    """Bill, 2026-11-24: a quote for 17 with 5 on an earlier order has 12 left; the new order
+    line is made with 12 and that stays its anchor (staged) while the person changes the
+    quantity "again, and again", whatever staged the screen sends back."""
+    quote, (ql,) = _quote(customer, quantities=(17,))
+    first = convert_quote_to_order(quote.pk)
+    earlier = OrderLine.objects.get(order_id=first['order_id'])
+    save_document(model_key='order', header_data={'id': first['order_id']},
+                  lines_data=[{'id': earlier.pk, 'quantity': {**earlier.quantity, 'active': 5}, '_dirty': True}])
+    ql.refresh_from_db()
+    assert ql.quantity['remaining'] == 12
+    second = convert_quote_to_order(quote.pk)
+    line = OrderLine.objects.get(order_id=second['order_id'])
+    assert (line.quantity['active'], line.quantity['staged']) == (12, 12)
+    for typed in (9, 11, 3):
+        save_document(model_key='order', header_data={'id': second['order_id']},
+                      lines_data=[{'id': line.pk, '_dirty': True,
+                                   'quantity': {**line.quantity, 'active': typed, 'staged': typed}}])
+        line.refresh_from_db()
+        assert (line.quantity['active'], line.quantity['staged']) == (typed, 12)
+    ql.refresh_from_db()
+    assert ql.quantity['remaining'] == 17 - 5 - 3
+    earlier.refresh_from_db()
+    assert earlier.quantity['staged'] == 17, 'the earlier order was made when the quote had all 17'
