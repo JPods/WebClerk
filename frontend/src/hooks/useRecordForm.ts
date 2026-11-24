@@ -345,7 +345,7 @@ export function useRecordForm(opts: RecordFormOptions) {
       const said = (Array.isArray(saved?.messages) ? saved.messages : []).filter((m: unknown) => typeof m === 'string');
       dispatch(showToast({ message: [opts?.message || `${modelName} saved`, repriced, ...said].filter(Boolean).join('. '), type: 'success' }));
       if (opts?.keepEditing !== true) setIsEditing(false);
-      fetchData();
+      await fetchData();   // saving stays on until the saved record is on the screen
       onAfterSave?.();
     } catch (err: any) {
       dispatch(showToast({ message: `Save failed: ${refusalMessage(err)}`, type: 'error' }));

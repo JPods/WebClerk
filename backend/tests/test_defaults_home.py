@@ -50,7 +50,9 @@ def test_only_the_two_blocks_and_the_four_formatting_keys(chart_of_accounts):
     with pytest.raises(ValidationError, match='formatting takes'):
         _definition('quote', {'fields': {}, 'formatting': {'timezone': 'UTC'}})
     s = _definition('quote', {'fields': {}, 'formatting': {'currency': 'EUR'}})
-    assert s.config['defaults']['formatting'] == {**SHIPPED_FORMATTING, 'currency': 'EUR'}
+    assert s.config['defaults']['formatting'] == {'currency': 'EUR'}, 'a model stores only what it sets'
+    definition.clear()
+    assert model_formatting('quote') == {**SHIPPED_FORMATTING, 'currency': 'EUR'}
 
 
 def test_a_listed_value_is_stored_in_the_lists_spelling_and_an_unlisted_one_refused(chart_of_accounts, django_user_model):
@@ -74,7 +76,7 @@ def test_every_shipped_block_passes_its_own_gate(chart_of_accounts):
     for model_key in SHIPPED_FIELDS:
         block = checked_defaults(model_key, shipped_defaults(model_key))
         assert block['fields'] == SHIPPED_FIELDS[model_key], model_key
-        assert set(block['formatting']) == set(FORMATTING_KEYS)
+        assert block['formatting'] == {}, 'a shipped model sets no formatting: the company\'s answers'
         assert defaults_schema(model_key) is not None, f'{model_key} has a <Model>SettingDefaults schema'
 
 
@@ -103,3 +105,41 @@ def test_the_defaults_console_lists_the_models_and_the_shared_fields():
     assert set(SHIPPED_FIELDS) <= set(console['config']['models'])
     assert console['config']['shared'] == ['terms', 'price_level', 'dt_needed_days', 'priority', 'source_name']
     assert all(c['config'].get('kind') == 'sim' for c in console_settings() if c['ida'] != 'defaults')
+
+
+def test_formatting_is_the_companys_unless_the_model_overrides(chart_of_accounts):
+    """Bill, 2026-11-24: "a company default with an override by model.field"."""
+    from apps.core.models import Setting
+    from apps.core.services.defaults import company_formatting
+    company, _ = Setting.authorized_get_or_create(purpose='wc:company_profile',
+                                                  defaults={'ida': 'company-profile', 'config': {}, 'is_active': True,
+                                                            'parent_model': 'setting'})
+    company.config = {**(company.config or {}), 'defaults': {'formatting': {'date_format': 'medium', 'locale': ''}}}
+    company.is_active = True
+    company._setting_create_authorized = True
+    company.save()
+    assert company.config['defaults'] == {'formatting': {'date_format': 'medium'}}, 'a blank key is left out'
+    assert company_formatting() == {**SHIPPED_FORMATTING, 'date_format': 'medium'}
+    assert model_formatting('order')['date_format'] == 'medium', 'a model that says nothing follows the company'
+    _definition('order', {'fields': {}, 'formatting': {'date_format': 'long'}})
+    definition.clear()
+    assert model_formatting('order')['date_format'] == 'long', 'a model that says so overrides it'
+    company.config = {**company.config, 'defaults': {'formatting': {'date_format': 'MM/DD/YYYY'}}}
+    with pytest.raises(ValidationError, match='short, medium, long'):
+        company.save()
+    company.config = {**company.config, 'defaults': {'terms': 'N30'}}
+    with pytest.raises(ValidationError, match='holds "formatting"'):
+        company.save()
+
+
+def test_migration_0075_gives_the_company_the_block_and_cuts_models_to_overrides():
+    from importlib import import_module
+    mig = import_module('apps.core.migrations.0075_company_formatting_models_override')
+    assert mig.SHIPPED_FORMATTING == SHIPPED_FORMATTING
+    config, formatting = mig.company_block({'tax': {'x': 1}})
+    assert config == {'tax': {'x': 1}, 'defaults': {'formatting': SHIPPED_FORMATTING}} and formatting == SHIPPED_FORMATTING
+    seeded = {'behaviors': {}, 'defaults': {'fields': {'terms': 'N30'}, 'formatting': dict(SHIPPED_FORMATTING)}}
+    assert mig.model_overrides(seeded, formatting)['defaults'] == {'fields': {'terms': 'N30'}, 'formatting': {}}
+    chosen = {'defaults': {'fields': {}, 'formatting': {**SHIPPED_FORMATTING, 'currency': 'CAD'}}}
+    assert mig.model_overrides(chosen, formatting)['defaults']['formatting'] == {'currency': 'CAD'}
+    assert mig.model_overrides({'layout': {}}, formatting) == {'layout': {}}

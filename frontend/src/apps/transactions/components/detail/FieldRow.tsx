@@ -2,6 +2,8 @@
 import React, { useState, useRef } from 'react';
 import { formatDt, formatField, type FieldType } from '@/utils/fieldFormatters';
 import { WIDGETS } from '@/components/widgets';
+import { useFormatting } from '@/context/FormattingContext';
+import { SHIPPED_FORMATTING, fieldFormatting, type Formatting } from '@/utils/formatting';
 import { getRecords } from '@/api/wcapi';
 
 // ---------------------------------------------------------------------------
@@ -59,7 +61,7 @@ function _firstScalar(val: any): string {
 }
 
 /** Format epoch ms or ISO string to readable date */
-export function formatDate(val: unknown): string {
+export function formatDate(val: unknown, fmt: Formatting = SHIPPED_FORMATTING): string {
   if (val == null) return '—';
   let d: Date;
   if (typeof val === 'number') {
@@ -71,7 +73,7 @@ export function formatDate(val: unknown): string {
     return String(val);
   }
   if (isNaN(d.getTime())) return String(val);
-  return formatDt(val, 'date');
+  return formatDt(val, (fmt as any).time ? 'datetime' : 'date', undefined, fmt);
 }
 
 /** Fields that should be formatted as dates */
@@ -214,6 +216,7 @@ export interface FieldRowProps {
 }
 
 const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, options, fieldType, lookup, lockedFields, help, onChange, onOpen, onCreateOrg }) => {
+  const fmt = fieldFormatting(useFormatting(), field);
   const [showHelp, setShowHelp] = useState(false);
   const [copyNote, setCopyNote] = useState<string | null>(null);
   const [refUnlocked, setRefUnlocked] = useState(false);
@@ -284,7 +287,7 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
   const widgetType = fieldType || (isDate ? 'timestamp' : undefined);
   const fmtType = detectFormatType(field, label);
   const displayVal = val == null ? '—'
-    : isDate ? formatDate(val)
+    : isDate ? formatDate(val, fmt)
     : fmtType ? formatField(val, fmtType, field) || '—'
     : typeof val === 'object' ? (val as any)?.name || (val as any)?.display_name || (val as any)?.ida || _firstScalar(val)
     : String(val);

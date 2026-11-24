@@ -15,6 +15,8 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { createPortal } from 'react-dom';
 import type { WidgetProps } from './types';
 import { formatDt, normalizeEpochMs } from '@/utils/fieldFormatters';
+import { useFormatting } from '@/context/FormattingContext';
+import { fieldFormatting } from '@/utils/formatting';
 
 const s = "px-1.5 py-0.5 text-[inherit] border border-gray-300 rounded bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white disabled:opacity-60";
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -75,10 +77,10 @@ const small: React.CSSProperties = {
   ...btn, width: 'auto', padding: '3px 8px', border: '1px solid var(--db-border, #d1d5db)', whiteSpace: 'nowrap',
 };
 
-interface PickerProps { anchor: DOMRect; value: Date | null; onPick: (dt: string | null) => void; onClose: () => void; }
+interface PickerProps { anchor: DOMRect; value: Date | null; withTime: boolean; onPick: (dt: string | null) => void; onClose: () => void; }
 
 /** The popup: a month grid, an hour and a minute list, Now / End of day / Clear, Done. */
-const DtPicker: React.FC<PickerProps> = ({ anchor, value, onPick, onClose }) => {
+const DtPicker: React.FC<PickerProps> = ({ anchor, value, withTime, onPick, onClose }) => {
   const ref = useRef<HTMLDivElement>(null);
   const today = new Date();
   const shown = value ?? today;
@@ -107,7 +109,7 @@ const DtPicker: React.FC<PickerProps> = ({ anchor, value, onPick, onClose }) => 
   const clock = localClock(value);
   const pickDay = (d: Date) => {
     setYear(d.getFullYear()); setMonth(d.getMonth());
-    onPick(localToDt(localDay(d), clock));
+    onPick(localToDt(localDay(d), withTime ? clock : ''));   // a day with no clock ends at 23:59 local
   };
   const pickClock = (hh: string, mm: string) => onPick(localToDt(day || localDay(today), `${hh}:${mm}`));
   const now = () => { const n = new Date(); setYear(n.getFullYear()); setMonth(n.getMonth()); onPick(localToDt(localDay(n), localClock(n))); };
@@ -144,7 +146,7 @@ const DtPicker: React.FC<PickerProps> = ({ anchor, value, onPick, onClose }) => 
           );
         })}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
+      {withTime && <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
         <span style={{ color: 'var(--db-text-dim, #6b7280)' }}>Time</span>
         <select value={hh} onChange={e => pickClock(e.target.value, mm || '00')} className={s} aria-label="Hour" style={{ fontSize: 'inherit' }}>
           <option value="" disabled>hh</option>
@@ -158,7 +160,7 @@ const DtPicker: React.FC<PickerProps> = ({ anchor, value, onPick, onClose }) => 
         <span style={{ flex: 1 }} />
         <button type="button" style={small} onClick={now}>Now</button>
         <button type="button" style={small} onClick={endOfDay} title="23:59 local">End of day</button>
-      </div>
+      </div>}
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
         <button type="button" style={small} onClick={() => onPick(null)}>Clear</button>
         <button type="button" style={{ ...small, background: 'var(--db-accent, #2563eb)', color: '#fff', borderColor: 'transparent' }} onClick={onClose}>Done</button>
@@ -175,22 +177,26 @@ export const DtWidget: React.FC<WidgetProps> = ({
   const anchorRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState<DOMRect | null>(null);
   const close = useCallback(() => setOpen(null), []);
+  // The stored formatting: the company's date style unless the model or this field says otherwise;
+  // the clock only where the field asks for it (Bill, 2026-11-24: "Some will need time. Most will not.").
+  const fmt = fieldFormatting(useFormatting(), name);
+  const shown = fmt.time ? 'datetime' : 'date';
 
   if (mode === 'print' || disabled) {
-    const text = local ? formatDt(local.getTime(), 'datetime') : '—';
+    const text = local ? formatDt(local.getTime(), shown, undefined, fmt) : '—';
     const cls = className ? `${className} ${mode === 'print' ? '' : 'db-input--readonly'}` : 'text-[inherit]';
-    return <span className={cls} style={{ display: 'inline-block' }} title={local ? local.toISOString() : undefined}>{text}</span>;
+    return <span className={cls} style={{ display: 'inline-block' }} title={local ? local.toLocaleString() : undefined}>{text}</span>;
   }
   const cls = className || s;
   return (
     <>
       <button ref={anchorRef} type="button" name={name} className={cls} data-wc-dt={name}
         style={{ width: '100%', textAlign: 'left', cursor: 'pointer', color: local ? undefined : 'var(--db-text-dim, #6b7280)' }}
-        title={local ? `${local.toISOString()} — click to change` : 'Click to pick a date and time'}
+        title={local ? `${local.toLocaleString()} — click to change` : (fmt.time ? 'Click to pick a date and time' : 'Click to pick a date')}
         onClick={e => setOpen(e.currentTarget.getBoundingClientRect())}>
-        {local ? formatDt(local.getTime(), 'datetime') : 'Pick a date…'}
+        {local ? formatDt(local.getTime(), shown, undefined, fmt) : 'Pick a date…'}
       </button>
-      {open && <DtPicker anchor={open} value={local} onPick={onChange} onClose={close} />}
+      {open && <DtPicker anchor={open} value={local} withTime={fmt.time} onPick={onChange} onClose={close} />}
     </>
   );
 };

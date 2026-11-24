@@ -5,7 +5,7 @@
  * Single source of truth: config.layout.form.default on the wc:model Setting.
  * No separate wc:detail_layout records.
  */
-import { formattingOf, type Formatting } from '@/utils/formatting';
+import { companyFormatting, formattingOf, type Formatting } from '@/utils/formatting';
 import { fieldBehaviorsOf } from '@/utils/fieldBehaviorsOf';
 import { useState, useEffect, useCallback } from 'react';
 import { getRecords } from '@/api/wcapi';
@@ -143,6 +143,7 @@ export function useDetailLayout(modelName: string) {
           limit: 1,
         });
         const setting = res?.results?.[0];
+        const company = await companyFormatting();
         if (cancelled) return;
 
         // Form layout lives at config.layout.form.default
@@ -151,7 +152,7 @@ export function useDetailLayout(modelName: string) {
           const parsed = formLayout as DetailLayout;
           // Attach behaviors from Setting — drives label styles and select options
           parsed.behaviors = fieldBehaviorsOf(setting?.config);
-          parsed.formatting = formattingOf(setting?.config);
+          parsed.formatting = formattingOf(setting?.config, company);
           parsed.features = setting?.config?.defaults?.features || {};
           layoutCache.set(modelName, parsed);
           setLayout(withMyForm(parsed, modelName));

@@ -125,6 +125,12 @@ class Setting(BaseModel):
                     self.config['system_admin'] = system_admin.checked(self.config['system_admin'])
                 except ValueError as e:
                     raise ValidationError(str(e))
+            if 'defaults' in self.config:     # the company's formatting, which each model may override
+                from apps.core.services.defaults import checked_company_defaults
+                try:
+                    self.config['defaults'] = checked_company_defaults(self.config['defaults'])
+                except ValueError as e:
+                    raise ValidationError(str(e))
 
         # A model definition's defaults: the two blocks, fields the model has, listed values
         # (core/services/defaults.checked_defaults; readme 106).

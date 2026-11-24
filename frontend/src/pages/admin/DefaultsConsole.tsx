@@ -61,6 +61,8 @@ const DefaultsConsole: React.FC = () => {
   const dispatch = useDispatch();
   const [consoleDef, setConsole] = useState<{ models: string[]; shared: string[]; formatting: string[] } | null>(null);
   const [rows, setRows] = useState<DefaultsRow[]>([]);
+  /** The company profile's formatting: what every model follows unless its own cell says otherwise. */
+  const [company, setCompany] = useState<{ settingId: number; version: number; formatting: Record<string, unknown> } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [edits, setEdits] = useState<Record<string, string>>({});   // "model|block|field" → typed value
 
@@ -70,6 +72,8 @@ const DefaultsConsole: React.FC = () => {
       const def = consoles?.results?.[0]?.config;
       if (!def) { setError('No defaults console in this installation — a staff member runs: manage.py seed_consoles'); return; }
       setConsole({ models: def.models || [], shared: def.shared || [], formatting: def.formatting || [] });
+      const profile: any = (await getRecords('setting', { purpose: 'wc:company_profile', limit: 1 }) as any)?.results?.[0];
+      setCompany(profile ? { settingId: profile.id, version: profile.version, formatting: profile.config?.defaults?.formatting || {} } : null);
       const defs: any = await getRecords('setting', { purpose: 'wc:model', limit: 200 });
       const byModel = new Map<string, any>((defs?.results || []).map((s: any) => [s.parent_model, s]));
       setRows((def.models || []).filter((m: string) => byModel.has(m)).map((m: string) => {
@@ -92,7 +96,7 @@ const DefaultsConsole: React.FC = () => {
   const save = useCallback(async (row: DefaultsRow, block: 'fields' | 'formatting', field: string, value: string) => {
     const current = String((row as any)[block][field] ?? '');
     if (value === current) return;
-    const typed = block === 'formatting' && field === 'number_precision' ? Number(value) : value;
+    const typed = block === 'formatting' && field === 'number_precision' && value !== '' ? Number(value) : value;
     try {
       await saveRecord('setting', { id: row.settingId, version: row.version, config: { defaults: { [block]: { [field]: typed } } } });
       dispatch(showToast({ message: `${row.model} ${field} = ${value || '(none)'}`, type: 'success' }));
@@ -101,6 +105,18 @@ const DefaultsConsole: React.FC = () => {
     }
     load();
   }, [dispatch, load]);
+
+  const saveCompany = useCallback(async (field: string, value: string) => {
+    if (!company || value === String(company.formatting[field] ?? '')) return;
+    const typed = field === 'number_precision' && value !== '' ? Number(value) : value;
+    try {
+      await saveRecord('setting', { id: company.settingId, version: company.version, config: { defaults: { formatting: { [field]: typed } } } });
+      dispatch(showToast({ message: `company ${field} = ${value || '(shipped)'}`, type: 'success' }));
+    } catch (err: any) {
+      dispatch(showToast({ message: `Not saved: ${refusalMessage(err)}`, type: 'error' }));
+    }
+    load();
+  }, [company, dispatch, load]);
 
   const saveSwitch = useCallback(async (row: DefaultsRow, name: string, on: boolean) => {
     try {
@@ -121,6 +137,8 @@ const DefaultsConsole: React.FC = () => {
       <p style={{ color: 'var(--db-text-dim, #6b7280)', marginBottom: 12, maxWidth: 820 }}>
         What a new record is born with when nobody says, and how each model formats. Each cell saves into
         that model's own definition; a marked cell differs from what most models share on that field.
+        Formatting is the company's (the first row); a model's formatting cell left empty follows it,
+        shown dimmed, and a value typed there overrides it for that model.
       </p>
       <table style={{ borderCollapse: 'collapse', fontSize: 13 }} data-wc-defaults-console>
         <thead>
@@ -132,6 +150,25 @@ const DefaultsConsole: React.FC = () => {
           </tr>
         </thead>
         <tbody>
+          {company && (
+            <tr data-wc-defaults-company>
+              <td style={{ ...cell, fontWeight: 600 }} title="The company profile: config.defaults.formatting">company</td>
+              {columns.map((f) => <td key={f} style={cell} />)}
+              {consoleDef.formatting.map((f) => {
+                const k = `company|formatting|${f}`;
+                const value = edits[k] ?? String(company.formatting[f] ?? '');
+                return (
+                  <td key={f} style={cell}>
+                    <input style={input} value={value} aria-label={`company ${f}`}
+                      onChange={(e) => setEdits((p) => ({ ...p, [k]: e.target.value }))}
+                      onBlur={(e) => { setEdits((p) => { const n = { ...p }; delete n[k]; return n; }); saveCompany(f, e.target.value); }}
+                      onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} />
+                  </td>
+                );
+              })}
+              {switches.map((name) => <td key={name} style={cell} />)}
+            </tr>
+          )}
           {rows.map((r) => (
             <tr key={r.model}>
               <td style={{ ...cell, fontWeight: 600 }}>{r.model}</td>
@@ -163,6 +200,7 @@ const DefaultsConsole: React.FC = () => {
                 return (
                   <td key={f} style={{ ...cell, color: 'var(--db-text-dim, #6b7280)' }}>
                     <input style={input} value={value} aria-label={`${r.model} ${f}`}
+                      placeholder={String(company?.formatting[f] ?? '')} title={value ? 'This model\'s own' : 'Follows the company'}
                       onChange={(e) => setEdits((p) => ({ ...p, [k]: e.target.value }))}
                       onBlur={(e) => { setEdits((p) => { const n = { ...p }; delete n[k]; return n; }); save(r, 'formatting', f, e.target.value); }}
                       onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} />

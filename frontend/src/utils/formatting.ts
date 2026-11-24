@@ -17,7 +17,12 @@ export interface Formatting {
   /** short (11/7/2026), medium (Nov 7, 2026), long (November 7, 2026) */
   date_format: string;
   number_precision: number;
+  /** A field's own say, from the model's behaviors (model.field or model.leaf): `time` shows
+   *  and takes the clock beside the day, `date_format` writes this field's day its own way. */
+  fields?: Record<string, FieldFormatting>;
 }
+
+export interface FieldFormatting { time?: boolean; date_format?: string }
 
 export const SHIPPED_FORMATTING: Formatting = { currency: 'USD', locale: 'en-US', date_format: 'short', number_precision: 2 };
 
@@ -37,15 +42,50 @@ function blockOf(config: any): Partial<Formatting> {
   return out;
 }
 
-/** A model definition's formatting, the shipped one where it says nothing. */
-export function formattingOf(modelConfig: any): Formatting {
-  return { ...SHIPPED_FORMATTING, ...blockOf(modelConfig) };
+/** What a model's behaviors say about how single fields are written (`time`, `date_format`). */
+function fieldsOf(modelConfig: any): Record<string, FieldFormatting> {
+  const out: Record<string, FieldFormatting> = {};
+  const behaviors = modelConfig?.behaviors;
+  if (!behaviors || typeof behaviors !== 'object') return out;
+  for (const [field, b] of Object.entries<any>(behaviors)) {
+    if (!b || typeof b !== 'object') continue;
+    const own: FieldFormatting = {};
+    if (typeof b.time === 'boolean') own.time = b.time;
+    if (typeof b.date_format === 'string' && b.date_format) own.date_format = b.date_format;
+    if (Object.keys(own).length) out[field] = own;
+  }
+  return out;
+}
+
+/** A model's formatting: what its definition sets, over the company's, over the shipped
+ *  (Bill, 2026-11-24: "a company default with an override by model.field or model.leaf"). */
+export function formattingOf(modelConfig: any, company?: Partial<Formatting>): Formatting {
+  const fields = fieldsOf(modelConfig);
+  return { ...SHIPPED_FORMATTING, ...(company || {}), ...blockOf(modelConfig), ...(Object.keys(fields).length ? { fields } : {}) };
+}
+
+/** The formatting one field is written with: the screen's, with the field's own date_format. */
+export function fieldFormatting(fmt: Formatting, field?: string): Formatting & { time: boolean } {
+  const own = (field && fmt.fields?.[field]) || {};
+  return { ...fmt, ...(own.date_format ? { date_format: own.date_format } : {}), time: own.time === true };
+}
+
+let companyCache: Promise<Partial<Formatting>> | null = null;
+
+/** The company's formatting (the company profile's config.defaults.formatting), read once per page load. */
+export function companyFormatting(): Promise<Partial<Formatting>> {
+  if (!companyCache) {
+    companyCache = getRecords('setting', { purpose: 'wc:company_profile', limit: 1 })
+      .then((res: any) => blockOf(res?.results?.[0]?.config))
+      .catch(() => ({}));
+  }
+  return companyCache;
 }
 
 /** The model's formatting overlaid by the party org's (its config.defaults.formatting), key by key. */
 export function resolveFormatting(model: Formatting | any | null | undefined, partyConfig?: any): Formatting {
   const base: Formatting = model && KEYS.every((k) => k in (model as object)) ? (model as Formatting) : formattingOf(model);
-  return { ...base, ...blockOf(partyConfig) };
+  return { ...base, ...blockOf(partyConfig) };   // base.fields rides along: a field's say is the model's
 }
 
 /** Money in the formatting's currency and locale: "$1,234.50", "CA$1,234.50", "1 234,50 $". */
@@ -77,8 +117,9 @@ export function dateText(d: Date, fmt: Formatting = SHIPPED_FORMATTING, withTime
   const style = fmt.date_format === 'long' ? { year: 'numeric', month: 'long', day: 'numeric' }
     : fmt.date_format === 'medium' ? { year: 'numeric', month: 'short', day: 'numeric' }
     : { year: 'numeric', month: 'numeric', day: 'numeric' };
+  // With a time, the day is written the same way as without one: one date format on a screen.
   const opts: Intl.DateTimeFormatOptions = withTime
-    ? { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }
+    ? { ...(style as Intl.DateTimeFormatOptions), hour: '2-digit', minute: '2-digit' }
     : (style as Intl.DateTimeFormatOptions);
   try {
     return withTime ? d.toLocaleString(fmt.locale, opts) : d.toLocaleDateString(fmt.locale, opts);
@@ -93,8 +134,8 @@ const modelCache = new Map<string, Promise<Formatting>>();
 /** A model's formatting from its definition, read once per page load. */
 export function modelFormatting(modelName: string): Promise<Formatting> {
   if (!modelCache.has(modelName)) {
-    modelCache.set(modelName, getRecords('setting', { purpose: 'wc:model', parent_model: modelName, limit: 1 })
-      .then((res: any) => formattingOf(res?.results?.[0]?.config))
+    modelCache.set(modelName, Promise.all([getRecords('setting', { purpose: 'wc:model', parent_model: modelName, limit: 1 }), companyFormatting()])
+      .then(([res, company]: [any, Partial<Formatting>]) => formattingOf(res?.results?.[0]?.config, company))
       .catch(() => ({ ...SHIPPED_FORMATTING })));
   }
   return modelCache.get(modelName)!;

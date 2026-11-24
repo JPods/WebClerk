@@ -14,6 +14,9 @@ from apps.core.models.setting import Setting
 
 
 COMPANY_PROFILE_CONFIG = {
+    # How money, numbers and dates are written unless a model's definition or a customer's
+    # own formatting says otherwise (core/services/defaults.company_formatting; readme 106).
+    "defaults": {"formatting": {"currency": "USD", "locale": "en-US", "date_format": "short", "number_precision": 2}},
     "company": {
         "name": "",
         "legal_name": "",

@@ -6,7 +6,7 @@
  *
  * Reusable — any page that needs a model browser can call this hook.
  */
-import { SHIPPED_FORMATTING, formattingOf, type Formatting } from '@/utils/formatting';
+import { SHIPPED_FORMATTING, companyFormatting, formattingOf, type Formatting } from '@/utils/formatting';
 import { fieldBehaviorsOf } from '@/utils/fieldBehaviorsOf';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
@@ -691,8 +691,10 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
       try {
         const modelRes = await getRecords('setting', { parent_model: selectedModel, purpose: 'wc:model', limit: 1 }) as any;
         if (modelChangeRef.current !== fetchId) return;
+        const company = await companyFormatting();
+        if (modelChangeRef.current !== fetchId) return;
         const modelRec = (modelRes?.results || [])[0];
-        setModelFormatting(formattingOf(modelRec?.config));
+        setModelFormatting(formattingOf(modelRec?.config, company));
         wsId = modelRec?.id ?? null;
         const layout = modelRec?.config?.layout;
         if (layout) {

@@ -211,7 +211,8 @@ const DbFormView: React.FC<DbFormProps> = (props) => {
   return (
     <FormattingProvider value={formatting}>
     <div
-      className="flex flex-col h-full overflow-hidden"
+      className="flex flex-col h-full overflow-hidden relative"
+      aria-busy={form.saving || undefined}
       data-wc={`${modelName}-detail`}
       data-zone={`db.form | .${modelName}-detail | DbForm.tsx`}
       data-model={modelName}
@@ -220,6 +221,17 @@ const DbFormView: React.FC<DbFormProps> = (props) => {
       data-layout-source={`Setting(purpose='wc:model', name='${modelName}') → config.layout.form`}
       data-formatting={`${formatting.currency} ${formatting.locale} ${formatting.date_format} ${formatting.number_precision}`}
     >
+      {/* While a save is on its way (a customer pick saves and reprices: over half a second), the
+          form shows the wait cursor and takes no second click (Bill, 2026-11-24). */}
+      {form.saving && (
+        <div data-wc-saving className="no-print"
+          style={{ position: 'absolute', inset: 0, zIndex: 50, cursor: 'progress', background: 'transparent' }}>
+          <span className="db-font-xs" style={{
+            position: 'absolute', top: 6, left: '50%', transform: 'translateX(-50%)', padding: '2px 10px', borderRadius: 4,
+            background: 'var(--db-surface, #fff)', color: 'var(--db-text, #111)', border: '1px solid var(--db-border, #d1d5db)',
+          }}>Saving…</span>
+        </div>
+      )}
       {/* Header bar */}
       <div className="flex items-center gap-2 px-4 py-1 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shrink-0 no-print">
         <span className="text-sm font-bold text-slate-900 dark:text-white capitalize">{modelName}</span>

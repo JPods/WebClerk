@@ -38,6 +38,8 @@ SHARED_FIELDS = ('terms', 'price_level', 'dt_needed_days', 'priority', 'source_n
 
 SHIPPED_FORMATTING: Dict[str, Any] = {'currency': 'USD', 'locale': 'en-US', 'date_format': 'short',
                                       'number_precision': 2}
+#: How a date is written: 11/7/2026, Nov 7, 2026, November 7, 2026.
+DATE_FORMATS = ('short', 'medium', 'long')
 #: A fresh installation's field defaults, per model. A model not named starts with none.
 SHIPPED_FIELDS: Dict[str, Dict[str, Any]] = {
     **{m: {'terms': 'N30', 'price_level': 'retail', 'dt_needed_days': 14, 'priority': 'medium'} for m in SELL + BUY},
@@ -65,7 +67,7 @@ def shipped_features(model_key: str) -> Dict[str, bool]:
 
 def shipped_defaults(model_key: str) -> Dict[str, Any]:
     """The block a model's definition is seeded with."""
-    block = {'fields': dict(SHIPPED_FIELDS.get(model_key, {})), 'formatting': dict(SHIPPED_FORMATTING)}
+    block = {'fields': dict(SHIPPED_FIELDS.get(model_key, {})), 'formatting': {}}   # formatting: the company's
     if shipped_features(model_key):
         block['features'] = shipped_features(model_key)
     return block
@@ -93,11 +95,48 @@ def model_defaults(model_key: str) -> Dict[str, Any]:
                            lambda raw: _present(raw) if isinstance(raw, dict) else {})
 
 
+def checked_formatting(owner: str, formatting: Any) -> Dict[str, Any]:
+    """A formatting block as it may be stored, or ValueError with coaching: only the four keys,
+    only the ones set (a blank key is left out and the level above answers), a date_format
+    off DATE_FORMATS refused. The one check for the company's block, a model's and an org's."""
+    if formatting in (None, {}):
+        return {}
+    if not isinstance(formatting, dict):
+        raise ValueError(f'{owner} config.defaults.formatting is an object.')
+    unknown = sorted(set(formatting) - set(FORMATTING_KEYS))
+    if unknown:
+        raise ValueError(f'{owner} config.defaults.formatting takes {", ".join(FORMATTING_KEYS)}; '
+                         f'not {", ".join(unknown)}.')
+    out = {k: v for k, v in formatting.items() if v not in (None, '')}
+    if 'date_format' in out and out['date_format'] not in DATE_FORMATS:
+        raise ValueError(f'{owner} date_format is one of {", ".join(DATE_FORMATS)}; not "{out["date_format"]}".')
+    return out
+
+
+def company_formatting() -> Dict[str, Any]:
+    """The company's formatting (Bill, 2026-11-24: "a company default with an override by
+    model.field"): the company profile's config.defaults.formatting over the shipped block."""
+    from apps.core.services.company_profile import company_config
+    raw = company_config('defaults').get('formatting')
+    return {**SHIPPED_FORMATTING, **(_present(raw) if isinstance(raw, dict) else {})}
+
+
+def checked_company_defaults(defaults: Any) -> Dict[str, Any]:
+    """The company profile's ``config.defaults`` as it may be stored: ``{"formatting": {...}}``."""
+    if defaults in (None, {}):
+        return {'formatting': {}}
+    if not isinstance(defaults, dict) or set(defaults) - {'formatting'}:
+        raise ValueError('The company profile\'s config.defaults holds "formatting", nothing else '
+                         '(a new record\'s field defaults are in each model\'s definition).')
+    return {'formatting': checked_formatting('company', defaults.get('formatting'))}
+
+
 def model_formatting(model_key: str) -> Dict[str, Any]:
-    """The model's formatting block, the shipped one where the definition has none."""
+    """The model's formatting: what its definition sets, over the company's, over the shipped."""
     from apps.core.services import definition
-    return definition.part(model_key, ('defaults', 'formatting'),
-                           lambda raw: {**SHIPPED_FORMATTING, **raw} if isinstance(raw, dict) else dict(SHIPPED_FORMATTING))
+    own = definition.part(model_key, ('defaults', 'formatting'),
+                          lambda raw: _present(raw) if isinstance(raw, dict) else {})
+    return {**company_formatting(), **own}
 
 
 def _present(block: Dict[str, Any]) -> Dict[str, Any]:
@@ -150,7 +189,7 @@ def checked_defaults(model_key: str, defaults: Any) -> Dict[str, Any]:
     only the four keys."""
     switches = shipped_features(model_key)
     if defaults in (None, {}):
-        return {'fields': {}, 'formatting': dict(SHIPPED_FORMATTING), **({'features': switches} if switches else {})}
+        return {'fields': {}, 'formatting': {}, **({'features': switches} if switches else {})}
     if not isinstance(defaults, dict) or set(defaults) - {'fields', 'formatting', 'features'}:
         raise ValueError(f'{model_key} config.defaults holds "fields", "formatting" and "features", nothing '
                          f'else: {sorted(defaults) if isinstance(defaults, dict) else type(defaults).__name__}.')
@@ -168,12 +207,9 @@ def checked_defaults(model_key: str, defaults: Any) -> Dict[str, Any]:
     formatting = defaults.get('formatting') or {}
     if not isinstance(fields, dict) or not isinstance(formatting, dict):
         raise ValueError(f'{model_key} config.defaults.fields and .formatting are objects.')
-    unknown = sorted(set(formatting) - set(FORMATTING_KEYS))
-    if unknown:
-        raise ValueError(f'{model_key} config.defaults.formatting takes {", ".join(FORMATTING_KEYS)}; '
-                         f'not {", ".join(unknown)}.')
     fields = _checked_fields(model_key, fields)
-    out = {'fields': fields, 'formatting': {**SHIPPED_FORMATTING, **formatting}}
+    # A model stores only the formatting it sets; the rest is the company's (company_formatting).
+    out = {'fields': fields, 'formatting': checked_formatting(model_key, formatting)}
     if switches:
         out['features'] = {**switches, **features}
     return out
