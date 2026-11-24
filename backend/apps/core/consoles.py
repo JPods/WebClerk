@@ -427,10 +427,11 @@ def get_first_sale_scenario() -> Dict[str, Any]:
             'step': 2,
             'title': 'Convert to Order — partial (9 of 15)',
             'instruction': (
-                'On the Quote, click the Convert to Order button.\n'
-                'Change the quantity to 9 (the customer only wants 9 of the 15 quoted).\n\n'
-                'The conversion creates a new Order record and copies the line.\n'
-                'The quote line quantity drops to 6 remaining.\n\n'
+                'On the Quote, open the Workflow menu and choose To Order. The conversion asks '
+                'no quantity: the new Order takes all 15.\n\n'
+                'On the Order, change the line quantity to 9 (the customer only wants 9 of the '
+                '15 quoted) and save.\n\n'
+                'The 6 the order gave back return to the quote: its line shows 6 remaining.\n\n'
                 'Watch the left panel — quantities will change.'
             ),
             'action': 'convert_to_order',
@@ -440,18 +441,19 @@ def get_first_sale_scenario() -> Dict[str, Any]:
                 'on_qt': '15 → 6 (−9)',
                 'on_so': '0 → 9 (+9)',
                 'on_hand': '100 (unchanged)',
-                'available': '100 → 91 (−9)',
+                'available': '100 (unchanged)',
             },
             'explanation': (
                 'NOW it\'s a commitment. The conversion:\n\n'
                 '1. Creates a new Order header (linked to the quote via refs)\n'
-                '2. Copies the line to the order with quantity = 9\n'
-                '3. Reduces the quote line to 6 remaining\n'
+                '2. Copies the line to the order with everything the quote has left (15)\n'
+                '3. Leaves the quote line with 0 remaining; cutting the order line to 9 gives 6 back\n'
                 '4. Creates Pending records for the quantity changes\n\n'
                 'Quantity changes:\n'
                 '• on_qt: 15 → 6 (9 units moved from quote to order)\n'
                 '• on_so: 0 → 9 (9 units committed to this sales order)\n'
-                '• available: 100 → 91 (orders ALLOCATE — these 9 are spoken for)\n'
+                '• available: still 100 (an order does not allocate; setting goods aside is a '
+                'person\'s deliberate act, and available = on_hand − allocated)\n'
                 '• on_hand: still 100 (nothing has physically moved)\n\n'
                 'Still NO GL entries. An order is a promise to deliver, not a delivery. '
                 'The financial event happens at invoicing.\n\n'
@@ -471,7 +473,7 @@ def get_first_sale_scenario() -> Dict[str, Any]:
                 '• 1 line: BB200 × 9 at $10.00 = $90.00\n'
                 '• Status: planned or released\n\n'
                 'Check the left panel quantities:\n'
-                '• on_hand = 100, on_so = 9, on_qt = 6, available = 91\n\n'
+                '• on_hand = 100, on_so = 9, on_qt = 6, available = 100\n\n'
                 'This order is ready to invoice (ship).'
             ),
             'action': 'review_order',
@@ -479,9 +481,9 @@ def get_first_sale_scenario() -> Dict[str, Any]:
             'exit_point': {
                 'name': 'Your First Sale Complete',
                 'summary': (
-                    'You created a quote for 15 units, converted 9 to an order. '
+                    'You created a quote for 15 units and carried 9 of them to an order. '
                     'The customer has 9 units committed (on_so=9), 6 still quoted (on_qt=6), '
-                    'and 91 units available for other customers.\n\n'
+                    'and all 100 on hand still available: nothing is set aside until someone allocates it.\n\n'
                     'Next: run "Defaults — the customer first" to see what a record is born '
                     'with, then "Inventory Quantity Tracking" to continue this order through '
                     'invoicing, purchasing, and receiving.'
@@ -640,9 +642,10 @@ def get_defaults_walk_scenario() -> Dict[str, Any]:
             'step': 4,
             'title': 'Quote → Order → Invoice: the values carry through',
             'instruction': (
-                'On the quote, open the workflow menu and choose To Order. Accept the full '
-                'quantity.\n\n'
-                'On the new order, choose To Invoice. Accept the full quantity.\n\n'
+                'On the quote, open the Workflow menu and choose To Order. The order takes '
+                'everything the quote has left; no quantity is asked.\n\n'
+                'On the new order, choose To Invoice. The invoice takes what the order has left '
+                'and stock can fill.\n\n'
                 'On the invoice, check:\n'
                 '• Customer: Riverside Supplies 80\n'
                 '• Terms: N30 · Price level: wholesale · Priority: medium\n'
@@ -848,7 +851,9 @@ def get_flight_scenario() -> Dict[str, Any]:
         {
             'step': 3,
             'title': 'Convert 9 units to Order',
-            'instruction': 'Create an Order from the Quote for 9 of the 15 units',
+            'instruction': ('On the Quote, choose Workflow → To Order: the Order takes all 15. '
+                            'On the Order, change the line quantity to 9 and save; the other 6 '
+                            'return to the quote.'),
             'action': 'create_order_from_quote',
             'qty': 9,
             'expected_quantity': {
@@ -872,7 +877,8 @@ def get_flight_scenario() -> Dict[str, Any]:
         {
             'step': 4,
             'title': 'Create Invoice for 4 units',
-            'instruction': (f'Create an Invoice from the Order for 4 of the 9 units, with tax jurisdiction '
+            'instruction': (f'On the Order, choose Workflow → To Invoice: the Invoice takes the 9. On the '
+                            f'Invoice, change the line quantity to 4 and save; 5 stay on the order. Set tax jurisdiction '
                             f'{R["tax_jurisdiction"]} ({tax_pct}) and ship via {R["ship_via"]} ({ship_pct} of goods)'),
             'action': 'create_invoice_from_order',
             'qty': 4,
@@ -933,7 +939,9 @@ def get_flight_scenario() -> Dict[str, Any]:
         {
             'step': 6,
             'title': 'Receive 11 of 14 from Purchase',
-            'instruction': 'Receive 11 units against the PO (partial receipt)',
+            'instruction': ('On the Purchase, choose Workflow → To Receipt: the Receipt takes all 14 and '
+                            'saving it receives them. Only 11 arrived: change the receipt line quantity '
+                            'to 11 and save (a partial receipt); 3 stay on the purchase.'),
             'action': 'receive_purchase',
             'qty': 11,
             'expected_quantity': {
@@ -1299,7 +1307,8 @@ def get_cash_flight_scenario() -> Dict[str, Any]:
         {
             'step': 2,
             'title': 'Invoice 6 of 10 — partial shipment',
-            'instruction': (f"Create an Invoice from the Order for 6 of the 10 units, tax jurisdiction {R['tax_jurisdiction']}, "
+            'instruction': (f"On the Order, choose Workflow → To Invoice: the Invoice takes all 10. On the Invoice, "
+                            f"change the line quantity to 6 and save; 4 stay on the order. Set tax jurisdiction {R['tax_jurisdiction']}, "
                             f"ship via {R['ship_via']}. Invoice total = {m(b['total'])} "
                             f"({m(b['goods'])} goods + {m(b['shipping'])} shipping ({ship_pct}) + {m(b['tax'])} tax ({tax_pct}))."),
             'action': 'create_invoice_from_order',

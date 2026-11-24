@@ -79,7 +79,6 @@ class Command(BaseCommand):
             if not setting:
                 setting = Setting(name='Hook Points', purpose='wc:hook_points', scope='system')
                 setting._setting_create_authorized = True
-            else:
             setting.config = {
                 'note': 'Where report hooks may attach and what they may do there. '
                         'Superuser-owned. A point that is not listed cannot be hooked.',

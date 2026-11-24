@@ -117,6 +117,16 @@ def test_a_partial_receipt_then_what_is_left_then_nothing(admin_client):
     assert r.status_code == 400 and r.json()['error']['code'] == 'nothing_to_convert', r.content
 
 
+def test_a_named_line_with_an_unknown_key_is_refused_not_converted_whole(admin_client):
+    """A mistyped "quantity" for "qty" used to be ignored, and the line converted everything it
+    had left (found walking the flight simulator, 2026-11-24). Refuse, never drop."""
+    a = _item('Widget')
+    po, (pa,) = _po((a, 10, PO_COST))
+    r = _convert(admin_client, po.pk, {'lines': [{'line_id': pa.pk, 'quantity': 4}]})
+    assert r.status_code == 400 and r.json()['error']['code'] == 'unknown_line_key', r.content
+    assert _stock(a) == (0, 0, 10), 'nothing was received'
+
+
 def test_named_lines_receive_only_those(admin_client):
     a, b = _item('Widget'), _item('Gadget')
     po, (pa, pb) = _po((a, 10, PO_COST), (b, 5, {'unit': 9.5}))

@@ -361,6 +361,11 @@ def _take_named(lines_named, source_type: str) -> Callable[[List[dict]], List[di
     for row in lines_named:
         if not isinstance(row, dict) or row.get("line_id") in (None, ""):
             raise _refuse("line_id_required", 'Each line names its "line_id".')
+        unknown = sorted(k for k in row if k not in ("line_id", "qty"))
+        if unknown:   # a mistyped "quantity" would otherwise convert everything left, unsaid
+            raise _refuse("unknown_line_key",
+                          f'Line {row["line_id"]}: a named line takes "line_id" and "qty" only; '
+                          f'sent {", ".join(unknown)}.', unknown)
         qty = row.get("qty")
         if qty not in (None, ""):
             try:
