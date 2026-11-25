@@ -910,7 +910,8 @@ def journalize_receipt(receipt_id: int) -> dict:
     (Bill, 2026-09-28/30; plan 2026-09-30-gl-by-layer.md). The PO posts nothing.
 
     - Each received movement of this receipt's lines that is not yet journalized: Dr inventory /
-      Cr received_not_billed at quantity x its layer's fixed landed cost. One pair per movement,
+      Cr received_not_billed at quantity x its layer's landed cost as it stands when posted (a
+      received line's cost may be corrected until then; Bill, 2026-11-25). One pair per movement,
       addressed by its id (GlJournal.event_id), so it can be reversed on its own.
     - The payable: Dr received_not_billed / Cr accounts_payable at what the vendor bills, the sum
       of the received lines' amounts.

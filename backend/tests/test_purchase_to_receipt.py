@@ -136,22 +136,52 @@ def test_named_lines_receive_only_those(admin_client):
     assert _stock(a) == (4, 4, 6)
 
 
-def test_the_cost_is_fixed_once_received(admin_client):
+@pytest.mark.usefixtures('chart_of_accounts')
+def test_a_received_cost_is_corrected_by_a_save_until_journalized(admin_client):
+    """Bill, 2026-11-25: "Users should be able to change the cost. They are responsible." The line's
+    layer takes the corrected cost, the item's average follows, and the purchase is not rewritten."""
+    from apps.products.models.inventory_layer import InventoryMovement
     a = _item('Widget')
     po, (pa,) = _po((a, 10, PO_COST))
     pa.refresh_from_db()
     before = dict(pa.cost)
     receipt_id = _data(_convert(admin_client, po.pk))['receipt_id']
     line = ReceiptLine.objects.get(receipt_id=receipt_id)
-    layer_cost = dict(line.inventory_layer.cost)
+    layer = line.inventory_layer
+    was = layer.cost['landed']
+    assert was != 5.0
     r = admin_client.patch(f'/wcapi/receipt/{receipt_id}/',
                            {'lines': [{'id': line.pk, 'cost': {'unit': 5.0}}]},
                            content_type='application/json')
-    assert r.status_code == 409 and r.json()['error']['code'] == 'layer_cost_fixed', r.content
+    assert r.status_code == 200, r.content
     line.refresh_from_db()
-    assert line.inventory_layer.cost == layer_cost, 'the dock cost never changes (R3)'
+    layer.refresh_from_db()
+    assert line.cost['unit'] == 5.0 and line.inventory_layer_id == layer.pk
+    assert layer.cost['unit_po'] == 5.0 and layer.cost['landed'] == 5.0
+    assert layer.quantity['received'] == 10 and _stock(a) == (10, 10, 0), 'a cost change moves no stock'
+    move = InventoryMovement.objects.get(inventory_layer=layer, movement_type='adjust')
+    assert move.quantity == 0 and move.metadata['recost'] == {
+        'from': was, 'to': 5.0, 'left_at_old_cost': 0.0, 'difference': 0.0}
     pa.refresh_from_db()
     assert pa.cost == before, 'a receipt cost never writes back to the purchase'
+
+    # The same cost again changes nothing and leaves no second record.
+    r = admin_client.patch(f'/wcapi/receipt/{receipt_id}/',
+                           {'lines': [{'id': line.pk, 'cost': {'unit': 5.0}}]},
+                           content_type='application/json')
+    assert r.status_code == 200, r.content
+    assert InventoryMovement.objects.filter(inventory_layer=layer, movement_type='adjust').count() == 1
+
+    # Journalized: the receipt has posted at 5.00 and its cost is closed.
+    from apps.accounts.services.journalize import journalize_receipt
+    posted = journalize_receipt(receipt_id)
+    assert not posted.get('error'), posted
+    r = admin_client.patch(f'/wcapi/receipt/{receipt_id}/',
+                           {'lines': [{'id': line.pk, 'cost': {'unit': 7.0}}]},
+                           content_type='application/json')
+    assert r.status_code in (400, 409), r.content
+    layer.refresh_from_db()
+    assert layer.cost['landed'] == 5.0
 
 
 def test_a_received_quantity_is_corrected_by_a_save(admin_client):

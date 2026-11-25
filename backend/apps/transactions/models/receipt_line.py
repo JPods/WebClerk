@@ -57,20 +57,17 @@ class ReceiptLine(BaseExecLineModel):
         super().save(*args, **kwargs)
 
     def _assert_received_is_fixed(self):
-        """A received line's cost is fixed: its layer holds the dock cost (Bill, 2026-11-11, R3).
-        Its quantity is not: saving a receipt receives the goods (R1), so quantity.active comes
-        from a save like any line's, and the line door moves the stock."""
+        """A received line is corrected until its receipt is journalized: its quantity (readme 108,
+        "Amendment confirmed") and its cost (Bill, 2026-11-25: "Users should be able to change the
+        cost. They are responsible." — replaces R3, the dock cost never changes). A changed cost is
+        marked here; the line door re-costs the line's layer once the totals are computed. A
+        journalized receipt refuses both (_assert_parent_not_journalized)."""
         from apps.core.services.door import Refused
         from apps.transactions.models.base_line_model import _envelope_changed
         stored = (type(self).objects.filter(pk=self.pk).values('quantity', 'cost').first()
                   if self.pk else None) or {}
         was = float((stored.get('quantity') or {}).get('active') or 0)
-        if was and _envelope_changed(stored.get('cost') or {}, self.cost or {}):
-            raise Refused(409, 'layer_cost_fixed',
-                          'This line is received: its layer holds the dock cost, which never changes. '
-                          'Freight, duty and other charges are added to the layer later; a wrong unit '
-                          'cost is corrected with a count workorder: a negative count at the old cost '
-                          'and a positive count at the new cost.', {'line_id': self.pk})
+        self._cost_changed = bool(was and _envelope_changed(stored.get('cost') or {}, self.cost or {}))
         now = float((self.quantity or {}).get('active') or 0)
         if was and now < was - 1e-9 and self.inventory_layer_id:
             # A received quantity is corrected until the receipt is journalized (readme 108,

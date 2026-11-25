@@ -292,15 +292,17 @@ class Pending(CoreModel):
         from apps.products.models.inventory_layer import InventoryLayer, InventoryMovement
         from apps.products.services.inventory.inventory_layers import create_layer, recalc_average_cost
 
-        # A layer's cost is fixed at birth (Bill, 2026-09-28): nothing here changes it.
+        if isinstance(spec, dict) and spec.get('recost'):
+            # The one change to a layer's cost: its own unjournalized receipt line was corrected.
+            return self._recost_received_layer(item_id, spec, data)
         if not spec or not on_hand:
             return
 
         if spec.get('layer_id'):
-            # A layer's cost never changes; its quantity moves only from its own receipt line, until
-            # that receipt is journalized (readme 108, "Amendment confirmed", Bill 2026-11-11 —
-            # replaces the 2026-09-28 "a received receipt line cannot be edited"). The line's save
-            # coaches a reduction past what the layer holds (receipt_line.py); this is the backstop.
+            # A layer's quantity moves only from its own receipt line, until that receipt is
+            # journalized (readme 108, "Amendment confirmed", Bill 2026-11-11 — replaces the
+            # 2026-09-28 "a received receipt line cannot be edited"). The line's save coaches a
+            # reduction past what the layer holds (receipt_line.py); this is the backstop.
             return self._move_received_layer(item_id, spec['layer_id'], on_hand, data)
 
         create = spec.get('create') or {}
@@ -423,6 +425,60 @@ class Pending(CoreModel):
         recalc_average_cost(item_id)
         if on_hand > 0:
             fill_deficits(layer, parent_model='receiptline', parent_id=line.pk)
+
+    def _recost_received_layer(self, item_id, spec, data):
+        """A received receipt line's cost corrected before its receipt is journalized (Bill,
+        2026-11-25: "Users should be able to change the cost. They are responsible."). The line's
+        one layer takes the line's landed cost, read from the line's computed totals with the same
+        formula the layer was born with. The receipt's journal values its movements at the layer's
+        cost when it posts, so the receipt posts at the corrected cost. Units that already left the
+        layer left at the old cost; that difference is the user's GL entry (Bill, 2026-11-13), and
+        it is recorded here in the pending and the movement so it can be found."""
+        from decimal import Decimal
+        from django.core.exceptions import ValidationError
+        from apps.products.models.inventory_layer import InventoryLayer, InventoryMovement
+        from apps.products.services.inventory.inventory_layers import recalc_average_cost
+        from apps.transactions.models import ReceiptLine
+        from apps.transactions.services.pricing.totals_compute import landed_layer_cost
+
+        layer = InventoryLayer.objects.select_for_update().filter(pk=spec.get('layer_id')).first()
+        if layer is None:
+            raise ValidationError({'layer': f"Pending {self.pk} names layer {spec.get('layer_id')}, which is gone"})
+        line = ReceiptLine.objects.select_related('receipt').filter(pk=spec.get('line_id')).first()
+        if (line is None or line.inventory_layer_id != layer.pk
+                or layer.parent_model != 'receiptline' or layer.parent_id != line.pk):
+            raise ValidationError({'layer': f"Pending {self.pk}: layer {layer.pk} is not receipt line "
+                                            f"{spec.get('line_id')}'s own"})
+        if line.receipt.dt_journaled:
+            raise ValidationError({'layer': f'Pending {self.pk} would re-cost layer {layer.pk}; its receipt '
+                                            'is journalized. Correct the value with a GL entry.'})
+        landed = landed_layer_cost(line.totals, (line.quantity or {}).get('active'))
+        if not landed:
+            raise ValidationError({'layer': f'Pending {self.pk}: receipt line {line.pk} has no totals to '
+                                            f'cost layer {layer.pk} from'})
+        cost = dict(layer.cost or {})
+        was = float(cost.get('landed') or 0)
+        cost.update(landed)
+        now = round(sum(float(landed.get(k) or 0) for k in ('unit_po', 'freight', 'duty', 'handling', 'vat')), 4)
+        cost['landed'] = now
+        for snapshot in ('fifo_snapshot', 'lifo_snapshot'):
+            if not cost.get(snapshot) or float(cost[snapshot]) == was:
+                cost[snapshot] = now
+        if now == was:
+            return
+        q = layer.quantity or {}
+        left = float(Decimal(str(q.get('issued', 0) or 0)) + Decimal(str(q.get('scrapped', 0) or 0)))
+        layer.cost = cost
+        layer.save(update_fields=['cost'])
+        recost = {'from': was, 'to': now, 'left_at_old_cost': left,
+                  'difference': round(left * (now - was), 2)}
+        InventoryMovement.objects.create(
+            item_id=item_id, warehouse=layer.warehouse, inventory_layer=layer,
+            site_code=layer.warehouse.site_code, movement_type=InventoryMovement.MOVEMENT_ADJUST,
+            quantity=0, reason=f'cost changed {was:g} to {now:g}'[:120], metadata={'recost': recost},
+            parent_model=layer.parent_model, parent_id=layer.parent_id)
+        spec['recost'] = recost
+        recalc_average_cost(item_id)
 
     def _apply_line_specs(self, item_id, specs, data, config):
         """Carry out what the line door decided a line's change does to the layers (plan §16d).

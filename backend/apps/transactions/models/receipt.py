@@ -157,7 +157,8 @@ class Receipt(TransactionBaseModel):
 
     def _assert_landed_fixed_once_received(self):
         """The charges spread onto a receipt's lines reach their layers when the lines are received,
-        and a received line's dock cost never changes (Bill, 2026-11-11, R3). So once a line is
+        and a received line's layer is re-costed only from that line's own cost (Bill, 2026-11-25,
+        replaces R3). Changing the charges on a received receipt is not built: so once a line is
         received, the receipt's allocations stand: a later charge is its own entry, added to the
         layers (readme 108, R4–R6)."""
         if not self.pk:

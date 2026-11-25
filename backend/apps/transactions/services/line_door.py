@@ -408,6 +408,14 @@ def post_line_change(line, *, deleted: bool = False) -> None:
         # re-saves the line, and a zero variance has no footprint then either (§16a.2).
         _write(line, item_id, {}, reason=line.line_type)
         return
+    if (item_id and not deleted and getattr(line, '_cost_changed', False)
+            and getattr(line, 'inventory_layer_id', None) and _header_model_name(header) == 'receipt'):
+        # A received line's cost was corrected (Bill, 2026-11-25): its layer takes the line's new
+        # landed cost. Deferred like the layer's birth, so the applier reads computed totals; a
+        # quantity change in the same save is written first, below, and applies before it.
+        line._cost_changed = False
+        _write_after_totals(line, header, item_id, {}, reason='cost changed',
+                            layer={'layer_id': line.inventory_layer_id, 'line_id': line.pk, 'recost': True})
     if not item_id or not deltas:
         return
     layer = None

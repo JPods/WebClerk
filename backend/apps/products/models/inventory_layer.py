@@ -199,7 +199,8 @@ class InventoryMovement(ItemLinkedBase):
     """One change to one layer: born (+received), consumed (-), counted or adjusted (±).
 
     The inventory journal's line (Bill, 2026-09-28/30: inventory values come from layers). Its
-    value is quantity x the layer's fixed unit cost, never stored twice. parent_model/parent_id
+    value is quantity x the layer's unit cost, never stored twice. A layer's cost changes only when
+    its own unjournalized receipt line's cost is corrected (an adjust movement of 0 records it). parent_model/parent_id
     name the line that caused it; dt_journaled is set when its parent is journalized.
     """
 
