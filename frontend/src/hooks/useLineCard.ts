@@ -125,7 +125,7 @@ function flattenLine(line: any, idx: number): any {
     description,
     qty: isRemoved ? 0 : qty,
     // What the source asked of this line when it was made; asked − active did not ship or arrive.
-    asked: isRemoved ? 0 : Number(line.quantity?.staged ?? 0),
+    staged: isRemoved ? 0 : Number(line.quantity?.staged ?? 0),
     short: isRemoved ? 0 : Math.max(Number(line.quantity?.staged ?? 0) - Number(line.quantity?.active ?? 0), 0),
     received: Number(line.quantity?.active ?? 0),
     remaining: isRemoved ? 0 : remaining,
@@ -372,17 +372,19 @@ export function useLineCard(options: UseLineCardOptions) {
       // Received (active) is what the user edits and what a save puts on the shelf (Bill,
       // 2026-11-11, readme 108 R1); asked is what the purchase had left when the receipt was made.
       cols.push({ name: 'received', field: 'received', width: '80px', sortable: true });
-      cols.push({ name: 'asked', field: 'asked', width: '70px', sortable: true });
+      cols.push({ name: 'staged', field: 'staged', width: '70px', sortable: true });
     } else if (isInvoice) {
       // What the order asked and did not ship stays on the order; the invoice shows it as r_so, remaining on the sales order (Bill, 2026-11-14).
       cols.push({ name: 'qty', field: 'qty', width: '80px', sortable: true });
+      // What the order line had left when the invoice was made (staged): the anchor qty is read against (Bill, 2026-11-25).
+      cols.push({ name: 'staged', field: 'staged', width: '70px', sortable: true });
       // The grid keys a column by its name, so the name is the record's field; the heading is the label.
       cols.push({ name: 'short', field: 'short', width: '80px', sortable: true });
     } else {
       cols.push({ name: 'qty', field: 'qty', width: '80px', sortable: true });
       cols.push({ name: 'remain', field: 'remaining', width: '55px', sortable: true });
       // An order shows what its quote had left when the order was made: the anchor a changed qty is read against.
-      if (isOrder) cols.push({ name: 'asked', field: 'asked', width: '70px', sortable: true });
+      if (isOrder) cols.push({ name: 'staged', field: 'staged', width: '70px', sortable: true });
     }
 
     if (isSellSide) {
@@ -439,7 +441,8 @@ export function useLineCard(options: UseLineCardOptions) {
 
   const fieldBehaviors = useMemo(() => ({
     qty: { type: 'number', precision: currency.qty_precision, bulkEditable: true },
-    asked: { type: 'number', precision: currency.qty_precision, calculated: true },
+    // The heading is the stored name, quantity.staged, so people learn the data (Bill, 2026-11-25).
+    staged: { type: 'number', precision: currency.qty_precision, calculated: true },
     short: { type: 'number', label: 'r_so', precision: currency.qty_precision, calculated: true },
     received: { type: 'number', precision: currency.qty_precision },
     remaining: { type: 'number', precision: currency.qty_precision, calculated: true },
