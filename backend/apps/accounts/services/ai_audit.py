@@ -37,7 +37,7 @@ def check_quantity(
 
     Checks:
       1. staged/active/remaining sign consistency
-      2. remaining = active (no children) or active - children_active.sum
+      2. remaining = active minus what the line's children have consumed (line._children_sum)
       3. staged mirrors active for standalone lines
     """
     if not submitted_qty or not isinstance(submitted_qty, dict):
@@ -47,7 +47,6 @@ def check_quantity(
 
     discrepancies: list[dict] = []
     q = line.quantity
-    kind = getattr(line._meta, "model_name", "") or ""
 
     staged = Decimal(str(q.get("staged", 0) or 0))
     active = Decimal(str(q.get("active", 0) or 0))
@@ -57,16 +56,11 @@ def check_quantity(
     sub_remaining = Decimal(str(submitted_qty.get("remaining", 0) or 0))
 
     # Check 1: remaining consistency
-    # remaining = active - children_active.sum (or just active if no children)
-    children_active = q.get("children_active")
-    children_sum = Decimal("0")
-    if children_active and isinstance(children_active, dict):
-        children_sum = Decimal(str(children_active.get("sum", 0) or 0))
-    if kind == "workorderline":
-        # One writer (line_parent.children_active_sum): a workorder line is consumed by its own
-        # events, and a count/adjust line is done once recorded — not active − children.
-        from apps.transactions.services.line_parent import children_active_sum
-        children_sum = Decimal(str(children_active_sum(line) or 0))
+    # One writer (line_parent.children_active_sum): the line's save puts what its children (or a
+    # workorder line's own events) have consumed on line._children_sum, and remaining is computed
+    # from it. The check reads the same figure. The quantity map stores no children_active, so
+    # reading one there made every consumed parent line look wrong.
+    children_sum = Decimal(str(getattr(line, "_children_sum", None) or 0))
     expected = active - children_sum
 
     if abs(remaining - expected) > QUANTITY_TOLERANCE:
@@ -77,7 +71,7 @@ def check_quantity(
             calculated=float(expected),
             delta=float(abs(remaining - expected)),
             tolerance=float(QUANTITY_TOLERANCE),
-            note=f"Expected remaining={float(expected)} (active={float(active)}, children_sum={float(children_sum) if children_active else 0})",
+            note=f"Expected remaining={float(expected)} (active={float(active)}, children_sum={float(children_sum)})",
         ))
 
     # Check 3: staged/active consistency for standalone
