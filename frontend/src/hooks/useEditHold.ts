@@ -6,7 +6,7 @@
  * opens when they leave it or their hold runs out. The server refuses their save anyway (423);
  * this is the notice. Service: backend/apps/core/services/edit_hold.py.
  *
- * LastChecked: 2026-11-02 | WhereUsed: DbForm | WhoCreated: Bill+Claude
+ * LastChecked: 2026-11-26 | WhereUsed: DbForm | WhoCreated: Bill+Claude
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import apiClient from "@/api/axios";
@@ -37,11 +37,29 @@ export function useEditHold(modelName: string | undefined, recordId: number | st
     }
   }, [target]);
 
+  // One hold per mount. StrictMode (development) mounts, unmounts and remounts every effect; sent
+  // straight, that is hold, release, hold, and the server's threads may run the release last and
+  // drop the hold the form believes it has. So the release waits one tick, and a remount for the
+  // same record cancels it and keeps the hold already taken. Moving to another record takes the new
+  // hold first; the old one is given back after.
+  const held = useRef<string | null>(null);
+  const pendingRelease = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     if (!target) return;
-    take();
+    if (pendingRelease.current && held.current === target) {
+      clearTimeout(pendingRelease.current);
+      pendingRelease.current = null;
+    } else {
+      held.current = target;
+      take();
+    }
     return () => {
-      apiClient.post(`${target}/release/`, {}).catch(() => undefined);
+      pendingRelease.current = setTimeout(() => {
+        pendingRelease.current = null;
+        if (held.current === target) held.current = null;
+        apiClient.post(`${target}/release/`, {}).catch(() => undefined);
+      }, 0);
     };
   }, [target, take]);
 
