@@ -918,11 +918,12 @@ def journalize_receipt(receipt_id: int, post_unallocated: bool = False) -> dict:
     - What is left in received_not_billed is landed cost someone else bills (freight, duty): the
       accrual until that bill is entered, listed by the checker.
 
-    - A charge no line carries (totals.unallocated): Dr that charge's account
-      (chart.landed_account) / Cr received_not_billed, noted as unallocated, so nothing is left
-      dangling in the receipt (Bill, 2026-11-25). Only with ``post_unallocated``: without it a
-      receipt with unallocated charges answers error 'Unallocated charges' and names them, and
-      the person confirms.
+    - A charge no line carries (totals.unallocated): Dr the unallocated_receipt role's account
+      / Cr received_not_billed, so nothing is left dangling in the receipt (Bill, 2026-11-25).
+      One expense account for every kind of charge (Bill, 2026-11-26); the row's event_id and
+      note name the kind and the receipt. Only with ``post_unallocated``: without it a receipt
+      with unallocated charges answers error 'Unallocated charges' and names them, and the
+      person confirms. readmes/113-unallocated-charges-at-journalize.md
 
     Sets dt_journaled on the receipt and on each movement it posted. Refuses a receipt that is
     journalized already or has received nothing.
@@ -942,7 +943,6 @@ def journalize_receipt(receipt_id: int, post_unallocated: bool = False) -> dict:
     received = [l for l in lines if float((l.quantity or {}).get('active') or 0) > 0]
     if not received:
         return {'created': 0, 'error': 'Nothing received: receive the receipt first'}
-    from apps.accounts.services.chart import landed_account
     from apps.transactions.services.pricing.totals_compute import receipt_unallocated
     unallocated = {comp: amount for comp, amount in receipt_unallocated(receipt, lines).items() if amount}
     if unallocated and not post_unallocated:
@@ -955,9 +955,9 @@ def journalize_receipt(receipt_id: int, post_unallocated: bool = False) -> dict:
     rows = []    # (account, debit, credit, type, event_id[, note])
     rnb = _role('received_not_billed', used_by=f'receipt {receipt.ida}')
     for comp, amount in unallocated.items():
-        # Owed, and carried by no line: it posts to the charge's own account, noted. More than
-        # the charge was put on the lines when the amount is negative; the entry turns round.
-        account = landed_account(comp, used_by=f'receipt {receipt.ida} unallocated {comp}')
+        # Owed, and carried by no line: it posts to the unallocated-receipt account, noted. More
+        # than the charge was put on the lines when the amount is negative; the entry turns round.
+        account = _role('unallocated_receipt', used_by=f'receipt {receipt.ida} unallocated {comp}')
         note = f'unallocated {comp}: on receipt {receipt.ida}, carried by no line'
         debit, credit = (account, rnb) if amount > 0 else (rnb, account)
         rows.append((debit, abs(amount), Decimal('0'), 'general', f'unallocated:{comp}', note))

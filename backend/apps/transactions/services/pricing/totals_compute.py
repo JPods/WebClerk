@@ -338,6 +338,8 @@ def _allocate(total: Decimal, weights: List[Decimal]) -> List[Decimal]:
 
 LANDED_COMPONENTS = ('freight', 'duty', 'handling', 'vat')
 LANDED_BASES = ('value', 'weight', 'quantity')
+#: allocations.method.<comp> = 'manual': nothing spreads that charge; the person types each share.
+MANUAL_BASIS = 'manual'
 _TO_KG = {'kg': Decimal(1), 'g': Decimal('0.001'), 'lb': Decimal('0.45359237'),
           'lbs': Decimal('0.45359237'), 'oz': Decimal('0.028349523125')}
 

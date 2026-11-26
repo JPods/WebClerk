@@ -646,7 +646,7 @@ class LinePrice(BaseModel):
 
 
 LANDED_COMPONENTS = ('freight', 'duty', 'handling', 'vat')
-LandedBasis = Literal['value', 'weight', 'quantity']
+LandedBasis = Literal['value', 'weight', 'quantity', 'manual']
 
 
 class LandedMethod(BaseModel):
@@ -656,6 +656,8 @@ class LandedMethod(BaseModel):
     weight   — by qty × the line's unit weight; a line with no weight sends the whole
                component back to value, and the decision says so
     quantity — by qty received
+    manual   — nothing spreads it, not the first time and not the spread command: the person
+               types each line's share (Bill, 2026-11-26: users will want variations)
     """
     freight: LandedBasis = Field('value', title="Freight By", json_schema_extra={'widget': 'text'})
     duty: LandedBasis = Field('value', title="Duty By", json_schema_extra={'widget': 'text'})
@@ -878,6 +880,11 @@ class TransactionAllocations(BaseModel):
     method: LandedMethod = Field(default_factory=LandedMethod, title="Allocation Method",
         description="The basis the spread command uses for each landed cost",
         json_schema_extra={'widget': 'json-tree'})
+    spread: dict = Field(default_factory=dict, title="Spread",
+        description="Per landed cost, the last time it was spread over the lines: {dt, by, basis, "
+                    "basis_used, reason}. A cost named here was spread once; after that only the "
+                    "spread command spreads it again",
+        json_schema_extra={'widget': 'json-tree', 'readonly': True})
 
     class Config:
         extra = "forbid"

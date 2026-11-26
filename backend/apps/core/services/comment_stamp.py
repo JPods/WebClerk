@@ -36,12 +36,14 @@ def display_time(now=None) -> str:
 
 
 def append_comment(record, channel: str, text: str, *, user=None, source: str | None = None,
-                   key: str | None = None) -> bool:
+                   key: str | None = None, data: dict | None = None) -> bool:
     """Append one stamped entry to ``record.comments[channel]`` — the one writer.
 
     The shape CommentsPanel reads: ``comments.<channel>`` is a list of
     ``{user, mgs, time, user_id}``, plus ``source`` (who wrote it: a hook, the cash door)
-    and ``key`` when given. ``key`` makes the append idempotent: a retry that carries the
+    and ``key`` when given, and ``data`` — the same fact for a program to read (amounts, a
+    UTC ``dt`` in epoch ms; ``time`` is a label in the installation's zone). ``key`` makes the
+    append idempotent: a retry that carries the
     same key writes nothing (an apply that runs twice records once). ``user`` is a Contact,
     a Contact id, or None for the system. Does not save; the caller saves ``comments``.
     Returns True when an entry was added.
@@ -60,6 +62,8 @@ def append_comment(record, channel: str, text: str, *, user=None, source: str | 
         entry['source'] = source
     if key:
         entry['key'] = key
+    if data:
+        entry['data'] = data
     entries.append(entry)
     comments[channel] = entries
     record.comments = comments

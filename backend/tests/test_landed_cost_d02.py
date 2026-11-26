@@ -44,16 +44,74 @@ def _spread(receipt, **body):
     return out
 
 
-def test_a_save_never_spreads_and_the_charges_are_still_owed():
-    """Bill, 2026-11-25: a save changes what was typed and nothing else. Charges no line carries
-    are named apart and stay in what the receipt owes."""
+def _receive_together(receipt, *rows, **physical):
+    """Lines saved planned, then received in one save, as a document saved with its lines is."""
+    from apps.core.services.door import Actor
+    from apps.core.services.save import save_record
+    from apps.products.models import Item, Warehouse
+    wh, _ = Warehouse.objects.get_or_create(code='D02AUTO', defaults={'name': 'D02 auto'})
+    lines = [_planned_line(receipt, n, qty, unit, Item.objects.create(name=f'D02 auto {n}'), wh)
+             for n, qty, unit in rows]
+    save_record(Actor.system(), {'id': receipt.pk, 'lines': [
+        {'id': l.pk, 'quantity': {'active': l.quantity['staged']}} for l in lines]}, model_key='receipt')
+    receipt.refresh_from_db()
+    return lines
+
+
+def test_the_first_spread_is_automatic_and_happens_once():
+    """Bill, 2026-11-26: "Auto spread seems like a good idea." The first time a charge stands on a
+    receipt with received lines it is divided over them by its basis, and the receipt records it.
+    After that a save changes what was typed and nothing else (Bill, 2026-11-25): a changed charge
+    is named as unallocated and stays in what the receipt owes, until the command runs."""
+    from apps.core.services.door import Actor
+    from apps.core.services.save import save_record
     r = _receipt(freight=10, duty=4, handling=3)
-    _line(r, 10, 7, 6.00)
-    _line(r, 20, 4, 12.50)
-    r.refresh_from_db()
-    assert _shares(r, 'freight') == [0, 0]
-    assert r.totals['unallocated'] == {'freight': 10.0, 'duty': 4.0, 'handling': 3.0, 'vat': 0.0}
+    _receive_together(r, (10, 7, 6.00), (20, 4, 12.50))
+    assert _shares(r, 'freight') == [4.57, 5.43]
+    assert r.totals['unallocated'] == {'freight': 0.0, 'duty': 0.0, 'handling': 0.0, 'vat': 0.0}
     assert r.totals['total'] == 109.00
+    record = r.allocations['spread']
+    assert sorted(record) == ['duty', 'freight', 'handling'], 'vat is 0: nothing to spread, nothing recorded'
+    assert (record['freight']['by'], record['freight']['basis_used']) == ('auto', 'value')
+
+    save_record(Actor.system(), {'id': r.pk, 'allocations': {'freight': 21}}, model_key='receipt')
+    r.refresh_from_db()
+    assert _shares(r, 'freight') == [4.57, 5.43], 'a later save never spreads'
+    assert r.totals['unallocated']['freight'] == 11.0
+    assert r.totals['total'] == 120.00
+    _spread(r, components=['freight'])
+    assert r.totals['unallocated']['freight'] == 0.0
+    assert r.allocations['spread']['freight']['by'] == 'command'
+
+
+def test_a_charge_entered_after_the_lines_spreads_when_it_first_appears():
+    from apps.core.services.door import Actor
+    from apps.core.services.save import save_record
+    r = _receipt()
+    _receive_together(r, (10, 7, 6.00), (20, 4, 12.50))
+    assert r.allocations.get('spread', {}) == {}
+    save_record(Actor.system(), {'id': r.pk, 'allocations': {'duty': 4}}, model_key='receipt')
+    r.refresh_from_db()
+    assert _shares(r, 'duty') == [1.83, 2.17]
+    assert r.allocations['spread']['duty']['by'] == 'auto'
+
+
+def test_a_manual_charge_is_never_spread_for_the_person():
+    """The variation the person owns (Bill, 2026-11-26: "our code should allow user-defined
+    variations"): a charge whose basis is manual is spread by nothing; every share is typed."""
+    r = _receipt(method={'freight': 'manual'}, freight=10, duty=4)
+    a, _b = _receive_together(r, (10, 7, 6.00), (20, 4, 12.50))
+    assert _shares(r, 'freight') == [0, 0] and _shares(r, 'duty') == [1.83, 2.17]
+    assert r.totals['unallocated']['freight'] == 10.0
+    assert 'freight' not in r.allocations['spread']
+    out = _spread(r)
+    freight = next(d for d in out['spread'] if d['component'] == 'freight')
+    assert freight['basis_used'] == 'manual' and 'typed' in freight['reason']
+    assert _shares(r, 'freight') == [0, 0], 'the command leaves a manual charge to the person'
+    a.refresh_from_db()
+    _type(a, freight=10.00)
+    r.refresh_from_db()
+    assert r.totals['unallocated']['freight'] == 0.0
 
 
 def test_spread_by_value_is_the_default_and_the_money_ties():
@@ -156,6 +214,8 @@ def test_the_layers_follow_their_lines_until_the_receipt_is_journalized():
     item, other = Item.objects.create(name='D02 item'), Item.objects.create(name='D02 other')
     wh = Warehouse.objects.create(name='D02 WH', code='D02WH')
     r = _receipt(freight=10, duty=4)
+    vendor = Receipt._meta.get_field('vendor').related_model.objects.create(company='D02 Vendor')
+    Receipt.objects.filter(pk=r.pk).update(vendor_id=vendor.pk, terms='N30')   # complete: it will journalize
     first = _planned_line(r, 10, 7, 6.00, item, wh)
     second = _planned_line(r, 20, 4, 12.50, other, wh)
     save_record(Actor.system(), {'id': r.pk, 'lines': [
@@ -163,11 +223,9 @@ def test_the_layers_follow_their_lines_until_the_receipt_is_journalized():
         model_key='receipt')
     first.refresh_from_db()
     layer = first.inventory_layer
-    assert layer.cost['unit_po'] == 6.00 and layer.cost['landed'] == 6.00, 'born at the unit: nothing spread yet'
-
-    _spread(r)
-    layer.refresh_from_db()
+    # Received together, so the first spread divided both charges over both lines (Bill, 2026-11-26).
     # freight 4.57 / 7 = 0.6529, duty 1.83 / 7 = 0.2614
+    assert layer.cost['unit_po'] == 6.00
     assert layer.cost['freight'] == 0.6529 and layer.cost['duty'] == 0.2614
     assert layer.cost['landed'] == pytest.approx(6.00 + 0.6529 + 0.2614)
     assert layer.quantity['received'] == 7, 'a cost change moves no stock'
@@ -197,7 +255,7 @@ def test_the_layers_follow_their_lines_until_the_receipt_is_journalized():
     assert second.inventory_layer.cost['freight'] == pytest.approx(11.41 / 4, abs=1e-4)
     assert r.totals['unallocated']['freight'] == 2.59
     changes = Pending.objects.filter(name__endswith='cost changed')
-    assert changes.count() == 5, 'two layers at each spread, one at the typed share'
+    assert changes.count() == 3, 'the layers were born at their landed cost; two at the spread, one at the typed share'
     assert all(p.is_processed() for p in changes)
 
     # Journalize: the 2.59 no line carries is named, and posts only when the person confirms.
@@ -211,7 +269,17 @@ def test_the_layers_follow_their_lines_until_the_receipt_is_journalized():
     apart = GlJournal.objects.filter(source_model='receipt', source_id=r.pk, event_id='unallocated:freight')
     assert sorted((float(g.debit or 0), float(g.credit or 0)) for g in apart) == [(0.0, 2.59), (2.59, 0.0)]
     assert all('unallocated freight' in g.note for g in apart)
+    # One expense account for every kind of charge (Bill, 2026-11-26), not default_expense.
+    assert sorted(g.account for g in apart) == ['2050-received_not_billed', '6560-unallocated_receipt']
+    # Who and when, in the same place on the journal rows and on the receipt: comments.process.
+    r.refresh_from_db()
+    (entry,) = [e for e in r.comments['process'] if e.get('source') == 'journalize']
+    assert entry['data']['post_unallocated'] is True and entry['data']['unallocated'] == {'freight': 2.59}
+    assert entry['data']['dt'] > 0 and 'freight 2.59' in entry['mgs']
     rows = GlJournal.objects.filter(source_model='receipt', source_id=r.pk)
+    for g in rows:
+        (posted_by,) = g.comments['process']
+        assert posted_by['source'] == 'journalize' and posted_by['data']['dt'] == g.dt_journaled
     assert round(sum(float(g.debit or 0) for g in rows), 2) == round(sum(float(g.credit or 0) for g in rows), 2)
 
     r.refresh_from_db()

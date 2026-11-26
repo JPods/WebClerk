@@ -64,4 +64,19 @@ class GlJournal(BaseModel):
         # held 349 such rows on 2026-11-07, every posting ever made.
         if not self.dt_journaled:
             self.dt_journaled = int(time.time() * 1000)
+        if self._state.adding:
+            self._log_posted()
         return super().save(*args, **kwargs)
+
+    def _log_posted(self) -> None:
+        """Who posted this row and when, in comments.process — the place its document logs the
+        same act (Bill, 2026-11-26: "All journals should be logged in the journal and the
+        originating record"). The person is the one whose door verb is running; our own code (a
+        task, a seed, a management command) is the system."""
+        from apps.core.services.comment_stamp import append_comment
+        from apps.core.services.door import acting_actor
+        actor = acting_actor()
+        user = getattr(actor, 'user', None) if actor is not None else None
+        source = f'{self.source_model} {self.source_id}' if self.source_model else (self.source or 'journal')
+        append_comment(self, 'process', f'Posted from {source}.', user=user, source='journalize',
+                       data={'dt': self.dt_journaled})

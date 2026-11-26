@@ -102,7 +102,7 @@ def journalize(ctx) -> Dict[str, Any]:
             raise Refused(409, 'unallocated_charges',
                           f'This receipt has charges no line carries: {owed}. Run spread on the receipt '
                           f'or type each line\'s share to put them into inventory. To post them as they '
-                          f'are, to each charge\'s own account, confirm with "post_unallocated": true.',
+                          f'are, to the unallocated-receipt account, confirm with "post_unallocated": true.',
                           {'unallocated': result['unallocated']})
     else:
         result = post(ctx.obj.pk)
@@ -112,11 +112,36 @@ def journalize(ctx) -> Dict[str, Any]:
                 'nothing_received' if error.startswith('Nothing received') else
                 'nothing_to_journalize' if error.startswith('Nothing to journalize') else 'journalize_failed')
         raise Refused(400 if code == 'journalize_failed' else 409, code, error, ctx.obj.pk)
-    posted_apart = [f'unallocated {comp} {amount:,.2f} posted to its own account, not to inventory.'
+    _log_journalized(ctx, result)
+    posted_apart = [f'unallocated {comp} {amount:,.2f} posted to the unallocated-receipt account, not to inventory.'
                     for comp, amount in (result.get('unallocated') or {}).items()]
     result['messages'] = (([released_here] if released_here else []) + posted_apart
                           + list(result.get('messages') or []))
     return result
+
+
+def _log_journalized(ctx, result: Dict[str, Any]) -> None:
+    """The document says who journalized it and when, in comments.process beside its
+    unjournalize entries (Bill, 2026-11-26: "All journals should be logged in the journal and the
+    originating record"). Each GL row says the same of itself (GlJournal._log_posted). Unallocated
+    charges posted on the person's confirmation are named, so the checkbox has a name and a time
+    behind it. The poster wrote the journal lock with an update, so this does too."""
+    import time
+    from apps.core.services.comment_stamp import append_comment
+    obj = ctx.obj
+    model = type(obj)
+    held = model.objects.filter(pk=obj.pk).values_list('comments', flat=True).first()
+    obj.comments = held if isinstance(held, dict) else {}
+    unallocated = result.get('unallocated') or {}
+    text = f"Journalized: {result.get('created', 0)} GL rows."
+    data: Dict[str, Any] = {'dt': int(time.time() * 1000), 'created': result.get('created', 0)}
+    if unallocated:
+        owed = ', '.join(f'{comp} {amount:,.2f}' for comp, amount in unallocated.items())
+        text += f' Unallocated charges posted on confirmation: {owed}.'
+        data.update(post_unallocated=True, unallocated=unallocated)
+    append_comment(obj, 'process', text, user=getattr(ctx.actor, 'user', None),
+                   source='journalize', data=data)
+    model.objects.filter(pk=obj.pk).update(comments=obj.comments)
 
 
 def register() -> None:

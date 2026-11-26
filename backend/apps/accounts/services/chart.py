@@ -86,17 +86,11 @@ ROLES = (
     'scrap',
     'commission_expense',
     'small_sting_expense',
+    'unallocated_receipt',
     'default_expense',
     'fx_gain_loss',
 )
 
-
-# A receipt's charges no line carries post to an account of their own when the receipt is
-# journalized (Bill, 2026-11-25: "applying them to the journal for duty, vat, etc... or something
-# else if users setup alternates"). Each is optional in config.gl_defaults; one left unmapped
-# posts to default_expense.
-LANDED_ROLES = {'freight': 'landed_freight', 'duty': 'landed_duty',
-                'handling': 'landed_handling', 'vat': 'landed_vat'}
 
 
 class UndefinedAccountError(ValidationError):
@@ -142,17 +136,6 @@ def _mapped_code(role: str) -> str:
     config = company.config if company and isinstance(company.config, dict) else {}
     defaults = config.get('gl_defaults') if isinstance(config.get('gl_defaults'), dict) else {}
     return defaults.get(role) or ''
-
-
-def landed_account(comp: str, *, used_by: str = '') -> str:
-    """The account a receipt's unallocated ``comp`` (freight, duty, handling, vat) posts to: the
-    company's gl_defaults.landed_<comp> when it set one, else default_expense."""
-    role = LANDED_ROLES[comp]
-    code = _mapped_code(role)
-    if not code:
-        return role_account('default_expense', used_by=used_by)
-    require_account(code, used_by=f'company gl_defaults.{role}' + (f' for {used_by}' if used_by else ''))
-    return code
 
 
 def role_account(role: str, *, used_by: str = '', required: bool = True) -> str:
@@ -246,7 +229,7 @@ def chart_defects(chart: dict) -> list[str]:
         elif roles[role] not in codes:
             defects.append(f'role {role}: {roles[role]!r} is not an account in this chart')
     defects += [f'role {role}: not a posting role' for role in roles
-                if role not in ROLES and role not in LANDED_ROLES.values()]
+                if role not in ROLES]
     return defects
 
 

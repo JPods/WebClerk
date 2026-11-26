@@ -404,6 +404,14 @@
       "summary": "Fines customers assess on us for unresolved problems (Small-Stings): $1.72 unless the sting names its value. Each filing debits it and credits 2230-small_stings_payable. The cost of our errors, in plain sight. Role: small_sting_expense."
     },
     {
+      "ida": "6560-unallocated_receipt",
+      "name": "Unallocated Receipt Charges",
+      "type": "expense",
+      "category": "operating_expenses",
+      "used_for": "expense",
+      "summary": "Freight, duty, handling or VAT on a receipt that no line carried when the receipt was journalized. The person confirmed the posting; each row names its receipt and the kind of charge. Review it weekly: move an amount into inventory by revaluing the layer, or leave it as the period's expense. Role: unallocated_receipt."
+    },
+    {
       "ida": "6600-marketing",
       "name": "Marketing & Advertising",
       "type": "expense",
@@ -495,6 +503,7 @@
     "scrap": "5300-scrap_shrinkage",
     "commission_expense": "6100-commission_expense",
     "small_sting_expense": "6550-small_sting_expense",
+    "unallocated_receipt": "6560-unallocated_receipt",
     "default_expense": "6950-general_admin",
     "fx_gain_loss": "7100-fx_gain_loss"
   }
