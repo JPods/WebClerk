@@ -194,8 +194,9 @@ const WorkflowSelect: React.FC<WorkflowSelectProps> = ({ modelName, record, onCo
       <div style={{ background: 'var(--db-surface, #fff)', color: 'var(--db-text, #212529)', border: '1px solid var(--db-border, #dee2e6)', borderRadius: 6, padding: 16, minWidth: 340, maxWidth: 480 }}>
         <div style={{ fontWeight: 600, marginBottom: 8 }}>unallocated</div>
         <p style={{ margin: '0 0 8px' }}>
-          These charges are not on the lines' landed. Spread them, or post them: each amount goes to its
-          charge's account (gl_defaults.landed_&lt;comp&gt;) against received_not_billed.
+          These charges are not on the lines' landed. Spread them, or post them: each amount goes to the
+          unallocated-receipt account (gl_defaults.unallocated_receipt) against received_not_billed, and
+          the receipt and the journal record who confirmed it.
         </p>
         <table style={{ borderCollapse: 'collapse', marginBottom: 8 }}>
           <tbody>

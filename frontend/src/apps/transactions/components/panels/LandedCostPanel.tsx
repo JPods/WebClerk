@@ -6,9 +6,11 @@
  * we need consistency"): freight, duty, handling, vat, landed, method, unallocated.
  *
  * Bill's ruling, same day: a value typed on a line changes only that line; to recalculate, the
- * person runs Workflow → Spread on the receipt. So a save never spreads. Per charge this shows the
- * receipt's amount (allocations.<comp>), the basis Spread uses (allocations.method.<comp>: value |
- * quantity | weight), this line's landed (cost.landed.<comp>, a plain number the person owns),
+ * person runs Workflow → Spread on the receipt. The server spreads a charge once on its own, the
+ * first time it stands on a receipt with received lines (Bill, 2026-11-26); after that a save
+ * never spreads. Per charge this shows the receipt's amount (allocations.<comp>), the basis Spread
+ * uses (allocations.method.<comp>: value | quantity | weight | manual — manual is spread by
+ * nothing, every share is typed), this line's landed (cost.landed.<comp>, a plain number the person owns),
  * and what the lines leave unapplied (the receipt's totals.unallocated.<comp>, the server's; it may
  * be negative). Journalize asks before posting an unallocated amount.
  * Server is truth: once anything is unsaved, unallocated and the landed unit are the last save's.
@@ -17,7 +19,7 @@ import React from 'react';
 
 export const LANDED_COMPONENTS = ['freight', 'duty', 'handling', 'vat'] as const;
 export type LandedComponent = typeof LANDED_COMPONENTS[number];
-export const LANDED_BASES = ['value', 'quantity', 'weight'] as const;
+export const LANDED_BASES = ['value', 'quantity', 'weight', 'manual'] as const;
 
 const num = (v: unknown): number => {
   const n = Number(v);
