@@ -1094,8 +1094,12 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
                   />
                 </div>
               )}
+              {/* metadata, prefs, config and refs are drawn once, in the JSON panel below the
+                  model's own fields (Bill, 2026-11-26: they showed twice, here and in the panel;
+                  "canonical fields and model specific jsons at the top ... with .refs, .prefs,
+                  metadata and config below"). */}
               <GroupedDetailFields
-                fields={db.visibleDetailFields}
+                fields={db.visibleDetailFields.filter((f) => !['metadata', 'prefs', 'config', 'refs'].includes(f))}
                 record={db.selectedRecord}
                 fieldGroups={db.activeViewName === 'flat' ? [] : db.fieldGroups}
                 collapsedKeys={db.currentCollapsed}
