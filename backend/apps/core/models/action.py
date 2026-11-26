@@ -169,11 +169,38 @@ class Action(BaseModel):
 
     def _capture_original_state(self):
         # The roster and parents as loaded, by value: they are resolved again only when they
-        # change (C-10: a description edit re-resolved every person and parent).
+        # change (C-10: a description edit re-resolved every person and parent). A deferred one
+        # is copied when it loads (refresh_from_db), never by touching it here (that touch was a
+        # query storm: BaseModel._capture_original_state, 2026-11-26).
         super()._capture_original_state()
-        refs = self.refs if isinstance(self.refs, dict) else {}
-        self._roster_at_load = copy.deepcopy(self.assigned_to)
-        self._parents_at_load = copy.deepcopy(refs.get('parents'))
+        self._at_load = {}
+        self._copy_at_load(self.__dict__)
+
+    def _copy_at_load(self, loaded):
+        if 'assigned_to' in loaded and 'roster' not in self._at_load:
+            self._at_load['roster'] = copy.deepcopy(loaded['assigned_to'])
+        if 'refs' in loaded and 'parents' not in self._at_load:
+            refs = loaded['refs'] if isinstance(loaded['refs'], dict) else {}
+            self._at_load['parents'] = copy.deepcopy(refs.get('parents'))
+
+    def refresh_from_db(self, *args, **kwargs):
+        waiting = [a for a in ('assigned_to', 'refs') if a not in self.__dict__]
+        super().refresh_from_db(*args, **kwargs)
+        if hasattr(self, '_at_load'):       # not the load inside __init__: the capture copies then
+            self._copy_at_load({a: self.__dict__[a] for a in waiting if a in self.__dict__})
+
+    @property
+    def _roster_at_load(self):
+        if 'roster' not in self._at_load:          # never loaded: the row's value, read once
+            self._at_load['roster'] = copy.deepcopy(self._original_state['assigned_to'])
+        return self._at_load['roster']
+
+    @property
+    def _parents_at_load(self):
+        if 'parents' not in self._at_load:
+            refs = self._original_state['refs']
+            self._at_load['parents'] = copy.deepcopy((refs if isinstance(refs, dict) else {}).get('parents'))
+        return self._at_load['parents']
 
     def save(self, *args, **kwargs):
         adding = self._state.adding

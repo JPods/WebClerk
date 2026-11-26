@@ -47,6 +47,8 @@ import logging
 import uuid
 import inspect
 import json
+import contextvars
+from collections.abc import Mapping
 from typing import Any, Dict, Optional, Iterable, cast
 from common.ignore_fields import IGNORE_FIELDS, IGNORE_WORDS
 
@@ -1221,6 +1223,68 @@ class UniversalDictMixin(models.Model):
 
 
 # ---------------- Full composition ----------------------------------------
+#: While a refresh reads a row, whether the instance Django builds for it is loaded whole. Django's
+#: refresh_from_db(fields=) copies every field that instance holds; it held all of them (its __init__
+#: loaded them), so a partial refresh has always refreshed the whole record, and callers rely on it
+#: (version stays in step after refresh_from_db(fields=['totals'])). 'whole' keeps that; 'partial'
+#: is the capture's own load of the deferred fields, which asks for exactly them, and ends the
+#: recursion.
+_REFRESH_BUILDS: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar('wc_refresh_builds', default=None)
+#: Set by the capture around its own refresh_from_db call, so subclass overrides still run.
+_CAPTURE_LOAD: contextvars.ContextVar[bool] = contextvars.ContextVar('wc_capture_load', default=False)
+
+
+class OriginalState(Mapping):
+    """The values a record was loaded with, by attname (BaseModel._original_state).
+
+    Read-only for its readers (_compute_changed_fields, audit_pre_save, Action). A field the query
+    deferred is captured when it is first loaded; one asked for before then (it was assigned
+    without being read, or a reader copies the whole map) is read from the row then, all waiting
+    fields in one values() query, which builds no instance.
+    """
+
+    __slots__ = ('_owner', '_values', '_waiting')
+
+    def __init__(self, owner, values: Dict[str, Any], waiting: Iterable[str]):
+        self._owner = owner
+        self._values = values
+        self._waiting = set(waiting)
+
+    def waiting_for(self, loaded: Dict[str, Any]) -> tuple:
+        """The deferred fields not yet captured nor present on the instance."""
+        return tuple(a for a in self._waiting if a not in loaded)
+
+    def capture(self, attname: str, value: Any) -> None:
+        if attname in self._waiting:
+            self._values[attname] = value
+            self._waiting.discard(attname)
+
+    def _read_waiting(self) -> None:
+        owner, names = self._owner, sorted(self._waiting)
+        row = None
+        if owner.pk is not None:
+            row = (type(owner)._base_manager.using(owner._state.db or 'default')
+                   .filter(pk=owner.pk).values(*names).first())
+        for attname in names:
+            self._values[attname] = (row or {}).get(attname)
+        self._waiting.clear()
+
+    def __getitem__(self, attname: str) -> Any:
+        if attname in self._waiting:
+            self._read_waiting()
+        return self._values[attname]
+
+    def __iter__(self):
+        yield from self._values
+        yield from sorted(self._waiting)
+
+    def __len__(self) -> int:
+        return len(self._values) + len(self._waiting)
+
+    def __contains__(self, attname) -> bool:
+        return attname in self._values or attname in self._waiting
+
+
 class BaseModel(
     ActionsMixin,
     CoreModel,
@@ -1299,14 +1363,48 @@ class BaseModel(
         self._capture_original_state()
 
     def _capture_original_state(self):
-        self._original_state: Dict[str, Any] = {}
-        for f in self._meta.fields:  # type: ignore[attr-defined]
+        # A record is loaded whole and its values captured as loaded. Callers rely on it: a
+        # .only() load comes back complete (the line snapshot, _loaded, reads every field; tests/
+        # test_one_door_step1). The deferred fields load in ONE query. Touching them one by one
+        # was a query each that built a throwaway instance whose __init__ did the same, without
+        # end: a one-line quote save ran 345 queries, a receipt save 1,886 (webclerk-helper,
+        # 2026-11-26). The instance Django builds for the capture's own load is left partial
+        # (_REFRESH_BUILDS): that is what ends the recursion. Its deferred fields wait in
+        # OriginalState.
+        deferred = self.get_deferred_fields()
+        if deferred and self.pk is not None and _REFRESH_BUILDS.get() != 'partial':
+            token = _CAPTURE_LOAD.set(True)
             try:
-                # Use f.attname (e.g. 'contact_id') for FK fields to avoid
-                # triggering lazy-load queries on the related object.
-                self._original_state[f.attname] = getattr(self, f.attname)
+                self.refresh_from_db(fields=sorted(deferred))
+            finally:
+                _CAPTURE_LOAD.reset(token)
+            deferred = self.get_deferred_fields()
+        values: Dict[str, Any] = {}
+        for f in self._meta.fields:  # type: ignore[attr-defined]
+            # f.attname (e.g. 'contact_id'), so an FK never loads its related object.
+            if f.attname in deferred:
+                continue
+            try:
+                values[f.attname] = getattr(self, f.attname)
             except Exception:  # pragma: no cover
                 pass
+        self._original_state = OriginalState(self, values, deferred)
+
+    def refresh_from_db(self, using=None, fields=None, from_queryset=None):
+        # A deferred field loads through here (Django's DeferredAttribute): what it loads is its
+        # value as loaded, the same object the instance now holds, as the old capture took it.
+        state = getattr(self, '_original_state', None)
+        waiting = (state.waiting_for(self.__dict__) if isinstance(state, OriginalState) else ())
+        builds = _REFRESH_BUILDS.set('partial' if _CAPTURE_LOAD.get() else 'whole')
+        capture = _CAPTURE_LOAD.set(False)
+        try:
+            super().refresh_from_db(using=using, fields=fields, from_queryset=from_queryset)
+        finally:
+            _CAPTURE_LOAD.reset(capture)
+            _REFRESH_BUILDS.reset(builds)
+        for attname in waiting:
+            if attname in self.__dict__:
+                state.capture(attname, self.__dict__[attname])
     # Note: formerly captured a separate _original_dt_created to enforce immutability.
     # That legacy guard is removed; dt_created may now be adjusted explicitly if needed.
 
