@@ -228,6 +228,9 @@ def test_the_discounted_unit_and_a_header_freight_share_reach_the_layer_born_at_
     assert _stock(a)[0] == 0
     put({'lines': [{'id': la.pk, 'quantity': {'active': 10, 'staged': 10}},
                    {'id': lb.pk, 'quantity': {'active': 5, 'staged': 5}}]})
+    # Nothing spreads on its own (Bill, 2026-11-26): the person presses Spread.
+    r = admin_client.post(f'/wcapi/receipt/{receipt_id}/spread/', {}, content_type='application/json')
+    assert r.status_code == 200, r.content
     la.refresh_from_db(); lb.refresh_from_db()
     assert _stock(a)[0] == 10 and _stock(b)[0] == 5
     for line in (la, lb):

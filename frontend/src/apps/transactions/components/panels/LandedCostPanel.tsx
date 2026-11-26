@@ -6,11 +6,11 @@
  * we need consistency"): freight, duty, handling, vat, landed, method, unallocated.
  *
  * Bill's ruling, same day: a value typed on a line changes only that line; to recalculate, the
- * person runs Workflow → Spread on the receipt. The server spreads a charge once on its own, the
- * first time it stands on a receipt with received lines (Bill, 2026-11-26); after that a save
- * never spreads. Per charge this shows the receipt's amount (allocations.<comp>), the basis Spread
- * uses (allocations.method.<comp>: value | quantity | weight | manual — manual is spread by
- * nothing, every share is typed), this line's landed (cost.landed.<comp>, a plain number the person owns),
+ * person presses Spread on the receipt's toolbar. Nothing spreads on its own (Bill, 2026-11-26:
+ * "switch the auto spreading to a button. So users see what we are doing"). Per charge this shows
+ * the receipt's amount (allocations.<comp>), the basis Spread uses (allocations.method.<comp>:
+ * value | quantity | weight | manual — Spread leaves a manual charge alone, every share is
+ * typed), this line's landed (cost.landed.<comp>, a plain number the person owns),
  * and what the lines leave unapplied (the receipt's totals.unallocated.<comp>, the server's; it may
  * be negative). Journalize asks before posting an unallocated amount.
  * Server is truth: once anything is unsaved, unallocated and the landed unit are the last save's.

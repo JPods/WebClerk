@@ -23,10 +23,14 @@ interface ActionDef {
   saveFirst?: boolean;
   /** The command rewrites this record: reload it afterwards. */
   reload?: boolean;
+  /** Drawn as its own button beside the list, not as an entry in it. */
+  button?: boolean;
 }
 
 /** A receipt's charges left over after its lines' landed shares (totals.unallocated): the
  *  journalize refusal unallocated_charges names them, and the person ticks to post them anyway. */
+const LANDED = ['freight', 'duty', 'handling', 'vat'] as const;
+
 interface UnallocatedAsk { action: ActionDef; unallocated: Record<string, number> }
 
 const ACTION_CONFIGS: Record<string, ActionDef[]> = {
@@ -79,8 +83,10 @@ const ACTION_CONFIGS: Record<string, ActionDef[]> = {
   ],
   receipt: [
     // A save never spreads; the person spreads on command (Bill, 2026-11-25): every product line's
-    // cost.landed.<comp> is overwritten by allocations.method.<comp>, in exact cents.
-    { key: 'spread', label: 'Spread', command: 'spread', saveFirst: true, reload: true,
+    // cost.landed.<comp> is overwritten by allocations.method.<comp>, in exact cents. It is a button
+    // beside this list, not an entry in it (Bill, 2026-11-26: "switch the auto spreading to a button.
+    // So users see what we are doing"); the answer's messages say what was spread and by what.
+    { key: 'spread', label: 'Spread', command: 'spread', saveFirst: true, reload: true, button: true,
       confirm: "Spread this receipt's freight, duty, handling and vat over its lines by each one's method? Every line's landed is overwritten.",
       params: () => ({}) },
     // Saving a receipt receives its goods; there is no hold (Bill, 2026-11-13).
@@ -164,11 +170,7 @@ const WorkflowSelect: React.FC<WorkflowSelectProps> = ({ modelName, record, onCo
     }
   }, [record, modelName, dispatch, onComplete, onRefresh]);
 
-  const handleChange = useCallback(async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const key = e.target.value;
-    if (!key) return;
-    e.target.value = ''; // reset select
-
+  const choose = useCallback(async (key: string) => {
     const action = actions.find(a => a.key === key);
     if (!action) return;
 
@@ -185,6 +187,13 @@ const WorkflowSelect: React.FC<WorkflowSelectProps> = ({ modelName, record, onCo
     if (action.saveFirst && onSaveFirst && !(await onSaveFirst())) return;
     await run(action);
   }, [actions, record, dispatch, run, onSaveFirst]);
+
+  const handleChange = useCallback(async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const key = e.target.value;
+    if (!key) return;
+    e.target.value = ''; // reset select
+    await choose(key);
+  }, [choose]);
 
   if (!actions.length) return null;
 
@@ -225,6 +234,27 @@ const WorkflowSelect: React.FC<WorkflowSelectProps> = ({ modelName, record, onCo
     </div>
   );
 
+  // A receipt's Spread: shown while the receipt has a charge and is not journalized. It says what
+  // the lines do not carry yet (totals.unallocated, the server's figure from the last save).
+  const charges = LANDED.filter((c) => Number(record?.allocations?.[c]) !== 0 && record?.allocations?.[c] != null);
+  const left = LANDED.filter((c) => Math.abs(Number(record?.totals?.unallocated?.[c]) || 0) >= 0.005);
+  const leftTotal = left.reduce((sum, c) => sum + Number(record.totals.unallocated[c]), 0);
+  const spreadButton = modelName === 'receipt' && record?.id && !record?.dt_journaled && charges.length > 0 && (
+    <button type="button" onClick={() => choose('spread')} disabled={loading} data-wc="spread"
+      className="text-xs px-2 py-0.5 rounded cursor-pointer"
+      style={{
+        background: left.length ? 'color-mix(in srgb, var(--db-accent, #2563eb) 12%, transparent)' : 'var(--db-surface-alt, #f1f3f5)',
+        color: left.length ? 'var(--db-accent, #2563eb)' : 'var(--db-text, #212529)',
+        border: '1px solid var(--db-border, #dee2e6)',
+      }}
+      title={left.length
+        ? `Not on the lines yet: ${left.map((c) => `${c} ${Number(record.totals.unallocated[c]).toFixed(2)}`).join(', ')}. `
+          + 'Spread divides each charge over the lines by its method (allocations.method).'
+        : "Every charge is on the lines. Spread again divides each charge by its method and overwrites every line's landed."}>
+      {left.length ? `Spread ${leftTotal.toFixed(2)} unallocated` : 'Spread'}
+    </button>
+  );
+
   return (
     <>
     {askDialog}
@@ -240,10 +270,11 @@ const WorkflowSelect: React.FC<WorkflowSelectProps> = ({ modelName, record, onCo
       title="Workflow operations"
     >
       <option value="">Workflow</option>
-      {actions.map(a => (
+      {actions.filter(a => !a.button).map(a => (
         <option key={a.key} value={a.key}>{a.label}</option>
       ))}
     </select>
+    {spreadButton}
     </>
   );
 };

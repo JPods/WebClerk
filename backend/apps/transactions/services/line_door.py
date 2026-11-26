@@ -413,8 +413,6 @@ def post_line_change(line, *, deleted: bool = False) -> None:
         # share, the quantity a share is divided by, a line that left). Once the totals are
         # computed the receipt's layers are brought to them (Bill, 2026-11-25).
         reconcile_receipt_layers(header)
-        from apps.transactions.services.landed_spread import first_spread
-        first_spread(header)
     if not item_id or not deltas:
         return
     layer = None

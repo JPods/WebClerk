@@ -158,8 +158,6 @@ class Receipt(TransactionBaseModel):
         if charges_changed:
             from apps.transactions.services.line_door import reconcile_receipt_layers
             reconcile_receipt_layers(self)
-        from apps.transactions.services.landed_spread import first_spread
-        first_spread(self)
 
     def _charges_changed(self) -> bool:
         """The receipt's charges (freight, duty, handling, vat) and the basis each is spread by are

@@ -43,6 +43,9 @@ def _received_receipt(qty=10, freight=0):
     out = convert_record(Actor.system(), 'purchase', po.pk, 'receipt',
                          stamp={'allocations': {'freight': freight}} if freight else None)
     receipt = Receipt.objects.get(pk=out['receipt_id'])
+    if freight:
+        _run('spread', 'receipt', receipt.pk)   # nothing spreads on its own (Bill, 2026-11-26): the person presses Spread
+        receipt.refresh_from_db()
     return item, receipt
 
 

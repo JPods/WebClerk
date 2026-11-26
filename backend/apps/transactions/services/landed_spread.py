@@ -1,4 +1,4 @@
-"""Spread a receipt's charges onto its lines: once on its own, after that only on command.
+"""Spread a receipt's charges onto its lines — on command, never by a save.
 
 POST /wcapi/receipt/<id>/spread/      {} for every charge, or {"components": ["freight"]}
 
@@ -6,21 +6,18 @@ Bill, 2026-11-25: "The point to make to users changing a line's values is that i
 recalculate other lines. If they wish to recalc, they should change at the receipt level and re-run
 the spreader." A line's share of a charge is its own figure, cost.landed.<freight|duty|handling|vat>.
 
-Bill, 2026-11-26: "Auto spread seems like a good idea. It is likely users will come up with
-multiple options for this service, so Alice should be prepared and our code should allow
-user-defined variations." So:
+Bill, 2026-11-26: "let's switch the auto spreading to a button. So users see what we are doing."
+Nothing spreads on its own, not even the first time (an automatic first spread was built and
+withdrawn the same day). The receipt's Spread button runs this command and the answer says, charge
+by charge, what was divided and by what basis (``messages``).
 
-- **The first spread is automatic** (first_spread). The first time a charge stands on a receipt
-  that has a received product line, it is divided over the lines by its basis, and the receipt
-  records it: allocations.spread.<comp> = {dt, by, basis, basis_used, reason}. A charge named there
-  is never spread by a save again; a later change to the charge, or a line added afterwards, shows
-  as totals.unallocated until the person runs the command or types the shares.
 - **The command** divides each charge named by its basis (allocations.method.<comp>: value,
-  quantity or weight) in exact cents, replacing whatever the lines held, typed or not.
-- **The variation the person owns** is the basis, per charge, per receipt. ``manual`` means nothing
-  spreads that charge, neither the first time nor the command: every share is typed.
-  allocations.spread is the record Alice reads to learn what a company does for a vendor or a kind
-  of charge (readme 108 R8).
+  quantity or weight) in exact cents, replacing whatever the lines held, typed or not, and records
+  it on the receipt: allocations.spread.<comp> = {dt, by, basis, basis_used, reason}.
+- **The variation the person owns** is the basis, per charge, per receipt (Bill, 2026-11-26: "our
+  code should allow user-defined variations"). ``manual`` means the command leaves that charge
+  alone: every share is typed. allocations.spread is the record Alice reads to learn what a
+  company does for a vendor or a kind of charge (readme 108 R8).
 - **Like items on one receipt** is the recommendation (Bill, 2026-11-26). An item may carry a
   class for each charge (item.config.landed_class.<comp>, a label, blank for most). When the
   lines of a receipt carry different labels for a charge, the decision and the record name them
@@ -29,21 +26,15 @@ user-defined variations." So:
 The lines are saved through the save door, so the totals follow and the received lines' layers
 are re-costed (line_door.reconcile_receipt_layers). A journalized receipt is refused.
 
-Answer: {spread: [{component, amount, basis, basis_used, reason}], unallocated: {...}}.
+Answer: {spread: [{component, amount, basis, basis_used, reason}], unallocated: {...}, messages: [...]}.
 readmes/113-unallocated-charges-at-journalize.md
 """
 from __future__ import annotations
 
-import contextvars
 import time
 from typing import Any, Dict, List
 
 from apps.core.services.door import Refused
-
-
-#: Receipts being divided now. Dividing saves the receipt and its lines, and each of those saves
-#: asks for the first spread again; the one under way answers for them.
-_DIVIDING: contextvars.ContextVar[frozenset] = contextvars.ContextVar('receipt_dividing', default=frozenset())
 
 
 def _divide(actor, receipt, wanted: List[str], by: str) -> List[Dict[str, Any]]:
@@ -51,14 +42,6 @@ def _divide(actor, receipt, wanted: List[str], by: str) -> List[Dict[str, Any]]:
     is written. The lines are saved through the save door as the person; the record of the spread
     (allocations.spread) is the system's own note, written beside them, not a field a person
     edits. Returns the decisions, one per charge."""
-    token = _DIVIDING.set(_DIVIDING.get() | {receipt.pk})
-    try:
-        return _divide_now(actor, receipt, wanted, by)
-    finally:
-        _DIVIDING.reset(token)
-
-
-def _divide_now(actor, receipt, wanted: List[str], by: str) -> List[Dict[str, Any]]:
     from apps.core.services.save import save_record
     from apps.transactions.models import Receipt, ReceiptLine
     from apps.transactions.services.pricing.totals_compute import (
@@ -148,45 +131,17 @@ def spread(ctx) -> Dict[str, Any]:
     decisions = _divide(ctx.actor, receipt, wanted, 'command')
     receipt.refresh_from_db()
     left = receipt_unallocated(receipt, ReceiptLine.objects.filter(receipt_id=receipt.pk))
-    return {'spread': decisions, 'unallocated': {k: float(v) for k, v in left.items()}}
+    return {'spread': decisions, 'unallocated': {k: float(v) for k, v in left.items()},
+            'messages': [_said(d) for d in decisions if d['amount']]}
 
 
-def first_spread(receipt) -> None:
-    """The automatic spread (Bill, 2026-11-26): each charge that stands on the receipt, has never
-    been spread (no allocations.spread.<comp>) and is not manual is divided over the lines, once
-    the receipt has a received product line to carry it. Done once per unit of work, after the
-    document's lines are all saved, so a receipt saved with its lines divides over all of them.
-    Outside a unit it happens now."""
-    from apps.core.services import unit_of_work as uow
-
-    receipt_id = receipt.pk
-    if not receipt_id or receipt_id in _DIVIDING.get():
-        return
-
-    def work():
-        from apps.core.services.door import Actor, acting_actor
-        from apps.transactions.models import Receipt, ReceiptLine
-        from apps.transactions.services.pricing.totals_compute import LANDED_COMPONENTS, MANUAL_BASIS, _d
-        held = Receipt.objects.filter(pk=receipt_id, dt_journaled=0).first()
-        if held is None or receipt_id in _DIVIDING.get():
-            return                      # gone, or journalized: nothing spreads
-        alloc = held.allocations if isinstance(held.allocations, dict) else {}
-        methods = alloc.get('method') if isinstance(alloc.get('method'), dict) else {}
-        done = alloc.get('spread') if isinstance(alloc.get('spread'), dict) else {}
-        wanted = [comp for comp in LANDED_COMPONENTS
-                  if _d(alloc.get(comp, 0) or 0) and comp not in done
-                  and (methods.get(comp) or 'value') != MANUAL_BASIS]
-        if not wanted:
-            return
-        received = any(float((l.quantity or {}).get('active') or 0) > 0
-                       for l in ReceiptLine.objects.filter(receipt_id=receipt_id)
-                       if getattr(l, 'is_active', True) and (l.line_type or 'product') == 'product')
-        if not received:
-            return                      # nothing has arrived to carry it; it waits
-        _divide(acting_actor() or Actor.system(), held, wanted, 'auto')
-
-    if not uow.defer(('receipt_first_spread', receipt_id), work):
-        work()
+def _said(decision: Dict[str, Any]) -> str:
+    """One charge, as the person reads it after pressing Spread."""
+    comp, amount = decision['component'], decision['amount']
+    if decision['basis_used'] == 'manual':
+        return f"{comp} {amount:,.2f} left as typed (manual)"
+    text = f"{comp} {amount:,.2f} spread by {decision['basis_used']}"
+    return f"{text} ({decision['reason']})" if decision['reason'] else text
 
 
 def register() -> None:
