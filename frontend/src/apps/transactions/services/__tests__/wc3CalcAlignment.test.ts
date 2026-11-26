@@ -87,10 +87,10 @@ describe('computeTotals refuses what the server refuses', () => {
     expect(() => computeTotals(header, [], 'order', { settlement: { received: 0, adjusted: 0, settled: 0 } }))
       .toThrow(/no product line to carry it/);
   });
-  it('a weight unit it does not know', () => {
+  it('a save never spreads, so the preview does not read weights (Bill, 2026-11-25; Spread does)', () => {
     const header = { allocations: { freight: 5, method: { freight: 'weight' } } };
     const lines = [{ id: 1, line_number: 1, quantity: { active: 1 }, cost: { unit: 10 }, physical: { weight: { value: 2, unit: 'stone' } } }];
-    expect(() => computeTotals(header, lines, 'receipt', { settlement: { received: 0, adjusted: 0, settled: 0 } }))
-      .toThrow(/weight unit 'stone'/);
+    const out = computeTotals(header, lines, 'receipt', { settlement: { received: 0, adjusted: 0, settled: 0 } });
+    expect((out.totals as any).unallocated.freight).toBe(5);
   });
 });

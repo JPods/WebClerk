@@ -8,6 +8,7 @@
 import React, { useCallback, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { showToast } from '@/store/slices/toastSlice';
+import { refusedFrom } from '@/api/wcapi';
 
 interface ActionDef {
   key: string;
@@ -18,7 +19,15 @@ interface ActionDef {
   params?: (record: any) => Record<string, unknown>;
   /** A command on this record: POST /wcapi/<model>/<id>/<command>/ with params as the body. */
   command?: string;
+  /** Unsaved edits are saved first; the command runs only when that save is taken. */
+  saveFirst?: boolean;
+  /** The command rewrites this record: reload it afterwards. */
+  reload?: boolean;
 }
+
+/** A receipt's charges left over after its lines' landed shares (totals.unallocated): the
+ *  journalize refusal unallocated_charges names them, and the person ticks to post them anyway. */
+interface UnallocatedAsk { action: ActionDef; unallocated: Record<string, number> }
 
 const ACTION_CONFIGS: Record<string, ActionDef[]> = {
   order: [
@@ -69,6 +78,11 @@ const ACTION_CONFIGS: Record<string, ActionDef[]> = {
     { key: 'link_transaction_to_campaign', label: 'Link Campaign', needsDialog: true },
   ],
   receipt: [
+    // A save never spreads; the person spreads on command (Bill, 2026-11-25): every product line's
+    // cost.landed.<comp> is overwritten by allocations.method.<comp>, in exact cents.
+    { key: 'spread', label: 'Spread', command: 'spread', saveFirst: true, reload: true,
+      confirm: "Spread this receipt's freight, duty, handling and vat over its lines by each one's method? Every line's landed is overwritten.",
+      params: () => ({}) },
     // Saving a receipt receives its goods; there is no hold (Bill, 2026-11-13).
     { key: 'journalize', label: 'Journalize', command: 'journalize',
       confirm: 'Post what this receipt received (inventory) and what it owes the vendor (payable)? This locks the receipt.',
@@ -110,11 +124,17 @@ interface WorkflowSelectProps {
   modelName: string;
   record?: any;
   onComplete?: (result?: any) => void;
+  /** Saves unsaved edits; true when taken. Absent: nothing to save. */
+  onSaveFirst?: () => Promise<boolean>;
+  /** Reloads the record after a command that rewrote it. */
+  onRefresh?: () => void;
 }
 
-const WorkflowSelect: React.FC<WorkflowSelectProps> = ({ modelName, record, onComplete }) => {
+const WorkflowSelect: React.FC<WorkflowSelectProps> = ({ modelName, record, onComplete, onSaveFirst, onRefresh }) => {
   const dispatch = useDispatch();
   const [loading, setLoading] = useState(false);
+  const [unallocatedAsk, setUnallocatedAsk] = useState<UnallocatedAsk | null>(null);
+  const [postUnallocated, setPostUnallocated] = useState(false);
   const actions = ACTION_CONFIGS[modelName] || [];
 
   const run = useCallback(async (action: ActionDef, extra: Record<string, unknown> = {}) => {
@@ -128,12 +148,21 @@ const WorkflowSelect: React.FC<WorkflowSelectProps> = ({ modelName, record, onCo
       const notes = Array.isArray(result?.messages) ? result.messages.filter(Boolean) : [];
       dispatch(showToast({ message: [`${action.label} completed`, ...notes].join('. '), type: 'success' }));
       onComplete?.({ ...result, _action: action.key });
+      if (action.reload) onRefresh?.();
     } catch (err: any) {
-      dispatch(showToast({ message: err?.response?.data?.message || err?.message || `${action.label} failed`, type: 'error' }));
+      const refusal = refusedFrom(err, `${action.label} failed`);
+      const unallocated = (refusal.details as any)?.unallocated;
+      if (action.command === 'journalize' && refusal.code === 'unallocated_charges' && unallocated && typeof unallocated === 'object') {
+        // Not refused for good: the person sees what is unapplied and may post it (Bill, 2026-11-25).
+        setPostUnallocated(false);
+        setUnallocatedAsk({ action, unallocated });
+        return;
+      }
+      dispatch(showToast({ message: refusal.message, type: 'error' }));
     } finally {
       setLoading(false);
     }
-  }, [record, modelName, dispatch, onComplete]);
+  }, [record, modelName, dispatch, onComplete, onRefresh]);
 
   const handleChange = useCallback(async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const key = e.target.value;
@@ -153,12 +182,51 @@ const WorkflowSelect: React.FC<WorkflowSelectProps> = ({ modelName, record, onCo
     if (action.confirm && !confirm(action.confirm)) return;
     // Destructive actions require a second confirmation
     if (action.key === 'complete_order' && !confirm('CONFIRM: This will lock the order. Proceed?')) return;
+    if (action.saveFirst && onSaveFirst && !(await onSaveFirst())) return;
     await run(action);
-  }, [actions, record, dispatch, run]);
+  }, [actions, record, dispatch, run, onSaveFirst]);
 
   if (!actions.length) return null;
 
+  const askDialog = unallocatedAsk && (
+    <div role="dialog" aria-modal="true" data-wc="unallocated-charges"
+      style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+      <div style={{ background: 'var(--db-surface, #fff)', color: 'var(--db-text, #212529)', border: '1px solid var(--db-border, #dee2e6)', borderRadius: 6, padding: 16, minWidth: 340, maxWidth: 480 }}>
+        <div style={{ fontWeight: 600, marginBottom: 8 }}>unallocated</div>
+        <p style={{ margin: '0 0 8px' }}>
+          These charges are not on the lines' landed. Spread them, or post them: each amount goes to its
+          charge's account (gl_defaults.landed_&lt;comp&gt;) against received_not_billed.
+        </p>
+        <table style={{ borderCollapse: 'collapse', marginBottom: 8 }}>
+          <tbody>
+            {Object.entries(unallocatedAsk.unallocated).map(([comp, amount]) => (
+              <tr key={comp}>
+                <td style={{ padding: '2px 12px 2px 0', fontWeight: 600 }}>{comp}</td>
+                <td style={{ padding: 2, textAlign: 'right' }}>{Number(amount).toFixed(2)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <label style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 12 }}>
+          <input type="checkbox" checked={postUnallocated} onChange={(e) => setPostUnallocated(e.target.checked)}
+            data-wc-field="post_unallocated" />
+          post_unallocated: journalize and post these amounts
+        </label>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <button type="button" onClick={() => setUnallocatedAsk(null)}
+            style={{ padding: '2px 10px', border: '1px solid var(--db-border, #dee2e6)', borderRadius: 4 }}>Cancel</button>
+          <button type="button" disabled={!postUnallocated || loading}
+            onClick={() => { const { action } = unallocatedAsk; setUnallocatedAsk(null); run(action, { post_unallocated: true }); }}
+            style={{ padding: '2px 10px', borderRadius: 4, background: postUnallocated ? 'var(--db-accent, #2563eb)' : 'var(--db-surface-alt, #f1f3f5)', color: postUnallocated ? '#fff' : 'inherit' }}>
+            Journalize</button>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
+    <>
+    {askDialog}
     <select
       onChange={handleChange}
       disabled={loading || !record?.id}
@@ -175,6 +243,7 @@ const WorkflowSelect: React.FC<WorkflowSelectProps> = ({ modelName, record, onCo
         <option key={a.key} value={a.key}>{a.label}</option>
       ))}
     </select>
+    </>
   );
 };
 

@@ -313,8 +313,9 @@ export function useRecordForm(opts: RecordFormOptions) {
     return problems.length ? describeJsonLimitProblems(problems) : undefined;
   }, [limitsReady, isEditing, editData, data, modelName]);
 
-  const save = useCallback(async (opts?: { keepEditing?: boolean; message?: string; report?: boolean }) => {
-    if (!editData || saveBlocked) return;
+  /** Saves the edit; true when the server took it (a command that must follow a save asks). */
+  const save = useCallback(async (opts?: { keepEditing?: boolean; message?: string; report?: boolean }): Promise<boolean> => {
+    if (!editData || saveBlocked) return false;
     setSaving(true);
     try {
       // A removed line that was never saved simply disappears. A removed line that exists
@@ -347,8 +348,10 @@ export function useRecordForm(opts: RecordFormOptions) {
       if (opts?.keepEditing !== true) setIsEditing(false);
       await fetchData();   // saving stays on until the saved record is on the screen
       onAfterSave?.();
+      return true;
     } catch (err: any) {
       dispatch(showToast({ message: `Save failed: ${refusalMessage(err)}`, type: 'error' }));
+      return false;
     } finally {
       setSaving(false);
     }

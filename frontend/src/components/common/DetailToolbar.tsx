@@ -49,6 +49,10 @@ export interface DetailToolbarProps {
   onDelete?: () => void;
   onToggleDesign?: () => void;
   onWorkflowComplete?: (result?: any) => void;
+  /** A workflow command that must follow a save (a receipt's spread) saves through this; true when taken. */
+  onWorkflowSaveFirst?: () => Promise<boolean>;
+  /** Reloads the record after a workflow command that rewrote it. */
+  onWorkflowRefresh?: () => void;
   /** Add Cash (order) — creates a new cash record */
   onAddCash?: () => void;
   /** Apply Cash (invoice) — applies existing cash to this invoice */
@@ -66,7 +70,7 @@ const DetailToolbar: React.FC<DetailToolbarProps> = ({
   canEdit = true, saving = false, saveBlocked, canDelete = true,
   companyInfo, logos, documentText,
   onAddNew, onSave, onCancel, onClose, onDelete,
-  onWorkflowComplete,
+  onWorkflowComplete, onWorkflowSaveFirst, onWorkflowRefresh,
   onAddCash, onApplyCash,
   className = '',
 }) => {
@@ -166,7 +170,8 @@ const DetailToolbar: React.FC<DetailToolbarProps> = ({
         onSelect={handlePrintSelect}
       />
 
-      <WorkflowSelect modelName={modelName} record={data} onComplete={onWorkflowComplete || (() => {})} />
+      <WorkflowSelect modelName={modelName} record={data} onComplete={onWorkflowComplete || (() => {})}
+        onSaveFirst={onWorkflowSaveFirst} onRefresh={onWorkflowRefresh} />
 
       {/* Cash buttons */}
       {onAddCash && data?.id && (

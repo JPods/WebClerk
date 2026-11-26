@@ -22,8 +22,6 @@ export const SELL_SIDE = ['quote', 'order', 'invoice'];
 export const LINE_TOTAL_KEYS = ['amount', 'discount', 'taxable', 'tax', 'shipping', 'other',
                                 'finance_charge', 'cost', 'margin', 'total'] as const;
 const LANDED_COMPONENTS = ['freight', 'duty', 'handling', 'vat'] as const;
-const LANDED_BASES = ['value', 'weight', 'quantity'];
-const TO_KG: Record<string, string> = { kg: '1', g: '0.001', lb: '0.45359237', lbs: '0.45359237', oz: '0.028349523125' };
 
 export interface ShippingService {
   name?: string; carrier_code?: string; account?: string; aliases?: string[];
@@ -88,20 +86,6 @@ function discountedUnit(unit: Dec, qty: Dec, pct: Dec, flat: Dec, places: number
   return unit.sub(best).quantize(places);
 }
 
-function lineLabel(line: any): string { return `line ${line.line_number || line.id || '?'}`; }
-
-function unitWeightKg(line: any): Dec | null {
-  const weight = line.physical?.weight;
-  if (!weight || typeof weight !== 'object') return null;
-  const value = dec(weight.value || 0, 6);
-  if (!value.gt(Dec.zero)) return null;
-  const unit = String(weight.unit || '').trim().toLowerCase();
-  if (!(unit in TO_KG)) {
-    throw new Error(`${lineLabel(line)}: weight unit '${unit}' is not one of ${Object.keys(TO_KG).sort().join(', ')} — set it before spreading by weight.`);
-  }
-  return value.mul(dec(TO_KG[unit], -1));
-}
-
 function percentOfGoodsShipping(shipVia: string, goods: Dec, services: ShippingService[]): Dec | null {
   const wanted = (shipVia || '').trim().toLowerCase();
   if (!wanted) return null;
@@ -114,34 +98,6 @@ function percentOfGoodsShipping(shipVia: string, goods: Dec, services: ShippingS
 }
 
 type Good = { line: any; qty: Dec; unit: Dec; lineUnit: Dec; places: number };
-
-function spreadLanded(comp: string, total: Dec, basis: string, goods: Good[], amounts: Map<any, Dec>): Dec[] {
-  if (!LANDED_BASES.includes(basis)) throw new Error(`allocations.method.${comp} is '${basis}'; use one of ${LANDED_BASES.join(', ')}.`);
-  const pins = new Map<any, Dec>();
-  for (const g of goods) {
-    const pin = g.line.cost?.landed_override?.[comp];
-    if (pin !== null && pin !== undefined) pins.set(g.line, dec(pin));
-  }
-  const pinned = sum([...pins.values()]);
-  if (pinned.gt(total)) throw new Error(`The lines pin ${pinned} of ${comp}, but the receipt's ${comp} is ${total}. Lower a pinned share or raise the receipt's ${comp}.`);
-  const free = goods.filter((g) => !pins.has(g.line));
-  if (goods.length && !free.length && !pinned.eq(total)) {
-    throw new Error(`Every line pins its ${comp} and they add to ${pinned}, not the receipt's ${total}. Clear one pin so that line takes the remainder, or make the pins add up.`);
-  }
-  let used = basis;
-  let kgs: (Dec | null)[] = [];
-  if (basis === 'weight') {
-    kgs = free.map((g) => unitWeightKg(g.line));
-    if (kgs.some((kg) => kg === null)) used = 'value';
-  }
-  let weights: Dec[];
-  if (used === 'weight') weights = free.map((g, i) => g.qty.mul(kgs[i] as Dec));
-  else if (used === 'quantity') weights = free.map((g) => g.qty);
-  else weights = free.map((g) => amounts.get(g.line) as Dec);
-  const spread = new Map<any, Dec>();
-  allocate(total.sub(pinned), weights).forEach((s, i) => spread.set(free[i].line, s));
-  return goods.map((g) => pins.get(g.line) ?? spread.get(g.line) ?? Dec.zero);
-}
 
 function cashState(total: Dec, received: Dec): string {
   if (total.eq(received)) return 'paid';
@@ -269,20 +225,24 @@ export function computeTotals(header: any, lines: any[], model: string, ctx: Cal
     lt.other = lt.other.add(oShares[i]);
   });
 
-  // ── A receipt's landed costs: freight into shipping, the rest into other ──
+  // ── A receipt's landed costs: each line's cost.landed as the person typed it or the spread
+  //    command wrote it (Bill, 2026-11-25: a save never spreads). Freight into shipping, the rest
+  //    into other; what the lines do not carry is the receipt's unallocated. ──
+  const unallocated: Record<string, Dec> = {};
   if (model === 'receipt') {
     const methods = alloc.method ?? {};
     if (typeof methods !== 'object' || Array.isArray(methods)) {
       throw new Error("allocations.method names a basis for each landed cost, e.g. {'freight': 'weight', 'duty': 'value'} — not a single word.");
     }
     for (const comp of LANDED_COMPONENTS) {
-      const shares = spreadLanded(comp, landed[comp], methods[comp] || 'value', goods, amounts);
+      const shares = goods.map((g) => dec(g.line.cost?.landed?.[comp] || 0));
       goods.forEach((g, i) => {
         const lt = lineTotals.get(g.line)!;
         (lt.landed ??= {})[comp] = shares[i].toNumber();
         const key = comp === 'freight' ? 'shipping' : 'other';
         lt[key] = lt[key].add(shares[i]);
       });
+      unallocated[comp] = landed[comp].sub(sum(shares));
     }
   }
 
@@ -315,6 +275,15 @@ export function computeTotals(header: any, lines: any[], model: string, ctx: Cal
   // ── The document: Σ of its lines ──
   const doc: Record<string, Dec> = {};
   for (const k of LINE_TOTAL_KEYS) doc[k] = sum([...lineTotals.values()].map((t) => t[k]));
+  // A receipt owes its whole charges whatever the lines carry: what is unallocated rides the
+  // header (freight into shipping, the rest into other), so total and balance do not depend on it.
+  if (model === 'receipt') {
+    for (const comp of LANDED_COMPONENTS) {
+      const key = comp === 'freight' ? 'shipping' : 'other';
+      doc[key] = doc[key].add(unallocated[comp]);
+      doc.total = doc.total.add(unallocated[comp]);
+    }
+  }
   const marginPc = doc.amount.gt(Dec.zero) ? doc.margin.mul(dec(100)).div(doc.amount).quantize(2).toNumber() : 0;
 
   const received = dec(ctx.settlement.received);
@@ -328,6 +297,8 @@ export function computeTotals(header: any, lines: any[], model: string, ctx: Cal
                           balance: balance.toNumber(), cash_state: state });
   if (model === 'receipt') {
     for (const k of LANDED_COMPONENTS) totals[k] = landed[k].toNumber();
+    (totals as Record<string, any>).unallocated = Object.fromEntries(
+      LANDED_COMPONENTS.map((k) => [k, unallocated[k].toNumber()]));
     totals.paid = settled.toNumber();
   }
 
