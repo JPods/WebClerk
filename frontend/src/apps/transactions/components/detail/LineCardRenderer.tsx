@@ -58,7 +58,9 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
   const [showContacts, setShowContacts] = useState(false);
   // A receipt line's detail: its landed shares and pins (Bill, 2026-11-25: too much data for a line).
   const isReceipt = modelName === 'receipt';
-  const [showLineDetail, setShowLineDetail] = useState(false);
+  // On a receipt the line's landed detail is open from the start: it is where a Spread shows
+  // (Bill, 2026-11-26: "I do not see where the changes occurred").
+  const [showLineDetail, setShowLineDetail] = useState(modelName === 'receipt');
   const [methodEdited, setMethodEdited] = useState(false);
   // A save (or reload) brings the server's figures: the shares shown are current again.
   useEffect(() => { setMethodEdited(false); }, [data?.version, data?.id]);
@@ -294,7 +296,7 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
             <button type="button" data-wc-subpanel={isReceipt ? 'line-detail' : undefined}
               onClick={() => { if (isReceipt) { setShowLineDetail((v) => !v); return; } const line = lc.records.find(r => r.id === lc.selectedId); if (line?._line) lc.setSelectedId(line.id); }}
               className={`px-1.5 py-0.5 rounded ${isReceipt && showLineDetail ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-blue-600 hover:bg-blue-50'}`}
-              title={isReceipt ? 'Line detail: landed (freight, duty, handling, vat), method, unallocated' : 'Edit line details'}>edit</button>
+              title={isReceipt ? 'Line detail: landed (freight, duty, handling, vat), method, unallocated' : 'Edit line details'}>{isReceipt ? 'landed' : 'edit'}</button>
             {lc.canEdit && (
               <button type="button" onClick={() => {
                 // Mark every selected line removed in one pass. At save,

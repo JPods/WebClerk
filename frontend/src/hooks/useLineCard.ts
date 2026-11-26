@@ -14,6 +14,7 @@
  *   {lineCard.modals}
  */
 import React, { useState, useCallback, useMemo } from 'react';
+import { landedUnit, LANDED_COMPONENTS } from '@/apps/transactions/components/panels/LandedCostPanel';
 import { useSelector } from 'react-redux';
 import { selectCurrency } from '@/store/slices/companySlice';
 import { lineKey } from '@/apps/transactions/utils/lineHelpers';
@@ -25,6 +26,13 @@ import { useItemCard } from '@/components/common/ItemCard';
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
+
+/** The sum of a receipt line's landed shares, from the server's line totals. */
+function landedTotal(line: any): number {
+  const shares = line?.totals?.landed;
+  if (!shares || typeof shares !== 'object') return 0;
+  return Math.round(LANDED_COMPONENTS.reduce((s, c) => s + (Number(shares[c]) || 0), 0) * 100) / 100;
+}
 
 export interface UseLineCardOptions {
   lines: any[];
@@ -138,6 +146,11 @@ function flattenLine(line: any, idx: number): any {
     discounted_unit: discountedUnit,
     unit_cost: unitCost,
     amount: isRemoved ? 0 : extended,
+    // A receipt line's share of the receipt's charges and what one unit is carried at, from the
+    // server's totals as saved (Bill, 2026-11-26: after Spread, "I do not see where the changes
+    // occurred"). Blank until a share is on the line.
+    landed: isRemoved ? 0 : landedTotal(line),
+    landed_unit: isRemoved ? 0 : (landedTotal(line) ? (landedUnit(line) ?? 0) : 0),
     weight,
     _itemId: Number(line.item_id ?? line.item?.id ?? line.item?.item_id ?? 0),
     _itemIsActive: line.item?.is_active !== false,
@@ -425,6 +438,10 @@ export function useLineCard(options: UseLineCardOptions) {
 
     // Receipt-specific columns
     if (isReceipt) {
+      // Headed by the stored names: totals.landed (the line's shares, summed) and the unit the
+      // layer carries (unit + shares ÷ quantity).
+      cols.push({ name: 'landed', field: 'landed', width: '90px', sortable: true });
+      cols.push({ name: 'landed_unit', field: 'landed_unit', width: '100px', sortable: true });
       cols.push({ name: 'warehouse', field: 'warehouse', width: '100px', sortable: true });
       cols.push({ name: 'lot', field: 'lot', width: '80px', sortable: true });
       cols.push({ name: 'serial', field: 'serial_batch', width: '100px', sortable: true });
@@ -454,6 +471,8 @@ export function useLineCard(options: UseLineCardOptions) {
     discounted_unit: { type: 'currency', precision: currency.unit_price_precision, bulkEditable: true },
     unit_cost: { type: 'currency', precision: currency.unit_cost_precision },
     amount: { type: 'currency', precision: currency.total_precision, calculated: true },
+    landed: { type: 'currency', precision: currency.total_precision, calculated: true },
+    landed_unit: { type: 'currency', precision: 4, calculated: true },
     item_code: { type: 'readonly' },
     description: { type: 'readonly' },
     uom: { type: 'readonly' },
