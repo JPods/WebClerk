@@ -20,6 +20,18 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 # common.work_folders.work_folder(name); the folders and their keep/backup rules are its manifest.
 WORK_DIR = Path(config('WORK_DIR', default=str(DATA_DIR.parent / 'work')))
 
+# A test run never writes the server's work folder (lead, 2026-11-26): pytest wrote the shared
+# logs/webclerk3.log, balance-events.jsonl, logs/hooks/ and bundles/, so a test run read as live
+# errors to anyone watching the server. It gets its own folder beside the server's, named for its
+# private test database. Detected by pytest being loaded: PYTEST_CURRENT_TEST is set per test,
+# after this file is read, so it cannot tell here.
+TESTING = 'pytest' in sys.modules
+TEST_DB_NAME = os.environ.get('WC_TEST_DB_NAME', 'test_commerce_expert_new')
+if TESTING:
+    WORK_DIR = WORK_DIR.parent / 'work-test' / TEST_DB_NAME
+# Every log path is built from this one folder.
+LOG_DIR = WORK_DIR / 'logs'
+
 # The two folders outside the backend that code reads. Every reader uses these names;
 # nothing else may spell a path to them (tests/test_locations.py holds that).
 # FRONTEND_DIR: the React app, beside the backend in the same repository.
@@ -32,7 +44,7 @@ DOCS_DIR = Path(_docs_dir) if _docs_dir else None
 # The virus scanner's socket (ClamAV's clamd). Uploads other than images wait in
 # quarantine until a scan can run (apps/docs/services/document_sanitizer.py).
 CLAMD_SOCKET = config('CLAMD_SOCKET', default='/tmp/clamd.sock')
-(WORK_DIR / 'logs').mkdir(parents=True, exist_ok=True)
+LOG_DIR.mkdir(parents=True, exist_ok=True)
 os.chmod(WORK_DIR, 0o700)
 
 # Dev fallback only — production must set SECRET_KEY in .env or environment
@@ -453,7 +465,7 @@ LOGGING = {
         'file': {
             'level': 'INFO',
             'class': 'logging.FileHandler',
-            'filename': str(WORK_DIR / 'logs' / 'webclerk3.log'),
+            'filename': str(LOG_DIR / 'webclerk3.log'),
             'formatter': 'verbose',
         },
     },
@@ -497,7 +509,7 @@ READ_ONLY_MODE = config('READ_ONLY_MODE', default=False, cast=bool)
 # Check balance after every cash and inventory Pending and append the result to
 # logs/balance-events.jsonl (apps/core/services/balance_checker.py). On while testing.
 BALANCE_EVENT_LOG = config('BALANCE_EVENT_LOG', default=DEBUG, cast=bool)
-BALANCE_EVENT_LOG_PATH = WORK_DIR / 'logs' / 'balance-events.jsonl'
+BALANCE_EVENT_LOG_PATH = LOG_DIR / 'balance-events.jsonl'
 
 WRITE_GATE_ENABLED = True
 WRITE_GATE_EXACT_PATHS = (
@@ -678,7 +690,7 @@ try:
     DATABASES["default"].setdefault("TEST", {})
     DATABASES["default"]["TEST"]["SERIALIZE"] = False
     # WC_TEST_DB_NAME lets parallel worktrees run tests without sharing one test DB.
-    DATABASES["default"]["TEST"]["NAME"] = _os.environ.get('WC_TEST_DB_NAME', 'test_commerce_expert_new')
+    DATABASES["default"]["TEST"]["NAME"] = TEST_DB_NAME
     # Every other alias (webserving, conversion) gets its own name from the same var,
     # otherwise parallel runs still collide on e.g. test_commerce_webserving.
     if _os.environ.get('WC_TEST_DB_NAME'):
