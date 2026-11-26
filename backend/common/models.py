@@ -595,6 +595,16 @@ class ConfigMixin(models.Model):
         abstract = True
 
 
+def _acting_contact_id() -> int:
+    """The person whose door verb is running (door.acting_actor), for history.created/modified;
+    0 outside the door or for our own code (a task, a command, the system actor) and for a sync
+    write, which no contact owns. It read created_by_id/modified_by_id before 2026-11-26:
+    attributes no model declares, so every record stamped 0."""
+    from apps.core.services.door import acting_actor
+    actor = acting_actor()
+    return (getattr(actor, 'user_id', None) or 0) if actor is not None else 0
+
+
 class MetadataMixin(models.Model):
     """Historized + flag / versioning capable metadata envelope."""
 
@@ -644,9 +654,10 @@ class MetadataMixin(models.Model):
         now_ms = int(timezone.now().timestamp() * 1000)
         self._init_metadata_if_needed()
         hist = self.metadata["history"]
-        hist["modified"] = {"dt": now_ms, "contact_id": getattr(self, "modified_by_id", 0)}
+        who = _acting_contact_id()
+        hist["modified"] = {"dt": now_ms, "contact_id": who}
         if creating:
-            hist["created"] = {"dt": now_ms, "contact_id": getattr(self, "created_by_id", 0)}
+            hist["created"] = {"dt": now_ms, "contact_id": who}
         super().save(*args, **kwargs)
 
     # helper accessors -----------------------------------------------------
