@@ -35451,17 +35451,19 @@
               "comments.public.user",
               "comments.public.user_id",
               "config.is_new",
-              "cost.commissions",
-              "cost.custom",
+              "cost.currency",
+              "cost.duty",
+              "cost.exchange_rate",
+              "cost.fifo_snapshot",
               "cost.freight",
               "cost.handling",
-              "cost.line_sum_goods",
-              "cost.line_sum_handling",
-              "cost.line_sum_shipping",
-              "cost.line_sum_tax",
-              "cost.tax",
-              "cost.tax_rate",
-              "cost.total",
+              "cost.landed",
+              "cost.lifo_snapshot",
+              "cost.moving_avg",
+              "cost.scrap_cost",
+              "cost.trend_pct",
+              "cost.unit_po",
+              "cost.vat",
               "dt_approved",
               "dt_created",
               "dt_last_used",
@@ -35533,6 +35535,9 @@
               "prefs.search.search_fields",
               "prefs.tags",
               "purpose",
+              "quantity.issued",
+              "quantity.received",
+              "quantity.scrapped",
               "refs.demo_source",
               "refs.keywords",
               "refs.links",
@@ -35704,25 +35709,8 @@
                   "layout": "three-column",
                   "columns": [
                     {
-                      "title": "identity",
+                      "title": "layer",
                       "fields": [
-                        {
-                          "field": "status",
-                          "label": "status"
-                        },
-                        {
-                          "field": "purpose",
-                          "label": "purpose"
-                        }
-                      ]
-                    },
-                    {
-                      "title": "details",
-                      "fields": [
-                        {
-                          "field": "health_rating",
-                          "label": "health_rating"
-                        },
                         {
                           "field": "item",
                           "label": "item"
@@ -35732,34 +35720,28 @@
                           "label": "item_ida"
                         },
                         {
+                          "field": "warehouse",
+                          "label": "warehouse"
+                        },
+                        {
                           "field": "lot",
                           "label": "lot"
-                        },
-                        {
-                          "field": "parent_id",
-                          "label": "parent_id"
-                        },
-                        {
-                          "field": "parent_model",
-                          "label": "parent_model"
                         },
                         {
                           "field": "serial_batch",
                           "label": "serial_batch"
                         },
                         {
-                          "field": "warehouse",
-                          "label": "warehouse"
-                        }
-                      ]
-                    },
-                    {
-                      "title": "schedule",
-                      "fields": [
+                          "field": "parent_model",
+                          "label": "parent_model"
+                        },
                         {
-                          "type": "date",
-                          "field": "dt_approved",
-                          "label": "dt_approved"
+                          "field": "parent_id",
+                          "label": "parent_id"
+                        },
+                        {
+                          "field": "status",
+                          "label": "status"
                         },
                         {
                           "type": "date",
@@ -35768,13 +35750,62 @@
                         },
                         {
                           "type": "date",
-                          "field": "dt_last_used",
-                          "label": "dt_last_used"
-                        },
-                        {
-                          "type": "date",
                           "field": "dt_modified",
                           "label": "dt_modified"
+                        }
+                      ]
+                    },
+                    {
+                      "title": "quantity",
+                      "fields": [
+                        {
+                          "field": "quantity.received",
+                          "label": "received"
+                        },
+                        {
+                          "field": "quantity.issued",
+                          "label": "issued"
+                        },
+                        {
+                          "field": "quantity.scrapped",
+                          "label": "scrapped"
+                        }
+                      ]
+                    },
+                    {
+                      "title": "cost",
+                      "fields": [
+                        {
+                          "field": "cost.unit_po",
+                          "label": "unit_po"
+                        },
+                        {
+                          "field": "cost.freight",
+                          "label": "freight"
+                        },
+                        {
+                          "field": "cost.duty",
+                          "label": "duty"
+                        },
+                        {
+                          "field": "cost.handling",
+                          "label": "handling"
+                        },
+                        {
+                          "field": "cost.vat",
+                          "label": "vat"
+                        },
+                        {
+                          "field": "cost.landed",
+                          "label": "landed"
+                        },
+                        {
+                          "field": "cost.moving_avg",
+                          "label": "moving_avg"
+                        },
+                        {
+                          "field": "cost.currency",
+                          "label": "currency"
                         }
                       ]
                     }
@@ -70382,7 +70413,7 @@
                 },
                 {
                   "field": "allocations.freight",
-                  "label": "vendor_invoice_freight"
+                  "label": "freight"
                 },
                 {
                   "field": "workorder",
@@ -70516,7 +70547,7 @@
                         },
                         {
                           "field": "allocations.freight",
-                          "label": "vendor_invoice_freight",
+                          "label": "freight",
                           "format": "currency"
                         },
                         {

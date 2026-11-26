@@ -309,3 +309,26 @@ def test_the_layers_follow_their_lines_until_the_receipt_is_journalized():
     assert refused.value.code == 'receipt_journalized'
     layer.refresh_from_db()
     assert layer.cost['freight'] == 1.0, 'a journalized receipt keeps its layers'
+
+
+def test_a_layer_shows_its_quantity_and_cost_and_refuses_a_direct_change(admin_client):
+    """Bill, 2026-11-26: the layer's form was "very hard to see or find values" — the door let out
+    only cost.freight and cost.handling. A layer now reads whole, and a save cannot change what
+    the ledger's inventory is checked against."""
+    r = _receipt(freight=10)
+    line, _other = _receive_together(r, (10, 7, 6.00), (20, 4, 12.50))
+    _spread(r)
+    line.refresh_from_db()
+    layer = line.inventory_layer
+    got = admin_client.get(f'/wcapi/inventory_layer/{layer.pk}/').json()['data']['record']
+    assert got['quantity']['received'] == 7
+    assert got['cost']['unit_po'] == 6.00 and got['cost']['freight'] == 0.6529
+    assert got['cost']['landed'] == pytest.approx(6.6529)
+    refused = admin_client.put(f'/wcapi/inventory_layer/{layer.pk}/', {'cost': {'unit_po': 1.00}},
+                               content_type='application/json')
+    assert refused.status_code == 409, refused.content
+    assert refused.json()['error']['code'] == 'layer_changes_with_stock'
+    layer.refresh_from_db()
+    assert layer.cost['unit_po'] == 6.00
+    lot = admin_client.put(f'/wcapi/inventory_layer/{layer.pk}/', {'lot': 'L-77'}, content_type='application/json')
+    assert lot.status_code == 200, lot.content

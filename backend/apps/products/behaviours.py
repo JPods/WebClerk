@@ -39,7 +39,30 @@ class CatalogLineBehaviour(ModelBehaviour):
                           ['item', 'scope'])
 
 
+class InventoryLayerBehaviour(ModelBehaviour):
+    """A layer's quantity and cost are what the ledger's inventory is checked against (GL
+    inventory = the layers). They change only with the stock: through the layer's receipt line,
+    a count, or the Pending applier, each of which writes the movement that explains the change.
+    A save of the layer record itself may change its lot or comments, never these."""
+
+    def before_save(self, ctx: HookContext) -> None:
+        layer = ctx.obj
+        if not getattr(layer, 'pk', None):
+            return
+        held = type(layer).objects.filter(pk=layer.pk).values('quantity', 'cost').first()
+        if held is None:
+            return
+        changed = [name for name in ('quantity', 'cost') if (held[name] or {}) != (getattr(layer, name) or {})]
+        if changed:
+            raise Refused(409, 'layer_changes_with_stock',
+                          f"A layer's {' and '.join(changed)} cannot be saved directly. Correct the "
+                          "quantity or cost on the layer's receipt line (until the receipt is "
+                          "journalized), or use a count workorder; each records the movement that "
+                          "explains the change.", {'fields': changed})
+
+
 def register_products() -> None:
+    register('inventory_layer', InventoryLayerBehaviour())
     register('bill_of_material', BillOfMaterialBehaviour())
     register('item_xref', ItemXrefBehaviour())
     register('catalog_line', CatalogLineBehaviour())
