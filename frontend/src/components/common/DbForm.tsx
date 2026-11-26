@@ -275,6 +275,8 @@ const DbFormView: React.FC<DbFormProps> = (props) => {
           onClose={handleClose}
           onToggleDesign={toggleDesign}
           onWorkflowComplete={onWorkflowComplete}
+          onWorkflowSaveFirst={isEditing && form.hasChanges ? () => form.save({ keepEditing: true }) : undefined}
+          onWorkflowRefresh={form.fetchData}
           // Money in with some left: apply it across the customer's open invoices (one check, many)
           onApplyCash={modelName === 'cash' && data?.type === 'cash_in' && Number(data?.available) > 0
             ? () => windowManager.ensureWindow(`/transactions/apply-cash?cash=${data.id}`, 'Apply Cash') : undefined}
@@ -329,6 +331,7 @@ const DbFormView: React.FC<DbFormProps> = (props) => {
                     isEditing={isEditing}
                     isLocked={form.editTier === 'closed'}
                     onLinesChange={form.setLines}
+                    onFieldChange={form.setField}
                     modelName={modelName}
                     lineContacts={(activeLayout?.features ?? layout?.features)?.line_contacts === true}
                     onEnterCash={isCashIn ? () => setShowAddCash(true) : undefined}

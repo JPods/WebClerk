@@ -1,5 +1,5 @@
 /* LastChecked: 2026-08-03 | WhereUsed: DbForm | WhoCreated: Claude */
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useAppSelector } from '@/store/hooks';
 import DataGrid from '@/components/common/DataGrid';
@@ -13,6 +13,7 @@ import { LinkedRecordsPanel } from '@/apps/common/components/panels/LinkedRecord
 import CollapsiblePanel from '@/apps/common/components/CollapsiblePanel';
 import CommissionPanel from '../panels/CommissionPanel';
 import LineContactsPanel, { type LineContact } from '../panels/LineContactsPanel';
+import LandedCostPanel, { withLanded, type LandedComponent } from '../panels/LandedCostPanel';
 import { TransactionItemSearch, resolveItemCode, resolveItemDescription, resolveQtyAvailable } from '../TransactionItemSearch';
 import { priceLines } from '../../services/linePricing';
 import type { ItemSearchResult } from '../TransactionItemSearch';
@@ -37,6 +38,8 @@ export interface LineCardRendererProps {
   modelName?: string;
   /** The document's switch (config.defaults.features.line_contacts): the people a line names. */
   lineContacts?: boolean;
+  /** Write a header field (dotted path) — a receipt's allocations.method.<comp> from the line detail. */
+  onFieldChange?: (field: string, value: unknown) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -44,7 +47,7 @@ export interface LineCardRendererProps {
 // ---------------------------------------------------------------------------
 
 /** Render the line card -- DataGrid with line card config, no LinesCard component */
-const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEditing, isLocked, onLinesChange, onEnterCash, modelName, lineContacts }) => {
+const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEditing, isLocked, onLinesChange, onEnterCash, modelName, lineContacts, onFieldChange }) => {
   const fmt = useFormatting();
   // Removed lines stay in the list — greyed out, struck through, zero qty —
   // until the save deletes the row. Escape a delete by closing the window.
@@ -53,6 +56,12 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
   const dispatch = useDispatch();
   const [showItemSearch, setShowItemSearch] = useState(false);
   const [showContacts, setShowContacts] = useState(false);
+  // A receipt line's detail: its landed shares and pins (Bill, 2026-11-25: too much data for a line).
+  const isReceipt = modelName === 'receipt';
+  const [showLineDetail, setShowLineDetail] = useState(false);
+  const [methodEdited, setMethodEdited] = useState(false);
+  // A save (or reload) brings the server's figures: the shares shown are current again.
+  useEffect(() => { setMethodEdited(false); }, [data?.version, data?.id]);
   const isSellSide = section.family === 'sell';
   const companyInventory = useSelector((s: any) => s.company?.inventory) || {};
   const authUser = useAppSelector((s) => s.auth.user);
@@ -214,6 +223,18 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
     onLinesChange(lines.map((l: any, i: number) => (lc.records[i]?.id !== lc.selectedId || l._removed) ? l
       : { ...l, refs: { ...(l.refs || {}), contacts }, _dirty: true }));
   }, [lc.selectedId, lc.records, lines, onLinesChange]);
+  // The selected line's landed share of one charge: this line only (Bill, 2026-11-25).
+  const handleLanded = useCallback((comp: LandedComponent, value: number) => {
+    if (!lc.canEdit || lc.selectedId == null) return;
+    onLinesChange(lines.map((l: any, i: number) => (lc.records[i]?.id !== lc.selectedId || l._removed) ? l
+      : withLanded(l, comp, value)));
+  }, [lc.canEdit, lc.selectedId, lc.records, lines, onLinesChange]);
+  // The receipt's basis for one charge: allocations.method is a dict per charge, never one word.
+  const handleLandedMethod = useCallback((comp: LandedComponent, basis: string) => {
+    if (!lc.canEdit || !onFieldChange) return;
+    onFieldChange(`allocations.method.${comp}`, basis);
+    setMethodEdited(true);
+  }, [lc.canEdit, onFieldChange]);
   const selectedContactCount = Array.isArray(selectedLine?.refs?.contacts) ? selectedLine.refs.contacts.length : 0;
 
   // Selection-aware footer calculations
@@ -270,8 +291,10 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
         </span>
         {lc.selectedId != null && (
           <span className="flex items-center gap-1 ml-1">
-            <button type="button" onClick={() => { const line = lc.records.find(r => r.id === lc.selectedId); if (line?._line) lc.setSelectedId(line.id); }}
-              className="px-1.5 py-0.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded" title="Edit line details">edit</button>
+            <button type="button" data-wc-subpanel={isReceipt ? 'line-detail' : undefined}
+              onClick={() => { if (isReceipt) { setShowLineDetail((v) => !v); return; } const line = lc.records.find(r => r.id === lc.selectedId); if (line?._line) lc.setSelectedId(line.id); }}
+              className={`px-1.5 py-0.5 rounded ${isReceipt && showLineDetail ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-blue-600 hover:bg-blue-50'}`}
+              title={isReceipt ? 'Line detail: landed (freight, duty, handling, vat), method, unallocated' : 'Edit line details'}>edit</button>
             {lc.canEdit && (
               <button type="button" onClick={() => {
                 // Mark every selected line removed in one pass. At save,
@@ -414,6 +437,17 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
           label={`Contacts${lc.selectedLineRecord?.item_code ? ` ${lc.selectedLineRecord.item_code}` : ''}`}>
           <LineContactsPanel line={selectedLine && !selectedLine._removed ? selectedLine : null}
             canEdit={lc.canEdit} onChange={handleLineContacts} />
+        </CollapsiblePanel>
+      )}
+      {isReceipt && showLineDetail && (
+        <CollapsiblePanel key={`line-detail-${lc.selectedId ?? ''}`} collapsible={false}
+          label={`Line detail${lc.selectedLineRecord?.item_code ? ` ${lc.selectedLineRecord.item_code}` : ''}`}>
+          <LandedCostPanel line={selectedLine ?? null} allocations={data?.allocations}
+            unallocated={data?.totals?.unallocated}
+            canEditLine={lc.canEdit} canEditMethod={lc.canEdit && !!onFieldChange}
+            formatMoney={(v) => formatCurrency(v, fmt)}
+            changed={methodEdited || lines.some((l: any) => l?._dirty || l?._removed)}
+            onLanded={handleLanded} onMethod={handleLandedMethod} />
         </CollapsiblePanel>
       )}
       {lc.activePanel !== 'none' && lc.activePanel !== 'margin' && (
