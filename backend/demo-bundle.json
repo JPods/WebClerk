@@ -8845,6 +8845,7 @@
             "type": "lookup",
             "model": "project",
             "value": "ida",
+            "display": "ida",
             "label": "project ida"
           },
           "dt_completed": {
@@ -16055,6 +16056,7 @@
             "type": "lookup",
             "model": "item",
             "value": "ida",
+            "display": "ida",
             "label": "child ida"
           },
           "is_active": {
@@ -19433,6 +19435,7 @@
             "type": "lookup",
             "model": "item",
             "value": "ida",
+            "display": "ida",
             "label": "item ida"
           },
           "catalog": {
@@ -36307,6 +36310,7 @@
             "type": "lookup",
             "model": "item",
             "value": "ida",
+            "display": "ida",
             "label": "item ida"
           },
           "metadata": {
@@ -44240,6 +44244,7 @@
             "type": "lookup",
             "model": "item",
             "value": "ida",
+            "display": "ida",
             "label": "item ida"
           },
           "metadata": {
@@ -45170,6 +45175,7 @@
             "type": "lookup",
             "model": "item",
             "value": "ida",
+            "display": "ida",
             "label": "item ida"
           },
           "metadata": {
@@ -76261,6 +76267,7 @@
             "type": "lookup",
             "model": "item",
             "value": "ida",
+            "display": "ida",
             "label": "item ida"
           },
           "metadata": {
@@ -84706,6 +84713,7 @@
             "type": "lookup",
             "model": "item",
             "value": "ida",
+            "display": "ida",
             "label": "item ida"
           },
           "metadata": {
@@ -96749,9 +96757,10 @@
           },
           "item_ida": {
             "type": "lookup",
-            "label": "item ida",
             "model": "item",
-            "value": "ida"
+            "value": "ida",
+            "display": "ida",
+            "label": "item ida"
           },
           "metadata": {
             "type": "json-tree",

@@ -25,7 +25,7 @@ def test_an_integer_pointer_is_a_lookup_on_the_model_its_stem_names():
     assert line['assigned_to_id'] == {'type': 'lookup', 'model': 'contact', 'display': 'attention'}
     assert line['parent_line_id'] == {'type': 'number'}          # no model named parent_line
     assert _typed(get_field_behaviors('cash')['contact_id']) == {'type': 'lookup', 'model': 'contact', 'display': 'attention'}
-    assert _typed(get_field_behaviors('item_xref')['item_ida']) == {'type': 'lookup', 'model': 'item', 'value': 'ida'}
+    assert _typed(get_field_behaviors('item_xref')['item_ida']) == {'type': 'lookup', 'model': 'item', 'value': 'ida', 'display': 'ida'}   # shows the ida it holds
     assert _typed(get_field_behaviors('serial')['serial_ida']) == {'type': 'text'}   # its own number, not a pointer
 
 
@@ -38,7 +38,7 @@ def test_refresh_adds_what_is_missing_and_upgrades_a_number_to_its_lookup_only()
     assert 'customer_id' in changes and 'item_fk' in out['behaviors'] and kept == []
     assert refreshed('order_line', out) == (out, [], [])                                   # idempotent
     xref, _c, _k = refreshed('item_xref', {'behaviors': {'item_ida': {'type': 'text', 'label': 'Item'}}})
-    assert xref['behaviors']['item_ida'] == {'type': 'lookup', 'model': 'item', 'value': 'ida', 'label': 'Item'}   # the old text default of an _ida
+    assert xref['behaviors']['item_ida'] == {'type': 'lookup', 'model': 'item', 'value': 'ida', 'display': 'ida', 'label': 'Item'}   # the old text default of an _ida
 
 
 def test_an_entry_a_person_changed_is_reported_and_left_alone():

@@ -196,6 +196,11 @@ def _pointed_model(name, ftype, model_key):
         out['value'] = 'ida'
     if model in _POINTER_DISPLAY:
         out['display'] = _POINTER_DISPLAY[model]
+    elif by_ida:
+        # A <model>_ida column holds the ida, and that is what its field shows: item_ida reads
+        # AF-2011, not the item's name (Bill, 2026-11-26: the layer's ITEM_IDA showed "PowerBoost
+        # 500 Charger"). Without a display the lookup fell back to the found record's name.
+        out['display'] = 'ida'
     return out
 
 
