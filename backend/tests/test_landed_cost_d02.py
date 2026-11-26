@@ -118,8 +118,12 @@ def _planned_line(receipt, n, qty, unit, item, warehouse):
                                       cost={'unit': unit, 'precision': 2})
 
 
-def test_the_landed_cost_is_fixed_on_the_layer_when_received():
-    """Bill, 2026-09-28/30: the layer is born at the receipt's landed cost and never changes."""
+@pytest.mark.usefixtures('chart_of_accounts')
+def test_the_layer_is_born_at_the_landed_cost_and_follows_its_receipt_until_journalized():
+    """The layer is born at the receipt's landed cost (Bill, 2026-09-28/30). Until the receipt is
+    journalized its charges, their basis and a line's pinned share are the user's to correct, and
+    the layers follow (Bill, 2026-11-25, replaces R3: "Users know things we do not and are
+    responsible"). Journalized: refused."""
     from apps.core.models.pending import Pending
     from apps.core.services.door import Refused
     from apps.products.models import Item, Warehouse
@@ -142,11 +146,43 @@ def test_the_landed_cost_is_fixed_on_the_layer_when_received():
     assert layer.cost['duty'] == 0.2614
     assert layer.cost['landed'] == pytest.approx(6.00 + 0.6529 + 0.2614)
 
+    # The freight bill was wrong: 10 becomes 21. Both layers take their new share (by value:
+    # 42 of 92 and 50 of 92), the unit and the duty stay.
+    save_record(Actor.system(), {'id': r.pk, 'allocations': {**r.allocations, 'freight': 21}},
+                model_key='receipt')
+    layer.refresh_from_db()
+    second.refresh_from_db()
+    assert layer.cost['unit_po'] == 6.00 and layer.cost['duty'] == 0.2614
+    assert layer.cost['freight'] == pytest.approx(9.59 / 7, abs=1e-4)
+    assert second.inventory_layer.cost['freight'] == pytest.approx(11.41 / 4, abs=1e-4)
+    assert layer.cost['landed'] == pytest.approx(6.00 + 9.59 / 7 + 0.2614, abs=1e-3)
+    assert layer.quantity['received'] == 7, 'a cost change moves no stock'
+
+    # The user pins the first line's freight at 7.00: that line carries 1.00 a unit, the other the rest.
+    first.refresh_from_db()
+    save_record(Actor.system(), {'id': r.pk, 'lines': [
+        {'id': first.pk, 'cost': {**first.cost, 'landed_override': {'freight': 7.00}}}]},
+        model_key='receipt')
+    layer.refresh_from_db()
+    second.refresh_from_db()
+    assert layer.cost['freight'] == 1.0
+    assert second.inventory_layer.cost['freight'] == 3.5
+    changes = Pending.objects.filter(name__endswith='cost changed')
+    assert changes.count() == 4, 'two layers, twice'
+    assert all(p.is_processed() for p in changes)
+
+    # The same save again finds nothing to do.
+    save_record(Actor.system(), {'id': r.pk, 'allocations': {**r.allocations, 'freight': 21}},
+                model_key='receipt')
+    assert Pending.objects.filter(name__endswith='cost changed').count() == 4
+
+    from apps.accounts.services.journalize import journalize_receipt
+    posted = journalize_receipt(r.pk)
+    assert not posted.get('error'), posted
     r.refresh_from_db()
     r.allocations = {**r.allocations, 'freight': 0}
     with pytest.raises(Refused) as refused:
         r.save()
-    assert refused.value.code == 'layer_cost_fixed'
+    assert refused.value.code == 'receipt_journalized'
     layer.refresh_from_db()
-    assert layer.cost['freight'] == 0.6529, 'a layer never changes'
-    assert not Pending.objects.filter(purpose='inventory_cost_change').exists()
+    assert layer.cost['freight'] == 1.0, 'a journalized receipt keeps its layers'

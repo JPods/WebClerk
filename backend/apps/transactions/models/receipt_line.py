@@ -53,21 +53,21 @@ class ReceiptLine(BaseExecLineModel):
     )
 
     def save(self, *args, **kwargs):
-        self._assert_received_is_fixed()
+        self._assert_reduction_is_held()
         super().save(*args, **kwargs)
 
-    def _assert_received_is_fixed(self):
+    def _assert_reduction_is_held(self):
         """A received line is corrected until its receipt is journalized: its quantity (readme 108,
-        "Amendment confirmed") and its cost (Bill, 2026-11-25: "Users should be able to change the
-        cost. They are responsible." — replaces R3, the dock cost never changes). A changed cost is
-        marked here; the line door re-costs the line's layer once the totals are computed. A
-        journalized receipt refuses both (_assert_parent_not_journalized)."""
+        "Amendment confirmed") and its cost and charges (Bill, 2026-11-25: "Users should be able to
+        change the cost. They are responsible." — replaces R3, the dock cost never changes). The
+        line door brings the receipt's layers to their lines' landed cost after every change
+        (line_door.reconcile_receipt_layers). A journalized receipt refuses both
+        (_assert_parent_not_journalized). What is refused here is taking back units the layer no
+        longer holds."""
         from apps.core.services.door import Refused
-        from apps.transactions.models.base_line_model import _envelope_changed
-        stored = (type(self).objects.filter(pk=self.pk).values('quantity', 'cost').first()
+        stored = (type(self).objects.filter(pk=self.pk).values('quantity').first()
                   if self.pk else None) or {}
         was = float((stored.get('quantity') or {}).get('active') or 0)
-        self._cost_changed = bool(was and _envelope_changed(stored.get('cost') or {}, self.cost or {}))
         now = float((self.quantity or {}).get('active') or 0)
         if was and now < was - 1e-9 and self.inventory_layer_id:
             # A received quantity is corrected until the receipt is journalized (readme 108,

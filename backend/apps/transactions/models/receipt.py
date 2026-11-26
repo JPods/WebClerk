@@ -147,33 +147,35 @@ class Receipt(TransactionBaseModel):
         self.totals = t
 
     def save(self, *args, **kwargs):
-        self._assert_landed_fixed_once_received()
+        charges_changed = self._charges_changed()
         if not self.dt_received:
             from datetime import datetime, timezone as _tz
             self.dt_received = int(datetime.now(_tz.utc).timestamp() * 1000)
         self._inherit_from_parent()      # base save populates the company snapshot
         self._sync_totals_from_allocations()
         super().save(*args, **kwargs)
+        if charges_changed:
+            from apps.transactions.services.line_door import reconcile_receipt_layers
+            reconcile_receipt_layers(self)
 
-    def _assert_landed_fixed_once_received(self):
-        """The charges spread onto a receipt's lines reach their layers when the lines are received,
-        and a received line's layer is re-costed only from that line's own cost (Bill, 2026-11-25,
-        replaces R3). Changing the charges on a received receipt is not built: so once a line is
-        received, the receipt's allocations stand: a later charge is its own entry, added to the
-        layers (readme 108, R4–R6)."""
+    def _charges_changed(self) -> bool:
+        """The receipt's charges (freight, duty, handling, vat) and the basis each is spread by are
+        the user's to correct until the receipt is journalized (Bill, 2026-11-25: "I think we should
+        allow changes... how these costs are allocated to individual lines need to be up to users";
+        replaces R3). A change re-costs the received lines' layers once the totals are computed
+        (line_door.reconcile_receipt_layers). Journalized: refused, the GL has posted them."""
         if not self.pk:
-            return
-        stored = type(self).objects.filter(pk=self.pk).values_list('allocations', flat=True).first() or {}
-        if (stored or {}) == (self.allocations or {}):
-            return
-        from apps.transactions.models.hard_delete import _received
-        if _received(self):
+            return False
+        stored = type(self).objects.filter(pk=self.pk).values('allocations', 'dt_journaled').first() or {}
+        if (stored.get('allocations') or {}) == (self.allocations or {}):
+            return False
+        if stored.get('dt_journaled'):
             from apps.core.services.door import Refused
-            raise Refused(409, 'layer_cost_fixed',
-                          'This receipt has received goods, and their layers hold the cost they landed '
-                          'at. A later freight, duty or other bill is its own entry, added to those '
-                          'layers. Charges known when the goods arrive go on the receipt in the save '
-                          'that receives them.', {'receipt_id': self.pk})
+            raise Refused(409, 'receipt_journalized',
+                          'This receipt is journalized: its charges have posted to the ledger and no '
+                          'longer change. A later freight, duty or other bill is its own entry.',
+                          {'receipt_id': self.pk})
+        return True
 
     def __str__(self) -> str:  # pragma: no cover
         return f"R:{self.ida}" if self.ida else f"R:{self.pk}"

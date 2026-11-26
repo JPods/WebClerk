@@ -458,13 +458,14 @@ class Pending(CoreModel):
                                             f'cost layer {layer.pk} from'})
         cost = dict(layer.cost or {})
         was = float(cost.get('landed') or 0)
+        same = all(round(float(cost.get(k) or 0), 4) == round(float(v or 0), 4) for k, v in landed.items())
         cost.update(landed)
         now = round(sum(float(landed.get(k) or 0) for k in ('unit_po', 'freight', 'duty', 'handling', 'vat')), 4)
         cost['landed'] = now
         for snapshot in ('fifo_snapshot', 'lifo_snapshot'):
             if not cost.get(snapshot) or float(cost[snapshot]) == was:
                 cost[snapshot] = now
-        if now == was:
+        if same:
             return
         q = layer.quantity or {}
         left = float(Decimal(str(q.get('issued', 0) or 0)) + Decimal(str(q.get('scrapped', 0) or 0)))

@@ -408,14 +408,11 @@ def post_line_change(line, *, deleted: bool = False) -> None:
         # re-saves the line, and a zero variance has no footprint then either (§16a.2).
         _write(line, item_id, {}, reason=line.line_type)
         return
-    if (item_id and not deleted and getattr(line, '_cost_changed', False)
-            and getattr(line, 'inventory_layer_id', None) and _header_model_name(header) == 'receipt'):
-        # A received line's cost was corrected (Bill, 2026-11-25): its layer takes the line's new
-        # landed cost. Deferred like the layer's birth, so the applier reads computed totals; a
-        # quantity change in the same save is written first, below, and applies before it.
-        line._cost_changed = False
-        _write_after_totals(line, header, item_id, {}, reason='cost changed',
-                            layer={'layer_id': line.inventory_layer_id, 'line_id': line.pk, 'recost': True})
+    if header is not None and _header_model_name(header) == 'receipt':
+        # Any change to a receipt's line can move every line's landed cost (its unit, its pinned
+        # share, the quantity a share is divided by, a line that left). Once the totals are
+        # computed the receipt's layers are brought to them (Bill, 2026-11-25).
+        reconcile_receipt_layers(header)
     if not item_id or not deltas:
         return
     layer = None
@@ -438,6 +435,46 @@ def post_line_change(line, *, deleted: bool = False) -> None:
         _write_after_totals(line, header, item_id, deltas, reason=reason, layer=layer)
         return
     _write(line, item_id, deltas, reason=reason, layer=layer)
+
+
+def reconcile_receipt_layers(receipt) -> None:
+    """A received line's layer is carried at the line's landed cost: the discounted unit plus its
+    share of the receipt's charges. Bill, 2026-11-25: "Users should be able to change the cost.
+    They are responsible." — so until the receipt is journalized, a changed unit cost, charge,
+    basis or pinned share re-costs the layers it moves. One rule, done once per unit of work after
+    the totals: each received line whose layer differs from its computed landed cost gets a
+    Pending 'cost changed', and the applier (Pending._recost_received_layer) changes the layer.
+    Outside a unit it happens now."""
+    from apps.core.services import unit_of_work as uow
+    from apps.transactions.services.pricing.totals_compute import (
+        LANDED_COMPONENTS, landed_layer_cost, recalculate_totals)
+
+    receipt_id = receipt.pk
+    if not receipt_id:
+        return
+
+    def work():
+        from apps.transactions.models import Receipt, ReceiptLine
+        from apps.transactions.models.base_line_model import line_item_id
+        if not Receipt.objects.filter(pk=receipt_id, dt_journaled=0).exists():
+            return                      # gone, or journalized: its layers stand
+        recalculate_totals(receipt_id, 'receipt')
+        lines = ReceiptLine.objects.select_related('inventory_layer').filter(
+            receipt_id=receipt_id, inventory_layer__isnull=False)
+        for line in lines:
+            landed = landed_layer_cost(line.totals, (line.quantity or {}).get('active'))
+            item_id = line_item_id(line)
+            if not landed or not item_id:
+                continue
+            held = line.inventory_layer.cost or {}
+            if all(round(float(held.get(k) or 0), 4) == round(float(landed.get(k) or 0), 4)
+                   for k in ('unit_po', *LANDED_COMPONENTS)):
+                continue
+            _write(line, item_id, {}, reason='cost changed',
+                   layer={'layer_id': line.inventory_layer_id, 'line_id': line.pk, 'recost': True})
+
+    if not uow.defer(('receipt_layers', receipt_id), work):
+        work()
 
 
 def _write_after_totals(line, header, item_id: int, deltas: Dict[str, float], *, reason: str, layer) -> None:
