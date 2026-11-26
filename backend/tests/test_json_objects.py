@@ -14,9 +14,13 @@ from apps.transactions.models import Purchase
 pytestmark = pytest.mark.django_db
 
 
-def test_only_objects_the_viewer_sees_part_of_and_in_the_models_order():
-    seen = json_objects_for(Purchase, ['ida', 'totals.total', 'addresses.ship_to.company', 'refs.links'])
-    assert seen == [n for n in (f.name for f in Purchase._meta.concrete_fields) if n in ('addresses', 'totals', 'refs')]
+def test_only_objects_the_viewer_sees_part_of_the_models_own_first_and_the_envelopes_last():
+    """Bill, 2026-11-26: "canonical fields and model specific jsons should be at the top of the
+    form with .refs, .prefs, metadata and config below"."""
+    seen = json_objects_for(Purchase, ['ida', 'totals.total', 'addresses.ship_to.company', 'refs.links',
+                                       'config.is_new', 'metadata.flags'])
+    own = [n for n in (f.name for f in Purchase._meta.concrete_fields) if n in ('addresses', 'totals')]
+    assert seen == own + ['refs', 'metadata', 'config']
     assert 'ida' not in seen and 'emails' not in seen
     assert json_objects_for(Purchase, []) == []
 

@@ -35,12 +35,21 @@ def locked_fields_for(record) -> list:
     return [name for name in JOURNALIZED_LOCKED if hasattr(record, name)]
 
 
+#: The envelopes every record has. On a form they come after the model's own JSON objects
+#: (Bill, 2026-11-26: "canonical fields and model specific jsons should be at the top of the form
+#: with .refs, .prefs, metadata and config below").
+ENVELOPES_LAST = ('refs', 'prefs', 'metadata', 'config')
+
+
 def json_objects_for(model, view_fields) -> list:
-    """The model's JSON columns of which the viewer may see at least one leaf, in model order."""
+    """The model's JSON columns of which the viewer may see at least one leaf: the model's own
+    (cost, quantity, totals, ...) first, in model order, then the envelopes every record has."""
     from django.db import models as dj
     seen = {str(path).split('.')[0] for path in view_fields}
-    return [f.name for f in model._meta.concrete_fields
-            if isinstance(f, dj.JSONField) and f.name in seen]
+    names = [f.name for f in model._meta.concrete_fields
+             if isinstance(f, dj.JSONField) and f.name in seen]
+    return ([n for n in names if n not in ENVELOPES_LAST]
+            + [n for n in ENVELOPES_LAST if n in names])
 
 
 class FieldRulesView(APIView):
