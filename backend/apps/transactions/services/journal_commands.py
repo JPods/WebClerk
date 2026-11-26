@@ -92,14 +92,30 @@ def journalize(ctx) -> Dict[str, Any]:
     post = {'invoice': posting.journalize_invoice, 'cash': posting.journalize_cash,
             'receipt': posting.journalize_receipt,
             'workorder': posting.journalize_workorder}[ctx.model_key]
-    result = post(ctx.obj.pk)
+    if ctx.model_key == 'receipt':
+        # A charge no line carries posts to its own account, and the person says so first (Bill,
+        # 2026-11-25: "warn users that they have unallocated costs before journalizing. Make them
+        # check a checkbox to force journaling").
+        result = post(ctx.obj.pk, post_unallocated=bool((ctx.data or {}).get('post_unallocated')))
+        if result.get('error') == 'Unallocated charges':
+            owed = ', '.join(f'{comp} {amount:,.2f}' for comp, amount in result['unallocated'].items())
+            raise Refused(409, 'unallocated_charges',
+                          f'This receipt has charges no line carries: {owed}. Run spread on the receipt '
+                          f'or type each line\'s share to put them into inventory. To post them as they '
+                          f'are, to each charge\'s own account, confirm with "post_unallocated": true.',
+                          {'unallocated': result['unallocated']})
+    else:
+        result = post(ctx.obj.pk)
     if result.get('error'):
         error = result['error']
         code = ('already_journalized' if error == 'Already journalized' else
                 'nothing_received' if error.startswith('Nothing received') else
                 'nothing_to_journalize' if error.startswith('Nothing to journalize') else 'journalize_failed')
         raise Refused(400 if code == 'journalize_failed' else 409, code, error, ctx.obj.pk)
-    result['messages'] = ([released_here] if released_here else []) + list(result.get('messages') or [])
+    posted_apart = [f'unallocated {comp} {amount:,.2f} posted to its own account, not to inventory.'
+                    for comp, amount in (result.get('unallocated') or {}).items()]
+    result['messages'] = (([released_here] if released_here else []) + posted_apart
+                          + list(result.get('messages') or []))
     return result
 
 

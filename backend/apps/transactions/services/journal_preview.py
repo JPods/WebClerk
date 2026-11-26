@@ -34,7 +34,8 @@ def _entries(rows) -> List[Dict[str, Any]]:
     from apps.accounts.models import GlAccount
     names = dict(GlAccount.objects.filter(ida__in={r.account for r in rows}).values_list('ida', 'name'))
     return [{'account': r.account, 'name': names.get(r.account, r.account),
-             'debit': float(r.debit or 0), 'credit': float(r.credit or 0), 'purpose': r.purpose or ''}
+             'debit': float(r.debit or 0), 'credit': float(r.credit or 0), 'purpose': r.purpose or '',
+             'note': r.note or ''}
             for r in rows]
 
 
@@ -58,7 +59,10 @@ def preview_for(model_key: str, pk: int) -> Dict[str, Any]:
         try:
             with transaction.atomic():
                 last = GlJournal.objects.order_by('-pk').values_list('pk', flat=True).first() or 0
-                result = poster(model_key)(pk)
+                # A receipt's preview shows the entry with its unallocated charges posted, and
+                # says so: the person confirms them before Post writes it.
+                result = (poster(model_key)(pk, post_unallocated=True) if model_key == 'receipt'
+                          else poster(model_key)(pk))
                 entries = _entries(list(GlJournal.objects.filter(pk__gt=last).order_by('pk')))
                 transaction.set_rollback(True)      # a preview writes nothing
         except Exception as e:                      # noqa: BLE001 — what Post would refuse with
@@ -66,8 +70,15 @@ def preview_for(model_key: str, pk: int) -> Dict[str, Any]:
         note = '' if entries else (result.get('error') or result.get('status') or 'Nothing to post.')
     debits = sum((Decimal(str(e['debit'])) for e in entries), Decimal('0'))
     credits = sum((Decimal(str(e['credit'])) for e in entries), Decimal('0'))
-    return {'posted': posted, 'entries': entries, 'debits': float(debits), 'credits': float(credits),
-            'balanced': debits == credits, 'note': note}
+    answer = {'posted': posted, 'entries': entries, 'debits': float(debits), 'credits': float(credits),
+              'balanced': debits == credits, 'note': note}
+    unallocated = {} if posted else (result.get('unallocated') or {})
+    if unallocated:
+        answer['unallocated'] = unallocated
+        answer['warning'] = ('Charges no line carries will post to their own accounts, not to inventory: '
+                             + ', '.join(f'{comp} {amount:,.2f}' for comp, amount in unallocated.items())
+                             + '. Run spread on the receipt to put them on its lines.')
+    return answer
 
 
 def journal_preview(ctx) -> Dict[str, Any]:

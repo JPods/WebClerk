@@ -43,7 +43,7 @@ UPS = [{'name': 'UPS Ground', 'carrier_code': 'UPSG', 'aliases': ['ups'],
 
 
 def line(n, qty, unit, *, cost=None, line_type='product', precision=2, pct=0, flat=0,
-         cost_pct=0, cost_flat=0, tax=None, tax_code=None, weight=None, pins=None,
+         cost_pct=0, cost_flat=0, tax=None, tax_code=None, weight=None, landed=None,
          is_active=True, ship=0, handling=0, cost_precision=2, side='sell'):
     """A line as the screen holds it. `side` says which envelope carries `unit`."""
     price_env = {'unit': unit, 'precision': precision, 'discount_percent': pct, 'discount_amount': flat}
@@ -56,8 +56,8 @@ def line(n, qty, unit, *, cost=None, line_type='product', precision=2, pct=0, fl
         price_env = None
     if tax_code:
         cost_env['tax_code'] = tax_code
-    if pins:
-        cost_env['landed_override'] = pins
+    if landed:
+        cost_env['landed'] = landed
     return {'id': 100 + n, 'line_number': n, 'line_type': line_type,
             'quantity': {'active': qty}, 'price': price_env, 'cost': cost_env,
             'tax': tax, 'physical': {'weight': weight} if weight else None, 'is_active': is_active}
@@ -180,12 +180,16 @@ CASES = [
     case('landed_by_quantity', 'receipt',
          [line(1, 3, 10, side='buy'), line(2, 1, 5, side='buy'), line(3, 2, 7.5, side='buy')],
          allocations={'duty': 10, 'method': {'duty': 'quantity'}}),
-    case('landed_pins_one_line_rest_spreads', 'receipt',
-         [line(1, 3, 10, side='buy', pins={'freight': 4}), line(2, 1, 5, side='buy'), line(3, 2, 7.5, side='buy')],
+    # A line carries the share it was given (cost.landed); a save never spreads (Bill, 2026-11-25).
+    case('landed_typed_on_one_line_the_rest_is_unallocated', 'receipt',
+         [line(1, 3, 10, side='buy', landed={'freight': 4}), line(2, 1, 5, side='buy'), line(3, 2, 7.5, side='buy')],
          allocations={'freight': 10, 'method': {'freight': 'value'}}),
-    case('landed_all_pinned_adding_up', 'receipt',
-         [line(1, 1, 10, side='buy', pins={'duty': 1.5}), line(2, 1, 5, side='buy', pins={'duty': 0.5})],
+    case('landed_typed_adding_up', 'receipt',
+         [line(1, 1, 10, side='buy', landed={'duty': 1.5}), line(2, 1, 5, side='buy', landed={'duty': 0.5})],
          allocations={'duty': 2}),
+    case('landed_typed_over_the_charge', 'receipt',
+         [line(1, 1, 10, side='buy', landed={'freight': 8, 'vat': 0.5}), line(2, 1, 5, side='buy', landed={'freight': 5})],
+         allocations={'freight': 10, 'vat': 0.5}, settlement={'received': 0, 'adjusted': 0, 'settled': 4}),
     case('landed_remainder_cent_on_last_line', 'receipt',
          [line(1, 1, 10, side='buy'), line(2, 1, 10, side='buy'), line(3, 1, 10, side='buy')],
          allocations={'freight': 10, 'vat': 0.01}),

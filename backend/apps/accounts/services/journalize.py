@@ -905,7 +905,7 @@ def journalize_cash(cash_id: int) -> dict:
     return result
 
 
-def journalize_receipt(receipt_id: int) -> dict:
+def journalize_receipt(receipt_id: int, post_unallocated: bool = False) -> dict:
     """Journalize a received receipt: payables from the receipt, inventory from its layers
     (Bill, 2026-09-28/30; plan 2026-09-30-gl-by-layer.md). The PO posts nothing.
 
@@ -917,6 +917,12 @@ def journalize_receipt(receipt_id: int) -> dict:
       of the received lines' amounts.
     - What is left in received_not_billed is landed cost someone else bills (freight, duty): the
       accrual until that bill is entered, listed by the checker.
+
+    - A charge no line carries (totals.unallocated): Dr that charge's account
+      (chart.landed_account) / Cr received_not_billed, noted as unallocated, so nothing is left
+      dangling in the receipt (Bill, 2026-11-25). Only with ``post_unallocated``: without it a
+      receipt with unallocated charges answers error 'Unallocated charges' and names them, and
+      the person confirms.
 
     Sets dt_journaled on the receipt and on each movement it posted. Refuses a receipt that is
     journalized already or has received nothing.
@@ -936,12 +942,26 @@ def journalize_receipt(receipt_id: int) -> dict:
     received = [l for l in lines if float((l.quantity or {}).get('active') or 0) > 0]
     if not received:
         return {'created': 0, 'error': 'Nothing received: receive the receipt first'}
+    from apps.accounts.services.chart import landed_account
+    from apps.transactions.services.pricing.totals_compute import receipt_unallocated
+    unallocated = {comp: amount for comp, amount in receipt_unallocated(receipt, lines).items() if amount}
+    if unallocated and not post_unallocated:
+        return {'created': 0, 'error': 'Unallocated charges',
+                'unallocated': {comp: float(amount) for comp, amount in unallocated.items()}}
     movements = list(InventoryMovement.objects.select_related('inventory_layer').filter(
         parent_model='receiptline', parent_id__in=[l.pk for l in lines],
         movement_type=InventoryMovement.MOVEMENT_RECEIPT, dt_journaled=0))
 
-    rows = []    # (account, debit, credit, type, event_id)
+    rows = []    # (account, debit, credit, type, event_id[, note])
     rnb = _role('received_not_billed', used_by=f'receipt {receipt.ida}')
+    for comp, amount in unallocated.items():
+        # Owed, and carried by no line: it posts to the charge's own account, noted. More than
+        # the charge was put on the lines when the amount is negative; the entry turns round.
+        account = landed_account(comp, used_by=f'receipt {receipt.ida} unallocated {comp}')
+        note = f'unallocated {comp}: on receipt {receipt.ida}, carried by no line'
+        debit, credit = (account, rnb) if amount > 0 else (rnb, account)
+        rows.append((debit, abs(amount), Decimal('0'), 'general', f'unallocated:{comp}', note))
+        rows.append((credit, Decimal('0'), abs(amount), 'general', f'unallocated:{comp}', note))
     for move in movements:
         layer = move.inventory_layer
         unit = Decimal(str((layer.cost or {}).get('landed') or 0))
@@ -1009,19 +1029,21 @@ def journalize_receipt(receipt_id: int) -> dict:
 
     now = _now_ms()
     with transaction.atomic():
-        for account, debit, credit, kind, event_id in rows:
+        for account, debit, credit, kind, event_id, *rest in rows:
             GlJournal.objects.create(
                 ida=ida, account=account,
                 debit=float(debit) if debit else None, credit=float(credit) if credit else None,
                 source='automation', type=kind, source_id=receipt_id, source_model='receipt',
-                event_id=event_id)
+                event_id=event_id, note=rest[0] if rest else '')
         InventoryMovement.objects.filter(pk__in=[m.pk for m in movements]).update(dt_journaled=now)
         Receipt.objects.filter(pk=receipt_id).update(dt_journaled=now, dt_modified=now)
 
+    unallocated_total = sum(unallocated.values(), Decimal('0'))
     return {'created': len(rows), 'receipt_ida': receipt.ida,
             'inventory': float(inventory_net),
             'payable': float(payable),
-            'received_not_billed': float(inventory_net - payable)}
+            'unallocated': {comp: float(amount) for comp, amount in unallocated.items()},
+            'received_not_billed': float(inventory_net + unallocated_total - payable)}
 
 
 def _standing_event_ids(GlJournal, source_id: int, source_model: str) -> set:

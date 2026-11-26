@@ -4344,7 +4344,13 @@
      "duty": 2.5,
      "handling": 0.03,
      "vat": 0.0,
-     "paid": 0.0
+     "paid": 0.0,
+     "unallocated": {
+      "freight": 10.0,
+      "duty": 2.5,
+      "handling": 0.03,
+      "vat": 0.0
+     }
     },
     "line_totals": [
      {
@@ -4355,18 +4361,18 @@
       "tax_rate": 0.0,
       "rate_source": "costs_not_taxed",
       "tax": 0.0,
-      "shipping": 6.0,
-      "other": 1.52,
+      "shipping": 0.0,
+      "other": 0.0,
       "finance_charge": 0.0,
       "cost": 30.0,
       "landed": {
-       "freight": 6.0,
-       "duty": 1.5,
-       "handling": 0.02,
+       "freight": 0.0,
+       "duty": 0.0,
+       "handling": 0.0,
        "vat": 0.0
       },
       "margin": 0.0,
-      "total": 37.52
+      "total": 30.0
      },
      {
       "discounted_unit": 5.0,
@@ -4376,18 +4382,18 @@
       "tax_rate": 0.0,
       "rate_source": "costs_not_taxed",
       "tax": 0.0,
-      "shipping": 1.0,
-      "other": 0.25,
+      "shipping": 0.0,
+      "other": 0.0,
       "finance_charge": 0.0,
       "cost": 5.0,
       "landed": {
-       "freight": 1.0,
-       "duty": 0.25,
+       "freight": 0.0,
+       "duty": 0.0,
        "handling": 0.0,
        "vat": 0.0
       },
       "margin": 0.0,
-      "total": 6.25
+      "total": 5.0
      },
      {
       "discounted_unit": 7.5,
@@ -4397,18 +4403,18 @@
       "tax_rate": 0.0,
       "rate_source": "costs_not_taxed",
       "tax": 0.0,
-      "shipping": 3.0,
-      "other": 0.76,
+      "shipping": 0.0,
+      "other": 0.0,
       "finance_charge": 0.0,
       "cost": 15.0,
       "landed": {
-       "freight": 3.0,
-       "duty": 0.75,
-       "handling": 0.01,
+       "freight": 0.0,
+       "duty": 0.0,
+       "handling": 0.0,
        "vat": 0.0
       },
       "margin": 0.0,
-      "total": 18.76
+      "total": 15.0
      }
     ]
    }
@@ -4537,7 +4543,13 @@
      "duty": 0.0,
      "handling": 0.0,
      "vat": 0.0,
-     "paid": 0.0
+     "paid": 0.0,
+     "unallocated": {
+      "freight": 25.0,
+      "duty": 0.0,
+      "handling": 0.0,
+      "vat": 0.0
+     }
     },
     "line_totals": [
      {
@@ -4548,18 +4560,18 @@
       "tax_rate": 0.0,
       "rate_source": "costs_not_taxed",
       "tax": 0.0,
-      "shipping": 12.8,
+      "shipping": 0.0,
       "other": 0.0,
       "finance_charge": 0.0,
       "cost": 20.0,
       "landed": {
-       "freight": 12.8,
+       "freight": 0.0,
        "duty": 0.0,
        "handling": 0.0,
        "vat": 0.0
       },
       "margin": 0.0,
-      "total": 32.8
+      "total": 20.0
      },
      {
       "discounted_unit": 5.0,
@@ -4569,18 +4581,18 @@
       "tax_rate": 0.0,
       "rate_source": "costs_not_taxed",
       "tax": 0.0,
-      "shipping": 5.81,
+      "shipping": 0.0,
       "other": 0.0,
       "finance_charge": 0.0,
       "cost": 20.0,
       "landed": {
-       "freight": 5.81,
+       "freight": 0.0,
        "duty": 0.0,
        "handling": 0.0,
        "vat": 0.0
       },
       "margin": 0.0,
-      "total": 25.81
+      "total": 20.0
      },
      {
       "discounted_unit": 7.5,
@@ -4590,18 +4602,18 @@
       "tax_rate": 0.0,
       "rate_source": "costs_not_taxed",
       "tax": 0.0,
-      "shipping": 6.39,
+      "shipping": 0.0,
       "other": 0.0,
       "finance_charge": 0.0,
       "cost": 7.5,
       "landed": {
-       "freight": 6.39,
+       "freight": 0.0,
        "duty": 0.0,
        "handling": 0.0,
        "vat": 0.0
       },
       "margin": 0.0,
-      "total": 13.89
+      "total": 7.5
      }
     ]
    }
@@ -4700,7 +4712,13 @@
      "duty": 0.0,
      "handling": 0.0,
      "vat": 0.0,
-     "paid": 0.0
+     "paid": 0.0,
+     "unallocated": {
+      "freight": 25.0,
+      "duty": 0.0,
+      "handling": 0.0,
+      "vat": 0.0
+     }
     },
     "line_totals": [
      {
@@ -4711,18 +4729,18 @@
       "tax_rate": 0.0,
       "rate_source": "costs_not_taxed",
       "tax": 0.0,
-      "shipping": 12.5,
+      "shipping": 0.0,
       "other": 0.0,
       "finance_charge": 0.0,
       "cost": 20.0,
       "landed": {
-       "freight": 12.5,
+       "freight": 0.0,
        "duty": 0.0,
        "handling": 0.0,
        "vat": 0.0
       },
       "margin": 0.0,
-      "total": 32.5
+      "total": 20.0
      },
      {
       "discounted_unit": 5.0,
@@ -4732,18 +4750,18 @@
       "tax_rate": 0.0,
       "rate_source": "costs_not_taxed",
       "tax": 0.0,
-      "shipping": 12.5,
+      "shipping": 0.0,
       "other": 0.0,
       "finance_charge": 0.0,
       "cost": 20.0,
       "landed": {
-       "freight": 12.5,
+       "freight": 0.0,
        "duty": 0.0,
        "handling": 0.0,
        "vat": 0.0
       },
       "margin": 0.0,
-      "total": 32.5
+      "total": 20.0
      }
     ]
    }
@@ -4857,7 +4875,13 @@
      "duty": 10.0,
      "handling": 0.0,
      "vat": 0.0,
-     "paid": 0.0
+     "paid": 0.0,
+     "unallocated": {
+      "freight": 0.0,
+      "duty": 10.0,
+      "handling": 0.0,
+      "vat": 0.0
+     }
     },
     "line_totals": [
      {
@@ -4869,17 +4893,17 @@
       "rate_source": "costs_not_taxed",
       "tax": 0.0,
       "shipping": 0.0,
-      "other": 5.0,
+      "other": 0.0,
       "finance_charge": 0.0,
       "cost": 30.0,
       "landed": {
        "freight": 0.0,
-       "duty": 5.0,
+       "duty": 0.0,
        "handling": 0.0,
        "vat": 0.0
       },
       "margin": 0.0,
-      "total": 35.0
+      "total": 30.0
      },
      {
       "discounted_unit": 5.0,
@@ -4890,17 +4914,17 @@
       "rate_source": "costs_not_taxed",
       "tax": 0.0,
       "shipping": 0.0,
-      "other": 1.67,
+      "other": 0.0,
       "finance_charge": 0.0,
       "cost": 5.0,
       "landed": {
        "freight": 0.0,
-       "duty": 1.67,
+       "duty": 0.0,
        "handling": 0.0,
        "vat": 0.0
       },
       "margin": 0.0,
-      "total": 6.67
+      "total": 5.0
      },
      {
       "discounted_unit": 7.5,
@@ -4911,23 +4935,23 @@
       "rate_source": "costs_not_taxed",
       "tax": 0.0,
       "shipping": 0.0,
-      "other": 3.33,
+      "other": 0.0,
       "finance_charge": 0.0,
       "cost": 15.0,
       "landed": {
        "freight": 0.0,
-       "duty": 3.33,
+       "duty": 0.0,
        "handling": 0.0,
        "vat": 0.0
       },
       "margin": 0.0,
-      "total": 18.33
+      "total": 15.0
      }
     ]
    }
   },
   {
-   "name": "landed_pins_one_line_rest_spreads",
+   "name": "landed_typed_on_one_line_the_rest_is_unallocated",
    "model": "receipt",
    "header": {
     "finance": {},
@@ -4958,7 +4982,7 @@
       "discount_amount": 0,
       "shipping": 0,
       "handling": 0,
-      "landed_override": {
+      "landed": {
        "freight": 4
       }
      },
@@ -5038,7 +5062,13 @@
      "duty": 0.0,
      "handling": 0.0,
      "vat": 0.0,
-     "paid": 0.0
+     "paid": 0.0,
+     "unallocated": {
+      "freight": 6.0,
+      "duty": 0.0,
+      "handling": 0.0,
+      "vat": 0.0
+     }
     },
     "line_totals": [
      {
@@ -5070,18 +5100,18 @@
       "tax_rate": 0.0,
       "rate_source": "costs_not_taxed",
       "tax": 0.0,
-      "shipping": 1.5,
+      "shipping": 0.0,
       "other": 0.0,
       "finance_charge": 0.0,
       "cost": 5.0,
       "landed": {
-       "freight": 1.5,
+       "freight": 0.0,
        "duty": 0.0,
        "handling": 0.0,
        "vat": 0.0
       },
       "margin": 0.0,
-      "total": 6.5
+      "total": 5.0
      },
      {
       "discounted_unit": 7.5,
@@ -5091,24 +5121,24 @@
       "tax_rate": 0.0,
       "rate_source": "costs_not_taxed",
       "tax": 0.0,
-      "shipping": 4.5,
+      "shipping": 0.0,
       "other": 0.0,
       "finance_charge": 0.0,
       "cost": 15.0,
       "landed": {
-       "freight": 4.5,
+       "freight": 0.0,
        "duty": 0.0,
        "handling": 0.0,
        "vat": 0.0
       },
       "margin": 0.0,
-      "total": 19.5
+      "total": 15.0
      }
     ]
    }
   },
   {
-   "name": "landed_all_pinned_adding_up",
+   "name": "landed_typed_adding_up",
    "model": "receipt",
    "header": {
     "finance": {},
@@ -5136,7 +5166,7 @@
       "discount_amount": 0,
       "shipping": 0,
       "handling": 0,
-      "landed_override": {
+      "landed": {
        "duty": 1.5
       }
      },
@@ -5159,7 +5189,7 @@
       "discount_amount": 0,
       "shipping": 0,
       "handling": 0,
-      "landed_override": {
+      "landed": {
        "duty": 0.5
       }
      },
@@ -5199,7 +5229,13 @@
      "duty": 2.0,
      "handling": 0.0,
      "vat": 0.0,
-     "paid": 0.0
+     "paid": 0.0,
+     "unallocated": {
+      "freight": 0.0,
+      "duty": 0.0,
+      "handling": 0.0,
+      "vat": 0.0
+     }
     },
     "line_totals": [
      {
@@ -5243,6 +5279,154 @@
       },
       "margin": 0.0,
       "total": 5.5
+     }
+    ]
+   }
+  },
+  {
+   "name": "landed_typed_over_the_charge",
+   "model": "receipt",
+   "header": {
+    "finance": {},
+    "tax": {},
+    "allocations": {
+     "freight": 10,
+     "vat": 0.5
+    },
+    "ship_via": "",
+    "customer_id": null,
+    "totals": {}
+   },
+   "lines": [
+    {
+     "id": 101,
+     "line_number": 1,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": null,
+     "cost": {
+      "unit": 10,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0,
+      "landed": {
+       "freight": 8,
+       "vat": 0.5
+      }
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    },
+    {
+     "id": 102,
+     "line_number": 2,
+     "line_type": "product",
+     "quantity": {
+      "active": 1
+     },
+     "price": null,
+     "cost": {
+      "unit": 5,
+      "precision": 2,
+      "discount_percent": 0,
+      "discount_amount": 0,
+      "shipping": 0,
+      "handling": 0,
+      "landed": {
+       "freight": 5
+      }
+     },
+     "tax": null,
+     "physical": null,
+     "is_active": true
+    }
+   ],
+   "context": {
+    "tax_policy": {},
+    "shipping_services": [],
+    "customer_exempt": false,
+    "settlement": {
+     "received": 0,
+     "adjusted": 0,
+     "settled": 4
+    }
+   },
+   "expect": {
+    "totals": {
+     "amount": 15.0,
+     "discount": 0.0,
+     "taxable": 0.0,
+     "tax": 0.0,
+     "shipping": 10.0,
+     "other": 0.5,
+     "finance_charge": 0.0,
+     "cost": 15.0,
+     "margin": 0.0,
+     "total": 25.5,
+     "margin_pc": 0.0,
+     "received": 0.0,
+     "adjusted": 0.0,
+     "balance": 21.5,
+     "cash_state": "",
+     "freight": 10.0,
+     "duty": 0.0,
+     "handling": 0.0,
+     "vat": 0.5,
+     "paid": 4.0,
+     "unallocated": {
+      "freight": -3.0,
+      "duty": 0.0,
+      "handling": 0.0,
+      "vat": 0.0
+     }
+    },
+    "line_totals": [
+     {
+      "discounted_unit": 10.0,
+      "amount": 10.0,
+      "discount": 0.0,
+      "taxable": 0.0,
+      "tax_rate": 0.0,
+      "rate_source": "costs_not_taxed",
+      "tax": 0.0,
+      "shipping": 8.0,
+      "other": 0.5,
+      "finance_charge": 0.0,
+      "cost": 10.0,
+      "landed": {
+       "freight": 8.0,
+       "duty": 0.0,
+       "handling": 0.0,
+       "vat": 0.5
+      },
+      "margin": 0.0,
+      "total": 18.5
+     },
+     {
+      "discounted_unit": 5.0,
+      "amount": 5.0,
+      "discount": 0.0,
+      "taxable": 0.0,
+      "tax_rate": 0.0,
+      "rate_source": "costs_not_taxed",
+      "tax": 0.0,
+      "shipping": 5.0,
+      "other": 0.0,
+      "finance_charge": 0.0,
+      "cost": 5.0,
+      "landed": {
+       "freight": 5.0,
+       "duty": 0.0,
+       "handling": 0.0,
+       "vat": 0.0
+      },
+      "margin": 0.0,
+      "total": 10.0
      }
     ]
    }
@@ -5354,7 +5538,13 @@
      "duty": 0.0,
      "handling": 0.0,
      "vat": 0.01,
-     "paid": 0.0
+     "paid": 0.0,
+     "unallocated": {
+      "freight": 10.0,
+      "duty": 0.0,
+      "handling": 0.0,
+      "vat": 0.01
+     }
     },
     "line_totals": [
      {
@@ -5365,18 +5555,18 @@
       "tax_rate": 0.0,
       "rate_source": "costs_not_taxed",
       "tax": 0.0,
-      "shipping": 3.33,
+      "shipping": 0.0,
       "other": 0.0,
       "finance_charge": 0.0,
       "cost": 10.0,
       "landed": {
-       "freight": 3.33,
+       "freight": 0.0,
        "duty": 0.0,
        "handling": 0.0,
        "vat": 0.0
       },
       "margin": 0.0,
-      "total": 13.33
+      "total": 10.0
      },
      {
       "discounted_unit": 10.0,
@@ -5386,18 +5576,18 @@
       "tax_rate": 0.0,
       "rate_source": "costs_not_taxed",
       "tax": 0.0,
-      "shipping": 3.33,
+      "shipping": 0.0,
       "other": 0.0,
       "finance_charge": 0.0,
       "cost": 10.0,
       "landed": {
-       "freight": 3.33,
+       "freight": 0.0,
        "duty": 0.0,
        "handling": 0.0,
        "vat": 0.0
       },
       "margin": 0.0,
-      "total": 13.33
+      "total": 10.0
      },
      {
       "discounted_unit": 10.0,
@@ -5407,18 +5597,18 @@
       "tax_rate": 0.0,
       "rate_source": "costs_not_taxed",
       "tax": 0.0,
-      "shipping": 3.34,
-      "other": 0.01,
+      "shipping": 0.0,
+      "other": 0.0,
       "finance_charge": 0.0,
       "cost": 10.0,
       "landed": {
-       "freight": 3.34,
+       "freight": 0.0,
        "duty": 0.0,
        "handling": 0.0,
-       "vat": 0.01
+       "vat": 0.0
       },
       "margin": 0.0,
-      "total": 13.35
+      "total": 10.0
      }
     ]
    }
@@ -5527,7 +5717,13 @@
      "duty": 6.0,
      "handling": 6.0,
      "vat": 6.0,
-     "paid": 20.0
+     "paid": 20.0,
+     "unallocated": {
+      "freight": 6.0,
+      "duty": 6.0,
+      "handling": 6.0,
+      "vat": 6.0
+     }
     },
     "line_totals": [
      {
@@ -5538,18 +5734,18 @@
       "tax_rate": 0.0,
       "rate_source": "costs_not_taxed",
       "tax": 0.0,
-      "shipping": 2.0,
-      "other": 8.8,
+      "shipping": 0.0,
+      "other": 0.0,
       "finance_charge": 0.0,
       "cost": 20.0,
       "landed": {
-       "freight": 2.0,
-       "duty": 2.4,
-       "handling": 4.0,
-       "vat": 2.4
+       "freight": 0.0,
+       "duty": 0.0,
+       "handling": 0.0,
+       "vat": 0.0
       },
       "margin": 0.0,
-      "total": 30.8
+      "total": 20.0
      },
      {
       "discounted_unit": 30.0,
@@ -5559,18 +5755,18 @@
       "tax_rate": 0.0,
       "rate_source": "costs_not_taxed",
       "tax": 0.0,
-      "shipping": 4.0,
-      "other": 9.2,
+      "shipping": 0.0,
+      "other": 0.0,
       "finance_charge": 0.0,
       "cost": 30.0,
       "landed": {
-       "freight": 4.0,
-       "duty": 3.6,
-       "handling": 2.0,
-       "vat": 3.6
+       "freight": 0.0,
+       "duty": 0.0,
+       "handling": 0.0,
+       "vat": 0.0
       },
       "margin": 0.0,
-      "total": 43.2
+      "total": 30.0
      }
     ]
    }
@@ -5665,7 +5861,13 @@
      "duty": 0.0,
      "handling": 0.0,
      "vat": 0.0,
-     "paid": 0.0
+     "paid": 0.0,
+     "unallocated": {
+      "freight": 7.77,
+      "duty": 0.0,
+      "handling": 0.0,
+      "vat": 0.0
+     }
     },
     "line_totals": [
      {
@@ -5676,18 +5878,18 @@
       "tax_rate": 0.1,
       "rate_source": "header",
       "tax": 8.08,
-      "shipping": 2.36,
+      "shipping": 0.0,
       "other": 0.0,
       "finance_charge": 0.0,
       "cost": 80.8,
       "landed": {
-       "freight": 2.36,
+       "freight": 0.0,
        "duty": 0.0,
        "handling": 0.0,
        "vat": 0.0
       },
       "margin": 0.0,
-      "total": 91.24
+      "total": 88.88
      },
      {
       "discounted_unit": 92.5,
@@ -5697,18 +5899,18 @@
       "tax_rate": 0.1,
       "rate_source": "header",
       "tax": 18.5,
-      "shipping": 5.41,
+      "shipping": 0.0,
       "other": 0.0,
       "finance_charge": 0.0,
       "cost": 185.0,
       "landed": {
-       "freight": 5.41,
+       "freight": 0.0,
        "duty": 0.0,
        "handling": 0.0,
        "vat": 0.0
       },
       "margin": 0.0,
-      "total": 208.91
+      "total": 203.5
      }
     ]
    }

@@ -321,14 +321,20 @@ def normalize_cost_map(c: Dict[str, Any] | None) -> Dict[str, Any]:
         except Exception:
             out["tax_code_id"] = 0
 
-    # A receipt line's pinned landed-cost shares (D02). Validated, never coerced:
-    # a bad pin is refused, because it decides where money lands.
-    pins = c.get("landed_override")
-    if pins:
-        from common.schemas.transaction_envelopes import LandedOverride
-        pins = LandedOverride(**pins).model_dump(exclude_none=True)
-        if pins:
-            out["landed_override"] = pins
+    # A receipt line's share of each of its receipt's charges: the user's own figures (Bill,
+    # 2026-11-25). Validated, never coerced: a bad share is refused, because it decides where
+    # money lands. landed_override (pins that took the remainder) is gone and is refused by name.
+    if "landed_override" in c:
+        from django.core.exceptions import ValidationError
+        raise ValidationError("cost.landed_override is gone: a line's share of a charge is "
+                              "cost.landed.<freight|duty|handling|vat>, and the receipt's spread "
+                              "command fills it.")
+    shares = c.get("landed")
+    if shares:
+        from common.schemas.transaction_envelopes import LineLanded
+        shares = {k: v for k, v in LineLanded(**shares).model_dump().items() if v}
+        if shares:
+            out["landed"] = shares
 
     return out
 

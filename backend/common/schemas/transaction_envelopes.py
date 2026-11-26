@@ -246,7 +246,7 @@ class TransactionTotals(BaseModel):
     # ── AP leaves — a receipt is a transaction too (Bill, 2026-09-19) ──
     # Landed costs spread over the lines; 'paid' is AP's 'received'.
     freight: float = Field(
-        0.0, title="Freight", description="Receipt landed cost: freight, spread over the lines",
+        0.0, title="Freight", description="Receipt landed cost: freight, carried by the lines as cost.landed.freight",
         json_schema_extra={'widget': 'currency', 'precision': 2},
     )
     duty: float = Field(
@@ -264,6 +264,13 @@ class TransactionTotals(BaseModel):
     paid: float = Field(
         0.0, title="Paid", description="Cash applied against this payable — AP's 'received'",
         json_schema_extra={'widget': 'currency', 'precision': 2, 'readonly': True},
+    )
+    unallocated: Optional['LandedShares'] = Field(
+        None, title="Unallocated",
+        description="Receipt only: each charge less what the lines carry of it (freight, duty, handling, "
+                    "vat). Not 0 means the spread has not been run or a line's share was typed; it "
+                    "posts to that charge's account when the receipt is journalized",
+        json_schema_extra={'widget': 'json-tree', 'readonly': True},
     )
 
     class Config:
@@ -659,18 +666,18 @@ class LandedMethod(BaseModel):
         extra = "forbid"
 
 
-class LandedOverride(BaseModel):
-    """A line's landed-cost share typed by the user. A component left empty is spread
-    by the header's method over the lines that have not pinned it. The pins on a
-    component may not exceed the header amount, and when every line pins it they must
-    add to it exactly — otherwise the save is refused."""
-    freight: Optional[float] = Field(None, ge=0, title="Freight (pinned)",
+class LineLanded(BaseModel):
+    """A receipt line's share of each of its receipt's charges: a value the user owns (Bill,
+    2026-11-25). The receipt's spread command writes it by each charge's basis; a person may type
+    over it, and that changes this line only. What the lines do not carry is the receipt's
+    totals.unallocated."""
+    freight: float = Field(0.0, ge=0, title="Freight",
         json_schema_extra={'widget': 'currency', 'precision': 2})
-    duty: Optional[float] = Field(None, ge=0, title="Duty (pinned)",
+    duty: float = Field(0.0, ge=0, title="Duty",
         json_schema_extra={'widget': 'currency', 'precision': 2})
-    handling: Optional[float] = Field(None, ge=0, title="Handling (pinned)",
+    handling: float = Field(0.0, ge=0, title="Handling",
         json_schema_extra={'widget': 'currency', 'precision': 2})
-    vat: Optional[float] = Field(None, ge=0, title="VAT (pinned)",
+    vat: float = Field(0.0, ge=0, title="VAT",
         json_schema_extra={'widget': 'currency', 'precision': 2})
 
     class Config:
@@ -744,9 +751,9 @@ class LineCost(BaseModel):
         0, title="Tax Lookup ID",
         json_schema_extra={'widget': 'number'},
     )
-    landed_override: Optional[LandedOverride] = Field(
-        None, title="Landed Override",
-        description="Receipt lines: landed-cost shares the user pinned; the rest spread by the header's method",
+    landed: Optional[LineLanded] = Field(
+        None, title="Landed",
+        description="Receipt lines: this line's share of each of the receipt's charges, written by the spread command or typed",
         json_schema_extra={'widget': 'json-tree'},
     )
     custom: dict = Field(default_factory=dict, title="Custom", description="User-defined extensions — Alice tracks and documents")
@@ -797,7 +804,8 @@ def _money(title, description):
 
 
 class LandedShares(BaseModel):
-    """The line's share of each landed cost — written only by the totals engine."""
+    """A share of each landed cost: on a line's totals, the line's cost.landed as the totals engine
+    read it; on a receipt's totals.unallocated, what the lines do not carry."""
     freight: float = _money("Freight", "Its share of the receipt's freight; adds into shipping")
     duty: float = _money("Duty", "Its share of the receipt's duty; adds into other")
     handling: float = _money("Handling", "Its share of the receipt's handling; adds into other")
@@ -868,7 +876,7 @@ class TransactionAllocations(BaseModel):
         description="Receipt VAT, spread over the lines — lands in line totals.other",
         json_schema_extra={'widget': 'currency', 'precision': 2})
     method: LandedMethod = Field(default_factory=LandedMethod, title="Allocation Method",
-        description="How each landed cost spreads over the lines the user has not pinned",
+        description="The basis the spread command uses for each landed cost",
         json_schema_extra={'widget': 'json-tree'})
 
     class Config:

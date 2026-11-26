@@ -33,6 +33,9 @@ class TransactionsConfig(AppConfig):
         # The journal entry a document makes, before and after it posts (journal_preview.py).
         from .services import journal_preview
         journal_preview.register()
+        # A receipt's charges onto its lines, on command (landed_spread.py).
+        from .services import landed_spread
+        landed_spread.register()
 
         # Convert: one engine, a command on its source (services/convert/convert.py).
         from .services.convert import convert

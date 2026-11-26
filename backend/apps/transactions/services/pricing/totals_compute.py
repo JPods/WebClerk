@@ -362,52 +362,47 @@ def _line_label(line) -> str:
     return f"line {getattr(line, 'line_number', None) or getattr(line, 'pk', None) or '?'}"
 
 
-def _spread_landed(comp: str, total: Decimal, basis: str, goods, amounts):
-    """Spread one landed cost over a receipt's product lines — the only landed-cost spreader.
-
-    The user's pins (cost.landed_override.<comp>) are taken as typed; the remainder
-    spreads over the unpinned lines by ``basis`` in exact cents. Refuses, rather than
-    guesses, when the pins cannot add up to the header amount. Returns (shares in
-    goods order, decision) — the decision is the audit record of what was done and why.
-    """
+def spread_landed(comp: str, total: Decimal, basis: str, goods, amounts):
+    """Spread one charge over a receipt's product lines by ``basis`` in exact cents — the only
+    landed-cost spreader, run by the receipt's spread command (landed_spread.py), never by a
+    save (Bill, 2026-11-25). ``goods`` is [(line, qty), ...]; ``amounts`` maps id(line) to the
+    line's amount. Returns (shares in goods order, decision) — the decision is the audit record
+    of what was done and why."""
     if basis not in LANDED_BASES:
         raise ValidationError(f"allocations.method.{comp} is '{basis}'; use one of {', '.join(LANDED_BASES)}.")
-    pins = {}
-    for line, *_ in goods:
-        pin = ((getattr(line, 'cost', None) or {}).get('landed_override') or {}).get(comp)
-        if pin is not None:
-            pins[id(line)] = _d(pin)
-    pinned = sum(pins.values(), Decimal(0))
-    if pinned > total:
-        raise ValidationError(
-            f"The lines pin {pinned} of {comp}, but the receipt's {comp} is {total}. "
-            f"Lower a pinned share or raise the receipt's {comp}.")
-    free = [g for g in goods if id(g[0]) not in pins]
-    if goods and not free and pinned != total:
-        raise ValidationError(
-            f"Every line pins its {comp} and they add to {pinned}, not the receipt's {total}. "
-            f"Clear one pin so that line takes the remainder, or make the pins add up.")
-
     used, reason = basis, ''
     if basis == 'weight':
-        kgs = [(g, _unit_weight_kg(g[0])) for g in free]
+        kgs = [(g, _unit_weight_kg(g[0])) for g in goods]
         missing = [_line_label(g[0]) for g, kg in kgs if kg is None]
         if missing:
             used, reason = 'value', f"no weight on {', '.join(missing)}"
     if used == 'weight':
         weights = [g[1] * kg for g, kg in kgs]
     elif used == 'quantity':
-        weights = [g[1] for g in free]
+        weights = [g[1] for g in goods]
     else:
-        weights = [amounts[id(g[0])] for g in free]
-
-    spread = dict(zip((id(g[0]) for g in free), _allocate(total - pinned, weights)))
-    shares = [pins.get(id(line), spread.get(id(line), Decimal(0))) for line, *_ in goods]
+        weights = [amounts[id(g[0])] for g in goods]
+    shares = _allocate(total, weights) if goods else []
     if total and not goods:
         reason = 'no product lines yet — nothing to carry it'
     decision = {'component': comp, 'amount': float(total), 'basis': basis, 'basis_used': used,
-                'pinned': float(pinned), 'pinned_lines': len(pins), 'reason': reason}
+                'reason': reason}
     return shares, decision
+
+
+def receipt_unallocated(receipt, lines) -> Dict[str, Decimal]:
+    """Each of a receipt's charges less what its product lines carry of it — the one formula the
+    totals, the journal and the spread command share."""
+    alloc = getattr(receipt, 'allocations', None) or {}
+    goods = [l for l in lines if getattr(l, 'is_active', True)
+             and (getattr(l, 'line_type', 'product') or 'product') == 'product']
+    return {comp: _d(alloc.get(comp, 0) or 0) - sum((line_landed(l, comp) for l in goods), Decimal(0))
+            for comp in LANDED_COMPONENTS}
+
+
+def line_landed(line, comp: str) -> Decimal:
+    """A line's share of one charge: cost.landed.<comp>, as the user or the spread left it."""
+    return _d(((getattr(line, 'cost', None) or {}).get('landed') or {}).get(comp, 0) or 0)
 
 
 def _discounted_unit(unit: Decimal, qty: Decimal, pct: Decimal, flat: Decimal, places: int) -> Decimal:
@@ -467,9 +462,8 @@ def compute_totals(header, lines, model_name: str) -> Dict[str, Any]:
     doc_shipping = _d(alloc.get('shipping', 0))
     doc_other = _d(alloc.get('other', 0))
     # A receipt's landed costs are its document allocations — the AP mirror of
-    # shipping and other on a sell document. They spread over the lines, so what we
-    # owe the vendor is still Σ line totals (Bill, 2026-09-19). Each spreads by its own
-    # basis after the user's pins (Bill, 2026-09-21) — see _spread_landed below.
+    # shipping and other on a sell document. Each line carries the share it was given
+    # (cost.landed); what no line carries is totals.unallocated, still owed (Bill, 2026-11-25).
     landed = {}
     if model_name == 'receipt':
         landed = {k: _d(alloc.get(k, 0) or 0) for k in LANDED_COMPONENTS}
@@ -589,24 +583,25 @@ def compute_totals(header, lines, model_name: str) -> Dict[str, Any]:
         lt['shipping'] += s_share
         lt['other'] += o_share
 
-    # ── A receipt's landed costs: freight into shipping, the rest into other ──
+    # ── A receipt's landed costs: each line carries the share it was given (cost.landed), freight
+    #    into shipping, the rest into other. A save never spreads (Bill, 2026-11-25: a line's
+    #    value changes that line only; the spread is a command on the receipt). ──
     landed_decisions: List[Dict[str, Any]] = []
+    unallocated: Dict[str, Decimal] = {}
     if model_name == 'receipt':
-        methods = alloc.get('method')
-        if methods is None:
-            methods = {}
-        if not isinstance(methods, dict):
+        if alloc.get('method') is not None and not isinstance(alloc.get('method'), dict):
             raise ValidationError(
                 "allocations.method names a basis for each landed cost, e.g. "
                 "{'freight': 'weight', 'duty': 'value'} — not a single word.")
         for comp in LANDED_COMPONENTS:
-            shares, decision = _spread_landed(comp, landed[comp], methods.get(comp) or 'value',
-                                              goods, amounts)
-            landed_decisions.append(decision)
-            for (line, *_), share in zip(goods, shares):
+            carried = Decimal(0)
+            for line, *_ in goods:
+                share = line_landed(line, comp)
                 lt = line_totals[id(line)]
                 lt.setdefault('landed', {})[comp] = float(share)
                 lt['shipping' if comp == 'freight' else 'other'] += share
+                carried += share
+            unallocated[comp] = landed[comp] - carried
 
     # ── Non-product lines ─────────────────────────────────────────────
     for line in lines:
@@ -657,6 +652,15 @@ def compute_totals(header, lines, model_name: str) -> Dict[str, Any]:
     if model_name == 'receipt':
         totals.update({k: float(v) for k, v in landed.items()})
         totals['paid'] = float(settled)
+        # What the lines do not carry is still owed: it stays in the receipt's shipping, other,
+        # total and balance, named apart, and posts to its charge's account at journalize.
+        totals['unallocated'] = {k: float(v) for k, v in unallocated.items()}
+        extra_ship, extra_other = unallocated.get('freight', Decimal(0)), sum(
+            (v for k, v in unallocated.items() if k != 'freight'), Decimal(0))
+        totals['shipping'] = float(doc['shipping'] + extra_ship)
+        totals['other'] = float(doc['other'] + extra_other)
+        totals['total'] = float(doc['total'] + extra_ship + extra_other)
+        totals['balance'] = float(balance_of(doc['total'] + extra_ship + extra_other, settled, adjusted))
 
     by_pk = {}
     for line in lines:
