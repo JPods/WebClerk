@@ -52,6 +52,26 @@ describe('useEditHold', () => {
     expect(calls()).toEqual(['/wcapi/order/188/hold/', '/wcapi/order/189/hold/', '/wcapi/order/188/release/']);
   });
 
+  it("leaving a record, then the next record's cleanup before the first release fires, gives both back", async () => {
+    const hook = renderHook(({ id }) => useEditHold('order', id), { ...strict, initialProps: { id: 188 } });
+    await act(async () => { await vi.runOnlyPendingTimersAsync(); });
+    hook.rerender({ id: 189 });                 // 188's release is waiting
+    hook.unmount();                             // 189's cleanup runs before it fires
+    await act(async () => { await vi.runOnlyPendingTimersAsync(); });
+    expect(calls()).toEqual(['/wcapi/order/188/hold/', '/wcapi/order/189/hold/',
+      '/wcapi/order/188/release/', '/wcapi/order/189/release/']);
+  });
+
+  it('back to the first record before its release fires: takes it again and never releases it', async () => {
+    const hook = renderHook(({ id }) => useEditHold('order', id), { ...strict, initialProps: { id: 188 } });
+    await act(async () => { await vi.runOnlyPendingTimersAsync(); });
+    hook.rerender({ id: 189 });
+    hook.rerender({ id: 188 });                 // the server moved the hold to 189; 188 is taken again
+    await act(async () => { await vi.runOnlyPendingTimersAsync(); });
+    expect(calls()).toEqual(['/wcapi/order/188/hold/', '/wcapi/order/189/hold/',
+      '/wcapi/order/188/hold/', '/wcapi/order/189/release/']);
+  });
+
   it('takes no hold without a record', async () => {
     renderHook(() => useEditHold('order', null), strict);
     await act(async () => { await vi.runOnlyPendingTimersAsync(); });

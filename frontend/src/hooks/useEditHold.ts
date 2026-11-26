@@ -42,24 +42,30 @@ export function useEditHold(modelName: string | undefined, recordId: number | st
   // drop the hold the form believes it has. So the release waits one tick, and a remount for the
   // same record cancels it and keeps the hold already taken. Moving to another record takes the new
   // hold first; the old one is given back after.
+  // One waiting release per record, so one record's timer never clears another's. Coming back to a
+  // record whose release is waiting cancels it; it is taken again unless it is still the last one
+  // taken (taking another record of the model moved the hold away on the server).
   const held = useRef<string | null>(null);
-  const pendingRelease = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingRelease = useRef(new Map<string, ReturnType<typeof setTimeout>>());
 
   useEffect(() => {
     if (!target) return;
-    if (pendingRelease.current && held.current === target) {
-      clearTimeout(pendingRelease.current);
-      pendingRelease.current = null;
-    } else {
+    const waiting = pendingRelease.current.get(target);
+    if (waiting !== undefined) {
+      clearTimeout(waiting);
+      pendingRelease.current.delete(target);
+    }
+    if (waiting === undefined || held.current !== target) {
       held.current = target;
       take();
     }
     return () => {
-      pendingRelease.current = setTimeout(() => {
-        pendingRelease.current = null;
+      const timer = setTimeout(() => {
+        if (pendingRelease.current.get(target) === timer) pendingRelease.current.delete(target);
         if (held.current === target) held.current = null;
         apiClient.post(`${target}/release/`, {}).catch(() => undefined);
       }, 0);
+      pendingRelease.current.set(target, timer);
     };
   }, [target, take]);
 
