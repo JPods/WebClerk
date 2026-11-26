@@ -210,6 +210,46 @@ const DbFormView: React.FC<DbFormProps> = (props) => {
     windowManager.closeWindow(`/${modelName}/${recordId || ''}`);
   };
 
+  // A receipt's Spread (Bill, 2026-11-26): the button sits in the landed panel above the methods.
+  // Unsaved changes are saved first, so the spread uses the charges and methods on screen; the
+  // answer says what was divided and by what, and the record is read again.
+  const [spreading, setSpreading] = useState(false);
+  // What the last Spread pressed here divided: the receipt's charges and methods and each line's
+  // quantity, cost and weight (not its landed share, which Spread writes). While the screen still
+  // shows the same, with nothing unsaved and nothing unallocated, pressing again would change
+  // nothing, so the button dims (Bill, 2026-11-26). Kept per receipt for this browser session.
+  const spreadSeen = useMemo(() => spreadInputs(currentData), [currentData]);
+  const [spreadDone, setSpreadDone] = useState<Record<string, string>>({});
+  const spreadKey = `wc.spread.${data?.id ?? ''}`;
+  const lastSpread = spreadDone[spreadKey] ?? (data?.id ? sessionStorage.getItem(spreadKey) : null);
+  const unallocatedNow = ['freight', 'duty', 'handling', 'vat']
+    .some((c) => Math.abs(Number(data?.totals?.unallocated?.[c]) || 0) >= 0.005);
+  const spreadOff = !data?.id ? 'Save the receipt first.'
+    : data?.dt_journaled ? 'This receipt is journalized: its charges have posted and no longer change.'
+    : (lastSpread === spreadSeen && !form.hasChanges && !unallocatedNow)
+      ? 'Already spread: no charge, method, quantity or cost has changed since. Change one to spread again.'
+      : '';
+  const spread = useCallback(async () => {
+    if (!data?.id || spreading) return;
+    if (!confirm("Spread this receipt's freight, duty, handling and vat over its lines by each one's method? Every line's landed is overwritten.")) return;
+    setSpreading(true);
+    try {
+      if (isEditing && form.hasChanges && !(await form.save({ keepEditing: true }))) return;
+      const result = await callCommand('receipt', data.id, 'spread', {});
+      sessionStorage.setItem(spreadKey, spreadSeen);
+      setSpreadDone((done) => ({ ...done, [spreadKey]: spreadSeen }));
+      const notes: string[] = Array.isArray(result?.messages) ? result.messages.filter(Boolean) : [];
+      dispatch(showToast(notes.length
+        ? { message: ['Spread', ...notes].join('. '), type: 'success', duration: 8000 }
+        : { message: 'Nothing to spread: this receipt has no freight, duty, handling or vat. Enter a charge, then Spread', type: 'info' }));
+      form.fetchData();
+    } catch (err: any) {
+      dispatch(showToast({ message: refusedFrom(err, 'Spread failed').message, type: 'error' }));
+    } finally {
+      setSpreading(false);
+    }
+  }, [data?.id, spreading, isEditing, form, dispatch, spreadKey, spreadSeen]);
+
   // ── Loading states ──
   if (layoutLoading || form.loading) {
     return <div className="flex items-center justify-center py-20 text-slate-400">Loading {modelName}...</div>;
@@ -457,46 +497,6 @@ const DbForm: React.FC<DbFormProps> = (props) => {
   useEffect(() => {
     setOpened((o) => (o && o.model === hostModel && o.id === hostId ? o : null));
   }, [hostModel, hostId]);
-
-  // A receipt's Spread (Bill, 2026-11-26): the button sits in the landed panel above the methods.
-  // Unsaved changes are saved first, so the spread uses the charges and methods on screen; the
-  // answer says what was divided and by what, and the record is read again.
-  const [spreading, setSpreading] = useState(false);
-  // What the last Spread pressed here divided: the receipt's charges and methods and each line's
-  // quantity, cost and weight (not its landed share, which Spread writes). While the screen still
-  // shows the same, with nothing unsaved and nothing unallocated, pressing again would change
-  // nothing, so the button dims (Bill, 2026-11-26). Kept per receipt for this browser session.
-  const spreadSeen = useMemo(() => spreadInputs(currentData), [currentData]);
-  const [spreadDone, setSpreadDone] = useState<Record<string, string>>({});
-  const spreadKey = `wc.spread.${data?.id ?? ''}`;
-  const lastSpread = spreadDone[spreadKey] ?? (data?.id ? sessionStorage.getItem(spreadKey) : null);
-  const unallocatedNow = ['freight', 'duty', 'handling', 'vat']
-    .some((c) => Math.abs(Number(data?.totals?.unallocated?.[c]) || 0) >= 0.005);
-  const spreadOff = !data?.id ? 'Save the receipt first.'
-    : data?.dt_journaled ? 'This receipt is journalized: its charges have posted and no longer change.'
-    : (lastSpread === spreadSeen && !form.hasChanges && !unallocatedNow)
-      ? 'Already spread: no charge, method, quantity or cost has changed since. Change one to spread again.'
-      : '';
-  const spread = useCallback(async () => {
-    if (!data?.id || spreading) return;
-    if (!confirm("Spread this receipt's freight, duty, handling and vat over its lines by each one's method? Every line's landed is overwritten.")) return;
-    setSpreading(true);
-    try {
-      if (isEditing && form.hasChanges && !(await form.save({ keepEditing: true }))) return;
-      const result = await callCommand('receipt', data.id, 'spread', {});
-      sessionStorage.setItem(spreadKey, spreadSeen);
-      setSpreadDone((done) => ({ ...done, [spreadKey]: spreadSeen }));
-      const notes: string[] = Array.isArray(result?.messages) ? result.messages.filter(Boolean) : [];
-      dispatch(showToast(notes.length
-        ? { message: ['Spread', ...notes].join('. '), type: 'success', duration: 8000 }
-        : { message: 'Nothing to spread: this receipt has no freight, duty, handling or vat. Enter a charge, then Spread', type: 'info' }));
-      form.fetchData();
-    } catch (err: any) {
-      dispatch(showToast({ message: refusedFrom(err, 'Spread failed').message, type: 'error' }));
-    } finally {
-      setSpreading(false);
-    }
-  }, [data?.id, spreading, isEditing, form, dispatch, spreadKey, spreadSeen]);
 
   const onWorkflowComplete = useCallback((result: any) => {
     const target = convertedTarget(result);
