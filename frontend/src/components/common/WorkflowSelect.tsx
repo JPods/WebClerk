@@ -152,7 +152,11 @@ const WorkflowSelect: React.FC<WorkflowSelectProps> = ({ modelName, record, onCo
         : await callManage(action.key, params);
       // The server's coaching rides on the result (a purchase born without a vendor, 2026-11-08).
       const notes = Array.isArray(result?.messages) ? result.messages.filter(Boolean) : [];
-      dispatch(showToast({ message: [`${action.label} completed`, ...notes].join('. '), type: 'success' }));
+      // Spread with no charge on the receipt did nothing, and says so.
+      const done = action.key === 'spread' && !notes.length
+        ? 'Nothing to spread: this receipt has no freight, duty, handling or vat. Enter a charge, save, then Spread'
+        : `${action.label} completed`;
+      dispatch(showToast({ message: [done, ...notes].join('. '), type: action.key === 'spread' && !notes.length ? 'info' : 'success' }));
       onComplete?.({ ...result, _action: action.key });
       if (action.reload) onRefresh?.();
     } catch (err: any) {
@@ -234,12 +238,14 @@ const WorkflowSelect: React.FC<WorkflowSelectProps> = ({ modelName, record, onCo
     </div>
   );
 
-  // A receipt's Spread: shown while the receipt has a charge and is not journalized. It says what
-  // the lines do not carry yet (totals.unallocated, the server's figure from the last save).
-  const charges = LANDED.filter((c) => Number(record?.allocations?.[c]) !== 0 && record?.allocations?.[c] != null);
+  // A receipt's Spread: always on a receipt that is not journalized. The data browser hands this
+  // control a list row, or only {id} just after a convert, so the button cannot wait for the
+  // charges to be in `record` (Bill, 2026-11-26: "I do not see the spread button" on receipt 31,
+  // made by a convert). When the record carries totals.unallocated (the server's figure from the
+  // last save), the button says what the lines do not carry yet.
   const left = LANDED.filter((c) => Math.abs(Number(record?.totals?.unallocated?.[c]) || 0) >= 0.005);
   const leftTotal = left.reduce((sum, c) => sum + Number(record.totals.unallocated[c]), 0);
-  const spreadButton = modelName === 'receipt' && record?.id && !record?.dt_journaled && charges.length > 0 && (
+  const spreadButton = modelName === 'receipt' && record?.id && !record?.dt_journaled && (
     <button type="button" onClick={() => choose('spread')} disabled={loading} data-wc="spread"
       className="text-xs px-2 py-0.5 rounded cursor-pointer"
       style={{
@@ -250,7 +256,7 @@ const WorkflowSelect: React.FC<WorkflowSelectProps> = ({ modelName, record, onCo
       title={left.length
         ? `Not on the lines yet: ${left.map((c) => `${c} ${Number(record.totals.unallocated[c]).toFixed(2)}`).join(', ')}. `
           + 'Spread divides each charge over the lines by its method (allocations.method).'
-        : "Every charge is on the lines. Spread again divides each charge by its method and overwrites every line's landed."}>
+        : "Spread divides the receipt's freight, duty, handling and vat over its lines, each by its method (allocations.method), and overwrites every line's landed. Save your changes first."}>
       {left.length ? `Spread ${leftTotal.toFixed(2)} unallocated` : 'Spread'}
     </button>
   );
