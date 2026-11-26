@@ -97,8 +97,25 @@ class ItemQuantity(BaseModel):
 
 # ── .config ────────────────────────────────────────────────────────
 
+class ItemLandedClass(BaseModel):
+    """The item's class for each of a receipt's charges (Bill, 2026-11-26): a label the company
+    chooses, blank when it does not use them — most will not. Items with the same label spread a
+    charge together fairly; a receipt whose lines carry different labels for a charge is the cue
+    to coach receiving like items on one receipt (corn and wheat on one, gold on another).
+    A label, not a rate: nothing is calculated from it. The names are the receipt's charges
+    (allocations.freight / duty / handling / vat). ~/Allie/readmes/113-unallocated-charges-at-journalize.md"""
+    freight: str = Field('', title="Freight Class", json_schema_extra={'widget': 'text'})
+    duty: str = Field('', title="Duty Class", json_schema_extra={'widget': 'text'})
+    handling: str = Field('', title="Handling Class", json_schema_extra={'widget': 'text'})
+    vat: str = Field('', title="VAT Class", json_schema_extra={'widget': 'text'})
+
+    class Config:
+        extra = "forbid"
+
+
 class ItemConfig(ConfigBase):
     service: Optional[dict] = None     # kind='service' billing rules — shape: item.default_service_config()
+    landed_class: ItemLandedClass = Field(default_factory=ItemLandedClass, title="Landed Class")
 
 
 # ── .metadata (inherits MetadataBase) ─────────────────────────────

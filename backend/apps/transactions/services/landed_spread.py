@@ -21,6 +21,10 @@ user-defined variations." So:
   spreads that charge, neither the first time nor the command: every share is typed.
   allocations.spread is the record Alice reads to learn what a company does for a vendor or a kind
   of charge (readme 108 R8).
+- **Like items on one receipt** is the recommendation (Bill, 2026-11-26). An item may carry a
+  class for each charge (item.config.landed_class.<comp>, a label, blank for most). When the
+  lines of a receipt carry different labels for a charge, the decision and the record name them
+  (``classes``) and say so in ``reason``. It still spreads.
 
 The lines are saved through the save door, so the totals follow and the received lines' layers
 are re-costed (line_door.reconcile_receipt_layers). A journalized receipt is refused.
@@ -89,9 +93,19 @@ def _divide_now(actor, receipt, wanted: List[str], by: str) -> List[Dict[str, An
                 raise Refused(400, 'bad_basis', str(getattr(e, 'message', e)), {'component': comp})
             for (line, _qty), part in zip(goods, parts):
                 shares[line.pk][comp] = float(part)
+        mixed = _classes(lines, comp) if total else []
+        if len(mixed) > 1:
+            # Coaching, never a refusal (Bill, 2026-11-26): unlike items share this charge.
+            decision['classes'] = mixed
+            decision['reason'] = '; '.join(filter(None, [
+                decision['reason'],
+                f"lines carry different {comp} classes ({', '.join(mixed)}): one receipt for like "
+                f"items spreads {comp} fairly"]))
         decisions.append(decision)
         record[comp] = {'dt': now, 'by': by, 'basis': decision['basis'],
                         'basis_used': decision['basis_used'], 'reason': decision['reason']}
+        if len(mixed) > 1:
+            record[comp]['classes'] = mixed
 
     Receipt.objects.filter(pk=receipt.pk).update(allocations={**alloc, 'spread': record})
     if lines:
@@ -99,6 +113,20 @@ def _divide_now(actor, receipt, wanted: List[str], by: str) -> List[Dict[str, An
             {'id': l.pk, 'cost': {**(l.cost or {}), 'landed': shares[l.pk]}} for l in lines]},
             model_key='receipt')
     return decisions
+
+
+def _classes(lines, comp: str) -> List[str]:
+    """The distinct labels the lines' items carry for this charge
+    (item.config.landed_class.<comp>); blank is no label and is left out."""
+    from apps.products.models import Item
+    from apps.transactions.models.base_line_model import line_item_id
+    ids = {i for i in (line_item_id(l) for l in lines) if i}
+    labels = set()
+    for config in Item.objects.filter(pk__in=ids).values_list('config', flat=True):
+        label = str((((config or {}).get('landed_class') or {}).get(comp)) or '').strip()
+        if label:
+            labels.add(label)
+    return sorted(labels)
 
 
 def spread(ctx) -> Dict[str, Any]:

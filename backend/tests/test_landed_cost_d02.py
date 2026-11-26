@@ -114,6 +114,38 @@ def test_a_manual_charge_is_never_spread_for_the_person():
     assert r.totals['unallocated']['freight'] == 0.0
 
 
+def test_an_item_carries_a_class_for_each_charge_through_the_api(admin_client):
+    """Bill, 2026-11-26: item.config.landed_class.<freight|duty|handling|vat>, a label most
+    businesses leave blank. It saves and reads back through the door."""
+    from apps.products.models import Item
+    item = Item.objects.create(name='D02 classed')
+    r = admin_client.put(f'/wcapi/item/{item.pk}/', {'config': {'landed_class': {'freight': 'bulk', 'duty': 'grain'}}},
+                         content_type='application/json')
+    assert r.status_code == 200, r.content
+    r = admin_client.get(f'/wcapi/item/{item.pk}/')
+    assert r.json()['data']['record']['config']['landed_class'] == {'freight': 'bulk', 'duty': 'grain'}
+    r = admin_client.put(f'/wcapi/item/{item.pk}/', {'config': {'landed_class': {'insurance': 'x'}}},
+                         content_type='application/json')
+    assert r.status_code >= 400, 'a charge the receipt does not have is refused, not stored'
+
+
+def test_unlike_items_on_one_receipt_are_named_and_still_spread():
+    """Bill, 2026-11-26: "limit a receipt to like items ... corn, wheat, and gold". A coaching
+    cue, never a refusal: the spread happens and its record names the classes it mixed."""
+    from apps.products.models import Item
+    r = _receipt(freight=10, duty=4)
+    corn, gold = _receive_together(r, (10, 7, 6.00), (20, 4, 12.50))
+    for line, freight in ((corn, 'bulk'), (gold, 'precious')):
+        Item.objects.filter(pk=line.item_fk_id).update(config={'landed_class': {'freight': freight, 'duty': 'same'}})
+    out = _spread(r)
+    freight = next(d for d in out['spread'] if d['component'] == 'freight')
+    duty = next(d for d in out['spread'] if d['component'] == 'duty')
+    assert freight['classes'] == ['bulk', 'precious'] and 'like items' in freight['reason']
+    assert 'classes' not in duty and duty['reason'] == '', 'the same duty class is like items'
+    assert _shares(r, 'freight') == [4.57, 5.43]
+    assert r.allocations['spread']['freight']['classes'] == ['bulk', 'precious']
+
+
 def test_spread_by_value_is_the_default_and_the_money_ties():
     r = _receipt(freight=10, duty=4, handling=3)
     _line(r, 10, 7, 6.00)
