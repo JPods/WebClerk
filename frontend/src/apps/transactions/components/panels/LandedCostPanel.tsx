@@ -85,7 +85,7 @@ const LandedCostPanel: React.FC<LandedCostPanelProps> = ({
           <tr>
             <th style={head}></th>
             <th style={{ ...head, textAlign: 'right' }} title="The receipt's charge: allocations.<comp>">allocations</th>
-            <th style={head} title="The basis Workflow → Spread uses for this charge: allocations.method.<comp>">method</th>
+            <th style={head} title="The basis the Spread button uses for this charge: allocations.method.<comp>">method</th>
             <th style={{ ...head, textAlign: 'right' }} title="This line's share: cost.landed.<comp>. Typing changes this line only.">landed</th>
             <th style={{ ...head, textAlign: 'right' }} title="The receipt's charge minus the lines' landed, at the last save: totals.unallocated.<comp>">unallocated</th>
           </tr>
@@ -128,7 +128,7 @@ const LandedCostPanel: React.FC<LandedCostPanelProps> = ({
             landed unit: <strong>{unit === null ? '—' : unit.toFixed(4)}</strong>
           </span>
         )}
-        <span style={{ color: 'var(--wc-text-muted, #64748b)' }}>Workflow → Spread re-spreads every charge by its method.</span>
+        <span style={{ color: 'var(--wc-text-muted, #64748b)' }}>The Spread button, beside Workflow, re-spreads every charge by its method.</span>
         {changed && (
           <span style={{ fontStyle: 'italic', color: 'var(--wc-text-muted, #64748b)' }}>
             unallocated and landed unit are the last save's; Save to recompute

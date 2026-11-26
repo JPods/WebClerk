@@ -472,7 +472,8 @@ export function useLineCard(options: UseLineCardOptions) {
     unit_cost: { type: 'currency', precision: currency.unit_cost_precision },
     amount: { type: 'currency', precision: currency.total_precision, calculated: true },
     landed: { type: 'currency', precision: currency.total_precision, calculated: true },
-    landed_unit: { type: 'currency', precision: 4, calculated: true },
+    // A unit cost is not totalled: the sum of lines' units means nothing.
+    landed_unit: { type: 'currency', precision: 4, calculated: true, footer: 'none' },
     item_code: { type: 'readonly' },
     description: { type: 'readonly' },
     uom: { type: 'readonly' },
