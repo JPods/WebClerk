@@ -36,6 +36,9 @@ export interface LineCardRendererProps {
   onEnterCash?: () => void;
   /** The document's model: a receipt shows planned/received, warehouse, lot and serial. */
   modelName?: string;
+  /** A receipt's Spread, drawn in the landed panel. */
+  onSpread?: () => void;
+  spreading?: boolean;
   /** The document's switch (config.defaults.features.line_contacts): the people a line names. */
   lineContacts?: boolean;
   /** Write a header field (dotted path) — a receipt's allocations.method.<comp> from the line detail. */
@@ -47,7 +50,7 @@ export interface LineCardRendererProps {
 // ---------------------------------------------------------------------------
 
 /** Render the line card -- DataGrid with line card config, no LinesCard component */
-const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEditing, isLocked, onLinesChange, onEnterCash, modelName, lineContacts, onFieldChange }) => {
+const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEditing, isLocked, onLinesChange, onEnterCash, modelName, lineContacts, onFieldChange, onSpread, spreading }) => {
   const fmt = useFormatting();
   // Removed lines stay in the list — greyed out, struck through, zero qty —
   // until the save deletes the row. Escape a delete by closing the window.
@@ -449,7 +452,8 @@ const LineCardRenderer: React.FC<LineCardRendererProps> = ({ section, data, isEd
             canEditLine={lc.canEdit} canEditMethod={lc.canEdit && !!onFieldChange}
             formatMoney={(v) => formatCurrency(v, fmt)}
             changed={methodEdited || lines.some((l: any) => l?._dirty || l?._removed)}
-            onLanded={handleLanded} onMethod={handleLandedMethod} />
+            onLanded={handleLanded} onMethod={handleLandedMethod}
+            onSpread={onSpread} spreading={spreading} />
         </CollapsiblePanel>
       )}
       {lc.activePanel !== 'none' && lc.activePanel !== 'margin' && (

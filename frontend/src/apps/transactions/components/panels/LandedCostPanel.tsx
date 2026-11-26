@@ -61,6 +61,9 @@ export interface LandedCostPanelProps {
   onLanded: (comp: LandedComponent, value: number) => void;
   onMethod: (comp: LandedComponent, basis: string) => void;
   formatMoney: (v: number) => string;
+  /** Runs the receipt's spread command (saving first). Absent: no button (journalized, or not saved yet). */
+  onSpread?: () => void;
+  spreading?: boolean;
 }
 
 const cell: React.CSSProperties = { padding: '2px 6px', borderBottom: '1px solid var(--wc-border-light, #f1f5f9)' };
@@ -71,6 +74,7 @@ const input: React.CSSProperties = {
 
 const LandedCostPanel: React.FC<LandedCostPanelProps> = ({
   line, allocations, unallocated, canEditLine, canEditMethod, changed, onLanded, onMethod, formatMoney,
+  onSpread, spreading,
 }) => {
   const method = (allocations && typeof allocations.method === 'object' && allocations.method) || {};
   const landed = line?.cost?.landed || {};
@@ -82,6 +86,24 @@ const LandedCostPanel: React.FC<LandedCostPanelProps> = ({
     <div style={{ fontSize: 'inherit' }}>
       <table style={{ borderCollapse: 'collapse', width: '100%' }}>
         <thead>
+          {onSpread && (
+            // Above the methods it uses, so the person chooses how before pressing (Bill, 2026-11-26).
+            <tr>
+              <th colSpan={2}></th>
+              <th style={{ padding: '2px 6px 6px', textAlign: 'left' }}>
+                <button type="button" onClick={onSpread} disabled={spreading} data-wc="spread"
+                  title="Divides each charge over the receipt's lines by its method below, and overwrites every line's landed. Unsaved changes are saved first."
+                  style={{
+                    padding: '4px 16px', fontWeight: 600, borderRadius: 4, cursor: spreading ? 'wait' : 'pointer',
+                    background: 'var(--db-accent, #2563eb)', color: '#fff', border: '1px solid var(--db-accent, #2563eb)',
+                    opacity: spreading ? 0.6 : 1,
+                  }}>
+                  {spreading ? 'Spreading…' : 'Spread'}
+                </button>
+              </th>
+              <th colSpan={2}></th>
+            </tr>
+          )}
           <tr>
             <th style={head}></th>
             <th style={{ ...head, textAlign: 'right' }} title="The receipt's charge: allocations.<comp>">allocations</th>
@@ -128,7 +150,7 @@ const LandedCostPanel: React.FC<LandedCostPanelProps> = ({
             landed unit: <strong>{unit === null ? '—' : unit.toFixed(4)}</strong>
           </span>
         )}
-        <span style={{ color: 'var(--wc-text-muted, #64748b)' }}>The Spread button, beside Workflow, re-spreads every charge by its method.</span>
+        <span style={{ color: 'var(--wc-text-muted, #64748b)' }}>Spread divides every charge over the lines by its method.</span>
         {changed && (
           <span style={{ fontStyle: 'italic', color: 'var(--wc-text-muted, #64748b)' }}>
             unallocated and landed unit are the last save's; Save to recompute

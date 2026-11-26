@@ -23,14 +23,10 @@ interface ActionDef {
   saveFirst?: boolean;
   /** The command rewrites this record: reload it afterwards. */
   reload?: boolean;
-  /** Drawn as its own button beside the list, not as an entry in it. */
-  button?: boolean;
 }
 
 /** A receipt's charges left over after its lines' landed shares (totals.unallocated): the
  *  journalize refusal unallocated_charges names them, and the person ticks to post them anyway. */
-const LANDED = ['freight', 'duty', 'handling', 'vat'] as const;
-
 interface UnallocatedAsk { action: ActionDef; unallocated: Record<string, number> }
 
 const ACTION_CONFIGS: Record<string, ActionDef[]> = {
@@ -82,13 +78,8 @@ const ACTION_CONFIGS: Record<string, ActionDef[]> = {
     { key: 'link_transaction_to_campaign', label: 'Link Campaign', needsDialog: true },
   ],
   receipt: [
-    // A save never spreads; the person spreads on command (Bill, 2026-11-25): every product line's
-    // cost.landed.<comp> is overwritten by allocations.method.<comp>, in exact cents. It is a button
-    // beside this list, not an entry in it (Bill, 2026-11-26: "switch the auto spreading to a button.
-    // So users see what we are doing"); the answer's messages say what was spread and by what.
-    { key: 'spread', label: 'Spread', command: 'spread', saveFirst: true, reload: true, button: true,
-      confirm: "Spread this receipt's freight, duty, handling and vat over its lines by each one's method? Every line's landed is overwritten.",
-      params: () => ({}) },
+    // Spread is not here: it is a button in the receipt's landed panel, above the methods it
+    // uses (Bill, 2026-11-26: "it emphasizes choosing method before clicking"). DbForm.spread.
     // Saving a receipt receives its goods; there is no hold (Bill, 2026-11-13).
     { key: 'journalize', label: 'Journalize', command: 'journalize',
       confirm: 'Post what this receipt received (inventory) and what it owes the vendor (payable)? This locks the receipt.',
@@ -113,7 +104,7 @@ const ACTION_CONFIGS: Record<string, ActionDef[]> = {
   ],
 };
 
-async function callCommand(model: string, id: number, command: string,
+export async function callCommand(model: string, id: number, command: string,
                            body: Record<string, unknown>): Promise<any> {
   const { default: apiClient } = await import('@/api/axios');
   const res = await apiClient.post(`/wcapi/${model}/${id}/${command}/`, body);
@@ -152,11 +143,7 @@ const WorkflowSelect: React.FC<WorkflowSelectProps> = ({ modelName, record, onCo
         : await callManage(action.key, params);
       // The server's coaching rides on the result (a purchase born without a vendor, 2026-11-08).
       const notes = Array.isArray(result?.messages) ? result.messages.filter(Boolean) : [];
-      // Spread with no charge on the receipt did nothing, and says so.
-      const done = action.key === 'spread' && !notes.length
-        ? 'Nothing to spread: this receipt has no freight, duty, handling or vat. Enter a charge, save, then Spread'
-        : `${action.label} completed`;
-      dispatch(showToast({ message: [done, ...notes].join('. '), type: action.key === 'spread' && !notes.length ? 'info' : 'success' }));
+      dispatch(showToast({ message: [`${action.label} completed`, ...notes].join('. '), type: 'success' }));
       onComplete?.({ ...result, _action: action.key });
       if (action.reload) onRefresh?.();
     } catch (err: any) {
@@ -238,29 +225,6 @@ const WorkflowSelect: React.FC<WorkflowSelectProps> = ({ modelName, record, onCo
     </div>
   );
 
-  // A receipt's Spread: always on a receipt that is not journalized. The data browser hands this
-  // control a list row, or only {id} just after a convert, so the button cannot wait for the
-  // charges to be in `record` (Bill, 2026-11-26: "I do not see the spread button" on receipt 31,
-  // made by a convert). When the record carries totals.unallocated (the server's figure from the
-  // last save), the button says what the lines do not carry yet.
-  const left = LANDED.filter((c) => Math.abs(Number(record?.totals?.unallocated?.[c]) || 0) >= 0.005);
-  const leftTotal = left.reduce((sum, c) => sum + Number(record.totals.unallocated[c]), 0);
-  const spreadButton = modelName === 'receipt' && record?.id && !record?.dt_journaled && (
-    <button type="button" onClick={() => choose('spread')} disabled={loading} data-wc="spread"
-      className="text-xs px-2 py-0.5 rounded cursor-pointer"
-      style={{
-        background: left.length ? 'color-mix(in srgb, var(--db-accent, #2563eb) 12%, transparent)' : 'var(--db-surface-alt, #f1f3f5)',
-        color: left.length ? 'var(--db-accent, #2563eb)' : 'var(--db-text, #212529)',
-        border: '1px solid var(--db-border, #dee2e6)',
-      }}
-      title={left.length
-        ? `Not on the lines yet: ${left.map((c) => `${c} ${Number(record.totals.unallocated[c]).toFixed(2)}`).join(', ')}. `
-          + 'Spread divides each charge over the lines by its method (allocations.method).'
-        : "Spread divides the receipt's freight, duty, handling and vat over its lines, each by its method (allocations.method), and overwrites every line's landed. Save your changes first."}>
-      {left.length ? `Spread ${leftTotal.toFixed(2)} unallocated` : 'Spread'}
-    </button>
-  );
-
   return (
     <>
     {askDialog}
@@ -276,11 +240,10 @@ const WorkflowSelect: React.FC<WorkflowSelectProps> = ({ modelName, record, onCo
       title="Workflow operations"
     >
       <option value="">Workflow</option>
-      {actions.filter(a => !a.button).map(a => (
+      {actions.map(a => (
         <option key={a.key} value={a.key}>{a.label}</option>
       ))}
     </select>
-    {spreadButton}
     </>
   );
 };

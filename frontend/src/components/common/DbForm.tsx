@@ -19,7 +19,8 @@ import { useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState } from '@/store';
 import { showToast } from '@/store/slices/toastSlice';
-import { getRecord, newRecord } from '@/api/wcapi';
+import { getRecord, newRecord, refusedFrom } from '@/api/wcapi';
+import { callCommand } from '@/components/common/WorkflowSelect';
 import { useWindowManager } from '@/context/WindowManagerContext';
 import { heldNotice } from '@/hooks/useEditHold';
 import { useDetailLayout, type DetailLayout } from '@/hooks/useDetailLayout';
@@ -332,6 +333,8 @@ const DbFormView: React.FC<DbFormProps> = (props) => {
                     isLocked={form.editTier === 'closed'}
                     onLinesChange={form.setLines}
                     onFieldChange={form.setField}
+                    onSpread={modelName === 'receipt' && data?.id && !data?.dt_journaled ? spread : undefined}
+                    spreading={spreading}
                     modelName={modelName}
                     lineContacts={(activeLayout?.features ?? layout?.features)?.line_contacts === true}
                     onEnterCash={isCashIn ? () => setShowAddCash(true) : undefined}
@@ -436,6 +439,29 @@ const DbForm: React.FC<DbFormProps> = (props) => {
   useEffect(() => {
     setOpened((o) => (o && o.model === hostModel && o.id === hostId ? o : null));
   }, [hostModel, hostId]);
+
+  // A receipt's Spread (Bill, 2026-11-26): the button sits in the landed panel above the methods.
+  // Unsaved changes are saved first, so the spread uses the charges and methods on screen; the
+  // answer says what was divided and by what, and the record is read again.
+  const [spreading, setSpreading] = useState(false);
+  const spread = useCallback(async () => {
+    if (!data?.id || spreading) return;
+    if (!confirm("Spread this receipt's freight, duty, handling and vat over its lines by each one's method? Every line's landed is overwritten.")) return;
+    setSpreading(true);
+    try {
+      if (isEditing && form.hasChanges && !(await form.save({ keepEditing: true }))) return;
+      const result = await callCommand('receipt', data.id, 'spread', {});
+      const notes: string[] = Array.isArray(result?.messages) ? result.messages.filter(Boolean) : [];
+      dispatch(showToast(notes.length
+        ? { message: ['Spread', ...notes].join('. '), type: 'success', duration: 8000 }
+        : { message: 'Nothing to spread: this receipt has no freight, duty, handling or vat. Enter a charge, then Spread', type: 'info' }));
+      form.fetchData();
+    } catch (err: any) {
+      dispatch(showToast({ message: refusedFrom(err, 'Spread failed').message, type: 'error' }));
+    } finally {
+      setSpreading(false);
+    }
+  }, [data?.id, spreading, isEditing, form, dispatch]);
 
   const onWorkflowComplete = useCallback((result: any) => {
     const target = convertedTarget(result);
