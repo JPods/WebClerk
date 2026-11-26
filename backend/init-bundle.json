@@ -35873,23 +35873,58 @@
               "detail": "default",
               "columns": [
                 {
-                  "field": "purpose",
-                  "label": "purpose",
-                  "visible": true
-                },
-                {
-                  "field": "status",
-                  "label": "status",
-                  "visible": true
-                },
-                {
                   "field": "item_ida",
                   "label": "item_ida",
                   "visible": true
                 },
                 {
+                  "field": "warehouse",
+                  "label": "warehouse",
+                  "visible": true
+                },
+                {
+                  "field": "quantity.received",
+                  "label": "received",
+                  "visible": true
+                },
+                {
+                  "field": "quantity.issued",
+                  "label": "issued",
+                  "visible": true
+                },
+                {
+                  "field": "quantity.scrapped",
+                  "label": "scrapped",
+                  "visible": true
+                },
+                {
+                  "field": "cost.unit_po",
+                  "label": "unit_po",
+                  "visible": true
+                },
+                {
+                  "field": "cost.landed",
+                  "label": "landed",
+                  "visible": true
+                },
+                {
+                  "field": "parent_model",
+                  "label": "parent_model",
+                  "visible": true
+                },
+                {
+                  "field": "parent_id",
+                  "label": "parent_id",
+                  "visible": true
+                },
+                {
                   "field": "lot",
                   "label": "lot",
+                  "visible": true
+                },
+                {
+                  "field": "dt_created",
+                  "label": "dt_created",
                   "visible": true
                 }
               ]
@@ -35975,39 +36010,45 @@
               "form": "default",
               "list": "default",
               "fields": [
-                "is_active",
-                "purpose",
-                "status",
                 "item_ida",
+                "item",
                 "warehouse",
                 "lot",
-                "serial_numbers",
                 "serial_batch",
-                "source_doc_type",
-                "source_doc_id",
-                "dt_locked",
-                "config",
-                "metadata",
-                "refs",
-                "prefs",
-                "actions",
-                "comments",
-                "item",
-                "source",
-                "quantity",
-                "cost",
-                "id",
-                "uuid",
+                "parent_model",
+                "parent_id",
+                "quantity.received",
+                "quantity.issued",
+                "quantity.scrapped",
+                "cost.unit_po",
+                "cost.freight",
+                "cost.duty",
+                "cost.handling",
+                "cost.vat",
+                "cost.landed",
+                "cost.moving_avg",
+                "cost.trend_pct",
+                "cost.currency",
+                "status",
+                "purpose",
+                "is_active",
+                "is_archived",
                 "dt_created",
                 "dt_modified",
-                "version",
-                "security_level",
                 "dt_approved",
-                "times_used",
                 "dt_last_used",
-                "is_deleted",
-                "is_archived",
-                "health_rating"
+                "times_used",
+                "health_rating",
+                "security_level",
+                "id",
+                "uuid",
+                "version",
+                "actions",
+                "comments",
+                "refs",
+                "prefs",
+                "metadata",
+                "config"
               ]
             }
           }
@@ -36204,27 +36245,49 @@
         },
         "field_groups": [
           {
-            "key": "identity",
-            "label": "Identity",
+            "key": "layer",
+            "label": "Layer",
             "fields": [
-              "times_used",
-              "purpose",
               "item_ida",
+              "item",
               "warehouse",
               "lot",
-              "serial_numbers",
               "serial_batch",
-              "source_doc_type",
-              "source_doc_id"
+              "parent_model",
+              "parent_id"
+            ]
+          },
+          {
+            "key": "quantity",
+            "label": "Quantity",
+            "fields": [
+              "quantity.received",
+              "quantity.issued",
+              "quantity.scrapped"
+            ]
+          },
+          {
+            "key": "cost",
+            "label": "Cost",
+            "fields": [
+              "cost.unit_po",
+              "cost.freight",
+              "cost.duty",
+              "cost.handling",
+              "cost.vat",
+              "cost.landed",
+              "cost.moving_avg",
+              "cost.trend_pct",
+              "cost.currency"
             ]
           },
           {
             "key": "status",
             "label": "Status",
             "fields": [
-              "is_active",
               "status",
-              "is_deleted",
+              "purpose",
+              "is_active",
               "is_archived"
             ]
           },
@@ -36235,35 +36298,19 @@
               "dt_created",
               "dt_modified",
               "dt_approved",
-              "dt_last_used",
-              "dt_locked"
+              "dt_last_used"
             ]
           },
           {
             "key": "system",
             "label": "System",
             "fields": [
+              "times_used",
+              "health_rating",
+              "security_level",
               "id",
               "uuid",
-              "version",
-              "security_level",
-              "health_rating"
-            ]
-          },
-          {
-            "key": "json",
-            "label": "Data",
-            "fields": [
-              "config",
-              "metadata",
-              "refs",
-              "prefs",
-              "actions",
-              "comments",
-              "item",
-              "source",
-              "quantity",
-              "cost"
+              "version"
             ]
           }
         ],
