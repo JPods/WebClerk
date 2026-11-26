@@ -61,9 +61,11 @@ export interface LandedCostPanelProps {
   onLanded: (comp: LandedComponent, value: number) => void;
   onMethod: (comp: LandedComponent, basis: string) => void;
   formatMoney: (v: number) => string;
-  /** Runs the receipt's spread command (saving first). Absent: no button (journalized, or not saved yet). */
+  /** Runs the receipt's spread command (saving first). */
   onSpread?: () => void;
   spreading?: boolean;
+  /** Why Spread is dimmed: journalized, or already spread with nothing changed since. Empty: it is live. */
+  spreadOff?: string;
 }
 
 const cell: React.CSSProperties = { padding: '2px 6px', borderBottom: '1px solid var(--wc-border-light, #f1f5f9)' };
@@ -74,7 +76,7 @@ const input: React.CSSProperties = {
 
 const LandedCostPanel: React.FC<LandedCostPanelProps> = ({
   line, allocations, unallocated, canEditLine, canEditMethod, changed, onLanded, onMethod, formatMoney,
-  onSpread, spreading,
+  onSpread, spreading, spreadOff,
 }) => {
   const method = (allocations && typeof allocations.method === 'object' && allocations.method) || {};
   const landed = line?.cost?.landed || {};
@@ -91,12 +93,15 @@ const LandedCostPanel: React.FC<LandedCostPanelProps> = ({
             <tr>
               <th colSpan={2}></th>
               <th style={{ padding: '2px 6px 6px', textAlign: 'left' }}>
-                <button type="button" onClick={onSpread} disabled={spreading} data-wc="spread"
-                  title="Divides each charge over the receipt's lines by its method below, and overwrites every line's landed. Unsaved changes are saved first."
+                {/* Always shown (Bill, 2026-11-26); dimmed when journalized or when it has been
+                    pressed and nothing it uses has changed since. The title says which. */}
+                <button type="button" onClick={onSpread} disabled={spreading || !!spreadOff} data-wc="spread"
+                  title={spreadOff || "Divides each charge over the receipt's lines by its method below, and overwrites every line's landed. Unsaved changes are saved first."}
                   style={{
-                    padding: '4px 16px', fontWeight: 600, borderRadius: 4, cursor: spreading ? 'wait' : 'pointer',
+                    padding: '4px 16px', fontWeight: 600, borderRadius: 4,
+                    cursor: spreading ? 'wait' : spreadOff ? 'not-allowed' : 'pointer',
                     background: 'var(--db-accent, #2563eb)', color: '#fff', border: '1px solid var(--db-accent, #2563eb)',
-                    opacity: spreading ? 0.6 : 1,
+                    opacity: spreading || spreadOff ? 0.4 : 1,
                   }}>
                   {spreading ? 'Spreading…' : 'Spread'}
                 </button>

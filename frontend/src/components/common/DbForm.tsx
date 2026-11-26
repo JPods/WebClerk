@@ -49,6 +49,23 @@ import CollapsiblePanel from '@/apps/common/components/CollapsiblePanel';
 import { renderPanel } from './panelRegistry';
 import { withDevIdentifier } from '@/components/common/DevIdentifier';
 
+/** The values a receipt's Spread reads, as one string: charges, methods, and each line's quantity,
+ *  unit cost, discount and weight. A line's landed share is left out: Spread writes it. */
+function spreadInputs(record: any): string {
+  const alloc = record?.allocations || {};
+  const comps = ['freight', 'duty', 'handling', 'vat'];
+  const lines = Array.isArray(record?.lines) ? record.lines : [];
+  return JSON.stringify({
+    charges: comps.map((c) => Number(alloc[c]) || 0),
+    methods: comps.map((c) => alloc.method?.[c] || 'value'),
+    lines: lines.filter((l: any) => !l?._removed).map((l: any) => [
+      l?.id ?? null, Number(l?.quantity?.active) || 0, Number(l?.cost?.unit) || 0,
+      Number(l?.cost?.discount_percent) || 0, Number(l?.cost?.discount_amount) || 0,
+      Number(l?.physical?.weight?.value ?? l?.physical?.weight) || 0, l?.physical?.weight?.unit || '',
+    ]),
+  });
+}
+
 /** An org shows these from its primary contact: attention chooses the contact, the others open
  *  that contact's own card (Bill, 2026-10-31: a de-normalized value is edited where it comes from). */
 const FROM_CONTACT = ['attention', 'email', 'phone', 'address_full', 'domain'];
@@ -333,8 +350,9 @@ const DbFormView: React.FC<DbFormProps> = (props) => {
                     isLocked={form.editTier === 'closed'}
                     onLinesChange={form.setLines}
                     onFieldChange={form.setField}
-                    onSpread={modelName === 'receipt' && data?.id && !data?.dt_journaled ? spread : undefined}
+                    onSpread={modelName === 'receipt' ? spread : undefined}
                     spreading={spreading}
+                    spreadOff={spreadOff}
                     modelName={modelName}
                     lineContacts={(activeLayout?.features ?? layout?.features)?.line_contacts === true}
                     onEnterCash={isCashIn ? () => setShowAddCash(true) : undefined}
@@ -444,6 +462,21 @@ const DbForm: React.FC<DbFormProps> = (props) => {
   // Unsaved changes are saved first, so the spread uses the charges and methods on screen; the
   // answer says what was divided and by what, and the record is read again.
   const [spreading, setSpreading] = useState(false);
+  // What the last Spread pressed here divided: the receipt's charges and methods and each line's
+  // quantity, cost and weight (not its landed share, which Spread writes). While the screen still
+  // shows the same, with nothing unsaved and nothing unallocated, pressing again would change
+  // nothing, so the button dims (Bill, 2026-11-26). Kept per receipt for this browser session.
+  const spreadSeen = useMemo(() => spreadInputs(currentData), [currentData]);
+  const [spreadDone, setSpreadDone] = useState<Record<string, string>>({});
+  const spreadKey = `wc.spread.${data?.id ?? ''}`;
+  const lastSpread = spreadDone[spreadKey] ?? (data?.id ? sessionStorage.getItem(spreadKey) : null);
+  const unallocatedNow = ['freight', 'duty', 'handling', 'vat']
+    .some((c) => Math.abs(Number(data?.totals?.unallocated?.[c]) || 0) >= 0.005);
+  const spreadOff = !data?.id ? 'Save the receipt first.'
+    : data?.dt_journaled ? 'This receipt is journalized: its charges have posted and no longer change.'
+    : (lastSpread === spreadSeen && !form.hasChanges && !unallocatedNow)
+      ? 'Already spread: no charge, method, quantity or cost has changed since. Change one to spread again.'
+      : '';
   const spread = useCallback(async () => {
     if (!data?.id || spreading) return;
     if (!confirm("Spread this receipt's freight, duty, handling and vat over its lines by each one's method? Every line's landed is overwritten.")) return;
@@ -451,6 +484,8 @@ const DbForm: React.FC<DbFormProps> = (props) => {
     try {
       if (isEditing && form.hasChanges && !(await form.save({ keepEditing: true }))) return;
       const result = await callCommand('receipt', data.id, 'spread', {});
+      sessionStorage.setItem(spreadKey, spreadSeen);
+      setSpreadDone((done) => ({ ...done, [spreadKey]: spreadSeen }));
       const notes: string[] = Array.isArray(result?.messages) ? result.messages.filter(Boolean) : [];
       dispatch(showToast(notes.length
         ? { message: ['Spread', ...notes].join('. '), type: 'success', duration: 8000 }
@@ -461,7 +496,7 @@ const DbForm: React.FC<DbFormProps> = (props) => {
     } finally {
       setSpreading(false);
     }
-  }, [data?.id, spreading, isEditing, form, dispatch]);
+  }, [data?.id, spreading, isEditing, form, dispatch, spreadKey, spreadSeen]);
 
   const onWorkflowComplete = useCallback((result: any) => {
     const target = convertedTarget(result);
