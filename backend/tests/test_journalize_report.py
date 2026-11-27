@@ -94,3 +94,72 @@ def test_posting_the_ticked_rows_answers_per_row_and_records_the_run(admin, term
 def test_the_batch_is_gone():
     import apps.accounts.services.journalize as j
     assert not hasattr(j, 'batch_journalize')
+
+
+# ── nothing of value to post completes; a row's own options; a period (2026-11-27) ──
+
+def _workorder(events=None, line_type='consume'):
+    from apps.transactions.models import WorkOrder, WorkOrderLine
+    wo = WorkOrder.objects.create(status='active')
+    line = WorkOrderLine.objects.create(workorder=wo, line_type=line_type, item={'description': 'part'},
+                                        quantity={'active': 1, 'staged': 1})
+    if events:          # what a build leaves on its line (a line is not born with events)
+        WorkOrderLine.objects.filter(pk=line.pk).update(events=events)
+    return wo
+
+
+def test_a_zero_cash_is_ready_and_posting_completes_it_with_no_gl_entry(admin, chart_of_accounts):
+    """FAULT 2026-11-27: posting a zero cash auto-completes it (WC2 rule), but the report showed
+    it waiting for good, with no tick box. It is ready now, noted, and posting stamps it."""
+    from decimal import Decimal
+    from apps.accounts.models import GlJournal
+    from apps.accounts.services.journalize_report import COMPLETES_NOTE, post_selected, unposted
+    from apps.transactions.models import Cash
+    cash = Cash.objects.create(amount=Decimal('0.00'), available=Decimal('0.00'), status='active', method='check')
+    row = next(r for r in unposted('cash')['rows'] if r['id'] == cash.pk)
+    assert row['waiting'] == '' and row['note'] == COMPLETES_NOTE
+    answer = post_selected(admin, 'cash', [cash.pk])
+    cash.refresh_from_db()
+    assert [p['id'] for p in answer['posted']] == [cash.pk] and cash.dt_journaled
+    assert not GlJournal.objects.filter(source_model='cash', source_id=cash.pk).exists()
+
+
+def test_a_workorder_whose_work_carried_no_value_completes_and_one_with_nothing_done_waits(
+        admin, chart_of_accounts):
+    """FAULT 2026-11-27 (wc_demo 33, 43-47): the header stayed open for good."""
+    from apps.accounts.services.journalize_report import COMPLETES_NOTE, post_selected, unposted
+    done = _workorder(events=[{'id': 'e1', 'kind': 'completion', 'qty': 1, 'layer_id': 999999}])
+    fresh = _workorder()
+    rows = {r['id']: r for r in unposted('workorder')['rows']}
+    assert rows[done.pk]['waiting'] == '' and rows[done.pk]['note'] == COMPLETES_NOTE
+    assert rows[fresh.pk]['waiting'].startswith('Nothing to journalize')
+    post_selected(admin, 'workorder', [done.pk])
+    done.refresh_from_db(); fresh.refresh_from_db()
+    assert done.dt_journaled and not fresh.dt_journaled
+
+
+def test_the_options_of_one_row_go_to_that_row_only(admin, terms, chart_of_accounts, monkeypatch):
+    """A receipt with unallocated charges posts only with its own post_unallocated tick."""
+    from apps.accounts.services import journalize_report
+    seen = {}
+
+    def fake(actor, verb, model_key, pk, payload):
+        seen[pk] = payload
+        return {'created': 1}
+    monkeypatch.setattr('apps.core.services.verbs.run_command', fake)
+    a, b = _invoice('released'), _invoice('released')
+    journalize_report.post_selected(admin, 'invoice', [a.pk, b.pk], {str(b.pk): {'post_unallocated': True}})
+    assert seen == {a.pk: {}, b.pk: {'post_unallocated': True}}
+
+
+def test_the_period_chooses_rows_by_dt_created(terms, chart_of_accounts):
+    from apps.accounts.services.journalize_report import unposted
+    early, late = _invoice('released'), _invoice('released')
+    Invoice.objects.filter(pk=early.pk).update(dt_created=1_790_000_000_000)
+    Invoice.objects.filter(pk=late.pk).update(dt_created=1_795_000_000_000)
+    ids = lambda **kw: {r['id'] for r in unposted('invoice', **kw)['rows']} & {early.pk, late.pk}  # noqa: E731
+    assert ids() == {early.pk, late.pk}
+    assert ids(begin=1_791_000_000_000) == {late.pk}
+    assert ids(end=1_791_000_000_000) == {early.pk}
+    report = unposted('invoice', begin=1_791_000_000_000, end=1_796_000_000_000)
+    assert report['begin'] == 1_791_000_000_000 and report['total'] >= 1

@@ -61,15 +61,15 @@ def test_balance_is_total_less_settled_less_adjusted():
 
 def test_a_payable_written_off_in_part_is_paid():
     """cash_door left `adjusted` out, so 60 paid and 40 written off read 'partially_paid'. A
-    payable's paid state is now its totals.cash_state, as an invoice's is; its status is the
-    document's and the payment never writes it (Bill, 2026-11-26)."""
+    payable's paid state is its totals.cash_state, as an invoice's is; paid in full sets the
+    status 'paid' when the system set the one it holds (Bill, 2026-11-27)."""
     from apps.transactions.services.pricing.totals_compute import update_paid
     saved = []
     meta = SimpleNamespace(model_name='receipt')
     receipt = SimpleNamespace(pk=1, status='released', totals={'total': 100.0, 'adjusted': 40.0},
                               _meta=meta, save=lambda **kw: saved.append(kw))
     update_paid(receipt, Decimal('60.00'))
-    assert receipt.totals['cash_state'] == 'paid' and receipt.status == 'released' and saved
+    assert receipt.totals['cash_state'] == 'paid' and receipt.status == 'paid' and saved
 
     receipt = SimpleNamespace(pk=1, status='released', totals={'total': 100.0},
                               _meta=meta, save=lambda **kw: saved.append(kw))

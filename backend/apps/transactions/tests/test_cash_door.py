@@ -110,8 +110,8 @@ def test_ap_unapply_goes_through_the_same_door(buyer, seller):
     application = Pending.objects.get(
         pk=apply_cash_to_receipt(cash.pk, receipt.pk, Decimal('80.00'))['pending_id'])
     receipt.refresh_from_db()
-    assert receipt.totals['cash_state'] == 'paid' and receipt.status == 'open', \
-        "paid is a figure; the payment never writes the status (Bill, 2026-11-26)"
+    assert receipt.totals['cash_state'] == 'paid' and receipt.status == 'paid', \
+        "paid in full sets paid on a status the system set (Bill, 2026-11-27)"
 
     unapply_cash_application(application.pk, reason='paid the wrong bill')
 
@@ -119,8 +119,8 @@ def test_ap_unapply_goes_through_the_same_door(buyer, seller):
     assert reversal.purpose == RECEIPT_CASH_PURPOSE
     receipt.refresh_from_db()
     assert Decimal(str(receipt.totals['paid'])) == Decimal('0.00')
-    assert receipt.totals['cash_state'] == 'open' and receipt.status == 'open', \
-        "a payable that is no longer paid reads open in its figure; its status never moved"
+    assert receipt.totals['cash_state'] == 'open' and receipt.status == 'released', \
+        "no longer paid: 'paid' returns to released; open stays a figure"
 
 
 # ── a delete accounts for its cash ────────────────────────────────────

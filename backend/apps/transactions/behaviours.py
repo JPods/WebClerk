@@ -308,8 +308,8 @@ RELEASED_WHEN_RECEIVED_FROM = ('planned', '')
 def release_when_received(receipt) -> bool:
     """A receipt that has received goods reads 'released' (Bill, 2026-11-26: "Released when
     received"). Saving a receipt receives its goods (readme 108, R1), so 'planned' said nothing:
-    it was convert's default, and the first journalize froze it there. Its paid state is its
-    totals (paid, balance, cash_state), as an invoice's is, never its status."""
+    it was convert's default. Paying it in full then sets 'paid' (totals_compute.settle_paid_status,
+    Bill 2026-11-27); the partial state is its totals.cash_state."""
     if not awaits_release(receipt):
         return False
     receipt.status = 'released'

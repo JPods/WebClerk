@@ -87,7 +87,9 @@ def test_a_status_the_person_set_stays_when_the_receipt_is_saved_again():
 
 # ── paid is a figure ──────────────────────────────────────────────────────
 
-def test_paying_a_receipt_moves_its_figures_never_its_status():
+def test_paid_in_full_sets_paid_and_a_reversal_returns_it_to_released():
+    """Bill, 2026-11-27: "If we have paid an invoice, we should set its status to 'paid'"; one rule
+    for invoice and receipt. The partial state stays a figure."""
     from apps.transactions.services.cash.cash_pending import unapply_cash_application
     from apps.transactions.services.cash.cash_pending_receipt import apply_cash_to_receipt
     receipt, vendor = _received(qty=10)
@@ -100,9 +102,11 @@ def test_paying_a_receipt_moves_its_figures_never_its_status():
 
     rest = apply_cash_to_receipt(_cash_out(vendor, total).pk, receipt.pk, total / 2)
     receipt.refresh_from_db()
-    assert (receipt.status, receipt.totals['cash_state']) == ('released', 'paid')
+    assert (receipt.status, receipt.totals['cash_state']) == ('paid', 'paid')
 
     unapply_cash_application(rest['pending_id'], reason='wrong bill')
+    receipt.refresh_from_db()
+    assert (receipt.status, receipt.totals['cash_state']) == ('released', 'partial')
     unapply_cash_application(part['pending_id'], reason='wrong bill')
     receipt.refresh_from_db()
     assert (receipt.status, receipt.totals['cash_state']) == ('released', 'open')

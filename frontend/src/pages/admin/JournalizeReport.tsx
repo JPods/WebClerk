@@ -9,6 +9,11 @@
  * it will post (the real posting, rolled back), or waiting, with the reason in the door's or the
  * poster's words and no tick box. Post sends the ticked ids to journalize_selected: every row goes
  * through the door command on its own, and the answer comes back per row.
+ *
+ * 2026-11-27 (Bill: journalize at least weekly): a period (begin/end, local dates, by dt_created)
+ * chooses the rows; it does not date the GL. A receipt with charges no line carries shows them and
+ * its own "post unallocated" tick, never ticked by default, sent for that row only. A row that
+ * posts no GL entry (a zero cash, a workorder whose work carried no value) is ready and noted.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
@@ -27,14 +32,37 @@ export interface ReportRow {
   waiting: string; preview: Preview | null;
   /** What posting this ready row also does — releases a planned invoice (Bill, 2026-11-08). */
   note?: string;
+  /** A receipt's charges no line carries, by kind: posted only with this row's own tick. */
+  unallocated?: Record<string, number>;
 }
-interface Report { model: string; rows: ReportRow[]; ready: number; waiting: number; total: number; limit: number }
+interface Report {
+  model: string; rows: ReportRow[]; ready: number; waiting: number; total: number; limit: number;
+  begin?: number | null; end?: number | null;
+}
 interface RowAnswer { id: number; ida: string; created?: number; code?: string; message?: string; messages?: string[] }
 interface RunAnswer { model: string; posted: RowAnswer[]; refused: RowAnswer[]; batch: string }
 
 /** The ids a Post may send: the ticked rows that are ready. */
 export function postable(rows: ReportRow[], ticked: Set<number>): number[] {
   return rows.filter((r) => !r.waiting && ticked.has(r.id)).map((r) => r.id);
+}
+
+/** Each posted row's own choices: post_unallocated only for a row the person ticked for it. */
+export function rowOptions(rows: ReportRow[], ids: number[], unallocTicked: Set<number>):
+    Record<string, { post_unallocated: true }> {
+  const sending = new Set(ids);
+  return Object.fromEntries(rows
+    .filter((r) => sending.has(r.id) && r.unallocated && unallocTicked.has(r.id))
+    .map((r) => [String(r.id), { post_unallocated: true as const }]));
+}
+
+/** The period as the report takes it: a local date's first and last moment, as UTC epoch ms. */
+export function periodParams(begin: string, end: string): { begin?: number; end?: number } {
+  const at = (day: string, h: number, m: number, sec: number, ms: number) => {
+    const [y, mo, d] = day.split('-').map(Number);
+    return new Date(y, mo - 1, d, h, m, sec, ms).getTime();
+  };
+  return { ...(begin ? { begin: at(begin, 0, 0, 0, 0) } : {}), ...(end ? { end: at(end, 23, 59, 59, 999) } : {}) };
 }
 
 const th: React.CSSProperties = { textAlign: 'left', padding: '4px 6px', borderBottom: '1px solid var(--db-border, #d1d5db)', fontSize: 11, whiteSpace: 'nowrap' };
@@ -64,16 +92,21 @@ const JournalizeReport: React.FC = () => {
   const [open, setOpen] = useState<Set<number>>(new Set());
   const [posting, setPosting] = useState(false);
   const [answer, setAnswer] = useState<RunAnswer | null>(null);
+  const [unallocTicked, setUnallocTicked] = useState<Set<number>>(new Set());
+  const [begin, setBegin] = useState('');
+  const [end, setEnd] = useState('');
 
   const load = useCallback(async () => {
     if (!known) return;
     setError('');
     try {
-      const res = await manageAction('execute_report', { report_key: `journalize_${model}`, report_params: {} });
+      const res = await manageAction('execute_report', { report_key: `journalize_${model}`,
+                                                         report_params: periodParams(begin, end) });
       setReport(res?.result as Report);
       setTicked(new Set());
+      setUnallocTicked(new Set());
     } catch (e: any) { setError(e?.response?.data?.message || e?.message || 'The report did not load'); }
-  }, [model, known]);
+  }, [model, known, begin, end]);
   useEffect(() => { load(); }, [load]);
 
   const rows = report?.rows ?? [];
@@ -88,6 +121,7 @@ const JournalizeReport: React.FC = () => {
 
   const flipIn = (set: Set<number>, id: number) => { const n = new Set(set); if (n.has(id)) n.delete(id); else n.add(id); return n; };
   const toggle = (id: number) => setTicked((t) => flipIn(t, id));
+  const toggleUnalloc = (id: number) => setUnallocTicked((t) => flipIn(t, id));
   const flip = (id: number) => setOpen((o) => flipIn(o, id));
 
   const post = async () => {
@@ -96,7 +130,7 @@ const JournalizeReport: React.FC = () => {
     setPosting(true);
     setError('');
     try {
-      const res = await manageAction('journalize_selected', { model, ids });
+      const res = await manageAction('journalize_selected', { model, ids, options: rowOptions(rows, ids, unallocTicked) });
       setAnswer(res as RunAnswer);
       await load();
     } catch (e: any) { setError(e?.response?.data?.message || e?.message || 'The run failed'); }
@@ -112,8 +146,12 @@ const JournalizeReport: React.FC = () => {
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
         <h2 style={{ fontSize: 15, margin: 0 }}>Journalize {model}s</h2>
         <span style={{ fontSize: 11, opacity: 0.75 }}>
-          {report ? `${report.total} unposted · ${report.ready} ready · ${report.waiting} waiting${report.total > report.limit ? ` · showing the oldest ${report.limit}` : ''}` : 'Loading…'}
+          {report ? `${report.total} unposted${begin || end ? ` from ${begin || 'the start'} to ${end || 'today'}` : ''} · ${report.ready} ready · ${report.waiting} waiting${report.total > report.limit ? ` · showing the oldest ${report.limit}` : ''}` : 'Loading…'}
         </span>
+        <label style={{ fontSize: 11 }} title="Created on or after this day (your local date)">From{' '}
+          <input type="date" value={begin} onChange={(e) => setBegin(e.target.value)} data-wc="journalize-begin" /></label>
+        <label style={{ fontSize: 11 }} title="Created on or before this day (your local date)">to{' '}
+          <input type="date" value={end} onChange={(e) => setEnd(e.target.value)} data-wc="journalize-end" /></label>
         <span style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
           <button className="fs-btn" onClick={() => setTicked(new Set(readyIds))} disabled={!readyIds.length}>Tick all ready</button>
           <button className="fs-btn" onClick={() => setTicked(new Set())} disabled={!ticked.size}>Clear</button>
@@ -165,6 +203,13 @@ const JournalizeReport: React.FC = () => {
                       </button>
                     )}
                     {!r.waiting && r.note && <div style={{ fontSize: 11, opacity: 0.8 }} data-wc="journalize-note">{r.note}</div>}
+                    {!r.waiting && r.unallocated && (
+                      <label style={{ display: 'block', fontSize: 11 }} data-wc="journalize-unallocated"
+                             title="Charges no line carries post to the unallocated-receipt account, not to inventory">
+                        <input type="checkbox" checked={unallocTicked.has(r.id)} onChange={() => toggleUnalloc(r.id)} />{' '}
+                        Post unallocated: {Object.entries(r.unallocated).map(([k, v]) => `${k} ${formatCurrency(v)}`).join(', ')}
+                      </label>
+                    )}
                     {a && <div style={{ fontSize: 11, color: a.ok ? 'var(--db-accent-green, #2b8a3e)' : 'var(--db-accent-red, #c92a2a)' }}>
                       {a.ok ? [`Posted ${a.created} lines`, ...(a.messages || [])].join('. ') : a.message}</div>}
                   </td>

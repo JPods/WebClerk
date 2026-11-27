@@ -1054,6 +1054,23 @@ def _standing_event_ids(GlJournal, source_id: int, source_model: str) -> set:
     return {event_id for pk, event_id in rows.values_list('id', 'event_id') if pk not in reversed_ids}
 
 
+#: What a poster answers when the record is accounted for with nothing of value to post: a zero
+#: cash (auto_completed, the WC2 rule), a workorder whose work carried no value. The Journalize
+#: report shows such a row ready, noted "completes with no GL entry".
+COMPLETES_NO_ENTRIES = 'completes_no_entries'
+COMPLETES_STATUSES = ('auto_completed', COMPLETES_NO_ENTRIES)
+
+
+def _workorder_has_activity(wo, lines) -> bool:
+    """Something was done on the workorder: a movement it ever caused, or an event on a line."""
+    from django.db.models import Q
+    InventoryMovement = dj_apps.get_model('products', 'InventoryMovement')
+    if InventoryMovement.objects.filter(Q(parent_model='workorderline', parent_id__in=list(lines)) |
+                                        Q(parent_model='workorder', parent_id=wo.pk)).exists():
+        return True
+    return any(line.events for line in lines.values())
+
+
 def journalize_workorder(workorder_id: int) -> dict:
     """Post a workorder's unposted events (Bill, 2026-09-28: workorders journalize on command, per
     event; 2026-09-30: scrap is expensed; an opening is a count with config.opening).
@@ -1149,6 +1166,14 @@ def journalize_workorder(workorder_id: int) -> dict:
         if movements:
             # Movements of no value (a layer costed 0) post nothing, but they are accounted for.
             InventoryMovement.objects.filter(pk__in=[m.pk for m in movements]).update(dt_journaled=_now_ms())
+        # Work happened and nothing of value is left to post: it completes with no GL entry, as a
+        # zero cash does, and the header is stamped. It used to answer "Nothing to journalize" and
+        # leave the header open for good (wc_demo workorders 33, 43-47; FAULT 2026-11-27). A
+        # workorder with nothing done yet still waits.
+        if movements or _workorder_has_activity(wo, lines):
+            now = _now_ms()
+            WorkOrder.objects.filter(pk=wo.pk).update(dt_journaled=now, dt_modified=now)
+            return {'created': 0, 'status': COMPLETES_NO_ENTRIES, 'workorder_ida': wo.ida}
         return {'created': 0, 'error': 'Nothing to journalize'}
     debits = sum(r[1] for r in rows)
     credits = sum(r[2] for r in rows)

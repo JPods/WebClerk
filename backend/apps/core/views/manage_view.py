@@ -763,7 +763,7 @@ _ACTION_DISPATCH = {
     # ── Journalize: a record posts through its door command, POST /wcapi/<model>/<id>/journalize/
     #    (journal_commands). The Journalize report's run posts the ticked rows, each through that
     #    door on its own (Bill, 2026-11-07: never automatic — a person chooses and posts). ──
-    "journalize_selected": lambda p: __import__('apps.accounts.services.journalize_report', fromlist=['post_selected']).post_selected(_acting_actor(p), p['model'], p.get('ids') or []),
+    "journalize_selected": lambda p: __import__('apps.accounts.services.journalize_report', fromlist=['post_selected']).post_selected(_acting_actor(p), p['model'], p.get('ids') or [], p.get('options') or {}),
     # ── Cash Pending (One Path) ──
     "apply_cash_to_invoice": lambda p: __import__('apps.transactions.services.cash.cash_pending', fromlist=['apply_cash_to_invoice']).apply_cash_to_invoice(p['cash_id'], p['invoice_id'], p['amount'], p.get('reason', ''), p.get('contact_id'), acted_by=p.get('_acting_user_id')),
     "apply_pending_cash_entries": lambda p: __import__('apps.transactions.services.cash.cash_pending', fromlist=['apply_pending_for_invoice']).apply_pending_for_invoice(p['invoice_id']),

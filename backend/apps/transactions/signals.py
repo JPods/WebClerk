@@ -514,6 +514,9 @@ def track_invoice_status_change(sender, instance: Invoice, **kwargs):
 
 @receiver(post_save, sender=Invoice)
 def send_invoice_sent_notification(sender, instance: Invoice, created, **kwargs):
+    from apps.transactions.services.status_moves import moved_by_system
+    if moved_by_system():        # paid -> released, or a data fix: nobody sent an invoice
+        return
     if not created and _moved_to(instance, kwargs, {instance.STATUS_RELEASED}):
         _after_commit(lambda: TransactionEmailService.send_invoice_sent_notification(instance))
 
@@ -628,6 +631,9 @@ def allie_invoice_event(sender, instance: Invoice, created, **kwargs):
     # order_fulfilled fires on STATUS_RELEASED (standard) or STATUS_COMPLETE
     # (JPods trip invoices — created directly at complete, no released step).
     fulfillment_statuses = {released, complete}
+    from apps.transactions.services.status_moves import moved_by_system
+    if moved_by_system():        # the system's own status move is an update, not a fulfillment
+        fulfillment_statuses = set()
     if status in fulfillment_statuses and (created or _moved_to(instance, kwargs,
                                                                 fulfillment_statuses)):
         event = "order_fulfilled"

@@ -151,6 +151,7 @@ def _recalculate_locked(transaction_id: int, model_name: str) -> Dict[str, Any]:
     header, lines = _resolve_header_and_lines(transaction_id, model_name)
     old = getattr(header, 'totals', None) or {}
     old_total = old.get('total', 0)
+    was_state = _was_cash_state(dict(old), model_name)
     old_settled = tuple(_d(old.get(k, 0)) for k in SETTLEMENT_KEYS)
     computed = compute_totals(header, lines, model_name)
     totals = computed['totals']
@@ -210,7 +211,15 @@ def _recalculate_locked(transaction_id: int, model_name: str) -> Dict[str, Any]:
         update_fields.append('commission')
     if tax_decisions or computed['landed_decisions']:
         update_fields.append('metadata')
-    header.save(update_fields=update_fields)
+    # Paid sets the status wherever the figure is recomputed, not only when cash moves: a line
+    # edit that leaves a paid document owing returns it to released, one that settles it sets paid
+    # (the lead, 2026-11-27, on Bill's ruling). Same rule, same quiet save.
+    if model_name in ('invoice', 'receipt') and settle_paid_status(header, was_state, totals.get('cash_state') or ''):
+        from apps.transactions.services.status_moves import system_status_move
+        with system_status_move():
+            header.save(update_fields=update_fields + ['status', 'dt_modified', 'version'])
+    else:
+        header.save(update_fields=update_fields)
 
     # ── Then each line's totals, on the line (after the header save, so a
     #    journalized document's lock stops both) — queryset update, no signals ──
@@ -644,9 +653,10 @@ def compute_totals(header, lines, model_name: str) -> Dict[str, Any]:
     received, adjusted, settled = _settlement(header, model_name)
     balance = balance_of(doc['total'], settled, adjusted)
     state = ''
-    if model_name == 'invoice':
+    if model_name in ('invoice', 'receipt'):
+        # A receipt's too (it read '' here, wiping what update_paid wrote at every recompute).
         from apps.transactions.services.cash.cash_pending import cash_state
-        state = cash_state(doc['total'], received + adjusted)
+        state = cash_state(doc['total'], (received if model_name == 'invoice' else settled) + adjusted)
 
     totals = {k: float(v) for k, v in doc.items()}
     totals.update({'margin_pc': margin_pc, 'received': float(received), 'adjusted': float(adjusted),
@@ -687,6 +697,51 @@ def compute_totals(header, lines, model_name: str) -> Dict[str, Any]:
 # update_received — cash-side balance update (PJPV single engine)
 # ---------------------------------------------------------------------------
 
+#: The statuses a document holds by the system's hand, which payment may move on: none and planned
+#: (what a new or converted document starts with), released (release, receiving, release on post),
+#: open (what cash_door wrote on receipts until 2026-11-26). partially_paid is not here: the system
+#: never writes it, so a document holding it was set so by a person.
+PAID_FROM = ('', 'planned', 'released', 'open')
+
+
+def settle_paid_status(header, was_state: Optional[str], now_state: str) -> bool:
+    """Paid sets the status; the person may override it (Bill, 2026-11-27: "If we have paid an
+    invoice, we should set its status to 'paid', but in company data, they should be able to set
+    the status to whatever makes sense to them"). One rule for an invoice and a receipt, moved
+    only when the figure crosses paid, so a status the person set is never overwritten: becoming
+    paid moves a PAID_FROM status to 'paid'; no longer paid moves 'paid' back to 'released'. The
+    system never writes partially_paid or open: the partial state is totals.cash_state. No message.
+    Returns whether the status changed (the caller saves it with the totals)."""
+    status = getattr(header, 'status', '') or ''
+    if now_state == 'paid' and was_state != 'paid' and status in PAID_FROM:
+        header.status = 'paid'
+        return True
+    if was_state == 'paid' and now_state != 'paid' and status == 'paid':
+        header.status = 'released'
+        return True
+    return False
+
+
+def _save_cash_side(header, status_moved: bool) -> None:
+    if not status_moved:
+        header.save(update_fields=['totals'])
+        return
+    from apps.transactions.services.status_moves import system_status_move
+    with system_status_move():
+        header.save(update_fields=['totals', 'status', 'dt_modified', 'version'])
+
+
+def _was_cash_state(totals: Dict[str, Any], model_name: str) -> Optional[str]:
+    """The paid state a header held before this change: its cash_state, or for a receipt saved
+    before it carried one, its figures."""
+    if totals.get('cash_state'):
+        return totals['cash_state']
+    if model_name != 'receipt' or 'paid' not in totals:
+        return None
+    from apps.transactions.services.cash.cash_pending import cash_state
+    return cash_state(_d(totals.get('total', 0)), _d(totals.get('paid', 0)) + _d(totals.get('adjusted', 0)))
+
+
 def update_received(
     header,
     new_received: Decimal,
@@ -707,6 +762,7 @@ def update_received(
 
     from apps.transactions.services.cash.cash_pending import cash_state
 
+    was_state = totals.get('cash_state')
     totals['received'] = float(new_received)
     totals['adjusted'] = float(adjusted)
     totals['balance'] = float(new_balance)
@@ -714,7 +770,7 @@ def update_received(
     totals = _validate_totals(totals)
     header.totals = totals
 
-    header.save(update_fields=['totals'])
+    _save_cash_side(header, settle_paid_status(header, was_state, totals['cash_state']))
 
     logger.info(
         "Updated received for %s #%s: received=%.2f adjusted=%.2f balance=%.2f",
@@ -753,14 +809,15 @@ def update_paid(
     new_balance = balance_of(total, new_paid, adjusted)
 
     from apps.transactions.services.cash.cash_pending import cash_state
+    # A payable's paid state is this figure, as an invoice's is; paying it in full sets 'paid'
+    # (settle_paid_status, Bill 2026-11-27). The system never writes open or partially_paid.
+    was_state = _was_cash_state(totals, 'receipt')
     totals['paid'] = float(new_paid)
     totals['balance'] = float(new_balance)
-    # A payable's paid state is this figure, as an invoice's is; its status is the document's
-    # (released once received). Status no longer carries open/partially_paid/paid (Bill, 2026-11-26).
     totals['cash_state'] = cash_state(total, new_paid + adjusted)
     header.totals = totals
 
-    header.save(update_fields=['totals'])
+    _save_cash_side(header, settle_paid_status(header, was_state, totals['cash_state']))
 
     logger.info(
         "Updated paid for %s #%s: paid=%.2f balance=%.2f",
