@@ -43,8 +43,15 @@ logger = logging.getLogger(__name__)
 
 # The role vocabulary (Bill, 2026-09-18). Portal roles are people outside the
 # company; their writes are rewritten server-side where the model requires it.
+# 'support' is the staff role for an employee who is none of the others (Bill, 2026-11-26: "remove
+# 'employee' from STAFF_ROLES ... I added support as the catchall employee role"). Being an
+# employee is a fact about a person, not a role: every employee holds one of superuser, admin,
+# accounting, sales, production, warehouse or support. Agent and rep stay staff roles: "they have
+# deeper access to end customers but limited relative to employees". The vocabulary is fixed here,
+# in code, not in a Setting: "It simplified our ability to support users if we limit them in the
+# code itself."
 STAFF_ROLES = ('superuser', 'admin', 'accounting', 'sales', 'production',
-               'warehouse', 'employee', 'agent', 'rep')
+               'warehouse', 'support', 'agent', 'rep')
 #: People outside the company. A rep is not one of them (Bill, 2026-09-20: "Reps need to
 #: behave like staff"): a rep sells on the company's behalf, and being counted as portal
 #: meant the order-creation path rewrote their payload against org_ids.customer — which a
@@ -84,7 +91,7 @@ def is_portal(actor) -> bool:
 #: Roles a Connection may hold (Bill, 2026-09-23): the portal roles, rep, and the
 #: employee-level roles. Never admin or superuser — a Connection holding either would make
 #: sync privileged again by the side door. 'agent' is a login role, not applicable here.
-CONNECTION_ROLES = PORTAL_ROLES + ('rep', 'employee', 'accounting', 'sales', 'production',
+CONNECTION_ROLES = PORTAL_ROLES + ('rep', 'support', 'accounting', 'sales', 'production',
                                    'warehouse')
 
 
@@ -145,7 +152,7 @@ PUBLIC_LEVEL = 1          # the anonymous visitor's ceiling
 STAFF_FLAG_LEVEL = 4      # a login flagged is_staff (Bill, 2026-09-23)
 LEVEL_CEILING = {
     'superuser': STAFF_LEVEL, 'admin': STAFF_LEVEL,
-    'employee': 4, 'accounting': 4, 'sales': 4, 'production': 4, 'warehouse': 4, 'agent': 4,
+    'support': 4, 'accounting': 4, 'sales': 4, 'production': 4, 'warehouse': 4, 'agent': 4,
     'rep': 3, 'vendor': 3, 'manufacturer': 3,
     'customer': 2, 'buyer': 2,
 }

@@ -119,7 +119,7 @@ export interface CreateContactRequest {
   title?: string;
   department?: string;
   comment?: string;
-  role?: string; // choices: "" | "user" | "employee" | "admin"
+  role?: string; // access.LOGIN_ROLES: admin, accounting, sales, production, warehouse, support, agent, rep, customer, buyer, vendor, manufacturer, user
   customer_id?: number;
   rep_id?: number;
   vendor_id?: number;

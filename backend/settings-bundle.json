@@ -8035,18 +8035,6 @@
                 "contact_id": "$user.contact_id"
               }
             },
-            "employee": {
-              "edit": [
-                "@all"
-              ],
-              "view": [
-                "@all"
-              ],
-              "scope": {},
-              "create": true,
-              "delete": false,
-              "edit_scope": {}
-            },
             "superuser": {
               "edit": [
                 "@all"
@@ -8109,6 +8097,18 @@
                   }
                 ]
               },
+              "create": true,
+              "delete": false,
+              "edit_scope": {}
+            },
+            "support": {
+              "edit": [
+                "@all"
+              ],
+              "view": [
+                "@all"
+              ],
+              "scope": {},
               "create": true,
               "delete": false,
               "edit_scope": {}
@@ -21343,18 +21343,6 @@
               "create": false,
               "delete": false
             },
-            "employee": {
-              "edit": [
-                "@all"
-              ],
-              "view": [
-                "@all"
-              ],
-              "scope": {},
-              "create": true,
-              "delete": false,
-              "edit_scope": {}
-            },
             "superuser": {
               "edit": [
                 "@all"
@@ -21365,6 +21353,18 @@
               "scope": {},
               "create": true,
               "delete": true,
+              "edit_scope": {}
+            },
+            "support": {
+              "edit": [
+                "@all"
+              ],
+              "view": [
+                "@all"
+              ],
+              "scope": {},
+              "create": true,
+              "delete": false,
               "edit_scope": {}
             }
           },
@@ -24227,18 +24227,6 @@
               "create": false,
               "delete": false
             },
-            "employee": {
-              "edit": [
-                "@all"
-              ],
-              "view": [
-                "@all"
-              ],
-              "scope": {},
-              "create": true,
-              "delete": false,
-              "edit_scope": {}
-            },
             "superuser": {
               "edit": [
                 "@all"
@@ -24260,6 +24248,18 @@
               ],
               "scope": {},
               "create": false,
+              "delete": false,
+              "edit_scope": {}
+            },
+            "support": {
+              "edit": [
+                "@all"
+              ],
+              "view": [
+                "@all"
+              ],
+              "scope": {},
+              "create": true,
               "delete": false,
               "edit_scope": {}
             }
@@ -38617,19 +38617,6 @@
               "create": false,
               "delete": false
             },
-            "employee": {
-              "edit": [
-                "refs.tags",
-                "status"
-              ],
-              "view": [
-                "@all"
-              ],
-              "scope": {},
-              "create": true,
-              "delete": false,
-              "edit_scope": {}
-            },
             "superuser": {
               "edit": [
                 "@all"
@@ -38645,6 +38632,19 @@
             "accounting": {
               "edit": [
                 "@all"
+              ],
+              "view": [
+                "@all"
+              ],
+              "scope": {},
+              "create": true,
+              "delete": false,
+              "edit_scope": {}
+            },
+            "support": {
+              "edit": [
+                "refs.tags",
+                "status"
               ],
               "view": [
                 "@all"
@@ -42594,16 +42594,6 @@
               "create": false,
               "delete": false
             },
-            "employee": {
-              "edit": [],
-              "view": [
-                "@sales_view"
-              ],
-              "scope": {},
-              "create": false,
-              "delete": false,
-              "edit_scope": {}
-            },
             "superuser": {
               "edit": [
                 "@all"
@@ -42650,6 +42640,16 @@
                 "manufacturer_id__in": "$user.org_ids.manufacturer",
                 "metadata__flags__published": true
               },
+              "create": false,
+              "delete": false,
+              "edit_scope": {}
+            },
+            "support": {
+              "edit": [],
+              "view": [
+                "@sales_view"
+              ],
+              "scope": {},
               "create": false,
               "delete": false,
               "edit_scope": {}
@@ -52061,18 +52061,6 @@
               "create": true,
               "delete": false
             },
-            "employee": {
-              "edit": [
-                "@all"
-              ],
-              "view": [
-                "@all"
-              ],
-              "scope": {},
-              "create": true,
-              "delete": false,
-              "edit_scope": {}
-            },
             "superuser": {
               "edit": [
                 "@all"
@@ -52137,6 +52125,18 @@
                 ]
               },
               "create": false,
+              "delete": false,
+              "edit_scope": {}
+            },
+            "support": {
+              "edit": [
+                "@all"
+              ],
+              "view": [
+                "@all"
+              ],
+              "scope": {},
+              "create": true,
               "delete": false,
               "edit_scope": {}
             }
@@ -61639,18 +61639,6 @@
               "create": false,
               "delete": false
             },
-            "employee": {
-              "edit": [
-                "@all"
-              ],
-              "view": [
-                "@all"
-              ],
-              "scope": {},
-              "create": true,
-              "delete": false,
-              "edit_scope": {}
-            },
             "superuser": {
               "edit": [
                 "@all"
@@ -61661,6 +61649,18 @@
               "scope": {},
               "create": true,
               "delete": true,
+              "edit_scope": {}
+            },
+            "support": {
+              "edit": [
+                "@all"
+              ],
+              "view": [
+                "@all"
+              ],
+              "scope": {},
+              "create": true,
+              "delete": false,
               "edit_scope": {}
             }
           },
@@ -97742,39 +97742,6 @@
                 "user_id": "$user.contact_id"
               }
             },
-            "employee": {
-              "edit": [
-                "purpose",
-                "action",
-                "model_name",
-                "record_id",
-                "config.name",
-                "config.details"
-              ],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "purpose",
-                "action",
-                "model_name",
-                "record_id",
-                "config.name",
-                "config.details",
-                "user_id"
-              ],
-              "scope": {
-                "purpose__in": [
-                  "alice",
-                  "quiz"
-                ]
-              },
-              "create": true,
-              "delete": false,
-              "edit_scope": {
-                "user_id": "$user.contact_id"
-              }
-            },
             "superuser": {
               "edit": [
                 "@all"
@@ -97853,6 +97820,39 @@
               }
             },
             "production": {
+              "edit": [
+                "purpose",
+                "action",
+                "model_name",
+                "record_id",
+                "config.name",
+                "config.details"
+              ],
+              "view": [
+                "id",
+                "ida",
+                "dt_created",
+                "purpose",
+                "action",
+                "model_name",
+                "record_id",
+                "config.name",
+                "config.details",
+                "user_id"
+              ],
+              "scope": {
+                "purpose__in": [
+                  "alice",
+                  "quiz"
+                ]
+              },
+              "create": true,
+              "delete": false,
+              "edit_scope": {
+                "user_id": "$user.contact_id"
+              }
+            },
+            "support": {
               "edit": [
                 "purpose",
                 "action",

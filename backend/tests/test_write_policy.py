@@ -54,8 +54,8 @@ EMPLOYEE_CONTACT = {'view': ['@all'], 'edit': ['email', 'name_first'], 'scope': 
 # ── the filter itself ───────────────────────────────────────────────────
 
 def test_only_enumerated_fields_are_kept():
-    _grant('contact', 'employee', EMPLOYEE_CONTACT)
-    actor = Actor(user=Contact.objects.create(email='e1@example.com', role='employee'))
+    _grant('contact', 'support', EMPLOYEE_CONTACT)
+    actor = Actor(user=Contact.objects.create(email='e1@example.com', role='support'))
     target = Contact.objects.create(email='t1@example.com')
     kept, denied = _enumerated_edit(actor, target, 'contact',
                                     {'email': 'x@example.com', 'name_first': 'A',
@@ -68,19 +68,19 @@ def test_a_link_under_an_allowed_open_map_is_kept():
     # Bill, 2026-10-31: refs.links is an open map — its kinds are no listed leaves — so a
     # role allowed refs.links writes refs.links.action; one not allowed it still cannot.
     from apps.orgs.models import OrgBase
-    _grant('customer', 'employee', {'view': ['@all'], 'edit': ['refs.links'], 'scope': {}, 'create': False})
+    _grant('customer', 'support', {'view': ['@all'], 'edit': ['refs.links'], 'scope': {}, 'create': False})
     org = OrgBase.objects.create(org_type='customer', company='zz Links Co')
-    actor = Actor(user=Contact.objects.create(email='links@example.com', role='employee'))
+    actor = Actor(user=Contact.objects.create(email='links@example.com', role='support'))
     kept, denied = _enumerated_edit(actor, org, 'customer', {'refs.links.action': [{'id': 1}]})
     assert kept == {'refs.links.action': [{'id': 1}]} and denied == []
-    _grant('customer', 'employee', {'view': ['@all'], 'edit': ['company'], 'scope': {}, 'create': False})
+    _grant('customer', 'support', {'view': ['@all'], 'edit': ['company'], 'scope': {}, 'create': False})
     kept, denied = _enumerated_edit(actor, org, 'customer', {'refs.links.action': [{'id': 1}]})
     assert kept == {} and denied == ['refs.links.action']
 
 
 def test_system_fields_are_written_only_by_an_admin():
-    _grant('contact', 'employee', {**EMPLOYEE_CONTACT, 'edit': ['@all']})
-    employee = Actor(user=Contact.objects.create(email='e3@example.com', role='employee'))
+    _grant('contact', 'support', {**EMPLOYEE_CONTACT, 'edit': ['@all']})
+    employee = Actor(user=Contact.objects.create(email='e3@example.com', role='support'))
     target = Contact.objects.create(email='t2@example.com')
     payload = {field: 1 for field in SYSTEM_ONLY_FIELDS
                if field not in ('id', 'version', 'ida', 'uuid') and field not in SYSTEM_DT_FIELDS}
@@ -88,7 +88,7 @@ def test_system_fields_are_written_only_by_an_admin():
     assert kept == {} and set(denied) == set(payload)
 
 
-@pytest.mark.parametrize('role', ['employee', 'admin'])
+@pytest.mark.parametrize('role', ['support', 'admin'])
 def test_an_ida_is_locked_for_every_role_but_a_superuser_who_unlocks_it(role):
     """Bill, 2026-09-29: ida is locked; only a superuser unlocks it (admins lose the edit)."""
     from apps.core.services.door import Refused
@@ -103,7 +103,7 @@ def test_an_ida_is_locked_for_every_role_but_a_superuser_who_unlocks_it(role):
     assert kept['ida'] == 'C-100'
 
 
-@pytest.mark.parametrize('role', ['employee', 'admin', 'superuser'])
+@pytest.mark.parametrize('role', ['support', 'admin', 'superuser'])
 def test_a_system_stamp_is_refused_for_every_role(role):
     """Bill, 2026-09-28: a system dt_ is refused with coaching, admins included (C2-01)."""
     from apps.core.services.door import Refused
@@ -117,8 +117,8 @@ def test_a_system_stamp_is_refused_for_every_role(role):
 
 
 def test_an_echo_of_a_stored_stamp_is_left_out_not_refused():
-    _grant('contact', 'employee', {**EMPLOYEE_CONTACT, 'edit': ['@all']})
-    actor = Actor(user=Contact.objects.create(email='echo@example.com', role='employee'))
+    _grant('contact', 'support', {**EMPLOYEE_CONTACT, 'edit': ['@all']})
+    actor = Actor(user=Contact.objects.create(email='echo@example.com', role='support'))
     target = Contact.objects.create(email='t-echo@example.com')
     kept, _ = _enumerated_edit(actor, target, 'contact',
                                {'dt_created': target.dt_created, 'name_first': 'A'})
@@ -126,8 +126,8 @@ def test_an_echo_of_a_stored_stamp_is_left_out_not_refused():
 
 
 def test_envelope_keys_and_signals_pass():
-    _grant('contact', 'employee', EMPLOYEE_CONTACT)
-    actor = Actor(user=Contact.objects.create(email='e2@example.com', role='employee'))
+    _grant('contact', 'support', EMPLOYEE_CONTACT)
+    actor = Actor(user=Contact.objects.create(email='e2@example.com', role='support'))
     target = Contact.objects.create(email='t3@example.com')
     kept, _ = _enumerated_edit(actor, target, 'contact',
                                {'model_name': 'contact', 'id': target.pk, 'version': 1,
@@ -157,9 +157,9 @@ class TestWcapiSave:
     def test_employee_may_not_set_authority_fields_on_a_contact(self, django_user_model):
         """is_superuser is authority, not a field: the contact guard refuses it outright,
         and the refusal is whole — the permitted field does not land either."""
-        _grant('contact', 'employee', EMPLOYEE_CONTACT)
+        _grant('contact', 'support', EMPLOYEE_CONTACT)
         employee = django_user_model.objects.create_user(
-            email="emp@example.com", password=TEST_PASSWORD, role="employee")
+            email="emp@example.com", password=TEST_PASSWORD, role="support")
         target = django_user_model.objects.create_user(
             email="target@example.com", password=TEST_PASSWORD, role="user",
             security_level=1)   # as the save door stamps a new contact; 0 is staff-only
@@ -182,12 +182,12 @@ class TestWcapiSave:
             email="target2@example.com", password=TEST_PASSWORD, role="user")
         resp = wcapi_save(_auth_client(admin), {
             "model_name": "contact", "id": target.pk,
-            "email": "admin-updated@example.com", "role": "employee",
+            "email": "admin-updated@example.com", "role": "support",
         }, format="json")
         assert resp.status_code == 200, resp.data
         target.refresh_from_db()
         assert target.email == "admin-updated@example.com"
-        assert target.role == "employee"
+        assert target.role == "support"
 
     def test_a_person_may_not_raise_their_own_role(self, django_user_model):
         """A person reaches their own contact (Bill, 2026-09-23); reaching it is not
@@ -206,9 +206,9 @@ class TestWcapiSave:
         read it as being there regardless of if it is in the payload or not."* A form
         round-trips every field it was served, and view is a superset of edit — refusing
         those echoes would reject every save from the screen."""
-        _grant('contact', 'employee', EMPLOYEE_CONTACT)
+        _grant('contact', 'support', EMPLOYEE_CONTACT)
         employee = django_user_model.objects.create_user(
-            email="emp2@example.com", password=TEST_PASSWORD, role="employee")
+            email="emp2@example.com", password=TEST_PASSWORD, role="support")
         target = django_user_model.objects.create_user(
             email="t4@example.com", password=TEST_PASSWORD, role="user",
             name_last="Unchanged", security_level=1)

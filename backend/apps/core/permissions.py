@@ -46,7 +46,7 @@ def get_role_field_rules(model, role: str) -> Dict[str, List[str]]:
 
     default_rules = {
         'admin': {'view': None, 'edit': None},
-        'employee': {'view': None, 'edit': None},
+        'support': {'view': None, 'edit': None},
         'user': {
             'view': base_fields + ownership_fields + ['name', 'status', 'description'],
             'edit': base_fields + ownership_fields + ['description', 'status'],
@@ -72,7 +72,7 @@ def get_role_field_rules(model, role: str) -> Dict[str, List[str]]:
     model_rules = {
         'contact': {
             'admin': {'view': None, 'edit': None},
-            'employee': {'view': None, 'edit': contact_edit_employee},
+            'support': {'view': None, 'edit': contact_edit_employee},
             'user': {'view': contact_view_user, 'edit': contact_edit_user},
         },
     }
@@ -115,7 +115,7 @@ def has_permission(user, permission: str, obj=None) -> bool:
     # Role-based permissions
     role_permissions = {
         'admin': ['*'],
-        'employee': [
+        'support': [
             'view_all', 'edit_own', 'edit_team', 'create', 'approve', 'manage_team'
         ],
         'user': [
@@ -151,7 +151,7 @@ def get_user_permissions(user) -> List[str]:
     user_role = getattr(user, 'role', '')
     role_permissions = {
         'admin': ['*'],
-        'employee': [
+        'support': [
             'view_all', 'edit_own', 'edit_team', 'approve', 'manage_team',
             'create_invoice', 'edit_invoice', 'delete_invoice',
             'create_order', 'edit_order', 'approve_order',

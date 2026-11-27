@@ -94,7 +94,7 @@ def _person(role, **extra):
     ('customer', {1, 2}),
     ('vendor', {1, 2, 3}),
     ('rep', {1, 2, 3}),
-    ('employee', {1, 2, 3, 4}),
+    ('support', {1, 2, 3, 4}),
     ('agent', {1, 2, 3, 4}),
     ('admin', {0, 1, 2, 3, 4, 5, 9}),
 ])

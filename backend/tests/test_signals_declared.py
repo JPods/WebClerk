@@ -28,8 +28,8 @@ def test_an_undeclared_signal_is_refused_and_names_what_the_model_reads():
 
 def test_a_person_attaches_a_document_to_an_action():
     from apps.docs.models import Document, LinkageEntry
-    _grant('action', 'employee', ACTION_BLOCK)
-    person = Contact.objects.create(email='attach@example.com', role='employee')
+    _grant('action', 'support', ACTION_BLOCK)
+    person = Contact.objects.create(email='attach@example.com', role='support')
     doc = Document.objects.create(name='spec.pdf')
     saved = save_record(Actor(user=person), {'model_name': 'action', 'action': {'en': 'Review spec'},
                                              '_attachments': [doc.pk]})
@@ -37,7 +37,7 @@ def test_a_person_attaches_a_document_to_an_action():
 
 
 def test_a_bogus_signal_on_an_action_is_still_refused():
-    _grant('action', 'employee', ACTION_BLOCK)
-    person = Contact.objects.create(email='bogus@example.com', role='employee')
+    _grant('action', 'support', ACTION_BLOCK)
+    person = Contact.objects.create(email='bogus@example.com', role='support')
     with pytest.raises((Refused, CarrierError)):
         save_record(Actor(user=person), {'model_name': 'action', 'action': {'en': 'x'}, '_bogus': 1})

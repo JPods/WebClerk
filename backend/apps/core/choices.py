@@ -11,12 +11,14 @@ from typing import Final, Tuple
 Choice = Tuple[object, str]
 ChoiceList = Tuple[Choice, ...]
 
-CONTACT_ROLE_CHOICES: Final[ChoiceList] = (
-    ("", ""),
-    ("user", "user"),
-    ("employee", "employee"),
-    ("admin", "admin"),
-)
+def _contact_roles() -> ChoiceList:
+    """The values contact.role may hold: the one vocabulary, access.LOGIN_ROLES. Until 2026-11-26
+    this list said user, employee, admin while the access rules named thirteen roles."""
+    from apps.core.services.access import LOGIN_ROLES
+    return (("", ""),) + tuple((role, role) for role in LOGIN_ROLES)
+
+
+CONTACT_ROLE_CHOICES: Final[ChoiceList] = _contact_roles()
 
 ACTION_KANBAN_COLUMNS: Final[ChoiceList] = (
     ("", ""),

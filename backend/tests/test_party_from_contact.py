@@ -122,9 +122,9 @@ def test_a_contact_of_another_org_is_refused(admin):
 
 def test_a_role_that_may_not_edit_the_customer_is_refused(django_user_model):
     org, contact, _a, _p = _customer_with_contact()
-    _customer_access({'employee': {'view': ['@all'], 'edit': [], 'scope': {}, 'create': False, 'delete': False}})
+    _customer_access({'support': {'view': ['@all'], 'edit': [], 'scope': {}, 'create': False, 'delete': False}})
     _visible_to_staff(org)
-    viewer = _person(django_user_model, 'employee')
+    viewer = _person(django_user_model, 'support')
     with pytest.raises(Refused) as refused:
         run_command(_as(viewer), 'from_contact', 'customer', org.pk, {'contact_id': contact.pk, 'bill_to': True})
     assert refused.value.code == 'edit_not_permitted'
@@ -152,10 +152,10 @@ def test_a_stale_version_is_refused(admin):
 
 def test_a_role_whose_edit_enumeration_lacks_the_parties_is_refused_not_ignored(django_user_model):
     org, contact, _a, _p = _customer_with_contact()
-    _customer_access({'employee': {'view': ['@all'], 'edit': ['company', 'attention'], 'scope': {},
+    _customer_access({'support': {'view': ['@all'], 'edit': ['company', 'attention'], 'scope': {},
                                    'create': False, 'delete': False}})
     _visible_to_staff(org)
-    clerk = _person(django_user_model, 'employee')
+    clerk = _person(django_user_model, 'support')
     with pytest.raises(Refused) as refused:
         run_command(_as(clerk), 'from_contact', 'customer', org.pk,
                     {'contact_id': contact.pk, 'version': org.version, 'bill_to': True})

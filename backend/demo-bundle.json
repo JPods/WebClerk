@@ -7995,18 +7995,6 @@
                 "contact_id": "$user.contact_id"
               }
             },
-            "employee": {
-              "edit": [
-                "@all"
-              ],
-              "view": [
-                "@all"
-              ],
-              "scope": {},
-              "create": true,
-              "delete": false,
-              "edit_scope": {}
-            },
             "superuser": {
               "edit": [
                 "@all"
@@ -8069,6 +8057,18 @@
                   }
                 ]
               },
+              "create": true,
+              "delete": false,
+              "edit_scope": {}
+            },
+            "support": {
+              "edit": [
+                "@all"
+              ],
+              "view": [
+                "@all"
+              ],
+              "scope": {},
               "create": true,
               "delete": false,
               "edit_scope": {}
@@ -21861,18 +21861,6 @@
               "create": false,
               "delete": false
             },
-            "employee": {
-              "edit": [
-                "@all"
-              ],
-              "view": [
-                "@all"
-              ],
-              "scope": {},
-              "create": true,
-              "delete": false,
-              "edit_scope": {}
-            },
             "superuser": {
               "edit": [
                 "@all"
@@ -21883,6 +21871,18 @@
               "scope": {},
               "create": true,
               "delete": true,
+              "edit_scope": {}
+            },
+            "support": {
+              "edit": [
+                "@all"
+              ],
+              "view": [
+                "@all"
+              ],
+              "scope": {},
+              "create": true,
+              "delete": false,
               "edit_scope": {}
             }
           },
@@ -94348,39 +94348,6 @@
                 "user_id": "$user.contact_id"
               }
             },
-            "employee": {
-              "edit": [
-                "purpose",
-                "action",
-                "model_name",
-                "record_id",
-                "config.name",
-                "config.details"
-              ],
-              "view": [
-                "id",
-                "ida",
-                "dt_created",
-                "purpose",
-                "action",
-                "model_name",
-                "record_id",
-                "config.name",
-                "config.details",
-                "user_id"
-              ],
-              "scope": {
-                "purpose__in": [
-                  "alice",
-                  "quiz"
-                ]
-              },
-              "create": true,
-              "delete": false,
-              "edit_scope": {
-                "user_id": "$user.contact_id"
-              }
-            },
             "superuser": {
               "edit": [
                 "@all"
@@ -94459,6 +94426,39 @@
               }
             },
             "production": {
+              "edit": [
+                "purpose",
+                "action",
+                "model_name",
+                "record_id",
+                "config.name",
+                "config.details"
+              ],
+              "view": [
+                "id",
+                "ida",
+                "dt_created",
+                "purpose",
+                "action",
+                "model_name",
+                "record_id",
+                "config.name",
+                "config.details",
+                "user_id"
+              ],
+              "scope": {
+                "purpose__in": [
+                  "alice",
+                  "quiz"
+                ]
+              },
+              "create": true,
+              "delete": false,
+              "edit_scope": {
+                "user_id": "$user.contact_id"
+              }
+            },
+            "support": {
               "edit": [
                 "purpose",
                 "action",
@@ -102966,7 +102966,7 @@
         "manufacturer_id": null,
         "rep_id": null,
         "source_name": "",
-        "role": "employee",
+        "role": "support",
         "is_active": true,
         "is_staff": false,
         "dt_joined": "2026-08-12T02:44:35.740356+00:00",
@@ -103123,7 +103123,7 @@
         "manufacturer_id": null,
         "rep_id": null,
         "source_name": "",
-        "role": "employee",
+        "role": "support",
         "is_active": true,
         "is_staff": false,
         "dt_joined": "2026-08-12T02:44:35.740356+00:00",

@@ -122,5 +122,5 @@ def test_admin_is_a_logins_own_authority_never_borrowed():
     agent = Contact.objects.create(email='agt@example.com', role='agent')
     assert access.is_admin(Actor(user=admin)) is True
     assert access.is_admin(Actor(user=agent, acting_as='admin')) is False   # borrowed
-    assert access.is_admin(Actor.for_connection(_connection('employee'))) is False
+    assert access.is_admin(Actor.for_connection(_connection('support'))) is False
     assert access.is_admin(Actor.anonymous()) is False

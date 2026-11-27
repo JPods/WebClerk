@@ -192,7 +192,7 @@ def test_a_shelter_ride_is_invoiced_and_written_off_by_the_attendant():
     from apps.jpods.services.invoice_service import create_trip_invoice
     buyer = _customer('Shelter Rider')
     rider = Contact.objects.create(email='shelter@jpods.test', customer_id=buyer.pk)
-    attendant = Contact.objects.create(email='attendant@jpods.test', role='employee')
+    attendant = Contact.objects.create(email='attendant@jpods.test', role='support')
     trip = {'contact_id': rider.pk, 'origin_station_id': 'S001', 'destination_station_id': 'S009',
             'price': '4.00', 'currency': 'USD', 'shelter': True}
     assert create_trip_invoice(trip).get('code') == 'shelter_unauthorized'
