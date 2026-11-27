@@ -57,3 +57,26 @@ def may_change(actor) -> bool:
     if not actor.is_guarded:
         return True
     return bool(actor.user is not None and getattr(actor.user, 'is_staff', False))
+
+
+#: The field a list's From/To period filters when the definition names none: when the record
+#: was made.
+DEFAULT_PERIOD_FIELD = 'dt_created'
+
+
+def period_field(key: str) -> str:
+    """The field that dates a record of model ``key`` for a period (From/To on its list):
+    config.period_field in its definition, else dt_created. A GL row's period is its document's
+    date, dt_document, not the day it posted (Bill, 2026-11-27). A name the model does not have as
+    an integer dt_ field (UTC epoch ms) is ignored for the default, so a typo never filters nothing."""
+    from django.db import models as dj_models
+    from apps.core.utils.registry import resolve
+    declared = part(key, ('period_field',), lambda v: v if isinstance(v, str) else '')
+    if not declared or not declared.startswith('dt_'):
+        return DEFAULT_PERIOD_FIELD
+    ModelCls = resolve(key)
+    try:
+        field = ModelCls._meta.get_field(declared) if ModelCls else None
+    except Exception:
+        field = None
+    return declared if isinstance(field, dj_models.BigIntegerField) else DEFAULT_PERIOD_FIELD

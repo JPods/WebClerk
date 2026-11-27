@@ -21,6 +21,7 @@ import { manageAction } from '@/api/wcapi';
 import RecordLink from '@/components/common/RecordLink';
 import { formatCurrency } from '@/utils/stringUtils';
 import { formatDt } from '@/utils/fieldFormatters';
+import SendPeriodToAccounting from './SendPeriodToAccounting';
 
 export const POSTING_MODELS = ['invoice', 'cash', 'receipt', 'workorder'] as const;
 export type PostingModel = typeof POSTING_MODELS[number];
@@ -95,6 +96,7 @@ const JournalizeReport: React.FC = () => {
   const [unallocTicked, setUnallocTicked] = useState<Set<number>>(new Set());
   const [begin, setBegin] = useState('');
   const [end, setEnd] = useState('');
+  const [sending, setSending] = useState(false);
 
   const load = useCallback(async () => {
     if (!known) return;
@@ -160,8 +162,13 @@ const JournalizeReport: React.FC = () => {
             {posting ? 'Posting…' : `Post ${ids.length || ''}`.trim()}
           </button>
           <button className="fs-btn" onClick={load} disabled={posting}>Reload</button>
+          <button className="fs-btn" onClick={() => setSending((v) => !v)} aria-expanded={sending}
+                  title="The month's posted GL, by its documents' period, as a file for the accountant">
+            Send period to accounting
+          </button>
         </span>
       </div>
+      {sending && <SendPeriodToAccounting />}
       {error && <div style={{ color: 'var(--db-accent-red, #c92a2a)', fontSize: 12, marginBottom: 6 }}>{error}</div>}
       {answer && (
         <div style={{ fontSize: 12, marginBottom: 6, padding: '4px 8px', background: 'var(--db-surface-alt, #f1f3f5)', borderRadius: 4 }}>

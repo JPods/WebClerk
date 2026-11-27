@@ -1754,6 +1754,7 @@ class ModelDetailView(APIView):
         if not ModelCls:
             return Response({"detail": "invalid model"}, status=status.HTTP_400_BAD_REQUEST)
 
+        from apps.core.services.definition import period_field as _period_field
         fields = []
         for f in ModelCls._meta.fields:
             fields.append({"name": f.name, "type": f.__class__.__name__})
@@ -1772,6 +1773,8 @@ class ModelDetailView(APIView):
                     "model": {
                         "model_name": model_key,
                         "fields": fields,
+                        # What a list's From/To filters: the definition's config.period_field.
+                        "period_field": _period_field(model_key),
                     }
                 }
             },

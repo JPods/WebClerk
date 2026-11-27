@@ -52,6 +52,9 @@ logger = logging.getLogger(__name__)
 # code itself."
 STAFF_ROLES = ('superuser', 'admin', 'accounting', 'sales', 'production',
                'warehouse', 'support', 'agent', 'rep')
+#: The staff who send the books out: the GL for a period, as a file for the accountant (the lead,
+#: 2026-11-27). Every staff role reached GET /wcapi/reports/gl-export/ before.
+ACCOUNTING_ROLES = ('superuser', 'admin', 'accounting')
 #: People outside the company. A rep is not one of them (Bill, 2026-09-20: "Reps need to
 #: behave like staff"): a rep sells on the company's behalf, and being counted as portal
 #: meant the order-creation path rewrote their payload against org_ids.customer — which a

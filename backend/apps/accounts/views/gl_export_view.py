@@ -11,7 +11,7 @@ import logging
 from django.http import HttpResponse
 from rest_framework.views import APIView
 
-from apps.core.permissions import IsStaffRole
+from apps.core.permissions import IsAccountingRole
 
 from common.api_responses import api_response
 
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 class GlExportView(APIView):
     """Serve a GL journal export in a specific accounting format."""
 
-    permission_classes = [IsStaffRole]
+    permission_classes = [IsAccountingRole]   # the books leave with accounting only
 
     def get(self, request, *args, **kwargs):
         from apps.accounts.services.gl_export import gl_export, REPORT_NAME_MAP
@@ -34,7 +34,8 @@ class GlExportView(APIView):
             return api_response(
                 success=False, status_code=400,
                 message="'report' query parameter is required",
-                error={'code': 'missing_report'},
+                # The formats, from the one list (REPORT_NAME_MAP): the screen asks rather than copies.
+                error={'code': 'missing_report', 'available': list(REPORT_NAME_MAP.keys())},
             )
 
         if not period:

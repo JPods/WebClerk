@@ -140,6 +140,7 @@ def post_selected(actor, model_key: str, ids, options=None) -> Dict[str, Any]:
     batch = JournalBatch.objects.create(
         ida=f'JB-{model_key}-{started}', batch_type=model_key, status=JournalBatch.STATUS_PROCESSING,
         dt_started=started, run_by=getattr(actor, 'user', None), config={'model': model_key, 'ids': ids})
+    GlJournal = dj_apps.get_model('accounts', 'GlJournal')
     posted, refused = [], []
     for pk in ids:
         obj = Model.objects.filter(pk=pk).first()
@@ -148,8 +149,13 @@ def post_selected(actor, model_key: str, ids, options=None) -> Dict[str, Any]:
             refused.append({**row, 'code': 'not_found', 'message': f'{model_key} {pk} does not exist.'})
             continue
         try:
+            before = GlJournal.objects.order_by('-pk').values_list('pk', flat=True).first() or 0
             result = run_command(actor, 'journalize', model_key, pk,
                                  {'post_unallocated': True} if options.get(pk, {}).get('post_unallocated') else {})
+            # The rows this record's post wrote name the run that posted them (the lead, 2026-11-27):
+            # its own rows only, by its source and above where the run began.
+            GlJournal.objects.filter(pk__gt=before, source_model=model_key, source_id=pk,
+                                     batch_id='').update(batch_id=batch.ida)
             posted.append({**row, 'created': int((result or {}).get('created') or 0),
                            'messages': list((result or {}).get('messages') or [])})
         except Refused as e:                       # this row's own refusal; the next row still runs

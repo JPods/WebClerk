@@ -99,11 +99,14 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
   // Build extra filters from date range + who + query builder
   const extraFilters = useMemo(() => {
     const f: Record<string, unknown> = {};
-    if (dateFrom) {
-      f.dt_created__gte = new Date(dateFrom + 'T00:00:00').getTime();
-    }
-    if (dateTo) {
-      f.dt_created__lte = new Date(dateTo + 'T23:59:59').getTime();
+    // The period is a signal: the hook filters the model's declared period field with it
+    // (its definition's config.period_field, from _model_detail; else dt_created). A GL row's
+    // period is its document's date, dt_document (2026-11-27).
+    if (dateFrom || dateTo) {
+      f._period = {
+        ...(dateFrom ? { gte: new Date(dateFrom + 'T00:00:00').getTime() } : {}),
+        ...(dateTo ? { lte: new Date(dateTo + 'T23:59:59').getTime() } : {}),
+      };
     }
     if (staffFilter) {
       f.contact_id = staffFilter;
@@ -564,8 +567,8 @@ const DataBrowser: React.FC<{ defaultModel?: string }> = ({ defaultModel }) => {
         <input data-wc="db-search" className="db-search" type="text" placeholder="Search records..." value={db.searchTerm} onChange={(e) => db.setSearchTerm(e.target.value)} />
 
         {/* Date range */}
-        <input type="date" className="db-date-input" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} title="From date" />
-        <input type="date" className="db-date-input" value={dateTo} onChange={(e) => setDateTo(e.target.value)} title="To date" />
+        <input type="date" className="db-date-input" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} title={`From: ${db.periodField}`} />
+        <input type="date" className="db-date-input" value={dateTo} onChange={(e) => setDateTo(e.target.value)} title={`To: ${db.periodField}`} />
 
         {/* Date presets */}
         <select className="db-date-preset" value="" onChange={(e) => { if (e.target.value) setDatePreset(e.target.value); e.target.value = ''; }} title="Date presets">

@@ -229,6 +229,18 @@ class ViewEditPermission(DRFBasePermission):
         # 5. For write requests, the role must have at least one editable field
         return bool(rules.get('edit'))
 
+class IsAccountingRole(DRFBasePermission):
+    """The company's books leave only with accounting, admin or a superuser (access.ACCOUNTING_ROLES):
+    the GL export for a period. Every other staff role, a portal person and a visitor are refused."""
+    message = "Sending the books to accounting is for accounting staff, an admin or a superuser."
+    code = 'accounting_required'
+
+    def has_permission(self, request, view):
+        from apps.core.services.access import ACCOUNTING_ROLES
+        from apps.core.services.door import Actor
+        return Actor.from_request(request).role in ACCOUNTING_ROLES
+
+
 class IsStaffRole(DRFBasePermission):
     """Company staff only (Bill, 2026-09-28): the caller's role is a staff role.
 

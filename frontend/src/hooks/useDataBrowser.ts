@@ -287,6 +287,18 @@ export const PAGE_SIZE = 50;
 // Hook
 // ---------------------------------------------------------------------------
 
+/** A filter set as the server takes it: the `_period` signal becomes the period field's range. */
+export function periodFilters(filters: Record<string, unknown>, periodField: string): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(filters)) {
+    if (k !== '_period') { out[k] = v; continue; }
+    const range = (v || {}) as { gte?: number; lte?: number };
+    if (range.gte != null) out[`${periodField}__gte`] = range.gte;
+    if (range.lte != null) out[`${periodField}__lte`] = range.lte;
+  }
+  return out;
+}
+
 export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, extraFilters?: Record<string, unknown>) {
   const authUser = useSelector((s: RootState) => s.auth?.user);
   const isSuperuser = !!(authUser?.is_superuser);
@@ -320,6 +332,9 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
     });
     urlFiltersRef.current = filters;
   }
+
+  // The field From/To filters for this model (its definition's config.period_field).
+  const [periodField, setPeriodField] = useState('dt_created');
 
   // Stable key for extraFilters to avoid infinite re-fetch
   const extraFiltersKey = useMemo(() => extraFilters ? JSON.stringify(extraFilters) : '', [extraFilters]);
@@ -624,7 +639,7 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
           }
         }
         if (extraFilters) {
-          for (const [k, v] of Object.entries(extraFilters)) {
+          for (const [k, v] of Object.entries(periodFilters(extraFilters, 'dt_created'))) {
             if (v !== undefined && v !== null && v !== '') params[k] = String(v);
           }
         }
@@ -643,6 +658,8 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
         const md = await getModelDetail(selectedModel) as { model?: { fields?: unknown } };
         if (modelChangeRef.current !== fetchId) { dbLog('fetchRecords:stale (model changed)'); return; }
 
+        const declared = (md?.model as { period_field?: string } | undefined)?.period_field || 'dt_created';
+        setPeriodField(declared);
         const rf = md?.model?.fields;
         if (Array.isArray(rf)) fields = rf.map(fieldName).filter((n): n is string => !!n);
         else if (isObj(rf)) fields = Object.keys(rf);
@@ -662,7 +679,7 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
           }
         }
         if (extraFilters) {
-          for (const [k, v] of Object.entries(extraFilters)) {
+          for (const [k, v] of Object.entries(periodFilters(extraFilters, declared))) {
             if (v !== undefined && v !== null && v !== '') params[k] = v;
           }
         }
@@ -1250,6 +1267,7 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
 
   return {
     modelFormatting,
+    periodField,
     // Model
     modelNames, loadingModels, modelsError, selectedModel, modelLabel, modelParam,
     handleSelectModel,

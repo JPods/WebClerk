@@ -163,3 +163,13 @@ def test_the_period_chooses_rows_by_dt_created(terms, chart_of_accounts):
     assert ids(end=1_791_000_000_000) == {early.pk}
     report = unposted('invoice', begin=1_791_000_000_000, end=1_796_000_000_000)
     assert report['begin'] == 1_791_000_000_000 and report['total'] >= 1
+
+
+def test_the_rows_a_run_posts_name_the_run(admin, terms, chart_of_accounts):
+    """A GL row says which run posted it: batch_id is the JournalBatch's ida (2026-11-27)."""
+    from apps.accounts.models import GlJournal
+    from apps.accounts.services.journalize_report import post_selected
+    inv = _invoice('released')
+    answer = post_selected(admin, 'invoice', [inv.pk])
+    rows = GlJournal.objects.filter(source_model='invoice', source_id=inv.pk)
+    assert rows.exists() and set(rows.values_list('batch_id', flat=True)) == {answer['batch']}

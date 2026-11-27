@@ -784,8 +784,9 @@ def get_defaults_walk_scenario() -> Dict[str, Any]:
                 'questions the command would — is the document complete, and is it released — '
                 'and says what is missing in the command\'s own words, so what you fix on the '
                 'record is what the report asked for.\n\n'
-                'Once posted, the invoice is locked: its status cannot move, its lines cannot '
-                'change, and its dt_journaled records the moment. The run is recorded as a '
+                'Once posted, the invoice is locked: its lines and figures cannot change, and its '
+                'dt_journaled records the moment. Its status still answers to you and to payment — '
+                'paid in full reads paid (Bill, 2026-11-27). The run is recorded as a '
                 'JournalBatch — who posted, which records, how many posted and how many were '
                 'refused — the audit record of a choice someone made.\n\n'
                 'What you post here is real on this data set: every report, dashboard and GL '
@@ -1686,12 +1687,16 @@ def get_week_to_accounting_scenario() -> Dict[str, Any]:
         },
         {
             'step': 5,
-            'title': 'The week in the GL',
+            'title': 'The week in the GL, then the month to accounting',
             'instruction': (
-                'Open GL Journal. Its list shows each row\'s dt_document: the period it belongs to. Sort '
-                'by dt_document and find this week\'s rows: SJ-1064-inv, SJ-1065-inv, CJ-1060-cash, '
-                'CJ-1061-cash, RJ-29 to RJ-32.\n\n'
-                'Debits equal credits for each document. The week is in the books, in its own period.'
+                f'Open GL Journal. Set From {WEEK_FROM} and To {WEEK_TO}: on GL Journal they filter '
+                'dt_document, each row\'s period. This week\'s rows are there: SJ-1064-inv, SJ-1065-inv, '
+                'CJ-1060-cash, CJ-1061-cash, RJ-29 to RJ-32. Each row\'s batch_id names the run that posted '
+                'it (JB-…).\n\n'
+                'Back on Journalize, click "Send period to accounting". Choose the month (2026-11) and click '
+                'Check: the month\'s rows, debits and credits, and ✓ when they balance. Choose the '
+                'accountant\'s format (Generic CSV, QuickBooks IIF, Xero CSV, Sage CSV, Generic JSON) and '
+                'click Download.'
             ),
             'action': 'review_gl',
             'model': 'gl_journal',
@@ -1706,7 +1711,9 @@ def get_week_to_accounting_scenario() -> Dict[str, Any]:
             'explanation': (
                 'Accounting reads the GL by period. A row\'s period is its document\'s date (dt_document), '
                 'not the day it posted. So a week posted late still lands in its own week, and a month '
-                'closes on the month\'s business.'
+                'closes on the month\'s business.\n\n'
+                'The file is the month as the books hold it, by period, every row naming its source '
+                'document and its run. Only accounting, an admin or a superuser can send it.'
             ),
         },
     ]

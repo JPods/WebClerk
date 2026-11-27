@@ -34462,7 +34462,8 @@
           "dates",
           "json"
         ],
-        "orderby": []
+        "orderby": [],
+        "period_field": "dt_document"
       },
       "metadata": {
         "flow": {},
