@@ -752,8 +752,12 @@ def update_paid(
     adjusted = _d(totals.get('adjusted', 0))
     new_balance = balance_of(total, new_paid, adjusted)
 
+    from apps.transactions.services.cash.cash_pending import cash_state
     totals['paid'] = float(new_paid)
     totals['balance'] = float(new_balance)
+    # A payable's paid state is this figure, as an invoice's is; its status is the document's
+    # (released once received). Status no longer carries open/partially_paid/paid (Bill, 2026-11-26).
+    totals['cash_state'] = cash_state(total, new_paid + adjusted)
     header.totals = totals
 
     header.save(update_fields=['totals'])

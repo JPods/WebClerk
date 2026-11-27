@@ -207,26 +207,10 @@ def _refresh_after(cash=None, target=None) -> None:
     if target is not None:
         if target._meta.model_name == 'receipt':
             refresh_receipt_paid(target)
-            _refresh_receipt_status(target)
         else:
             refresh_invoice_cash(target)
     if cash is not None:
         refresh_cash_available(cash)
-
-
-def _refresh_receipt_status(receipt) -> None:
-    """A payable's status is derived both ways. It used to move only toward paid, so a
-    reversed receipt stayed 'paid' with nothing paid on it (Fable)."""
-    from apps.transactions.services.cash.cash_pending_receipt import _applied
-    paid = _applied(receipt_id=receipt.pk)
-    from apps.transactions.services.pricing.totals_compute import balance_of
-    totals = receipt.totals or {}
-    # total − paid − adjusted: a payable written off in part is paid (readme 111, finding 2).
-    balance = balance_of(totals.get('total'), paid, totals.get('adjusted'))
-    status = 'paid' if (paid and balance <= 0) else ('partially_paid' if paid else 'open')
-    if receipt.status != status:
-        receipt.status = status
-        receipt.save(update_fields=['status', 'dt_modified', 'version'])
 
 
 # ── deleting a record reverses its cash ───────────────────────────────

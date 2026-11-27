@@ -59,20 +59,22 @@ def test_balance_is_total_less_settled_less_adjusted():
     assert balance_of(10, 10.005) == Decimal('-0.01')
 
 
-def test_a_payable_written_off_in_part_is_paid(monkeypatch):
-    """cash_door left `adjusted` out, so 60 paid and 40 written off read 'partially_paid'."""
-    from apps.transactions.services.cash import cash_door, cash_pending_receipt
-    monkeypatch.setattr(cash_pending_receipt, '_applied', lambda receipt_id: Decimal('60.00'))
+def test_a_payable_written_off_in_part_is_paid():
+    """cash_door left `adjusted` out, so 60 paid and 40 written off read 'partially_paid'. A
+    payable's paid state is now its totals.cash_state, as an invoice's is; its status is the
+    document's and the payment never writes it (Bill, 2026-11-26)."""
+    from apps.transactions.services.pricing.totals_compute import update_paid
     saved = []
-    receipt = SimpleNamespace(pk=1, status='open', totals={'total': 100.0, 'adjusted': 40.0},
-                              save=lambda **kw: saved.append(kw))
-    cash_door._refresh_receipt_status(receipt)
-    assert receipt.status == 'paid' and saved
+    meta = SimpleNamespace(model_name='receipt')
+    receipt = SimpleNamespace(pk=1, status='released', totals={'total': 100.0, 'adjusted': 40.0},
+                              _meta=meta, save=lambda **kw: saved.append(kw))
+    update_paid(receipt, Decimal('60.00'))
+    assert receipt.totals['cash_state'] == 'paid' and receipt.status == 'released' and saved
 
-    receipt = SimpleNamespace(pk=1, status='open', totals={'total': 100.0},
-                              save=lambda **kw: saved.append(kw))
-    cash_door._refresh_receipt_status(receipt)
-    assert receipt.status == 'partially_paid'
+    receipt = SimpleNamespace(pk=1, status='released', totals={'total': 100.0},
+                              _meta=meta, save=lambda **kw: saved.append(kw))
+    update_paid(receipt, Decimal('60.00'))
+    assert receipt.totals['cash_state'] == 'partial' and receipt.status == 'released'
 
 
 # ── Commission ──────────────────────────────────────────────────────────────

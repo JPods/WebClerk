@@ -232,11 +232,7 @@ def apply_receipt_cash_pending(pending) -> bool:
             from apps.transactions.services.cash.cash_pending import record_application_event
             record_application_event(receipt, pending, changes, cash)
 
-            refresh_receipt_paid(receipt)
-            # Derived both ways: this only ever moved toward paid, so a payable whose
-            # payment was reversed stayed 'paid' with nothing paid on it (Fable).
-            from apps.transactions.services.cash.cash_door import _refresh_receipt_status
-            _refresh_receipt_status(receipt)
+            refresh_receipt_paid(receipt)    # paid, balance and cash_state; never the status
 
             # No clamp: paying more than is owed shows as a negative balance for a person
             # to resolve, rather than being quietly absorbed (Axiom 6).

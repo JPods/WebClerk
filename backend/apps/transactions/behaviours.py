@@ -293,8 +293,38 @@ class ReceiptBehaviour(ModelBehaviour):
         take_ship_to(ctx)
 
     def after_save(self, ctx: HookContext) -> None:
+        # No message about the status (Bill, 2026-11-26: "Let's leave the status without a
+        # prompt or messages. Alice can watch these changes and coach users.")
+        release_when_received(ctx.obj)
         flag_over_receipts(ctx.obj)
         check_preview(ctx)
+
+
+#: The statuses a receipt leaves on its own when goods arrive: the one convert writes and none.
+#: A status the person set (approved, on_hold, ...) is theirs and stays.
+RELEASED_WHEN_RECEIVED_FROM = ('planned', '')
+
+
+def release_when_received(receipt) -> bool:
+    """A receipt that has received goods reads 'released' (Bill, 2026-11-26: "Released when
+    received"). Saving a receipt receives its goods (readme 108, R1), so 'planned' said nothing:
+    it was convert's default, and the first journalize froze it there. Its paid state is its
+    totals (paid, balance, cash_state), as an invoice's is, never its status."""
+    if not awaits_release(receipt):
+        return False
+    receipt.status = 'released'
+    receipt.save(update_fields=['status', 'dt_modified', 'version'])
+    return True
+
+
+def awaits_release(receipt) -> bool:
+    """Received goods, still planned or blank, not journalized: the one test the save hook and
+    the one-off move of older receipts (release_received_receipts) both ask."""
+    from apps.transactions.models import ReceiptLine
+    if (receipt.status or '') not in RELEASED_WHEN_RECEIVED_FROM or getattr(receipt, 'dt_journaled', 0):
+        return False
+    return any(float((q or {}).get('active') or 0) != 0 for q in
+               ReceiptLine.objects.filter(receipt_id=receipt.pk).values_list('quantity', flat=True))
 
 
 def flag_over_receipts(receipt) -> None:

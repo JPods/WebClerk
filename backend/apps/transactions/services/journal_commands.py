@@ -76,14 +76,17 @@ def journalize(ctx) -> Dict[str, Any]:
                       validate_status.incomplete_coaching(ctx.model_key, 'journalize', missing),
                       {'missing': missing})
     released_here = ''
-    if not validate_status.may_post(ctx.obj, ctx.model_key):   # released first (JOURNALIZE_FROM)
-        if not validate_status.releases_on_post(ctx.obj, ctx.model_key):
-            raise Refused(409, 'not_released',
-                          validate_status.not_released_coaching(ctx.model_key, ctx.obj.status),
-                          {'status': ctx.obj.status})
-        # A coached post, not a barrier (Bill, 2026-11-08): the post releases the document in the
-        # same act, through the save door as the person (its release gate and hooks run), and the
-        # answer names both acts. The GL never holds an entry for a document still marked planned.
+    # A coached post, not a barrier (Bill, 2026-11-08): a planned document releases in the same
+    # act as its post, through the save door as the person (its release gate and hooks run), and
+    # the answer names both acts. The GL never holds an entry for a document still marked planned.
+    # Checked before may_post: a receipt has no JOURNALIZE_FROM row (it posts whatever its status)
+    # and still releases when it posts planned (Bill, 2026-11-26).
+    if not validate_status.releases_on_post(ctx.obj, ctx.model_key) and \
+            not validate_status.may_post(ctx.obj, ctx.model_key):     # released first (JOURNALIZE_FROM)
+        raise Refused(409, 'not_released',
+                      validate_status.not_released_coaching(ctx.model_key, ctx.obj.status),
+                      {'status': ctx.obj.status})
+    if validate_status.releases_on_post(ctx.obj, ctx.model_key):
         from apps.core.services.save import save_record
         was = ctx.obj.status
         save_record(ctx.actor, {'id': ctx.obj.pk, 'status': 'released'}, model_key=ctx.model_key)

@@ -1404,7 +1404,7 @@ def get_cash_flight_scenario() -> Dict[str, Any]:
                 'total': float(b['total']),
                 'received': float(first),
                 'balance_due': float(balance),
-                'status': 'partially_paid',
+                'cash_state': 'partial',
             },
             'expected_gl': [],
             'explanation': (
@@ -1413,7 +1413,7 @@ def get_cash_flight_scenario() -> Dict[str, Any]:
                 '• Cash.available: $80 → $30 (decremented by apply amount)\n'
                 '• Invoice.totals.received: $0 → $50\n'
                 f"• Invoice.totals.balance: {m(b['total'])} → {m(balance)}\n"
-                '• Invoice status: "sent" → "partially_paid"\n'
+                '• Invoice.totals.cash_state: "open" → "partial" (the status does not move: paid is a figure)\n'
                 '• Ledger value_available: -$80 → -$30 (on next cash save)\n\n'
                 'What does NOT change:\n'
                 '• Cash.amount stays $80 (immutable — the original cash)\n'
@@ -1491,7 +1491,7 @@ def get_cash_flight_scenario() -> Dict[str, Any]:
                 'After this step:\n'
                 f"• Cash.available: $30 → {m(left_after_close)}\n"
                 f"• Invoice balance: {m(balance)} → $0\n"
-                '• Invoice status: "partially_paid" → "paid"\n'
+                '• Invoice.totals.cash_state: "partial" → "paid" (the status does not move)\n'
                 f"• {m(left_after_close)} remains unapplied on account"
             ),
             'action': 'apply_cash_to_invoice',
@@ -1504,7 +1504,7 @@ def get_cash_flight_scenario() -> Dict[str, Any]:
                 'total': float(b['total']),
                 'received': float(b['total']),
                 'balance_due': 0.00,
-                'status': 'paid',
+                'cash_state': 'paid',
             },
             'explanation': (
                 f"Invoice is fully paid. The {m(left_after_close)} remaining on the cash is unapplied.\n\n"

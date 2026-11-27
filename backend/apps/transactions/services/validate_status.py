@@ -213,7 +213,10 @@ CONVERT_REQUIRES = {'invoice': ('customer', 'terms', 'lines'), 'receipt': ('vend
 #: person's own stop and is still refused: take the hold off, then post. Cash completes itself when
 #: it posts, a receipt's gate is receiving, a workorder posts events: none needs a row here.
 JOURNALIZE_FROM = {'invoice': ('released', 'in_progress', 'complete', 'partially_paid', 'paid')}
-RELEASES_ON_POST = {'invoice': ('planned', 'signoff_request')}
+#: A receipt releases when it receives (behaviours.release_when_received); one posted before any
+#: line received releases in the same act, so the GL never holds a planned receipt (Bill,
+#: 2026-11-26). It has no JOURNALIZE_FROM row: a receipt the person put on hold still posts.
+RELEASES_ON_POST = {'invoice': ('planned', 'signoff_request'), 'receipt': ('planned', 'signoff_request', '')}
 _LINE_MODELS = {'quote': 'QuoteLine', 'order': 'OrderLine', 'invoice': 'InvoiceLine', 'purchase': 'PurchaseLine',
                 'receipt': 'ReceiptLine', 'workorder': 'WorkOrderLine', 'requisition': 'RequisitionLine'}
 
