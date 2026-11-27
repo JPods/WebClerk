@@ -15,6 +15,16 @@ from tests.utils import wcapi_save
 User = get_user_model()
 
 
+@pytest.fixture(autouse=True)
+def _access_rules_do_not_outlive_the_test():
+    """_viewer rewrites the customer definition and clears the cache; the database rolls
+    back at the end of the test and the cache does not, so the next test would read rules
+    that no longer exist (a superuser saw no customers)."""
+    yield
+    from apps.core.services import access
+    access.clear_cache()
+
+
 @pytest.mark.django_db
 @pytest.mark.parametrize(
     "model_name, org_type",
