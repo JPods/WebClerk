@@ -55,3 +55,16 @@ def test_the_defaults_walk_sits_between_first_sale_and_inventory():
     assert walk['steps'][6]['exit_point']['name']
     labels = [c['label'] for c in CONSOLES]
     assert labels[ids.index('defaults-walk')].startswith('4. ') and labels[ids.index('inventory')].startswith('5. ')
+
+
+def test_send_the_week_to_accounting_walks_five_screens_and_ends():
+    """Bill, 2026-11-27: users journalize at least weekly; the lesson posts the demo's latest week."""
+    from apps.core.consoles import WEEK_FROM, WEEK_TO
+    ids = [c['id'] for c in CONSOLES]
+    assert ids[-1] == 'week-to-accounting'             # appended: a plain seed keeps the others' sequences
+    scenario = SCENARIOS['week-to-accounting']()
+    steps = scenario['steps']
+    assert [s['step'] for s in steps] == [1, 2, 3, 4, 5]
+    assert WEEK_FROM in steps[0]['instruction'] and WEEK_TO in steps[0]['instruction']
+    assert 'exit_point' in steps[-1] and not any('exit_point' in s for s in steps[:-1])
+    assert {s['model'] for s in steps} == {'invoice', 'cash', 'receipt', 'gl_journal'}

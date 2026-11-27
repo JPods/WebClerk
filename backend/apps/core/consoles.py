@@ -54,6 +54,11 @@ CONSOLES: List[Dict[str, Any]] = [
      'description': 'Configure your company name, address, ship-to, logos, print defaults, receivables, and accounting — the foundation every document and report reads from'},
     {'id': 'admin-tools', 'label': 'Admin Tools & Field Behaviors', 'needs_item': False, 'first_model': '',
      'description': 'Run audit tools, review field behavior detection, Cmd+Shift+click to override — the incremental correction loop'},
+    # Appended, not inserted: a plain seed_consoles keeps the existing consoles' sequences.
+    {'id': 'week-to-accounting', 'label': '6. Send the week to accounting', 'needs_item': False, 'first_model': 'invoice',
+     'description': 'Journalize the week: post the week\'s invoices, cash and receipts from the Journalize reports, '
+                    'read what each post wrote, and find the rows by their period — at least weekly, because '
+                    'a month is too much to audit well'},
 ]
 
 
@@ -1561,6 +1566,160 @@ def get_cash_flight_scenario() -> Dict[str, Any]:
     }
 
 
+# ── Sim 6: Send the week to accounting ──────────────────────────────────
+
+#: The demo's latest week, the one the lesson posts (wc_demo, 2026-11-27: weeks 34-46 posted, 48 left).
+WEEK_FROM, WEEK_TO = '2026-11-23', '2026-11-29'
+
+
+def get_week_to_accounting_scenario() -> Dict[str, Any]:
+    """Send the week to accounting (Bill, 2026-11-27: users journalize regularly, at least weekly,
+    because a month is too much to audit well).
+
+    Walks the Journalize reports on wc_demo as it stands after its backlog was posted week by week:
+    the latest week is left for the learner. Every post here is real on the data set and tallies.
+    Steps say only what today's screens do.
+    """
+    steps = [
+        {
+            'step': 1,
+            'title': 'This week\'s invoices: ready and waiting',
+            'instruction': (
+                'Open Journalize from the sidebar (/journalize/invoice).\n\n'
+                f'Set the period: From {WEEK_FROM} to {WEEK_TO} (on your own books, the week just ended). '
+                'The line above the table names the period and counts what is ready and what waits.\n\n'
+                'Two rows are ready, each with a tick box and "Ready — N lines":\n'
+                '• 1064-inv\n'
+                '• 1065-inv\n\n'
+                'Now clear From and reload. An older invoice appears, with no tick box:\n'
+                '• 1021-inv — "An invoice cannot journalize without customer, terms, lines. '
+                'This one has no line."\n\n'
+                f'Set From back to {WEEK_FROM}.'
+            ),
+            'action': 'review_journalize',
+            'model': 'invoice',
+            'explanation': (
+                'The Journalize report lists what has not posted yet, oldest first. A ready row has the '
+                'entry it will post behind "Ready" (the real posting, rolled back). A waiting row says why, '
+                'in the command\'s own words, so what you fix on the record is what the report asked for.\n\n'
+                'The period chooses rows by the day each record was created. It does not change the date '
+                'anything posts with.\n\n'
+                'Why weekly: a week is small enough to read every row before you post it. A month is too '
+                'much to audit well (Bill, 2026-11-27).'
+            ),
+        },
+        {
+            'step': 2,
+            'title': 'Post the invoices, then read what the post wrote',
+            'instruction': (
+                'Tick 1064-inv and 1065-inv. Open each "Ready" to read its entry: Debits = Credits ✓. '
+                'Click Post 2 and confirm.\n\n'
+                'The answer names the run: "Run JB-invoice-…: 2 posted, 0 refused." Both rows leave the '
+                'report.\n\n'
+                'Open 1064-inv. In its comments, the process channel has a new entry: "Journalized: N GL '
+                'rows." with who posted it and when.\n\n'
+                'Now open GL Journal and search 1064-inv. Its rows are SJ-1064-inv. The list shows each '
+                'row\'s dt_document. Open one row and read two dates side by side:\n'
+                '• dt_document — the invoice\'s created date: the period the row belongs to\n'
+                '• dt_journaled — the moment you clicked Post'
+            ),
+            'action': 'journalize_invoice',
+            'model': 'invoice',
+            'expected_fields': {
+                'dt_journaled': 'set by the post',
+            },
+            'explanation': (
+                'Each ticked row posts through its own journalize command, so a refusal on one stops '
+                'nothing else. The run is recorded as a JournalBatch: who posted, which records, and each '
+                'row\'s answer.\n\n'
+                'A GL row carries two dates (Bill, 2026-11-27). dt_document is its period: the date of the '
+                'document it came from, so a month\'s rows are the month\'s business wherever you post them. '
+                'dt_journaled is when it was posted. Posting next Tuesday does not move last week\'s sales '
+                'into this week.\n\n'
+                'The invoice is now journalized: its lines and figures are locked. Its status still answers '
+                'to you and to payment: paid in full reads paid.'
+            ),
+        },
+        {
+            'step': 3,
+            'title': 'The same for cash and receipts',
+            'instruction': (
+                'Open /journalize/cash with the same period. Ready:\n'
+                '• 1060-cash\n'
+                '• 1061-cash\n'
+                'Tick both and Post 2.\n\n'
+                'Open /journalize/receipt with the same period. Ready: 29, 31, 32 (and 30, unless step 4 '
+                'uses it). Tick them and Post. Each posted receipt\'s process comment names its GL rows; '
+                'search RJ-29 in GL Journal to see its rows and their dt_document.\n\n'
+                'A row noted "completes with no GL entry" posts with no row: a zero cash, or a workorder '
+                'whose work carried no value. Posting it closes it.'
+            ),
+            'action': 'journalize_cash',
+            'model': 'cash',
+            'explanation': (
+                'Cash rows are CJ-<cash>, receipt rows RJ-<receipt>, invoice rows SJ-<invoice>. Every row '
+                'names its source, so any balance can be traced to the document that made it.\n\n'
+                'Post cash and receipts in the same week as the invoices they settle. The receivable and '
+                'payable then read the same week\'s story.'
+            ),
+        },
+        {
+            'step': 4,
+            'title': 'A receipt with charges no line carries',
+            'instruction': (
+                'On /journalize/receipt, a receipt whose charges no line carries shows, under "Ready", '
+                'its own box: "Post unallocated: freight $…". It is never ticked for you.\n\n'
+                '• Left unticked, Post refuses that row and names the amounts. Run Spread on the receipt '
+                'or type each line\'s share, reload, and it posts to inventory.\n'
+                '• Ticked, it posts the charge to the unallocated-receipt account, not to inventory. Its '
+                'process comment says "Unallocated charges posted on confirmation: freight …".\n\n'
+                'Choose one, then Post.'
+            ),
+            'action': 'journalize_receipt',
+            'model': 'receipt',
+            'explanation': (
+                'A charge typed on the receipt that no line carries is still owed. At journalize it has to '
+                'land somewhere. You choose: spread it onto the lines (it becomes inventory cost), or post '
+                'it as it stands, to its own account, noted (Bill, 2026-11-25: "It is forced into the '
+                'accountant\'s framework"). The tick box is the record that a person chose.'
+            ),
+        },
+        {
+            'step': 5,
+            'title': 'The week in the GL',
+            'instruction': (
+                'Open GL Journal. Its list shows each row\'s dt_document: the period it belongs to. Sort '
+                'by dt_document and find this week\'s rows: SJ-1064-inv, SJ-1065-inv, CJ-1060-cash, '
+                'CJ-1061-cash, RJ-29 to RJ-32.\n\n'
+                'Debits equal credits for each document. The week is in the books, in its own period.'
+            ),
+            'action': 'review_gl',
+            'model': 'gl_journal',
+            'exit_point': {
+                'name': 'The Week Is Sent',
+                'summary': (
+                    'You posted a week of invoices, cash and receipts from the Journalize reports, read what '
+                    'each post wrote on the document and in the GL, and found the rows by their period. Do '
+                    'it every week: a week is small enough to read before you post it.'
+                ),
+            },
+            'explanation': (
+                'Accounting reads the GL by period. A row\'s period is its document\'s date (dt_document), '
+                'not the day it posted. So a week posted late still lands in its own week, and a month '
+                'closes on the month\'s business.'
+            ),
+        },
+    ]
+    return {
+        'id': 'week-to-accounting',
+        'label': '6. Send the week to accounting',
+        'steps': steps,
+        'models_used': ['invoice', 'cash', 'receipt', 'gl_journal', 'journalbatch'],
+        'prerequisite': 'defaults-walk',
+        'next_sim': 'inventory',
+    }
+
+
 #: The scripted scenarios, by console id; a console with none lists its description only.
 SCENARIOS = {
     'first-customer': get_first_customer_scenario,
@@ -1569,6 +1728,7 @@ SCENARIOS = {
     'defaults-walk': get_defaults_walk_scenario,
     'inventory': get_flight_scenario,
     'cash-lifecycle': get_cash_flight_scenario,
+    'week-to-accounting': get_week_to_accounting_scenario,
 }
 
 
