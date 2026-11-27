@@ -1169,8 +1169,10 @@ def journalize_workorder(workorder_id: int) -> dict:
         # Work happened and nothing of value is left to post: it completes with no GL entry, as a
         # zero cash does, and the header is stamped. It used to answer "Nothing to journalize" and
         # leave the header open for good (wc_demo workorders 33, 43-47; FAULT 2026-11-27). A
-        # workorder with nothing done yet still waits.
-        if movements or _workorder_has_activity(wo, lines):
+        # workorder with nothing done yet still waits, and so does one already journalized or one
+        # whose work has posted before: only work that never carried a value completes this way.
+        if (not wo.dt_journaled and not posted
+                and (movements or _workorder_has_activity(wo, lines))):
             now = _now_ms()
             WorkOrder.objects.filter(pk=wo.pk).update(dt_journaled=now, dt_modified=now)
             return {'created': 0, 'status': COMPLETES_NO_ENTRIES, 'workorder_ida': wo.ida}

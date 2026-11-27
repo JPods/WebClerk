@@ -51,14 +51,14 @@ def test_paid_in_full_sets_paid_and_a_reversal_returns_it_to_released(buyer):
     assert _status(invoice) == ('released', 'open')
 
 
-@pytest.mark.parametrize('start', ['', 'planned', 'open'])
+@pytest.mark.parametrize('start', ['', 'open'])
 def test_a_status_the_system_set_becomes_paid(buyer, start):
     invoice = _invoice(buyer.pk, status=start)
     apply_cash_to_invoice(_cash(buyer.pk).pk, invoice.pk, Decimal('100.00'))
     assert _status(invoice) == ('paid', 'paid')
 
 
-@pytest.mark.parametrize('theirs', ['approved', 'on_hold', 'complete', 'partially_paid', 'sent'])
+@pytest.mark.parametrize('theirs', ['planned', 'approved', 'on_hold', 'complete', 'partially_paid', 'sent'])
 def test_a_status_the_person_set_stays_when_paid_and_when_reversed(buyer, theirs):
     invoice = _invoice(buyer.pk, status=theirs)
     paid = apply_cash_to_invoice(_cash(buyer.pk).pk, invoice.pk, Decimal('100.00'))

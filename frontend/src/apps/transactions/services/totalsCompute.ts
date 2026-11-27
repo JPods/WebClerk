@@ -290,7 +290,9 @@ export function computeTotals(header: any, lines: any[], model: string, ctx: Cal
   const adjusted = dec(ctx.settlement.adjusted);
   const settled = dec(ctx.settlement.settled);
   const balance = doc.total.sub(settled).sub(adjusted);
-  const state = model === 'invoice' ? cashState(doc.total.quantize(2), received.add(adjusted).quantize(2)) : '';
+  // A receipt's paid state too, as the server's compute_totals gives it (2026-11-27): paid + adjusted.
+  const state = model === 'invoice' ? cashState(doc.total.quantize(2), received.add(adjusted).quantize(2))
+    : model === 'receipt' ? cashState(doc.total.quantize(2), settled.add(adjusted).quantize(2)) : '';
 
   const totals: Record<string, number | string> = Object.fromEntries(Object.entries(doc).map(([k, v]) => [k, v.toNumber()]));
   Object.assign(totals, { margin_pc: marginPc, received: received.toNumber(), adjusted: adjusted.toNumber(),
