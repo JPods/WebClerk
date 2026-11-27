@@ -33491,6 +33491,7 @@
                 "division",
                 "batch_id",
                 "dt_journaled",
+                "dt_document",
                 "note"
               ],
               "create": false,
@@ -33520,6 +33521,7 @@
                 "division",
                 "batch_id",
                 "dt_journaled",
+                "dt_document",
                 "note"
               ],
               "view": "*",
@@ -33540,6 +33542,7 @@
                 "source_model",
                 "batch_id",
                 "dt_journaled",
+                "dt_document",
                 "note"
               ],
               "view": [],
@@ -33570,6 +33573,7 @@
                 "division",
                 "batch_id",
                 "dt_journaled",
+                "dt_document",
                 "note"
               ],
               "view": "*",
@@ -33611,6 +33615,7 @@
                 "division",
                 "batch_id",
                 "dt_journaled",
+                "dt_document",
                 "note"
               ],
               "create": false,
@@ -33728,6 +33733,10 @@
                   "label": "dt_journaled"
                 },
                 {
+                  "field": "dt_document",
+                  "label": "dt_document"
+                },
+                {
                   "field": "dt_last_used",
                   "label": "dt_last_used"
                 },
@@ -33838,6 +33847,11 @@
                           "type": "date",
                           "field": "dt_journaled",
                           "label": "dt_journaled"
+                        },
+                        {
+                          "type": "date",
+                          "field": "dt_document",
+                          "label": "dt_document"
                         },
                         {
                           "type": "date",
@@ -33955,6 +33969,12 @@
                   "visible": true
                 },
                 {
+                  "field": "dt_document",
+                  "label": "dt_document",
+                  "width": 90,
+                  "visible": true
+                },
+                {
                   "field": "comments.process",
                   "label": ".process",
                   "width": 200,
@@ -34035,6 +34055,12 @@
                   "field": "dt_created",
                   "width": 90,
                   "format": "date"
+                },
+                {
+                  "field": "dt_document",
+                  "width": 90,
+                  "format": "date",
+                  "label": "dt_document"
                 }
               ]
             }
@@ -34060,6 +34086,7 @@
                 "division",
                 "batch_id",
                 "dt_journaled",
+                "dt_document",
                 "note",
                 "comments",
                 "dt_created",
@@ -34275,6 +34302,10 @@
           "reversal_of": {
             "type": "number",
             "label": "reversal of"
+          },
+          "dt_document": {
+            "type": "timestamp",
+            "label": "dt document"
           }
         },
         "enrichment": {},
@@ -34397,7 +34428,8 @@
               "dt_modified",
               "dt_approved",
               "dt_last_used",
-              "dt_journaled"
+              "dt_journaled",
+              "dt_document"
             ]
           },
           {

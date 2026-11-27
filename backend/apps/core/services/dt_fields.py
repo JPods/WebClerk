@@ -13,7 +13,7 @@ any field that is in neither.
 
 SYSTEM_DT_FIELDS = frozenset({
     'dt_created', 'dt_modified',
-    'dt_journaled', 'dt_processed', 'dt_reconciliation', 'dt_recorded',
+    'dt_journaled', 'dt_document', 'dt_processed', 'dt_reconciliation', 'dt_recorded',
     'dt_approved', 'dt_acknowledged', 'dt_joined', 'dt_event',
     'dt_started', 'dt_finished', 'dt_updated',
     'dt_last_used', 'dt_last_heartbeat', 'dt_last_interaction', 'dt_last_updated',

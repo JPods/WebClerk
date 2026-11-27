@@ -96,13 +96,13 @@ def build_gl_journal_bundle(period: str) -> dict:
     end_ms = int(end.timestamp() * 1000)
 
     journals = GlJournal.objects.filter(
-        dt_created__gte=start_ms,
-        dt_created__lt=end_ms,
+        dt_document__gte=start_ms,
+        dt_document__lt=end_ms,
         is_active=True,
-    ).order_by('dt_created').values(
+    ).order_by('dt_document', 'id').values(
         'id', 'ida', 'account', 'debit', 'credit', 'type',
         'source_model', 'source_id', 'division', 'batch_id',
-        'note', 'dt_created',
+        'note', 'dt_created', 'dt_document', 'dt_journaled',
     )
 
     entries = []
@@ -128,6 +128,8 @@ def build_gl_journal_bundle(period: str) -> dict:
             'batch_id': j['batch_id'],
             'note': j['note'] or '',
             'dt_created': j['dt_created'],
+            'dt_document': j['dt_document'],
+            'dt_journaled': j['dt_journaled'],
         })
 
     return {

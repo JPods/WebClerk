@@ -150,7 +150,8 @@ def _compute_aging_for_source(source: str, as_of: date, contact_aging: Optional[
 def _verify_gl_balance(year: int, month: int) -> Dict[str, Any]:
     """Verify GL balance for a period: total debits must equal total credits.
 
-    Uses GlJournal entries created during the period.
+    Uses the GlJournal entries whose document belongs to the period (dt_document), whenever
+    they were posted.
     """
     try:
         GlJournal = dj_apps.get_model("accounts", "GlJournal")
@@ -158,10 +159,10 @@ def _verify_gl_balance(year: int, month: int) -> Dict[str, Any]:
         # Model may not exist yet
         return {"balanced": True, "total_debits": 0, "total_credits": 0, "difference": 0}
 
-    start, end = _period_range_ms(year, month)  # dt_created is UTC epoch ms (Axiom 14)
+    start, end = _period_range_ms(year, month)  # UTC epoch ms (Axiom 14)
 
     totals = GlJournal.objects.filter(
-        dt_created__gte=start, dt_created__lt=end
+        dt_document__gte=start, dt_document__lt=end
     ).aggregate(
         total_debits=Sum("debit"),
         total_credits=Sum("credit"),

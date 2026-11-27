@@ -41,6 +41,12 @@ class GlJournal(BaseModel):
     # Journalizing lock — 0 means editable, non-zero epoch ms means locked
     dt_journaled = models.BigIntegerField(default=0, db_index=True,
         help_text="UTC epoch ms when journalized. 0=editable, non-zero=locked.")
+    # The period this row belongs to: its document's dt_created (Bill, 2026-11-27: "dt_created
+    # will be best. It is simple. If they need to adjust it, an admin or superuser can adjust
+    # it."). dt_journaled says when it was posted; a document posted a week late still reports
+    # in its own month. A row with no document carries its own posting time.
+    dt_document = models.BigIntegerField(default=0, db_index=True,
+        help_text="UTC epoch ms of the source document's dt_created; the row's reporting period.")
     note = models.CharField(max_length=255, blank=True, default='')
 
     class Meta:
@@ -64,6 +70,8 @@ class GlJournal(BaseModel):
         # held 349 such rows on 2026-11-07, every posting ever made.
         if not self.dt_journaled:
             self.dt_journaled = int(time.time() * 1000)
+        if not self.dt_document:
+            self.dt_document = document_date(self.source_model, self.source_id) or self.dt_journaled
         if self._state.adding:
             self._log_posted()
         return super().save(*args, **kwargs)
@@ -80,3 +88,20 @@ class GlJournal(BaseModel):
         source = f'{self.source_model} {self.source_id}' if self.source_model else (self.source or 'journal')
         append_comment(self, 'process', f'Posted from {source}.', user=user, source='journalize',
                        data={'dt': self.dt_journaled})
+
+
+#: The models a GL row's source_model names. A reversal ('invoice_reversal') belongs to the
+#: same document, and so to the same period, as the rows it reverses.
+_DOCUMENTS = {'invoice': 'Invoice', 'cash': 'Cash', 'receipt': 'Receipt',
+              'workorder': 'WorkOrder', 'purchase': 'Purchase'}
+
+
+def document_date(source_model: str, source_id) -> int:
+    """The dt_created of the document a GL row came from, or 0 when it names none we know (a
+    manual entry, an adjustment). The one place the journal learns its period."""
+    name = _DOCUMENTS.get((source_model or '').removesuffix('_reversal'))
+    if not name or not source_id:
+        return 0
+    from django.apps import apps
+    return (apps.get_model('transactions', name).objects.filter(pk=source_id)
+            .values_list('dt_created', flat=True).first()) or 0

@@ -300,8 +300,8 @@ def budget_vs_actual(
     # Actual GL entries — use epoch range if available, else batch_id prefix
     if dt_start and dt_end:
         gl_q = GlJournal.objects.filter(
-            dt_journaled__gte=dt_start,
-            dt_journaled__lte=dt_end,
+            dt_document__gte=dt_start,
+            dt_document__lte=dt_end,
         )
     else:
         gl_q = GlJournal.objects.filter(
