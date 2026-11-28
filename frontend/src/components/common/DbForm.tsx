@@ -176,8 +176,10 @@ const DbFormView: React.FC<DbFormProps> = (props) => {
   };
 
   // ── Tabs: the layout's, plus the ones "+ link" adds; every one through the registry ──
-  // dt_created on every form, where the layout does not already show it (utils/baselineDate).
-  const sections = useMemo(() => sectionsWithBaselineDate(activeLayout), [activeLayout]);
+  // dt_created on every form, and dt_journaled where the record carries it, wherever the layout
+  // does not already show them (utils/baselineDate).
+  const hasJournalDate = !!form.data && 'dt_journaled' in form.data;
+  const sections = useMemo(() => sectionsWithBaselineDate(activeLayout, hasJournalDate), [activeLayout, hasJournalDate]);
   const tabsSection: any = sections.find((s: any) => s.type === 'tabs');
   const tabs: { label: string; content: string }[] = tabsSection?.tabs || [];
   const [extraTabs, setExtraTabs] = useState<string[]>([]);

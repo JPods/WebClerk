@@ -541,6 +541,11 @@
   padding: 3px 8px;
   font-size: calc(var(--db-font-size, 13px) - 2px);
   color: var(--db-text-muted);
+  /* Each toolbar is as wide as the pane under it (Bill, 2026-11-27): its icons wrap to a second
+     row before they push the other toolbar away from its pane. */
+  flex-wrap: wrap;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 /* ---------------------------------------------------------------------------

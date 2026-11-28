@@ -27,6 +27,16 @@ describe('form', () => {
     const out = sectionsWithBaselineDate({ sections: [{ type: 'tabs' }] });
     expect(out).toEqual([header([{ fields: [dt] }]), { type: 'tabs' }]);
   });
+
+  it('adds dt_journaled beside it when the record carries one and the layout does not name it', () => {
+    const journaled = { field: 'dt_journaled', label: 'dt_journaled' };
+    const out = sectionsWithBaselineDate({ sections: [header([{ fields: [{ field: 'ida' }] }])] }, true);
+    expect(out[0].columns[0].fields).toEqual([{ field: 'ida' }, dt, journaled]);
+    const named = { sections: [header([{ fields: [dt, { field: 'dt_journaled' }] }])] };
+    expect(sectionsWithBaselineDate(named, true)).toBe(named.sections);
+    const half = sectionsWithBaselineDate({ sections: [header([{ fields: [dt] }])] }, true);
+    expect(half[0].columns[0].fields).toEqual([dt, journaled]);
+  });
 });
 
 describe('list', () => {
