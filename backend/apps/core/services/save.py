@@ -236,18 +236,31 @@ SYSTEM_ONLY_FIELDS = frozenset({'id', 'uuid', 'ida', 'dt_created', 'dt_modified'
 #: What a superuser may name in _unlock (Bill, 2026-09-29): ida and the system dt_ stamps.
 #: dt_modified is restamped by every save, so unlocking it would change nothing.
 UNLOCKABLE_FIELDS = frozenset({'ida'}) | (SYSTEM_DT_FIELDS - {'dt_modified'})
-_UNLOCK_COACHING = 'A superuser can change it by naming it in _unlock with the change: {"_unlock": ["%s"]}.'
+_UNLOCK_COACHING = ' can change it by naming it in _unlock with the change: {"_unlock": ["%s"]}.'
 
 
-def _read_unlock(actor: Actor, data: dict) -> set:
-    """The locked fields this save may change. Only a superuser sends _unlock, and only for
-    fields that are locked; anything else is refused, never ignored."""
+#: Bill, 2026-11-27: a posting document's dt_created is its period in the ledger (GlJournal
+#: .dt_document), so "if they need to adjust it, an admin or superuser can adjust it". An admin
+#: unlocks this one field on these documents; every other locked field stays a superuser's.
+DOCUMENT_DATE_MODELS = frozenset({'invoice', 'cash', 'receipt', 'workorder'})
+
+
+def _admin_may_unlock(actor: Actor, names, model_key: str) -> bool:
+    from apps.core.services import access
+    return (set(names) == {'dt_created'} and access.is_admin(actor)
+            and _model_key(model_key) in DOCUMENT_DATE_MODELS)
+
+
+def _read_unlock(actor: Actor, data: dict, obj=None, model_key: str = '') -> set:
+    """The locked fields this save may change. A superuser sends _unlock for a locked field; an
+    admin sends it for dt_created on a posting document. Anything else is refused, never ignored."""
     names = (data or {}).get('_unlock') or []
     if not names:
         return set()
-    if not actor.is_superuser_login:
+    if not actor.is_superuser_login and not _admin_may_unlock(actor, names, model_key):
         raise Refused(403, 'unlock_superuser_only',
-                      'Only a superuser can unlock ida or a system date. Leave _unlock out.',
+                      'Only a superuser can unlock ida or a system date. An admin can unlock '
+                      'dt_created on an invoice, cash, receipt or workorder. Leave _unlock out.',
                       {'_unlock': names})
     unknown = sorted(n for n in names if n not in UNLOCKABLE_FIELDS)
     if unknown:
@@ -255,7 +268,21 @@ def _read_unlock(actor: Actor, data: dict) -> set:
                       f'{", ".join(unknown)}: not a locked field. _unlock names ida or a system dt_ '
                       f'field; every other field a superuser changes without it.',
                       {'unknown': unknown, 'unlockable': sorted(UNLOCKABLE_FIELDS)})
+    if ('dt_created' in names and obj is not None and getattr(obj, 'dt_journaled', 0)
+            and (_model_key(model_key) in DOCUMENT_DATE_MODELS)
+            and not _same_as_stored(obj, 'dt_created', data.get('dt_created', obj.dt_created))):
+        # Its journal rows carry this date as their period: changing it now would leave the
+        # ledger saying one month and the document another.
+        raise Refused(409, 'document_date_journalized',
+                      'This document is journalized, and its journal rows carry dt_created as '
+                      'their period. Unjournalize it with a reason, change the date, and '
+                      'journalize it again.', {'field': 'dt_created'})
     return set(names)
+
+
+def _model_key(model_key: str) -> str:
+    from apps.core.services import access
+    return access.model_key(model_key) or model_key
 
 
 def _identity_is_set(obj) -> bool:
@@ -298,7 +325,7 @@ def _enumerated_edit(actor: Actor, obj, model_key: str, data: dict):
     if model_key == 'contact' and getattr(obj, 'pk', None) and obj.pk == actor.user_id:
         allowed |= set(access.SELF_CONTACT_EDIT)
     admin = access.is_admin(actor)
-    unlocked = _read_unlock(actor, data)
+    unlocked = _read_unlock(actor, data, obj, model_key)
     # 2026-09-20 ignores a FIELD the role may not edit; 2026-09-25 refuses a key that is no
     # field at all. So a non-field passes through here and the assignment refuses it with
     # coaching — dropped here, a `data` wrapper hid its fields and the save failed as a 500.
@@ -323,8 +350,10 @@ def _enumerated_edit(actor: Actor, obj, model_key: str, data: dict):
             if key in unlocked:
                 kept[key] = value
             elif not _same_as_stored(obj, key, value):
+                who = ('An admin or a superuser' if key == 'dt_created'
+                       and _model_key(model_key) in DOCUMENT_DATE_MODELS else 'A superuser')
                 raise Refused(400, 'system_field',
-                              f'{system_dt_coaching(key)} {_UNLOCK_COACHING % key}', {'field': key})
+                              f'{system_dt_coaching(key)} {who}{_UNLOCK_COACHING % key}', {'field': key})
         elif key in ('ida', 'uuid') and key in field_names and _identity_is_set(obj):
             # A record's uuid never changes; its ida is locked and a superuser unlocks it (Bill,
             # 2026-09-29). A record being made has nothing to lock yet: an import, the admin and

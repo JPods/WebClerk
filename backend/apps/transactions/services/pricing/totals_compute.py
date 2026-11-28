@@ -697,12 +697,13 @@ def compute_totals(header, lines, model_name: str) -> Dict[str, Any]:
 # update_received — cash-side balance update (PJPV single engine)
 # ---------------------------------------------------------------------------
 
-#: The statuses a document holds by the system's hand, which payment may move on: none, released
-#: (release, receiving, release on post), open (what cash_door wrote on receipts until 2026-11-26).
-#: partially_paid is not here: the system never writes it, so a document holding it was set so by a
-#: person. Nor is planned: cash on a planned invoice is applied and coached, "not changed for them"
-#: (Bill, 2026-11-08; tests/test_add_cash); posting releases it, and paid follows from released.
-PAID_FROM = ('', 'released', 'open')
+#: The statuses payment in full may move on: none, planned, released (release, receiving, release
+#: on post), open (what cash_door wrote on receipts until 2026-11-26). Planned is here by Bill's
+#: ruling of 2026-11-27 ("paid"): full payment moves a planned invoice straight to paid. A part
+#: payment leaves it planned, and the add-cash coaching of 2026-11-08 still says so.
+#: partially_paid is not here: the system never writes it, so a document holding it was set so by
+#: a person, like approved, on_hold, sent and complete.
+PAID_FROM = ('', 'planned', 'released', 'open')
 
 
 def settle_paid_status(header, was_state: Optional[str], now_state: str) -> bool:

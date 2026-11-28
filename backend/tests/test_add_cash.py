@@ -194,19 +194,33 @@ def test_the_write_off_posts_to_the_loss_account_with_the_payment_sides_flipped(
 
 
 @pytest.mark.django_db
-def test_cash_on_a_planned_invoice_is_applied_and_coached(admin_client):
+def test_part_cash_on_a_planned_invoice_is_applied_and_coached(admin_client):
     """Bill, 2026-11-08: "Allow, we can prompt users to change status, but our job is to
     accurately account for values, not police user behaviors." No refusal; a message."""
+    inv = _invoice(100.0)
+    Invoice.objects.filter(pk=inv.pk).update(status='planned')
+    r = _post(admin_client, 'invoice', inv.pk, {'amount': '40.00', 'method': 'check'})
+    assert r.status_code == 200, r.content
+    d = _data(r)
+    assert d['applied']['state'] == 'applied'
+    assert d['balance'] == 60
+    assert any('planned' in m and 'release' in m for m in d['messages']), d['messages']
+    inv.refresh_from_db()
+    assert inv.status == 'planned', 'coached, not changed for them'
+
+
+@pytest.mark.django_db
+def test_full_cash_on_a_planned_invoice_sets_it_paid(admin_client):
+    """Bill, 2026-11-27: payment in full moves a planned invoice straight to paid. No message."""
     inv = _invoice(100.0)
     Invoice.objects.filter(pk=inv.pk).update(status='planned')
     r = _post(admin_client, 'invoice', inv.pk, {'amount': '100.00', 'method': 'check'})
     assert r.status_code == 200, r.content
     d = _data(r)
-    assert d['applied']['state'] == 'applied'
-    assert d['balance'] == 0
-    assert any('planned' in m and 'release' in m for m in d['messages']), d['messages']
+    assert d['applied']['state'] == 'applied' and d['balance'] == 0
+    assert d['messages'] == []
     inv.refresh_from_db()
-    assert inv.status == 'planned', 'coached, not changed for them'
+    assert inv.status == 'paid'
 
 
 @pytest.mark.django_db
