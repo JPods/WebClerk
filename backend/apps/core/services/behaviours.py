@@ -126,15 +126,6 @@ class SettingBehaviour(ModelBehaviour):
                       'to retire it with a migration.',
                       {'id': getattr(ctx.obj, 'pk', None), 'purpose': getattr(ctx.obj, 'purpose', '')})
 
-    def after_save(self, ctx: HookContext) -> None:
-        purpose = getattr(ctx.obj, 'purpose', '')
-        if purpose in ('wc:workbench_fields', 'wc:model'):
-            layout = ((ctx.obj.config or {}).get('layout') or {}) if isinstance(ctx.obj.config, dict) else {}
-            preview = [f.get('field') if isinstance(f, dict) else f
-                       for f in (layout.get('list') or [])[:4]] if isinstance(layout, dict) else '?'
-            console_logger.warning("[SAVE] SETTING SAVED id=%s parent_model=%s list=%s",
-                                   ctx.obj.id, getattr(ctx.obj, 'parent_model', '?'), preview)
-
 
 class LogBehaviour(ModelBehaviour):
     """A Log row is complete at birth (Bill, 2026-10-28: the browser writes through wcapi
