@@ -12,7 +12,7 @@ describe('form', () => {
     expect(out[0].columns[0].fields).toEqual([{ field: 'ida' }]);
     expect(out[0].columns[1].fields).toEqual([{ field: 'status' }, dt]);
     expect(out[1]).toEqual({ type: 'tabs' });
-    expect(layout.sections[0].columns[1].fields).toEqual([{ field: 'status' }]);   // the layout itself untouched
+    expect((layout.sections[0] as any).columns[1].fields).toEqual([{ field: 'status' }]);   // the layout itself untouched
   });
 
   it('leaves a form that names it, in its sections or a card its header draws, as it is', () => {
