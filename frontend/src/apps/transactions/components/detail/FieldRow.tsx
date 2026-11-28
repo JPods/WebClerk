@@ -213,13 +213,17 @@ export interface FieldRowProps {
   /** An org search that found nothing offers to make one from this record (a contact):
    *  the backend saves it populated and links it (Bill, 2026-10-16). */
   onCreateOrg?: (field: string, typed: string) => void;
+  /** A system stamp this login may change on this record (an admin or superuser's document
+   *  date before journalizing, utils/documentDate): a lock button opens the date widget. */
+  unlockable?: boolean;
 }
 
-const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, options, fieldType, lookup, lockedFields, help, onChange, onOpen, onCreateOrg }) => {
+const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, options, fieldType, lookup, lockedFields, help, onChange, onOpen, onCreateOrg, unlockable }) => {
   const fmt = fieldFormatting(useFormatting(), field);
   const [showHelp, setShowHelp] = useState(false);
   const [copyNote, setCopyNote] = useState<string | null>(null);
   const [refUnlocked, setRefUnlocked] = useState(false);
+  const [stampUnlocked, setStampUnlocked] = useState(false);
   const [orgQuery, setOrgQuery] = useState('');
   const [orgResults, setOrgResults] = useState<any[]>([]);
   const [orgSearching, setOrgSearching] = useState(false);
@@ -341,6 +345,22 @@ const FieldRow: React.FC<FieldRowProps> = ({ field, label, data, isEditing, opti
       )}
       {/* Record reference field — locked when populated, searchable when empty */}
       {(() => {
+        // A stamp this login may change: locked shows it with 🔒; unlocked is the date widget.
+        if (unlockable && isEditing) {
+          const Widget = WIDGETS[stampUnlocked ? 'date' : 'timestamp'];
+          return (
+            <div className="flex-1 flex items-center gap-1 min-w-0" data-wc={`unlockable-${field}`}>
+              <div className="flex-1 min-w-0">
+                <Widget name={field} value={val} onChange={(v: unknown) => onChange(field, v)}
+                  disabled={!stampUnlocked} record={data} />
+              </div>
+              <button type="button" className="db-font-xs px-1 text-slate-400 hover:text-blue-500"
+                data-wc={stampUnlocked ? `lock-${field}` : `unlock-${field}`}
+                title={stampUnlocked ? 'Lock (keep this date)' : 'Unlock to change (admin, before journalizing)'}
+                onClick={() => setStampUnlocked(!stampUnlocked)}>{stampUnlocked ? '🔓' : '🔒'}</button>
+            </div>
+          );
+        }
         if (onOpen) {
           const shown = typeof displayVal === 'string' && displayVal !== '—' ? displayVal.split('|')[0] : '';
           return (

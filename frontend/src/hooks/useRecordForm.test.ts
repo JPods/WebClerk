@@ -185,4 +185,32 @@ describe('useRecordForm', () => {
       refs: { links: { phone: [{ id: 5, number: '555-1212' }] } } }, contactLayout);
     expect(result.current.currentData.phone).toBe('555-1212');
   });
+  // ── A document's date: admin or superuser, before journalizing (Bill, 2026-11-27) ──
+  const invoiceHeader: any = { model: 'invoice', family: 'sell', sections: [{ type: 'header', columns: [] }] };
+
+  it('sends a changed document date as epoch ms with its _unlock signal', async () => {
+    const { result } = await load('invoice', { id: 30, version: 2, dt_created: 1_791_000_000_000, status: 'open' }, invoiceHeader);
+    act(() => result.current.startEdit());
+    act(() => result.current.setField('dt_created', '2026-10-01T04:59:59.999Z'));
+    await act(() => result.current.save());
+    expect(api.saveRecord).toHaveBeenCalledWith('invoice',
+      { id: 30, version: 2, dt_created: Date.parse('2026-10-01T04:59:59.999Z'), _unlock: ['dt_created'] });
+  });
+
+  it('sends no _unlock when the document date did not change', async () => {
+    const { result } = await load('invoice', { id: 31, version: 2, dt_created: 1_791_000_000_000, status: 'open' }, invoiceHeader);
+    act(() => result.current.startEdit());
+    act(() => result.current.setField('status', 'released'));
+    await act(() => result.current.save());
+    expect(api.saveRecord).toHaveBeenCalledWith('invoice', { id: 31, version: 2, status: 'released' });
+  });
+
+  it("shows the server's refusal of a journalized document's date as it comes", async () => {
+    const { result } = await load('invoice', { id: 32, version: 2, dt_created: 1_791_000_000_000, status: 'open' }, invoiceHeader);
+    api.saveRecord.mockRejectedValue({ response: { status: 409, data: { message: 'Unjournalize, change the date, journalize again.' } } });
+    act(() => result.current.startEdit());
+    act(() => result.current.setField('dt_created', '2026-10-01T04:59:59.999Z'));
+    await act(() => result.current.save());
+    expect(toasts[toasts.length - 1]).toEqual({ message: 'Save failed: Unjournalize, change the date, journalize again.', type: 'error' });
+  });
 });

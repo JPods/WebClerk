@@ -46,6 +46,8 @@ export interface HeaderRendererProps {
   opensField?: (field: string) => boolean;
   /** A contact whose org search finds nothing makes the org (Bill, 2026-10-16). */
   onCreateOrg?: (field: string, typed: string) => void | Promise<void>;
+  /** System stamps this login may unlock on this record (utils/documentDate). */
+  unlockFields?: string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -58,7 +60,7 @@ export function columnTemplate(columns: any[]): string {
   return (columns || []).map((c: any) => `minmax(0, ${Number(c?.weight) > 0 ? Number(c.weight) : 1}fr)`).join(' ');
 }
 
-const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditing, modelName, onChange, custSearch, onPickShipTo, cardSpecs, behaviors = {}, onOpenField, opensField, onCreateOrg }) => {
+const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditing, modelName, onChange, custSearch, onPickShipTo, cardSpecs, behaviors = {}, onOpenField, opensField, onCreateOrg, unlockFields = [] }) => {
   const opens = opensField ?? ((field: string) => !!communicationField(modelName, field));
 
   // ── Card-based layout (new: header.cards references named card specs) ──
@@ -219,6 +221,7 @@ const HeaderRenderer: React.FC<HeaderRendererProps> = ({ section, data, isEditin
                   onChange={onChange}
                   onOpen={onOpenField && opens(f.field) ? (el: HTMLElement) => onOpenField(f.field, el) : undefined}
                   onCreateOrg={onCreateOrg}
+                  unlockable={unlockFields.includes(f.field)}
                 />
               );
             })}

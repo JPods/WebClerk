@@ -33,6 +33,7 @@ import { selectCompanyInfo, selectLogos } from '@/store/slices/companySlice';
 import { convertedTarget, type ConvertedTarget } from '@/apps/transactions/utils/convertedTarget';
 import { useCustomerSearch, partyOf } from '@/apps/transactions/components/detail/CustomerSearch';
 import HeaderRenderer from '@/apps/transactions/components/detail/HeaderRenderer';
+import { unlockableFields } from '@/utils/documentDate';
 import LineCardRenderer from '@/apps/transactions/components/detail/LineCardRenderer';
 import PanelSectionRenderer from '@/apps/transactions/components/detail/PanelSectionRenderer';
 import JsonSectionRenderer from '@/apps/transactions/components/detail/JsonSectionRenderer';
@@ -372,6 +373,7 @@ const DbFormView: React.FC<DbFormProps> = (props) => {
                   onOpenField={openField}
                   opensField={opensField}
                   onCreateOrg={modelName === 'contact' ? createOrg : undefined}
+                  unlockFields={unlockableFields(authUser, modelName, data)}
                   onPickShipTo={form.withLines ? form.pickShipTo : undefined}
                   custSearch={form.withLines ? {
                     party: custSearch.party, open: custSearch.open, query: custSearch.query,

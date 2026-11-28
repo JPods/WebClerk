@@ -22,6 +22,7 @@ import { useEditHold, type HeldBy } from '@/hooks/useEditHold';
 import type { DetailLayout } from '@/hooks/useDetailLayout';
 import { useFormDraft, type DraftGetter } from '@/hooks/useFormDraft';
 import { changedFields } from '@/utils/changedFields';
+import { withDocumentDateUnlock } from '@/utils/documentDate';
 import { contactsToSend } from '@/apps/transactions/components/panels/LineContactsPanel';
 import { applyDerived } from '@/utils/derivedFields';
 import { checkJsonLimits, describeJsonLimitProblems, jsonLimitsLoaded, loadJsonLimits } from '@/utils/jsonLimits';
@@ -335,7 +336,8 @@ export function useRecordForm(opts: RecordFormOptions) {
       const linesToSend = dirtyLines.map((l: any) => lineRefsToSend(isPersistedLine(l)
         ? { ...changedFields(loadedById.get(l.id), l), _dirty: true }
         : withoutEmpties(l), loadedById.get(l.id)));
-      const header: Record<string, any> = changedFields(data, editedHeader);
+      // A changed document date carries its unlock signal (admin or superuser; the server decides).
+      const header: Record<string, any> = withDocumentDateUnlock(modelName, changedFields(data, editedHeader));
       // The figures the person saw: the server compares them with what it saved and says so.
       // Not on the party pick: its save reprices the lines, so the figures change by right.
       if (preview && opts?.report !== false) header._totals_preview = Object.fromEntries(PREVIEW_REPORT_KEYS.map((k) => [k, preview.totals[k]]));
