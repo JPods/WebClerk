@@ -6,6 +6,7 @@
  *
  * Reusable — any page that needs a model browser can call this hook.
  */
+import { BASELINE_DATE, listWithBaselineDate } from '@/utils/baselineDate';
 import { SHIPPED_FORMATTING, companyFormatting, formattingOf, type Formatting } from '@/utils/formatting';
 import { fieldBehaviorsOf } from '@/utils/fieldBehaviorsOf';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -452,9 +453,10 @@ export function useDataBrowser(isAuthenticated: boolean, defaultModel?: string, 
 
   // Raw field specs (may be strings or FieldSpec objects)
   const listFieldSpecs = useMemo((): FieldSpec[] => {
-    if (workbenchSetting?.list?.length) return toFieldSpecs(workbenchSetting.list, schemaFormats);
-    const fallback = allFields.filter((f) => f !== 'id' && f !== 'uuid' && f !== 'version' && f !== 'is_archived' && f !== 'security_level' && f !== 'search_vector').slice(0, 6);
-    return toFieldSpecs(fallback.length ? fallback : ['ida'], schemaFormats);
+    // dt_created after the stored columns when they do not name it (Bill 2026-11-27, utils/baselineDate).
+    if (workbenchSetting?.list?.length) return toFieldSpecs(listWithBaselineDate(workbenchSetting.list, allFields), schemaFormats);
+    const fallback = allFields.filter((f) => f !== 'id' && f !== 'uuid' && f !== 'version' && f !== 'is_archived' && f !== 'security_level' && f !== 'search_vector' && f !== BASELINE_DATE).slice(0, 6);
+    return toFieldSpecs(listWithBaselineDate(fallback.length ? fallback : ['ida'], allFields), schemaFormats);
   }, [workbenchSetting?.list, allFields, schemaFormats]);
 
   const detailFieldSpecs = useMemo((): FieldSpec[] => {

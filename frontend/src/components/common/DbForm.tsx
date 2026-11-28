@@ -34,6 +34,7 @@ import { convertedTarget, type ConvertedTarget } from '@/apps/transactions/utils
 import { useCustomerSearch, partyOf } from '@/apps/transactions/components/detail/CustomerSearch';
 import HeaderRenderer from '@/apps/transactions/components/detail/HeaderRenderer';
 import { unlockableFields } from '@/utils/documentDate';
+import { sectionsWithBaselineDate } from '@/utils/baselineDate';
 import LineCardRenderer from '@/apps/transactions/components/detail/LineCardRenderer';
 import PanelSectionRenderer from '@/apps/transactions/components/detail/PanelSectionRenderer';
 import JsonSectionRenderer from '@/apps/transactions/components/detail/JsonSectionRenderer';
@@ -175,7 +176,8 @@ const DbFormView: React.FC<DbFormProps> = (props) => {
   };
 
   // ── Tabs: the layout's, plus the ones "+ link" adds; every one through the registry ──
-  const sections = activeLayout?.sections || [];
+  // dt_created on every form, where the layout does not already show it (utils/baselineDate).
+  const sections = useMemo(() => sectionsWithBaselineDate(activeLayout), [activeLayout]);
   const tabsSection: any = sections.find((s: any) => s.type === 'tabs');
   const tabs: { label: string; content: string }[] = tabsSection?.tabs || [];
   const [extraTabs, setExtraTabs] = useState<string[]>([]);
